@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Product } from '../Product';
+import { Product } from '../domain';
 
-export const ShoppingListSearchBar = ({
+export default function ShoppingListSearchBar({
   onSearch,
-}: {
+}: Readonly<{
   onSearch: (value: Product) => void;
-}) => {
+}>) {
   const [inputValue, setInputValue] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -79,17 +79,17 @@ export const ShoppingListSearchBar = ({
       </button>
     </div>
   );
-};
+}
 
 const ShoppingListSuggestions = ({
   products,
   onSuggestionSelected,
   resetSearch,
-}: {
+}: Readonly<{
   products: Product[];
   onSuggestionSelected: (value: Product) => void;
   resetSearch: () => void;
-}) => {
+}>) => {
   const MaxAmountOfSuggestionsShown = 5;
 
   const onChange = (product: Product) => {
@@ -128,28 +128,23 @@ const ShoppingListSuggestions = ({
 const ShoppingListSuggestionItem = ({
   product,
   onItemSelected,
-}: {
+}: Readonly<{
   product: Product;
   onItemSelected: (value: Product) => void;
-}) => {
+}>) => {
   return (
     <option
       key={product.name}
       tabIndex={0}
       onMouseDown={() => onItemSelected(product)}
-      onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          onItemSelected(product);
-        }
-      }}
       style={{
         borderBottom: '1px solid rgba(0,0,0,0.04)',
         cursor: 'pointer',
         padding: '8px 12px',
       }}
-      className='hover:bg-cyan-400/10 cursor-pointer px-3 py-2 border-b-gray-200'
+      className="hover:bg-cyan-400/10 cursor-pointer px-3 py-2 border-b-gray-200"
     >
-      <strong>{product.name}</strong>
+      {product.name}
       {product.price !== undefined && product.price !== null
         ? ` — ${product.price} €`
         : ''}

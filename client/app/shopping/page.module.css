@@ -1,22 +1,15 @@
-.shopping-list table {
-  width: 100%;
+.shopping-list {
+  text-align: center;
 
-  thead {
-    border-bottom: 2px solid black;
-    text-align: center;
+  table {
+    width: 100%;
+
+    thead {
+      border-bottom: 2px solid black;
+    }
+
+    tfoot {
+      border-top: 2px solid black;
+    }
   }
-
-  tfoot {
-    border-top: 2px solid black;
-  }
-
-  td {
-    text-align: center;
-  }
-}
-
-.shopping-list-search-bar {
-  align-items: center;
-  display: flex;
-  justify-content: center;
 }

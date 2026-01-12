@@ -1,10 +1,10 @@
-import { Product } from '../Product';
+import { Product, ShoppingList } from '../domain';
 
 export const ShoppingListTable = ({
-  products,
+  shoppingList,
   onToggle,
 }: {
-  products: Product[];
+  shoppingList: ShoppingList;
   onToggle: (name: string) => void;
 }) => {
   return (
@@ -13,7 +13,7 @@ export const ShoppingListTable = ({
         <ShoppingListHeader />
       </thead>
       <tbody>
-        {products.map(product => (
+        {shoppingList.products.map(product => (
           <ShoppingListProductRow
             key={product.name}
             product={product}
@@ -22,7 +22,7 @@ export const ShoppingListTable = ({
         ))}
       </tbody>
       <tfoot>
-        <ShoppingListTotalRow products={products} />
+        <ShoppingListTotalRow shoppingList={shoppingList} />
       </tfoot>
     </table>
   );
@@ -52,18 +52,18 @@ const ShoppingListProductRow = ({
   );
 };
 
-const ShoppingListTotalRow = ({ products }: { products: Product[] }) => {
-  const totalAmount = products
-    .filter(product => product.checked && product.price !== undefined)
-    .reduce((total, product) => total + (product.price ?? 0), 0);
-
+const ShoppingListTotalRow = ({
+  shoppingList,
+}: {
+  shoppingList: ShoppingList;
+}) => {
   return (
     <tr>
       <td>
         <strong>Total</strong>
       </td>
       <td></td>
-      <td>{totalAmount} €</td>
+      <td>{shoppingList.calculateTotal()} €</td>
     </tr>
   );
 };
