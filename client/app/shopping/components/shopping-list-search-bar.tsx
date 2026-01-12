@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Product } from '../domain';
+import { useEffect, useState } from 'react';
+import { Product } from '@/lib/domain';
+import FakeApiService from '@/infrastructure/fake-api-service';
 
 export default function ShoppingListSearchBar({
   onSearch,
@@ -10,6 +11,13 @@ export default function ShoppingListSearchBar({
 }>) {
   const [inputValue, setInputValue] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [registeredProducts, setRegisteredProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    new FakeApiService()
+      .getRegisteredProducts()
+      .then(products => setRegisteredProducts(products));
+  }, []);
 
   const resetSearch = () => {
     setInputValue('');
@@ -151,9 +159,3 @@ const ShoppingListSuggestionItem = ({
     </option>
   );
 };
-
-const registeredProducts: Product[] = [
-  { checked: false, name: 'Manzanas', price: 2, quantity: '1 paquete' },
-  { checked: false, name: 'Pan', price: 1.5, quantity: '2 barras' },
-  { checked: false, name: 'Leche', quantity: '1 litro' },
-];

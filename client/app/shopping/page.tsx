@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styles from './page.module.css';
-import { Product, ShoppingList } from './domain';
+import { Product, ShoppingList } from '@/lib/domain';
 import { ShoppingListTable } from './components/shopping-list-table';
 import ShoppingListSearchBar from './components/shopping-list-search-bar';
 import ProductModalForm from './components/product-modal-form';
+import FakeApiService from '@/infrastructure/fake-api-service';
 
 const StyleClasses = {
   SearchBar: 'shopping-list-search-bar',
@@ -13,8 +14,14 @@ const StyleClasses = {
 };
 
 export default function Home() {
-  const [products, setProducts] = useState(sampleProducts);
+  const [products, setProducts] = useState<Product[]>([]);
   const [productToAdd, setProductToAdd] = useState<Product | undefined>();
+
+  useEffect(() => {
+    new FakeApiService()
+      .getCurrentShoppingList()
+      .then(shoppingList => setProducts(shoppingList.products));
+  }, [setProducts]);
 
   const shoppingList = new ShoppingList(products);
 
@@ -55,9 +62,3 @@ export default function Home() {
     </div>
   );
 }
-
-const sampleProducts: Product[] = [
-  { checked: false, name: 'Naranjas', price: 2, quantity: '1 paquete' },
-  { checked: true, name: 'Pan dulce', price: 1.5, quantity: '2 barras' },
-  { checked: false, name: 'Leche entera', quantity: '1 litro' },
-];

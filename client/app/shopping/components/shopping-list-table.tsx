@@ -1,12 +1,12 @@
-import { Product, ShoppingList } from '../domain';
+import { Product, ShoppingList } from '@/lib/domain';
 
 export const ShoppingListTable = ({
   shoppingList,
   onToggle,
-}: {
+}: Readonly<{
   shoppingList: ShoppingList;
   onToggle: (name: string) => void;
-}) => {
+}>) => {
   return (
     <table>
       <thead>
@@ -31,10 +31,10 @@ export const ShoppingListTable = ({
 const ShoppingListProductRow = ({
   product,
   onToggle,
-}: {
+}: Readonly<{
   product: Product;
   onToggle: (name: string) => void;
-}) => {
+}>) => {
   const price = product.price ? `${product.price} €` : 'N/A';
   return (
     <tr>
@@ -54,9 +54,9 @@ const ShoppingListProductRow = ({
 
 const ShoppingListTotalRow = ({
   shoppingList,
-}: {
+}: Readonly<{
   shoppingList: ShoppingList;
-}) => {
+}>) => {
   return (
     <tr>
       <td>

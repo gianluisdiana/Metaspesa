@@ -1,18 +1,18 @@
 'use client';
 
-import { Product } from '../domain';
+import { Product } from '@/lib/domain';
 
 export default function ProductModalForm({
   product,
   editProduct,
   confirm,
   close,
-}: {
+}: Readonly<{
   close: () => void;
   product: Product;
   confirm: (product: Product) => void;
   editProduct: (product: Product) => void;
-}) {
+}>) {
   return (
     <dialog
       open
@@ -51,11 +51,11 @@ const ProductInputField = <T extends string | number>({
   label,
   value,
   setValue,
-}: {
+}: Readonly<{
   label: string;
   value: T;
   setValue: (value: T) => void;
-}) => {
+}>) => {
   const inputType = typeof value === 'number' ? 'number' : 'text';
   const inputConverter = typeof value === 'number' ? Number : String;
 
@@ -78,10 +78,10 @@ const ProductInputField = <T extends string | number>({
 const ProductModalMenu = ({
   close,
   confirm,
-}: {
+}: Readonly<{
   close: () => void;
   confirm: () => void;
-}) => {
+}>) => {
   return (
     <menu className="flex justify-end gap-4 mr-5">
       <button type="reset" className="cursor-pointer" onClick={close}>
