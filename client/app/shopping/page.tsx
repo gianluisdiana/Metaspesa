@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import styles from './page.module.css';
 import { Product, ShoppingList } from '@/lib/domain';
-import { ShoppingListTable } from './components/shopping-list-table';
+import ShoppingListTable from './components/shopping-list-table';
 import ShoppingListSearchBar from './components/shopping-list-search-bar';
 import ProductModalForm from './components/product-modal-form';
 import FakeApiService from '@/infrastructure/fake-api-service';
@@ -27,7 +27,11 @@ export default function Home() {
 
   const toggleChecked = (name: string) => {
     setProducts(prev =>
-      prev.map(p => (p.name === name ? { ...p, checked: !p.checked } : p)),
+      prev.map(p =>
+        p.name === name
+          ? new Product(p.name, p.quantity, p.price, !p.checked)
+          : p,
+      ),
     );
   };
 
@@ -49,10 +53,11 @@ export default function Home() {
         />
       </main>
 
-      {productToAdd && !shoppingList.contains(productToAdd) && (
+      {productToAdd && (
         <div className="fixed top-0 left-0 w-full h-full bg-black/30 flex justify-center items-center">
           <ProductModalForm
             product={productToAdd}
+            shoppingList={shoppingList}
             confirm={addProduct}
             close={() => setProductToAdd(undefined)}
             editProduct={setProductToAdd}

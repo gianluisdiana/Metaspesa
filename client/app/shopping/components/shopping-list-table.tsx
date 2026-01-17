@@ -1,12 +1,12 @@
 import { Product, ShoppingList } from '@/lib/domain';
 
-export const ShoppingListTable = ({
+export default function ShoppingListTable ({
   shoppingList,
   onToggle,
 }: Readonly<{
   shoppingList: ShoppingList;
   onToggle: (name: string) => void;
-}>) => {
+}>) {
   return (
     <table>
       <thead>

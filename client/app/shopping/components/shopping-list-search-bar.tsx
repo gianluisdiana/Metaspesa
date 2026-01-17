@@ -24,32 +24,19 @@ export default function ShoppingListSearchBar({
     setShowSuggestions(false);
   };
 
-  const defaultProduct: Product = {
-    checked: false,
-    name: '',
-    price: 0,
-    quantity: '',
-  };
-
   const filteredSuggestions = registeredProducts.filter(p =>
     p.name.toLowerCase().includes(inputValue.toLowerCase()),
   );
 
   return (
-    <div>
-      <div
-        style={{
-          display: 'inline-block',
-          paddingRight: 8,
-          position: 'relative',
-        }}
-      >
+    <section>
+      <article className="relative p-2 inline-block">
         <input
           type="text"
           placeholder="Añadir producto..."
           onKeyDown={e => {
             if (e.key === 'Enter') {
-              onSearch({ ...defaultProduct, name: inputValue });
+              onSearch(new Product(inputValue));
               resetSearch();
             }
           }}
@@ -60,67 +47,47 @@ export default function ShoppingListSearchBar({
           onBlur={() => setShowSuggestions(false)}
           onFocus={() => setShowSuggestions(true)}
           value={inputValue}
+          className="border rounded border-gray-300 p-2"
         />
 
         {showSuggestions && filteredSuggestions.length > 0 && (
           <ShoppingListSuggestions
             key="suggestions-list"
             products={filteredSuggestions}
-            onSuggestionSelected={onSearch}
-            resetSearch={resetSearch}
+            onChange={(product: Product) => {
+              onSearch(product);
+              resetSearch();
+            }}
           />
         )}
-      </div>
+      </article>
 
       <button
         onClick={() => {
-          onSearch({ ...defaultProduct, name: inputValue });
+          onSearch(new Product(inputValue));
           resetSearch();
         }}
-        style={{
-          border: '1px solid #ccc',
-          borderRadius: '4px',
-          cursor: 'pointer',
-        }}
+        className="border border-gray-300 rounded cursor-pointer p-2"
       >
         Añadir
       </button>
-    </div>
+    </section>
   );
 }
 
 const ShoppingListSuggestions = ({
   products,
-  onSuggestionSelected,
-  resetSearch,
+  onChange,
 }: Readonly<{
   products: Product[];
-  onSuggestionSelected: (value: Product) => void;
-  resetSearch: () => void;
+  onChange: (value: Product) => void;
 }>) => {
   const MaxAmountOfSuggestionsShown = 5;
-
-  const onChange = (product: Product) => {
-    onSuggestionSelected(product);
-    resetSearch();
-  };
 
   return (
     <div
       aria-label="Sugerencias de productos"
-      style={{
-        background: 'white',
-        border: '1px solid #ccc',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-        left: 0,
-        marginTop: 6,
-        maxHeight: 200,
-        overflowY: 'auto',
-        position: 'absolute',
-        right: 0,
-        top: '100%',
-        zIndex: 10,
-      }}
+      className="bg-white border-gray-200 left-0 right-0 overflow-y-auto absolute top-full mt-1 z-10 shadow"
     >
       {products.slice(0, MaxAmountOfSuggestionsShown).map(product => (
         <ShoppingListSuggestionItem

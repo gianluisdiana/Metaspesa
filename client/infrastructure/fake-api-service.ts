@@ -5,18 +5,20 @@ export default class FakeApiService implements ApiService {
   getCurrentShoppingList(): Promise<ShoppingList> {
     return Promise.resolve(
       new ShoppingList([
-        { checked: false, name: 'Naranjas', price: 2, quantity: '1 paquete' },
-        { checked: true, name: 'Pan dulce', price: 1.5 },
-        { checked: false, name: 'Leche entera', quantity: '1 litro' },
+        new Product('Naranjas', '1 paquete', 2),
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+        new Product('Pan dulce', undefined, 1.5, true),
+        new Product('Leche entera', '1 litro'),
       ]),
     );
   }
 
   getRegisteredProducts(): Promise<Product[]> {
     return Promise.resolve([
-      { checked: false, name: 'Manzanas', price: 2, quantity: '1 paquete' },
-      { checked: false, name: 'Pan', price: 1.5, quantity: '2 barras' },
-      { checked: false, name: 'Leche', quantity: '1 litro' },
+      new Product('Manzanas', '1 paquete', 2),
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+      new Product('Pan', '2 barras', 1.5),
+      new Product('Leche', '1 litro'),
     ]);
   }
 }
