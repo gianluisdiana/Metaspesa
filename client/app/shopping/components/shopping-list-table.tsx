@@ -1,6 +1,6 @@
 import { Product, ShoppingList } from '@/lib/domain';
 
-export default function ShoppingListTable ({
+export default function ShoppingListTable({
   shoppingList,
   onToggle,
 }: Readonly<{
@@ -26,7 +26,7 @@ export default function ShoppingListTable ({
       </tfoot>
     </table>
   );
-};
+}
 
 const ShoppingListProductRow = ({
   product,

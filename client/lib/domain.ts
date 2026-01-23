@@ -20,7 +20,10 @@ export class Product {
 }
 
 export class ShoppingList {
-  public constructor(public products: Product[]) {}
+  public constructor(
+    public products: Product[],
+    public name: string | undefined,
+  ) {}
 
   public calculateTotal(): number {
     return this.products

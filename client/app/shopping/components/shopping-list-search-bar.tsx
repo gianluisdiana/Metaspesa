@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Product } from '@/lib/domain';
+
 import FakeApiService from '@/infrastructure/fake-api-service';
+import { Product } from '@/lib/domain';
 
 export default function ShoppingListSearchBar({
   onSearch,

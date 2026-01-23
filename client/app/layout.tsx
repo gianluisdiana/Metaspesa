@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+
 import './globals.css';
 
 const geistSans = Geist({
@@ -12,8 +13,7 @@ const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
 });
 
-export const metadata: Metadata = {
-};
+export const metadata: Metadata = {};
 
 export default function RootLayout({
   children,

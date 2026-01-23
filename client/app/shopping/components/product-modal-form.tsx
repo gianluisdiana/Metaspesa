@@ -1,6 +1,8 @@
 'use client';
 
+import BooleanModalForm from '@/app/components/boolean-modal-form';
 import React, { useRef, useState } from 'react';
+
 import { Product, ShoppingList } from '@/lib/domain';
 
 export default function ProductModalForm({
@@ -55,81 +57,73 @@ export default function ProductModalForm({
   };
 
   return (
-    <dialog
-      open
-      className="w-96 p-4 rounded bg-white left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2"
-    >
-      <form method="dialog">
-        <section className="flex flex-col items-center">
-          <input
-            ref={nameRef}
-            type="text"
-            value={product.name}
-            onChange={e =>
-              editProduct(
-                new Product(e.target.value, product.quantity, product.price),
-              )
-            }
-            placeholder="Nombre del producto"
-            required
-            aria-invalid={!!errors.name}
-            aria-describedby={errors.name ? 'name-error' : undefined}
-            className={`font-bold text-2xl mb-2 text-center border rounded ${
-              errors.name ? 'border-red-600' : 'border-gray-300'
-            }`}
-          />
-          {errors.name && (
-            <div
-              id="name-error"
-              role="alert"
-              style={{ color: '#dc2626', marginBottom: 8 }}
-            >
-              {errors.name}
-            </div>
-          )}
-        </section>
+    <BooleanModalForm close={close} confirm={handleSubmit}>
+      <section className="flex flex-col items-center">
+        <input
+          ref={nameRef}
+          type="text"
+          value={product.name}
+          onChange={e =>
+            editProduct(
+              new Product(e.target.value, product.quantity, product.price),
+            )
+          }
+          placeholder="Nombre del producto"
+          required
+          aria-invalid={!!errors.name}
+          aria-describedby={errors.name ? 'name-error' : undefined}
+          className={`font-bold text-2xl mb-2 text-center border rounded ${
+            errors.name ? 'border-red-600' : 'border-gray-300'
+          }`}
+        />
+        {errors.name && (
+          <div
+            id="name-error"
+            role="alert"
+            style={{ color: '#dc2626', marginBottom: 8 }}
+          >
+            {errors.name}
+          </div>
+        )}
+      </section>
 
-        <section>
-          <ProductInputField<string>
-            label="Cantidad"
-            value={product.quantity ?? ''}
-            setValue={value =>
-              editProduct(new Product(product.name, value, product.price))
-            }
-            inputProps={{
-              'aria-describedby': errors.quantity
-                ? 'quantity-error'
-                : undefined,
-              'aria-invalid': !!errors.quantity,
-              ref: quantityRef,
-            }}
-          />
-          <ProductInputField<number>
-            label="Precio"
-            value={product.price ?? 0}
-            setValue={value =>
-              editProduct(new Product(product.name, product.quantity, value))
-            }
-            inputProps={{
-              'aria-describedby': errors.price ? 'price-error' : undefined,
-              'aria-invalid': !!errors.price,
-              ref: priceRef,
-            }}
-          />
-          {(errors.price ?? errors.quantity) && (
-            <div
-              id="error"
-              role="alert"
-              style={{ color: '#dc2626', margin: '4px 20px' }}
-            >
-              {errors.price && <div>{errors.price}</div>}
-              {errors.quantity && <div>{errors.quantity}</div>}
-            </div>
-          )}
-        </section>
-        <ProductModalMenu close={close} confirm={handleSubmit} />
-      </form>
-    </dialog>
+      <section>
+        <ProductInputField<string>
+          label="Cantidad"
+          value={product.quantity ?? ''}
+          setValue={value =>
+            editProduct(new Product(product.name, value, product.price))
+          }
+          inputProps={{
+            'aria-describedby': errors.quantity ? 'quantity-error' : undefined,
+            'aria-invalid': !!errors.quantity,
+            ref: quantityRef,
+          }}
+        />
+        <ProductInputField<number>
+          label="Precio"
+          value={product.price ?? 0}
+          setValue={value =>
+            editProduct(new Product(product.name, product.quantity, value))
+          }
+          inputProps={{
+            'aria-describedby': errors.price ? 'price-error' : undefined,
+            'aria-invalid': !!errors.price,
+            ref: priceRef,
+          }}
+        />
+        {(errors.price ?? errors.quantity) && (
+          <div
+            id="error"
+            role="alert"
+            style={{ color: '#dc2626', margin: '4px 20px' }}
+          >
+            {errors.price && <div>{errors.price}</div>}
+            {errors.quantity && <div>{errors.quantity}</div>}
+          </div>
+        )}
+      </section>
+    </BooleanModalForm>
   );
 }
 
@@ -163,24 +157,5 @@ const ProductInputField = <T extends string | number>({
         {...inputProps}
       />
     </article>
-  );
-};
-
-const ProductModalMenu = ({
-  close,
-  confirm,
-}: Readonly<{
-  close: () => void;
-  confirm: () => void;
-}>) => {
-  return (
-    <menu className="flex justify-end gap-4 mr-5">
-      <button type="button" className="cursor-pointer" onClick={close}>
-        Cancel
-      </button>
-      <button type="submit" className="cursor-pointer" onClick={confirm}>
-        Confirm
-      </button>
-    </menu>
   );
 };

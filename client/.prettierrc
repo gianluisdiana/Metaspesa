@@ -1,5 +1,20 @@
 {
   "arrowParens": "avoid",
   "singleQuote": true,
-  "endOfLine": "crlf"
+  "endOfLine": "crlf",
+  "plugins": ["@ianvs/prettier-plugin-sort-imports"],
+  "importOrder": [
+    "<BUILTIN_MODULES>",
+    "",
+    "<THIRD_PARTY_MODULES>",
+    "",
+    "^@/(lib|infrastructure)/(.*)$",
+    "",
+    "^(?!.*[.]css$)[./].*$",
+    "",
+    ".css$"
+  ],
+  "importOrderParserPlugins": ["typescript", "jsx", "decorators-legacy"],
+  "importOrderTypeScriptVersion": "5.0.0",
+  "importOrderCaseSensitive": true
 }
