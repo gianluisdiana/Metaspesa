@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package Metaspesa.Protos.Shopping;
+
+import "google/protobuf/empty.proto";
+
+import "Protos/Shopping/domain.proto";
+
+option csharp_namespace = "Metaspesa.GrpcApi.Protos.Shopping";
+
+// Handles the shopping related operations.
+service ShoppingService {
+  // Gets the registered products.
+  rpc GetRegisteredProducts(google.protobuf.Empty) returns (RegisteredProductsResponse);
+
+  // Gets the current shopping list.
+  rpc GetCurrentShoppingList(google.protobuf.Empty) returns (CurrentShoppingList);
+
+  /**
+   * Records the products in the shopping list. If the list has name, it will be
+   * saved as a named list.
+   */
+  rpc RecordShoppingList(RecordShoppingListRequest) returns (google.protobuf.Empty);
+}
+// Request message for getting registered products.
+message RegisteredProductsResponse {
+  repeated Product products = 1;
+}
+
+// Request message for getting the current shopping list.
+message CurrentShoppingList {
+  ShoppingList shopping_list = 1;
+}
+
+// Request message for recording the products in the shopping list.
+message RecordShoppingListRequest {
+  ShoppingList shopping_list = 1;
+}
