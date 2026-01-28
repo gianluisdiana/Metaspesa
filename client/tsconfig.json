@@ -19,7 +19,13 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@/protos/*": [
+        "./infrastructure/protos_generated/*.ts",
+      ],
+      "@/protos/shopping/*": [
+        "./infrastructure/protos_generated/Metaspesa/Protos/Shopping/*",
+      ]
     }
   },
   "include": [

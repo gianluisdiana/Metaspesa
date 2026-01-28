@@ -15,8 +15,17 @@ internal class ShoppingGrpcService() : ShoppingService.ShoppingServiceBase {
   public override Task<CurrentShoppingList> GetCurrentShoppingList(
     Empty request, ServerCallContext context
   ) {
-    var result = new CurrentShoppingList();
-    return Task.FromResult(result);
+    ShoppingList shoppingList = new() {
+      Name = "Weekly Groceries",
+    };
+    shoppingList.Products.Add(new Product() {
+      Name = "Milk",
+      Quantity = "2 Liters",
+      Price = 3.50f,
+    });
+    return Task.FromResult(new CurrentShoppingList {
+      ShoppingList = shoppingList,
+    });
   }
 
   public override Task<Empty> RecordShoppingList(

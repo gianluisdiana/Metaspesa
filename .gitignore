@@ -48,3 +48,6 @@ next-env.d.ts
 # .NET generated files
 bin/
 obj/
+
+# client generated protobuf files
+client/**/protos_generated/

@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package Metaspesa.Protos.Shopping;
+
+option csharp_namespace = "Metaspesa.GrpcApi.Protos.Shopping";
+
+// A product in the shopping list.
+message Product {
+  string name = 1;
+  optional string quantity = 2;
+  optional float price = 3;
+  bool checked = 4;
+}
+
+// A list of products for shopping.
+message ShoppingList {
+  repeated Product products = 1;
+  optional string name = 2;
+}

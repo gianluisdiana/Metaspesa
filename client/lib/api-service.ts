@@ -1,7 +1,7 @@
-import { Product, ShoppingList } from '@/lib/domain';
+import { ProductMessage, ShoppingListMessage } from './messages';
 
 export default interface ApiService {
-  getCurrentShoppingList(): Promise<ShoppingList>;
-  getRegisteredProducts(): Promise<Product[]>;
-  recordShoppingList(shoppingList: ShoppingList): Promise<void>;
+  getCurrentShoppingList(): Promise<ShoppingListMessage>;
+  getRegisteredProducts(): Promise<ProductMessage[]>;
+  recordShoppingList(shoppingList: ShoppingListMessage): Promise<void>;
 }
