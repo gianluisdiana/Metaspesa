@@ -13,6 +13,9 @@ export default async function Home() {
     await apiService.getCurrentShoppingList();
 
   return (
-    <ShoppingClient shoppingList={shoppingList} onRecord={recordShoppingList} />
+    <ShoppingClient
+      initialShoppingList={shoppingList}
+      onRecord={recordShoppingList}
+    />
   );
 }

@@ -35,17 +35,28 @@ export default class GrpcApiService implements ApiService {
     );
   }
 
-  getCurrentShoppingList(): Promise<ShoppingListMessage> {
-    return new Promise((resolve, reject) => {
-      this.client.GetCurrentShoppingList({}, (err, response) => {
-        if (err) {
-          reject(err);
-          return;
-        }
+  async getCurrentShoppingList(): Promise<ShoppingListMessage> {
+    try {
+      const shoppingList = await new Promise<ShoppingListMessage>(
+        (resolve, reject) => {
+          this.client.GetCurrentShoppingList({}, (err, response) => {
+            if (err) {
+              reject(err);
+              return;
+            }
 
-        resolve(this.mapShoppingList(response!.shoppingList!));
-      });
-    });
+            resolve(this.mapShoppingList(response!.shoppingList!));
+          });
+        },
+      );
+
+      return shoppingList;
+    } catch {
+      return {
+        name: '',
+        products: [],
+      };
+    }
   }
 
   getRegisteredProducts(): Promise<ProductMessage[]> {
@@ -53,7 +64,9 @@ export default class GrpcApiService implements ApiService {
   }
 
   recordShoppingList(shoppingList: ShoppingListMessage): Promise<void> {
-    throw new Error('Method not implemented.');
+    throw new Error(
+      `Method not implemented. Received: ${JSON.stringify(shoppingList)}`,
+    );
   }
 
   private mapShoppingList(proto: ShoppingList__Output): ShoppingListMessage {
