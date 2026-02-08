@@ -3,4 +3,7 @@ bin/
 obj/
 
 # Environment files
-appsetings.*.json
+appsettings.*.json
+
+# tests
+test/

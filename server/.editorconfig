@@ -226,3 +226,21 @@ dotnet_diagnostic.CA2225.severity = none
 
 # CA2007: Do not directly await a Task
 dotnet_diagnostic.CA2007.severity = none
+
+[src/Application/**/*.cs]
+
+# CA1034: Do not nest type Command. Alternatively, change its accessibility so that it is not externally visible
+dotnet_diagnostic.CA1034.severity = none
+
+[test/**/*.cs]
+# CA1515: Because an application's API isn't typically referenced from outside the assembly, types can be made internal
+dotnet_diagnostic.CA1515.severity = none
+
+# CA1034: Do not nest type. Alternatively, change its accessibility so that it is not externally visible.
+dotnet_diagnostic.CA1034.severity = none
+
+# CA1707: Identifiers should not contain underscores
+dotnet_diagnostic.CA1707.severity = none
+
+# CA1062: Validate arguments of public methods
+dotnet_diagnostic.CA1062.severity = none
