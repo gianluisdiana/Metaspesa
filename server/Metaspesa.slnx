@@ -6,6 +6,7 @@
     <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/test/">
+    <Project Path="test/Application.UnitTests/Application.UnitTests.csproj" />
     <Project Path="test/Domain.UnitTests/Domain.UnitTests.csproj" />
   </Folder>
 </Solution>
