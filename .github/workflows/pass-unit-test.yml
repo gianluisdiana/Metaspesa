@@ -1,0 +1,35 @@
+name: pass unit tests
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - '**.cs'
+      - '**.csproj'
+  pull_request:
+    branches: [main, develop]
+    paths:
+    - '**.cs'
+    - '**.csproj'
+
+env:
+  DOTNET_VERSION: '10.0.100' # The .NET SDK version to use
+
+jobs:
+  pass-backend-unit-tests:
+
+    name: Pass backend unit tests on ${{matrix.os}}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Test backend
+      run: dotnet test server
