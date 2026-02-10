@@ -1,11 +1,14 @@
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metaspesa.Domain.Shopping;
 
 public record ShoppingList(
-  string Name,
+  string? Name,
   IReadOnlyCollection<ShoppingItem> Items
 ) : IEnumerable<ShoppingItem> {
+
+  [MemberNotNullWhen(true, nameof(Name))]
   public bool IsNamed => !string.IsNullOrWhiteSpace(Name);
 
   public ShoppingList Intersecting(

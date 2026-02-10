@@ -1,3 +1,4 @@
+using Metaspesa.Application;
 using Metaspesa.GrpcApi.Services;
 using Metaspesa.ServiceDefaults;
 
@@ -5,7 +6,9 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.Services.AddGrpc();
+builder.Services
+  .AddApplication()
+  .AddGrpc();
 
 WebApplication app = builder.Build();
 

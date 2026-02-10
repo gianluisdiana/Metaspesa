@@ -2,7 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS builder
 
 WORKDIR /src
 
-COPY . .
+COPY src .
 
 RUN dotnet restore && dotnet publish -o /app/publish -c Release
 

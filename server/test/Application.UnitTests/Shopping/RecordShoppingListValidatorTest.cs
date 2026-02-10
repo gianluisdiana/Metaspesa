@@ -1,6 +1,4 @@
-using FluentValidation.Results;
 using FluentValidation.TestHelper;
-using Metaspesa.Application.Shopping;
 using Metaspesa.Domain.Shopping;
 using static Metaspesa.Application.Shopping.RecordShoppingList;
 
