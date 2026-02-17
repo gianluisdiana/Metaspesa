@@ -22,7 +22,7 @@ public static class ApplicationDependencyInjection {
       IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<RegisteredItem>>,
       GetRegisteredItems.Handler>();
 
-    services.AddValidatorsFromAssemblyContaining<Result>();
+    services.AddValidatorsFromAssemblyContaining<Result>(includeInternalTypes: true);
 
     return services;
   }

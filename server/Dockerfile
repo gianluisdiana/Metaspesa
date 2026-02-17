@@ -1,10 +1,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS builder
 
-WORKDIR /src
+WORKDIR /server
 
-COPY src .
+COPY . .
 
-RUN dotnet restore && dotnet publish -o /app/publish -c Release
+RUN dotnet restore src/GrpcApi && dotnet publish src/GrpcApi -o /app/publish -c Release
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 
