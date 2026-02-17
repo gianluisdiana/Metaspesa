@@ -39,4 +39,4 @@ yarn-error.log*
 next-env.d.ts
 
 # generated protobuf files
-infrastructure/protos_generated/
+src/infrastructure/protos_generated/

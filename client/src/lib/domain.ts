@@ -3,7 +3,7 @@ export class Product {
     public name: string,
     public quantity: string | undefined = undefined,
     public price: number | undefined = undefined,
-    public checked: boolean = false,
+    public checked: boolean = true,
   ) {}
 
   public hasValidQuantity(): boolean {
@@ -26,9 +26,11 @@ export class ShoppingList {
   ) {}
 
   public calculateTotal(): number {
-    return this.products
+    const total = this.products
       .filter(product => product.checked && product.price !== undefined)
-      .reduce((total, product) => total + product.price!, 0);
+      .reduce((previousTotal, product) => previousTotal + product.price!, 0);
+    const roundFactor = 100;
+    return Math.round(total * roundFactor) / roundFactor;
   }
 
   public contains(product: Product): boolean {

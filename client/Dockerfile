@@ -1,8 +1,9 @@
 FROM node:22-alpine AS builder
 
-WORKDIR /src
+WORKDIR /client
 
 COPY package.json package-lock.json ./
+
 RUN npm ci
 
 COPY . .
@@ -13,18 +14,15 @@ RUN npm run build
 
 FROM node:22-alpine AS runner
 
-WORKDIR /src
+WORKDIR /client
 
 ENV NODE_ENV=production
-ENV PORT=8080
 
-COPY --from=builder /src/package.json ./
-COPY --from=builder /src/node_modules ./node_modules
-COPY --from=builder /src/.next ./.next
-COPY --from=builder /src/public ./public
-COPY --from=builder /src/next.config.* ./
-COPY --from=builder /src/infrastructure/protos ./infrastructure/protos
-
-EXPOSE 8080
+COPY --from=builder /client/package.json ./
+COPY --from=builder /client/node_modules ./node_modules
+COPY --from=builder /client/.next ./.next
+COPY --from=builder /client/public ./public
+COPY --from=builder /client/next.config.* ./
+COPY --from=builder /client/src/infrastructure/protos ./src/infrastructure/protos
 
 ENTRYPOINT ["npm", "run", "start"]

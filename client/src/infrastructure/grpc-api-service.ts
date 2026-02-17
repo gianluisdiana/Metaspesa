@@ -18,7 +18,7 @@ export default class GrpcApiService implements ApiService {
   constructor() {
     const protoPath = path.resolve(
       process.cwd(),
-      'infrastructure/protos/Shopping/shopping_service.proto',
+      'src/infrastructure/protos/Shopping/shopping_service.proto',
     );
     const packageDefinition = protoLoader.loadSync(protoPath);
     const { ShoppingService } = (
@@ -70,10 +70,11 @@ export default class GrpcApiService implements ApiService {
   }
 
   private mapShoppingList(proto: ShoppingList__Output): ShoppingListMessage {
+    const factor = 100;
     const products: ProductMessage[] = proto.products.map(productProto => ({
       checked: productProto.checked,
       name: productProto.name,
-      price: productProto.price,
+      price: Math.round(productProto.price! * factor) / factor,
       quantity: productProto.quantity,
     }));
     return {

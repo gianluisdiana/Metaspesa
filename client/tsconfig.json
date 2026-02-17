@@ -19,12 +19,12 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"],
+      "@/*": ["./src/*"],
       "@/protos/*": [
-        "./infrastructure/protos_generated/*.ts",
+        "./src/infrastructure/protos_generated/*.ts",
       ],
       "@/protos/shopping/*": [
-        "./infrastructure/protos_generated/Metaspesa/Protos/Shopping/*",
+        "./src/infrastructure/protos_generated/Metaspesa/Protos/Shopping/*",
       ]
     }
   },

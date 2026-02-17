@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "generate-proto": "./node_modules/.bin/proto-loader-gen-types --defaults --grpcLib=@grpc/grpc-js --outDir=./infrastructure/protos_generated ./infrastructure/protos/Shopping/shopping_service.proto",
+    "generate-proto": "./node_modules/.bin/proto-loader-gen-types --defaults --grpcLib=@grpc/grpc-js --outDir=./src/infrastructure/protos_generated ./src/infrastructure/protos/Shopping/shopping_service.proto",
     "lint": "prettier --check . && eslint",
     "format": "prettier --write . && eslint --fix ."
   },
