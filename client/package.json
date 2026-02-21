@@ -8,7 +8,9 @@
     "start": "next start",
     "generate-proto": "./node_modules/.bin/proto-loader-gen-types --defaults --grpcLib=@grpc/grpc-js --outDir=./src/infrastructure/protos_generated ./src/infrastructure/protos/Shopping/shopping_service.proto",
     "lint": "prettier --check . && eslint",
-    "format": "prettier --write . && eslint --fix ."
+    "format": "prettier --write . && eslint --fix .",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@grpc/grpc-js": "1.14.3",
@@ -23,11 +25,13 @@
     "@types/node": "25.0.10",
     "@types/react": "19.2.9",
     "@types/react-dom": "19.2.3",
+    "@vitest/coverage-v8": "4.0.18",
     "eslint": "9.39.2",
     "eslint-config-next": "16.1.4",
     "prettier": "3.8.1",
     "tailwindcss": "4.1.18",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.53.1"
+    "typescript-eslint": "8.53.1",
+    "vitest": "4.0.18"
   }
 }

@@ -13,7 +13,8 @@ on:
     - '**.csproj'
 
 env:
-  DOTNET_VERSION: '10.0.100' # The .NET SDK version to use
+  DOTNET_VERSION: '10.0.100'
+  NODE_VERSION: '24'
 
 jobs:
   pass-backend-unit-tests:
@@ -33,3 +34,25 @@ jobs:
 
     - name: Test backend
       run: dotnet test server
+
+  pass-frontend-unit-tests:
+    name: Pass frontend unit tests on ${{matrix.os}}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Install dependencies
+      run: npm ci
+      working-directory: client
+
+    - name: Test frontend
+      run: npm run test
+      working-directory: client

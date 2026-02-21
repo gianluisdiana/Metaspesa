@@ -4,7 +4,7 @@ WORKDIR /client
 
 COPY package.json package-lock.json ./
 
-RUN npm ci
+RUN npm ci --omit=dev
 
 COPY . .
 

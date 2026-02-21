@@ -71,12 +71,12 @@ export default class GrpcApiService implements ApiService {
 
   private mapShoppingList(proto: ShoppingList__Output): ShoppingListMessage {
     const factor = 100;
-    const products: ProductMessage[] = proto.products.map(productProto => ({
+    const products: ProductMessage[] = proto.products?.map(productProto => ({
       checked: productProto.checked,
       name: productProto.name,
       price: Math.round(productProto.price! * factor) / factor,
       quantity: productProto.quantity,
-    }));
+    })) ?? [];
     return {
       name: proto.name,
       products,
