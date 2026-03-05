@@ -244,3 +244,14 @@ dotnet_diagnostic.CA1707.severity = none
 
 # CA1062: Validate arguments of public methods
 dotnet_diagnostic.CA1062.severity = none
+
+[src/Database/Migrations/*.cs]
+
+# IDE0161: Convert to file-scoped namespace
+dotnet_diagnostic.IDE0161.severity = none
+
+# CA1062: Validate arguments of public methods
+dotnet_diagnostic.CA1062.severity = none
+
+# IDE0053: Use block body for lambda expression
+dotnet_diagnostic.IDE0053.severity = silent

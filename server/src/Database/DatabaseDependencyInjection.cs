@@ -1,7 +1,10 @@
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Shopping;
-using Metaspesa.Database.Fake;
+using Metaspesa.Database.Repositories;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 
 namespace Metaspesa.Database;
 
@@ -9,9 +12,20 @@ public static class DatabaseDependencyInjection {
   public static IServiceCollection AddDatabase(
     this IServiceCollection services
   ) {
-    services.AddScoped<IUnitOfWork, FakeUnitOfWork>();
-    services.AddScoped<IProductRepository, FakeProductRepository>();
-    services.AddScoped<IShoppingRepository, FakeShoppingRepository>();
+    string connectionString = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION_STRING") ??
+      throw new InvalidOperationException(
+        "Connection string not found in environment variables or configuration.");
+    services.AddDbContextPool<MainContext>(options =>
+      options.UseNpgsql(connectionString));
+
+    services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<MainContext>());
+
+    services.AddOpenTelemetry()
+      .WithTracing(tracing => tracing.AddSqlClientInstrumentation())
+      .WithMetrics(metrics => metrics.AddSqlClientInstrumentation());
+
+    services.AddScoped<IProductRepository, PostgreSqlProductRepository>();
+    services.AddScoped<IShoppingRepository, PostgreSqlShoppingRepository>();
 
     return services;
   }

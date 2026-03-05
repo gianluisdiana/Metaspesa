@@ -1,0 +1,10 @@
+# .NET generated files
+bin/
+obj/
+
+# Environment files
+appsettings.*.json
+
+# tests
+test/
+src/MigrationService/

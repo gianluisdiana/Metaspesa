@@ -3,11 +3,28 @@ services:
     image: gianluisdiana/metaspesa_server:latest
     build:
       context: ./server
-      dockerfile: Dockerfile
+      dockerfile: ./src/GrpcApi/Dockerfile
     ports:
       - 5000:8080
     environment:
       ASPNETCORE_URLS: http://+:8080
+      POSTGRES_CONNECTION_STRING: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+    env_file:
+      - .env
+
+  migrations:
+    image: gianluisdiana/metaspesa_migrations:latest
+    build:
+      context: ./server
+      dockerfile: ./src/MigrationService/Dockerfile
+    profiles:
+      - tools
+    depends_on:
+      - db
+    environment:
+      POSTGRES_CONNECTION_STRING: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+    env_file:
+      - .env
 
   client:
     build:
@@ -21,3 +38,15 @@ services:
     environment:
       GRPC_SERVER_URL: server:8080
       PORT: 8080
+
+  db:
+    image: postgres:latest
+    ports:
+      - 5432:5432
+    env_file:
+      - .env
+    volumes:
+      - db_data:/var/lib/postgresql
+
+volumes:
+  db_data:
