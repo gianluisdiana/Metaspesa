@@ -51,3 +51,7 @@ obj/
 
 # client generated protobuf files
 client/**/protos_generated/
+
+# python generated files
+__pycache__
+venv/
