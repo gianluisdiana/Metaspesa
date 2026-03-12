@@ -39,6 +39,16 @@ services:
       GRPC_SERVER_URL: server:8080
       PORT: 8080
 
+  scrapper:
+    build:
+      context: ./scrapper
+      dockerfile: Dockerfile
+    image: gianluisdiana/metaspesa_scrapper:latest
+    depends_on:
+      - db
+    environment:
+      POSTGRES_CONNECTION_STRING: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+
   db:
     image: postgres:latest
     ports:
