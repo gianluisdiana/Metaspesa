@@ -8,6 +8,7 @@ from selenium.webdriver.firefox.options import Options
 
 from domain import Market, Product
 
+
 class Scrapper:
     def __init__(self, market: Market):
         self.market = market
@@ -26,6 +27,6 @@ class Scrapper:
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: TracebackType | None
+        exc_tb: TracebackType | None,
     ) -> None:
         self.driver.quit()

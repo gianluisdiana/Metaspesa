@@ -1,7 +1,15 @@
-# python generated files
-__pycache__
-venv/
+# Python generated files
+__pycache__/
+*.py[cod]
+*~
+.venv/
+env/
 
-# docker files
+# Docker files
 Dockerfile
 .dockerignore
+
+# Testing and formatting cache
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
