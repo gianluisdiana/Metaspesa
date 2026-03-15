@@ -1,3 +1,5 @@
+from typing import override
+
 from bs4 import BeautifulSoup, Tag
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.webdriver import WebDriver
@@ -9,22 +11,8 @@ from market_scrappers.scrapper import Scrapper
 
 
 class MercadonaScrapper(Scrapper):
-    def scrape(self, postal_code: str) -> list[Product]:
-        self.driver.get(self.market.url)
-
-        self.__set_location(postal_code)
-        self.__navigate_to_categories()
-        self.__reject_cookies()
-
-        categories = self.__get_categories()
-        products: list[Product] = []
-        for category in categories:
-            category_scrapper = MercadonaCategoryScrapper(self.driver, category)
-            products += category_scrapper.scrape()
-
-        return products
-
-    def __set_location(self, postal_code: str) -> None:
+    @override
+    def _set_location(self, postal_code: str) -> None:
         WebDriverWait(self.driver, 5).until(
             EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, 'input[aria-label="Código postal"]')
@@ -35,7 +23,8 @@ class MercadonaScrapper(Scrapper):
             EC.element_to_be_clickable((By.CLASS_NAME, "postal-code-form__button"))
         ).click()
 
-    def __navigate_to_categories(self) -> None:
+    @override
+    def _navigate_to_categories(self) -> None:
         WebDriverWait(self.driver, 5).until(
             EC.presence_of_element_located(
                 (By.XPATH, '//a[contains(text(), "Categorías")]')
@@ -48,14 +37,16 @@ class MercadonaScrapper(Scrapper):
             )
         ).click()
 
-    def __reject_cookies(self) -> None:
+    @override
+    def _close_popups(self) -> None:
         WebDriverWait(self.driver, 5).until(
             EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, "button.ui-button:nth-child(3)")
             )
         ).click()
 
-    def __get_categories(self) -> list[str]:
+    @override
+    def _get_categories(self) -> list[str]:
         WebDriverWait(self.driver, 5).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "li.category-menu__item"))
         )
@@ -68,6 +59,11 @@ class MercadonaScrapper(Scrapper):
         ]
 
         return categories
+
+    @override
+    def _scrape_category(self, category: str) -> list[Product]:
+        category_scrapper = MercadonaCategoryScrapper(self.driver, category)
+        return category_scrapper.scrape()
 
 
 class MercadonaCategoryScrapper:
