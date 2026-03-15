@@ -1,11 +1,11 @@
+from bs4 import BeautifulSoup, Tag
+from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.webdriver import WebDriver
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+
 from domain import Product
 from market_scrappers.scrapper import Scrapper
-
-from bs4 import BeautifulSoup, Tag
-from selenium.webdriver.firefox.webdriver import WebDriver
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
 
 
 class MercadonaScrapper(Scrapper):
@@ -51,10 +51,7 @@ class MercadonaScrapper(Scrapper):
     def __reject_cookies(self) -> None:
         WebDriverWait(self.driver, 5).until(
             EC.element_to_be_clickable(
-                (
-                    By.XPATH,
-                    '//div[contains(@class, "cookie-banner__actions")]//button[contains(text(), "Rechazar")]',
-                )
+                (By.CSS_SELECTOR, "button.ui-button:nth-child(3)")
             )
         ).click()
 
@@ -93,7 +90,7 @@ class MercadonaCategoryScrapper:
             EC.element_to_be_clickable(
                 (
                     By.XPATH,
-                    f'//button[contains(@class, "category-item__link") and text()="{subcategory}"]',
+                    f'//button[contains(@class, "category-item__link") and text()="{subcategory}"]',  # noqa: E501
                 )
             )
         ).click()
@@ -135,7 +132,7 @@ class MercadonaCategoryScrapper:
             EC.element_to_be_clickable(
                 (
                     By.XPATH,
-                    f'//label[contains(@class, "subhead1-r") and text()="{self.category}"]',
+                    f'//label[contains(@class, "subhead1-r") and text()="{self.category}"]',  # noqa: E501
                 )
             )
         ).click()

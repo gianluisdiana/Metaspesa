@@ -9,7 +9,8 @@ jobs:
   lint_client:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -26,9 +27,15 @@ jobs:
   lint_scrapper:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: psf/black@stable
+      - uses: actions/checkout@v4
 
+      - name: Run Ruff Linter
+        uses: astral-sh/ruff-action@v3
         with:
-          options: --check --verbose
-          src: scrapper/src
+          src: "scrapper/src"
+
+      - name: Run Ruff Formatter
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: "format --check"
+          src: "scrapper/src"

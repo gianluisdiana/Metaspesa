@@ -11,6 +11,25 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "black>=26.3.1",
     "pre-commit>=4.5.1",
+    "ruff>=0.15.6",
 ]
+
+[tool.ruff]
+line-length = 88
+
+target-version = "py314"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors (standard formatting/syntax errors)
+    "F",   # pyflakes (unused variables, undefined names - catches real bugs!)
+    "I",   # isort (automatically sorts and groups your imports alphabetically)
+    "UP",  # pyupgrade (automatically upgrades older Python syntax to modern 3.14 syntax)
+]
+
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

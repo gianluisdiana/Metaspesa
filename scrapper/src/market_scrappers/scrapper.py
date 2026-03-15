@@ -3,8 +3,8 @@ from __future__ import annotations
 from abc import abstractmethod
 from types import TracebackType
 
-from selenium.webdriver.firefox.webdriver import WebDriver
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.webdriver import WebDriver
 
 from domain import Market, Product
 

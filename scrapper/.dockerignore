@@ -13,3 +13,6 @@ Dockerfile
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+
+# Pre-commit configuration
+.pre-commit-config.yaml
