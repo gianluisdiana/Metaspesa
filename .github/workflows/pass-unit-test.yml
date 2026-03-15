@@ -3,14 +3,8 @@ name: pass unit tests
 on:
   push:
     branches: [main, develop]
-    paths:
-      - '**.cs'
-      - '**.csproj'
   pull_request:
     branches: [main, develop]
-    paths:
-    - '**.cs'
-    - '**.csproj'
 
 env:
   DOTNET_VERSION: '10.0.100'
