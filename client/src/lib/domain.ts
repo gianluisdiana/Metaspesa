@@ -19,9 +19,7 @@ export class Product {
   }
 
   public canBeCounted(): boolean {
-    return this.checked &&
-      this.price !== undefined &&
-      this.hasValidPrice();
+    return this.checked && this.price !== undefined && this.hasValidPrice();
   }
 }
 

@@ -92,7 +92,7 @@ describe('ShoppingList contains', () => {
     expect(contains).toBe(false);
   });
 
-  it('should contain product if there\'s one with the same name', () => {
+  it("should contain product if there's one with the same name", () => {
     // Arrange
     const product = new Product('Milk');
     const shoppingList = new ShoppingList([product], 'Groceries');
@@ -104,7 +104,7 @@ describe('ShoppingList contains', () => {
     expect(contains).toBe(true);
   });
 
-  it('should contain product if there\'s one with the same name but different properties', () => {
+  it("should contain product if there's one with the same name but different properties", () => {
     // Arrange
     const productInList = new Product('Milk', '1 liter', 1.5, false);
     const shoppingList = new ShoppingList([productInList], 'Groceries');
@@ -117,7 +117,7 @@ describe('ShoppingList contains', () => {
     expect(contains).toBe(true);
   });
 
-  it('should not contain product if there isn\'t one with the same name', () => {
+  it("should not contain product if there isn't one with the same name", () => {
     // Arrange
     const productInList = new Product('Milk');
     const shoppingList = new ShoppingList([productInList], 'Groceries');
