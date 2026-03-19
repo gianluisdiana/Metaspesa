@@ -29,7 +29,7 @@ def main() -> None:
         ) as f:
             f.write("Name;Price;Quantity\n")
             for product in products:
-                f.write(f"{product.name};{product.price} €;{product.quantity}\n")
+                f.write(f'"{product.name}";{product.price};{product.quantity}\n')
 
 
 if __name__ == "__main__":
