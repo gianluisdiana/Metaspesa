@@ -1,0 +1,39 @@
+@startuml metaspesa_domain
+
+package Shopping {
+  class Quantity {
+    + Amount: float
+    + Unit: string?
+  }
+
+  class Product {
+    + Name: string
+    + Price: decimal?
+    + Image: Uri?
+    + Description: string?
+    + IsChecked: bool = false
+  }
+  Product *--> Quantity
+
+  class ShoppingList {
+    + ExpensesHistory: Dict<DateTime, decimal>
+    + Price: decimal = Products.Sum(p => p.Price)
+    + CheckedPrice: decimal = Products.Where(p => p.IsChecked).Sum(p => p.Price)
+    + CompletePurchase(): void
+  }
+  ShoppingList o--> "*" Product
+}
+
+package Users {
+  class User {
+    + Id: Guid
+    + Name: string
+    + Email: string
+    + Dict<string, ShoppingList> SavedShoppingLists
+  }
+  User *--> ShoppingList : CurrentShoppingList
+  User o--> "*" ShoppingList : SavedShoppingLists
+  User o--> "*" Product : RegisteredProducts
+}
+
+@enduml

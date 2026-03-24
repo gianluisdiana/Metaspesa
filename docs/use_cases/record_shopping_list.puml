@@ -1,0 +1,46 @@
+@startuml record_shopping_list
+
+state c0 <<choice>>
+state c1 <<choice>>
+state c2 <<choice>>
+state c3 <<choice>>
+
+[*] --> c0
+note on link
+  Validate the shopping list and its items
+end note
+
+c0 --> q0 : [validation.IsValid]
+
+q0 --> c1
+note on link
+  Get previously registered items for the user
+end note
+
+c1 --> q1 : [shoppingList.Intersects(registeredItems)]
+
+q1 --> c2
+note on link
+  Update registered items
+end note
+
+c1 --> q2 : [else]
+
+c2 --> c3 : [shoppingList.Without(registeredItems).IsEmpty]
+c2 --> q2 : [else]
+
+q2 --> c3
+note on link
+  Register new items
+end note
+
+c3 --> q3 : [shoppingList.IsNamed]
+
+q3 --> [*]
+note on link
+  Record the shopping list with its name
+end note
+
+c3 --> [*] : [else]
+
+@enduml

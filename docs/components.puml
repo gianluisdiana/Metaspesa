@@ -1,0 +1,43 @@
+@startuml metaspesa_components
+
+skinparam componentStyle uml1
+
+interface MainSchema
+database SecretDb
+SecretDb -right- MainSchema
+
+interface gRPC as VaultInterface
+component SecretVault
+VaultInterface -right- SecretVault
+SecretVault -down-> MainSchema
+
+interface UserSchema
+interface ProductSchema
+database ShopDb
+ShopDb -- UserSchema
+ShopDb -- ProductSchema
+
+interface gRPC as ServerInterface
+component Server
+ServerInterface -right- Server
+Server -down-> VaultInterface
+Server -down-> UserSchema
+Server -down-> ProductSchema
+
+component Website
+Website -down-> ServerInterface
+
+interface ShopApi
+component ShopScrapper
+ShopScrapper -down-> ShopApi
+ShopScrapper -down-> ProductSchema
+
+component TelemetryDashboard
+TelemetryDashboard -down-> ShopDb
+TelemetryDashboard -down-> SecretDb
+TelemetryDashboard -down-> SecretVault
+TelemetryDashboard -down-> Server
+TelemetryDashboard -down-> Website
+TelemetryDashboard -down-> ShopScrapper
+
+@enduml

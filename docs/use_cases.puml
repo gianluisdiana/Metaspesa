@@ -1,0 +1,43 @@
+@startuml use_cases
+
+left to right direction
+
+package Shopping {
+  (View shopping list) as ViewShoppingList
+  (Add product to shopping list) as AddProduct
+  (Edit product in shopping list) as EditProduct
+  (Toggle product in shopping list) as ToggleProduct
+  (Delete product from shopping list) as DeleteProduct
+  (Complete purchase) as CompletePurchase
+
+  (Share shopping list) as ShareShoppingList
+
+  (Create sub list by shopping center)
+  (Create specific shopping list )
+}
+
+package Monitoring {
+  (View product price history) as ViewPriceHistory
+  (View shopping list expenses history) as ViewExpensesHistory
+
+  (Subscribe to price drop alerts) as SubscribePriceDropAlerts
+  (Unsubscribe from price drop alerts) as UnsubscribePriceDropAlerts
+}
+
+package Authorization {
+  (Register) as Register
+  (Log in) as LogIn
+}
+
+actor User
+User --> Shopping
+User --> Monitoring
+User --> Authorization
+
+package Internal {
+  (Scrap shopping centers) as ScrapShoppingCenters
+}
+actor System
+System --> Internal
+
+@enduml

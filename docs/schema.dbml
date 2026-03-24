@@ -1,0 +1,171 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+
+Table shopping.users {
+  note: 'Registered users of the shopping application'
+
+  id guid [pk]
+  username varchar(255) [
+    not null,
+    unique
+  ]
+  password varchar(255) [
+    not null,
+    unique
+  ]
+}
+
+Table shopping.shopping_lists {
+  note: 'Shopping lists created by users, can be shared among multiple users'
+
+  id integer [pk]
+  name varchar [
+    not null,
+    unique
+  ]
+  last_time_used timestamp [not null]
+}
+
+Table shopping.shopping_list_ownership {
+  note: 'Associates users with shopping lists, allowing for shared lists'
+
+  id integer [pk]
+  user_id guid [not null]
+  shopping_list_id integer [not null]
+
+  indexes {
+    user_id
+    shopping_list_id
+    (user_id, shopping_list_id) [unique]
+  }
+}
+
+Ref: shopping.shopping_list_ownership.user_id > shopping.users.id [
+  delete: cascade
+]
+Ref: shopping.shopping_list_ownership.shopping_list_id > shopping.shopping_lists.id [
+  delete: cascade
+]
+
+Table shopping.shopping_items {
+  note: 'Items that belong to a shopping list'
+
+  id integer [pk]
+  name varchar [not null]
+  price float [not null]
+  quantity varchar
+  shopping_list_id integer [not null]
+
+  indexes {
+    shopping_list_id
+  }
+}
+
+Ref: shopping.shopping_lists.id < shopping.shopping_items.shopping_list_id [
+  delete: cascade
+]
+
+Table shopping.registered_items {
+  note: 'Items that users have registered as purchased or planned to purchase'
+
+  id integer [pk]
+  name varchar [not null]
+  user_id integer [not null]
+
+  indexes {
+    user_id
+  }
+}
+
+Ref: shopping.users.id < shopping.registered_items.user_id [
+  delete: cascade
+]
+
+Table shopping.registered_items_history {
+  note: 'Historical records of registered items, tracking price changes and purchase history'
+
+  id integer [pk]
+  price float [not null]
+  quantity varchar
+  created_at timestamp [
+    not null,
+    default: `now()`
+  ]
+  registered_item_id integer [not null]
+
+  indexes {
+    registered_item_id
+  }
+}
+
+Ref: shopping.registered_items_history.registered_item_id > shopping.registered_items.id [
+  delete: cascade
+]
+
+Table market.super_markets {
+  note: 'Supermarkets where products are available'
+
+  id integer [pk]
+  name varchar [
+    not null,
+    unique
+  ]
+}
+
+Table market.product_brands {
+  note: 'Brands of products available in the market'
+
+  id integer [pk]
+  name varchar [
+    not null,
+    unique
+  ]
+}
+
+Table market.products {
+  note: 'Products available in the market'
+
+  id integer [pk]
+  name varchar [not null]
+  image url
+  super_market_id int [not null]
+  brand_id int [not null]
+
+  indexes {
+    super_market_id
+    brand_id
+    (name, super_market_id, brand_id) [unique]
+  }
+}
+Ref: market.products.super_market_id > market.super_markets.id [
+  delete: cascade
+]
+Ref: market.products.brand_id > market.product_brands.id [
+  delete: cascade
+]
+
+Table market.products_history {
+  note: 'Historical price and quantity data for products, tracking changes over time'
+
+  id integer [pk]
+  price float [not null]
+  quantity varchar [not null]
+  created_at timestamp [
+    not null,
+    default: `now()`
+  ]
+  product_id integer [
+    not null
+  ]
+
+  checks {
+    `price > 0.00` [name: 'chk_positive_price']
+  }
+
+  indexes {
+    product_id
+  }
+}
+Ref: market.products_history.product_id > market.products.id [
+  delete: cascade
+]
