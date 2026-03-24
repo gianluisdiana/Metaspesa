@@ -50,3 +50,28 @@ jobs:
     - name: Test frontend
       run: npm run test
       working-directory: client
+
+  pass-scrapper-unit-tests:
+    name: Pass scrapper unit tests on ${{matrix.os}}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install uv
+      run: pip install uv
+
+    - name: Install dependencies with uv
+      run: uv sync
+      working-directory: scrapper
+
+    - name: Test scrapper
+      run: uv run pytest
+      working-directory: scrapper

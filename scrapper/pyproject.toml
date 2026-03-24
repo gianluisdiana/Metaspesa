@@ -12,7 +12,8 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pre-commit>=4.5.1",
-    "ruff>=0.15.6",
+    "pytest>=9.0.2",
+    "ruff>=0.15.6"
 ]
 
 [tool.ruff]
@@ -22,10 +23,10 @@ target-version = "py314"
 
 [tool.ruff.lint]
 select = [
-    "E",   # pycodestyle errors (standard formatting/syntax errors)
-    "F",   # pyflakes (unused variables, undefined names - catches real bugs!)
-    "I",   # isort (automatically sorts and groups your imports alphabetically)
-    "UP",  # pyupgrade (automatically upgrades older Python syntax to modern 3.14 syntax)
+    "E",  # pycodestyle errors (standard formatting/syntax errors)
+    "F",  # pyflakes (unused variables, undefined names - catches real bugs!)
+    "I",  # isort (automatically sorts and groups your imports alphabetically)
+    "UP", # pyupgrade (automatically upgrades older Python syntax to modern 3.14 syntax)
 ]
 
 ignore = []
@@ -33,3 +34,12 @@ ignore = []
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.pytest]
+pythonpath = [
+    "src"
+]
+testpaths = [
+    "test"
+]
+strict = true
