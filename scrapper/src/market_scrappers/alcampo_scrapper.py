@@ -1,3 +1,4 @@
+import logging
 import re
 from time import sleep
 from typing import override
@@ -9,27 +10,17 @@ from selenium.webdriver.firefox.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from domain import Product
+from config import ScraperSettings
+from domain import Market, Product
 from market_scrappers.scrapper import Scrapper
 
 
 class AlcampoScrapper(Scrapper):
-    unwanted_categories = [
-        "Folletos y Promociones",
-        "Electrodomésticos",
-        "Tecnología",
-        "Hogar y Decoración",
-        "JARDÍN y TERRAZA",
-        "Mascotas",
-        "Juguetes",
-        "Papelería",
-        "Bricolaje",
-        "Automóvil",
-        "Libros",
-        "Deportes y Maletas",
-        "Textil",
-        "Campañas",
-    ]
+    def __init__(
+        self, market: Market, logger: logging.Logger, settings: ScraperSettings
+    ) -> None:
+        super().__init__(market, logger)
+        self.__skipped_categories: set[str] = set(settings.skipped_categories)
 
     @override
     def _close_popups(self) -> None:
@@ -110,7 +101,7 @@ class AlcampoScrapper(Scrapper):
         categories: list[str] = [
             category_tag.text
             for category_tag in category_tags
-            if category_tag.text not in self.unwanted_categories
+            if category_tag.text not in self.__skipped_categories
         ]
 
         return categories
