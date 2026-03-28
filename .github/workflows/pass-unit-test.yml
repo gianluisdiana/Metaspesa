@@ -75,7 +75,7 @@ jobs:
     - name: Install firefox webdriver
       run: |
         if [[ "$RUNNER_OS" == "Linux" ]]; then
-          sudo apt-get install -y firefox-geckodriver
+          sudo apt-get install -y firefox
         elif [[ "$RUNNER_OS" == "Windows" ]]; then
           choco install geckodriver
         elif [[ "$RUNNER_OS" == "macOS" ]]; then
