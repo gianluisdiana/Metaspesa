@@ -6,8 +6,8 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
+from application.abstractions import MarketWebScrapper
 from domain import Product
-from market_scrappers.market_web_scrapper import MarketWebScrapper
 
 
 class MercadonaWebScrapper(MarketWebScrapper):

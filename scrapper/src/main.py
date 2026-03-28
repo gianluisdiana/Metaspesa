@@ -1,50 +1,53 @@
 import logging
-from datetime import datetime
+from pathlib import Path
 
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.webdriver import WebDriver
 
+from application.abstractions import MarketWebScrapper
+from application.use_case import ScrapeMarketsCommandHandler
 from config import AppConfig, load_config
-from domain import Product
-from market_scrappers.scrapper_factory import ScrapperFactory
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="\033[1m%(asctime)s\033[0m - \033[1m%(levelname)s\033[0m: %(name)s\n\t%(message)s",  # noqa: E501
+from infrastructure.local_storage import CsvProductRepository
+from infrastructure.market_scrappers.market_web_scrapper_factory import (
+    MarketWebScrapperFactory,
 )
 
 
-def main() -> None:
-    settings: AppConfig = load_config()
-    market_names: list[str] = [
-        "Alcampo",
-        "Mercadona",
-    ]
-
-    today: str = datetime.now().strftime("%Y-%m-%d")
-    postal_code = "38320"
-
-    factory = ScrapperFactory(settings)
-    driver = __create_web_driver()
-    for market_name in market_names:
-        scrapper = factory.create(market_name, driver)
-        products: list[Product] = scrapper.scrape(postal_code)
-
-        with open(
-            f"data/{today}_{market_name.lower()}.csv", "w", encoding="utf-8"
-        ) as f:
-            f.write("Name;Price;Quantity;Brand\n")
-            for product in products:
-                f.write(
-                    f'"{product.name}";{product.price};{product.quantity};{product.brand}\n'
-                )
-
-
-def __create_web_driver():
+def __create_web_driver() -> WebDriver:
     options = Options()
     options.add_argument("--headless")
     driver = WebDriver(options=options)
     return driver
+
+
+def __create_market_web_scrappers(
+    settings: AppConfig, web_driver: WebDriver
+) -> dict[str, MarketWebScrapper]:
+    factory = MarketWebScrapperFactory(settings, web_driver)
+    market_names = [
+        "Alcampo",
+        "Mercadona",
+    ]
+    return {name: factory.create(name) for name in market_names}
+
+
+def main() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="\033[1m%(asctime)s\033[0m - \033[1m%(levelname)s\033[0m: %(name)s\n\t%(message)s",  # noqa: E501
+    )
+
+    settings: AppConfig = load_config()
+    web_driver: WebDriver = __create_web_driver()
+    product_repository = CsvProductRepository(Path("data"))
+    scrappers: dict[str, MarketWebScrapper] = __create_market_web_scrappers(
+        settings, web_driver
+    )
+
+    handler = ScrapeMarketsCommandHandler(product_repository, scrappers)
+    handler.handle("38320")
+
+    web_driver.quit()
 
 
 if __name__ == "__main__":

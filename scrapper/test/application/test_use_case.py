@@ -1,9 +1,24 @@
-from logging import Logger
 from typing import override
 
+from application.abstractions import MarketWebScrapper, ProductRepository
+from application.use_case import ScrapeMarketsCommandHandler
 from domain import Product
-from market_scrappers.market_web_scrapper import MarketWebScrapper
-from market_scrappers.scrapper import Scrapper
+
+
+class DummyProductRepository(ProductRepository):
+    @override
+    def save(self, market_name: str, products: list[Product]) -> None:
+        """Dummy implementation of ProductRepository for testing purposes."""
+        pass
+
+
+class SpyProductRepository(ProductRepository):
+    def __init__(self):
+        self.saved_products: list[Product] = []
+
+    @override
+    def save(self, market_name: str, products: list[Product]) -> None:
+        self.saved_products = products
 
 
 class SpyMarketWebScrapper(MarketWebScrapper):
@@ -47,7 +62,7 @@ class SpyMarketWebScrapper(MarketWebScrapper):
 
 class FakeMarketWebScrapper(SpyMarketWebScrapper):
     def __init__(self, products: list[Product]):
-        self.__products = products
+        self.scrapped_products = products
 
     @override
     def get_categories(self) -> list[str]:
@@ -55,20 +70,20 @@ class FakeMarketWebScrapper(SpyMarketWebScrapper):
 
     @override
     def scrape_category(self, category: str) -> list[Product]:
-        return self.__products
+        return self.scrapped_products
 
 
 def test_navigates_to_home():
     # Arrange
     market_web_scrapper = SpyMarketWebScrapper()
 
-    scrapper = Scrapper(
-        web_scrapper=market_web_scrapper,
-        logger=Logger("test"),
+    handler = ScrapeMarketsCommandHandler(
+        product_repository=DummyProductRepository(),
+        market_web_scrappers={"Market": market_web_scrapper},
     )
 
     # Act
-    scrapper.scrape("12345")
+    handler.handle("12345")
 
     # Assert
     assert market_web_scrapper.had_navigated_to_home
@@ -78,13 +93,13 @@ def test_closes_popups():
     # Arrange
     market_web_scrapper = SpyMarketWebScrapper()
 
-    scrapper = Scrapper(
-        web_scrapper=market_web_scrapper,
-        logger=Logger("test"),
+    handler = ScrapeMarketsCommandHandler(
+        product_repository=DummyProductRepository(),
+        market_web_scrappers={"Market": market_web_scrapper},
     )
 
     # Act
-    scrapper.scrape("12345")
+    handler.handle("12345")
 
     # Assert
     assert market_web_scrapper.had_closed_popups
@@ -94,13 +109,13 @@ def test_sets_location():
     # Arrange
     market_web_scrapper = SpyMarketWebScrapper()
 
-    scrapper = Scrapper(
-        web_scrapper=market_web_scrapper,
-        logger=Logger("test"),
+    handler = ScrapeMarketsCommandHandler(
+        product_repository=DummyProductRepository(),
+        market_web_scrappers={"Market": market_web_scrapper},
     )
 
     # Act
-    scrapper.scrape("12345")
+    handler.handle("12345")
 
     # Assert
     assert market_web_scrapper.had_set_location
@@ -110,13 +125,13 @@ def test_sets_location_with_given_postal_code():
     # Arrange
     market_web_scrapper = SpyMarketWebScrapper()
 
-    scrapper = Scrapper(
-        web_scrapper=market_web_scrapper,
-        logger=Logger("test"),
+    handler = ScrapeMarketsCommandHandler(
+        product_repository=DummyProductRepository(),
+        market_web_scrappers={"Market": market_web_scrapper},
     )
 
     # Act
-    scrapper.scrape("12345")
+    handler.handle("12345")
 
     # Assert
     assert market_web_scrapper.set_location_called_with == "12345"
@@ -126,13 +141,13 @@ def test_navigates_to_categories():
     # Arrange
     market_web_scrapper = SpyMarketWebScrapper()
 
-    scrapper = Scrapper(
-        web_scrapper=market_web_scrapper,
-        logger=Logger("test"),
+    handler = ScrapeMarketsCommandHandler(
+        product_repository=DummyProductRepository(),
+        market_web_scrappers={"Market": market_web_scrapper},
     )
 
     # Act
-    scrapper.scrape("12345")
+    handler.handle("12345")
 
     # Assert
     assert market_web_scrapper.had_navigated_to_categories
@@ -142,13 +157,13 @@ def test_gets_categories():
     # Arrange
     market_web_scrapper = SpyMarketWebScrapper()
 
-    scrapper = Scrapper(
-        web_scrapper=market_web_scrapper,
-        logger=Logger("test"),
+    handler = ScrapeMarketsCommandHandler(
+        product_repository=DummyProductRepository(),
+        market_web_scrappers={"Market": market_web_scrapper},
     )
 
     # Act
-    scrapper.scrape("12345")
+    handler.handle("12345")
 
     # Assert
     assert market_web_scrapper.had_gotten_categories
@@ -159,13 +174,13 @@ def test_does_not_scrape_categories_if_no_categories_found():
     categories: list[str] = []
     market_web_scrapper = SpyMarketWebScrapper(categories)
 
-    scrapper = Scrapper(
-        web_scrapper=market_web_scrapper,
-        logger=Logger("test"),
+    handler = ScrapeMarketsCommandHandler(
+        product_repository=DummyProductRepository(),
+        market_web_scrappers={"Market": market_web_scrapper},
     )
 
     # Act
-    scrapper.scrape("12345")
+    handler.handle("12345")
 
     # Assert
     assert not market_web_scrapper.had_scraped_category
@@ -176,32 +191,33 @@ def test_scrapes_categories_if_found():
     categories: list[str] = ["category1", "category2"]
     market_web_scrapper = SpyMarketWebScrapper(categories)
 
-    scrapper = Scrapper(
-        web_scrapper=market_web_scrapper,
-        logger=Logger("test"),
+    handler = ScrapeMarketsCommandHandler(
+        product_repository=DummyProductRepository(),
+        market_web_scrappers={"Market": market_web_scrapper},
     )
 
     # Act
-    scrapper.scrape("12345")
+    handler.handle("12345")
 
     # Assert
     assert market_web_scrapper.had_scraped_category
 
 
-def test_returns_products_from_scraped_categories():
+def test_saves_scrapped_products_from_scraped_categories():
     scrapped_products: list[Product] = [
         Product(name="product1", price=1.0, quantity="1 unit"),
         Product(name="product2", price=2.0, quantity="1 unit"),
     ]
     market_web_scrapper = FakeMarketWebScrapper(scrapped_products)
+    product_repository = SpyProductRepository()
 
-    scrapper = Scrapper(
-        web_scrapper=market_web_scrapper,
-        logger=Logger("test"),
+    handler = ScrapeMarketsCommandHandler(
+        product_repository=product_repository,
+        market_web_scrappers={"Market": market_web_scrapper},
     )
 
     # Act
-    products = scrapper.scrape("12345")
+    handler.handle("12345")
 
     # Assert
-    assert products == scrapped_products
+    assert product_repository.saved_products == market_web_scrapper.scrapped_products

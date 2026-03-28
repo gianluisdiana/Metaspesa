@@ -32,3 +32,9 @@ class MarketWebScrapper:
     @abstractmethod
     def scrape_category(self, category: str) -> list[Product]:
         pass
+
+
+class ProductRepository:
+    @abstractmethod
+    def save(self, market_name: str, products: list[Product]) -> None:
+        pass
