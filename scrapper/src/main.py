@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 
 from config import AppConfig, load_config
-from domain import Market, Product
+from domain import Product
 from market_scrappers.scrapper_factory import ScrapperFactory
 
 logging.basicConfig(
@@ -13,25 +13,27 @@ logging.basicConfig(
 
 def main() -> None:
     settings: AppConfig = load_config()
-    markets: list[Market] = [
-        Market(name="Alcampo", url="https://www.compraonline.alcampo.es/"),
-        Market(name="Mercadona", url="https://www.mercadona.es/"),
+    market_names: list[str] = [
+        "Alcampo",
+        "Mercadona",
     ]
 
     today: str = datetime.now().strftime("%Y-%m-%d")
     postal_code = "38320"
 
     factory = ScrapperFactory(settings)
-    for market in markets:
-        with factory.create(market) as scrapper:
+    for market_name in market_names:
+        with factory.create(market_name) as scrapper:
             products: list[Product] = scrapper.scrape(postal_code)
 
         with open(
-            f"data/{today}_{market.name.lower()}.csv", "w", encoding="utf-8"
+            f"data/{today}_{market_name.lower()}.csv", "w", encoding="utf-8"
         ) as f:
-            f.write("Name;Price;Quantity\n")
+            f.write("Name;Price;Quantity;Brand\n")
             for product in products:
-                f.write(f'"{product.name}";{product.price};{product.quantity}\n')
+                f.write(
+                    f'"{product.name}";{product.price};{product.quantity};{product.brand}\n'
+                )
 
 
 if __name__ == "__main__":

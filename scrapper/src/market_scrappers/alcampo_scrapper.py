@@ -11,15 +11,15 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from config import ScraperSettings
-from domain import Market, Product
+from domain import Product
 from market_scrappers.scrapper import Scrapper
 
 
 class AlcampoScrapper(Scrapper):
-    def __init__(
-        self, market: Market, logger: logging.Logger, settings: ScraperSettings
-    ) -> None:
-        super().__init__(market, logger)
+    def __init__(self, settings: ScraperSettings) -> None:
+        super().__init__(
+            "https://www.compraonline.alcampo.es/", logging.getLogger("AlcampoScrapper")
+        )
         self.__skipped_categories: set[str] = set(settings.skipped_categories)
 
     @override

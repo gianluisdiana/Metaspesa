@@ -6,9 +6,4 @@ class Product:
     name: str
     price: float
     quantity: str
-
-
-@dataclass
-class Market:
-    name: str
-    url: str
+    brand: str | None = None

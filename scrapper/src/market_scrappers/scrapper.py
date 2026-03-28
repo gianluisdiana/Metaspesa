@@ -7,20 +7,20 @@ from types import TracebackType
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.webdriver import WebDriver
 
-from domain import Market, Product
+from domain import Product
 
 
 class Scrapper:
-    def __init__(self, market: Market, logger: Logger):
-        self.market = market
+    def __init__(self, url: str, logger: Logger):
+        self.__url = url
         self.__logger = logger
         options = Options()
         options.add_argument("--headless")
         self.driver = WebDriver(options=options)
 
     def scrape(self, postal_code: str) -> list[Product]:
-        self.driver.get(self.market.url)
-        self.__logger.info(f"Navigated to {self.market.url}")
+        self.driver.get(self.__url)
+        self.__logger.info(f"Navigated to {self.__url}")
 
         self._close_popups()
         self.__logger.info("Closed popups")

@@ -1,3 +1,4 @@
+import logging
 from typing import override
 
 from bs4 import BeautifulSoup, Tag
@@ -11,6 +12,11 @@ from market_scrappers.scrapper import Scrapper
 
 
 class MercadonaScrapper(Scrapper):
+    def __init__(self):
+        super().__init__(
+            "https://www.mercadona.es/", logging.getLogger("MercadonaScrapper")
+        )
+
     @override
     def _set_location(self, postal_code: str) -> None:
         WebDriverWait(self.driver, 5).until(
