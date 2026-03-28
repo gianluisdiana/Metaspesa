@@ -1,4 +1,3 @@
-import logging
 import re
 from time import sleep
 from typing import override
@@ -6,97 +5,105 @@ from typing import override
 from bs4 import BeautifulSoup, Tag
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.webdriver import WebDriver
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from config import ScraperSettings
 from domain import Product
-from market_scrappers.scrapper import Scrapper
+from market_scrappers.market_web_scrapper import MarketWebScrapper
 
 
-class AlcampoScrapper(Scrapper):
-    def __init__(self, settings: ScraperSettings) -> None:
-        super().__init__(
-            "https://www.compraonline.alcampo.es/", logging.getLogger("AlcampoScrapper")
-        )
+class AlcampoWebScrapper(MarketWebScrapper):
+    def __init__(self, driver: WebDriver, settings: ScraperSettings) -> None:
+        super().__init__()
+        self.__driver = driver
         self.__skipped_categories: set[str] = set(settings.skipped_categories)
 
+    @property
     @override
-    def _close_popups(self) -> None:
-        WebDriverWait(self.driver, 5).until(
+    def url(self) -> str:
+        return "https://www.compraonline.alcampo.es/"
+
+    @override
+    def navigate_to_home(self) -> None:
+        self.__driver.get(self.url)
+
+    @override
+    def close_popups(self) -> None:
+        WebDriverWait(self.__driver, 5).until(
             EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, "#onetrust-reject-all-handler")
             )
         ).click()
 
-        WebDriverWait(self.driver, 5).until(
+        WebDriverWait(self.__driver, 5).until(
             EC.invisibility_of_element_located(
                 (By.CSS_SELECTOR, "#onetrust-reject-all-handler")
             )
         )
 
-        WebDriverWait(self.driver, 10).until(
+        WebDriverWait(self.__driver, 10).until(
             EC.element_to_be_clickable(
                 (By.XPATH, '//button[@data-test="popup-banner-close-button"]')
             )
         ).click()
 
     @override
-    def _set_location(self, postal_code: str) -> None:
-        WebDriverWait(self.driver, 5).until(
+    def set_location(self, postal_code: str) -> None:
+        WebDriverWait(self.__driver, 5).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, "._button--fill_ftyis_140"))
         ).click()
 
-        WebDriverWait(self.driver, 5).until(
+        WebDriverWait(self.__driver, 5).until(
             EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, "._button--primary_ftyis_42 > span")
             )
         ).click()
 
-        WebDriverWait(self.driver, 5).until(
+        WebDriverWait(self.__driver, 5).until(
             EC.presence_of_element_located(
                 (By.XPATH, '//input[@data-test="search-input"]')
             )
         ).send_keys(postal_code)
 
-        WebDriverWait(self.driver, 5).until(
+        WebDriverWait(self.__driver, 5).until(
             EC.element_to_be_clickable(
                 (By.XPATH, f'//span[contains(text(), "{postal_code}")]')
             )
         ).click()
 
-        WebDriverWait(self.driver, 5).until(
+        WebDriverWait(self.__driver, 5).until(
             EC.element_to_be_clickable(
                 (By.XPATH, '//span[text()="Confirmar ubicación"]')
             )
         ).click()
 
-        WebDriverWait(self.driver, 5).until(
+        WebDriverWait(self.__driver, 5).until(
             EC.element_to_be_clickable(
                 (By.XPATH, '//button[@data-test="choose-delivery-method-submit"]')
             )
         ).click()
 
-        self.driver.refresh()
+        self.__driver.refresh()
 
     @override
-    def _navigate_to_categories(self) -> None:
-        WebDriverWait(self.driver, 5).until(
+    def navigate_to_categories(self) -> None:
+        WebDriverWait(self.__driver, 5).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, ".dropdown-item-button"))
         ).click()
 
-        WebDriverWait(self.driver, 5).until(
+        WebDriverWait(self.__driver, 5).until(
             EC.element_to_be_clickable((By.XPATH, "//span[text()='Todo el catálogo']"))
         ).click()
 
     @override
-    def _get_categories(self) -> list[str]:
-        WebDriverWait(self.driver, 5).until(
+    def get_categories(self) -> list[str]:
+        WebDriverWait(self.__driver, 5).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, ".salt-m-t--0"))
         )
 
-        soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        soup = BeautifulSoup(self.__driver.page_source, "html.parser")
         category_tags = soup.select(".salt-m-t--0 li")
         categories: list[str] = [
             category_tag.text
@@ -107,8 +114,8 @@ class AlcampoScrapper(Scrapper):
         return categories
 
     @override
-    def _scrape_category(self, category: str) -> list[Product]:
-        category_scrapper = AlcampoCategoryScrapper(self.driver, category)
+    def scrape_category(self, category: str) -> list[Product]:
+        category_scrapper = AlcampoCategoryScrapper(self.__driver, category)
         return category_scrapper.scrape()
 
 

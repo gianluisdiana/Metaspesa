@@ -1,63 +1,70 @@
-import logging
 from typing import override
 
 from bs4 import BeautifulSoup, Tag
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.webdriver import WebDriver
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from domain import Product
-from market_scrappers.scrapper import Scrapper
+from market_scrappers.market_web_scrapper import MarketWebScrapper
 
 
-class MercadonaScrapper(Scrapper):
-    def __init__(self):
-        super().__init__(
-            "https://www.mercadona.es/", logging.getLogger("MercadonaScrapper")
-        )
+class MercadonaWebScrapper(MarketWebScrapper):
+    def __init__(self, driver: WebDriver) -> None:
+        super().__init__()
+        self.__driver = driver
+
+    @property
+    @override
+    def url(self) -> str:
+        return "https://www.mercadona.es/"
 
     @override
-    def _set_location(self, postal_code: str) -> None:
-        WebDriverWait(self.driver, 5).until(
+    def navigate_to_home(self) -> None:
+        self.__driver.get(self.url)
+
+    @override
+    def set_location(self, postal_code: str) -> None:
+        WebDriverWait(self.__driver, 5).until(
             EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, 'input[aria-label="Código postal"]')
             )
         ).send_keys(postal_code)
 
-        WebDriverWait(self.driver, 5).until(
+        WebDriverWait(self.__driver, 5).until(
             EC.element_to_be_clickable((By.CLASS_NAME, "postal-code-form__button"))
         ).click()
 
     @override
-    def _navigate_to_categories(self) -> None:
-        WebDriverWait(self.driver, 5).until(
+    def navigate_to_categories(self) -> None:
+        WebDriverWait(self.__driver, 5).until(
             EC.presence_of_element_located(
                 (By.XPATH, '//a[contains(text(), "Categorías")]')
             )
         )
 
-        WebDriverWait(self.driver, 5).until(
+        WebDriverWait(self.__driver, 5).until(
             EC.element_to_be_clickable(
                 (By.XPATH, '//a[contains(text(), "Categorías")]')
             )
         ).click()
 
     @override
-    def _close_popups(self) -> None:
-        WebDriverWait(self.driver, 5).until(
+    def close_popups(self) -> None:
+        WebDriverWait(self.__driver, 5).until(
             EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, "button.ui-button:nth-child(3)")
             )
         ).click()
 
     @override
-    def _get_categories(self) -> list[str]:
-        WebDriverWait(self.driver, 5).until(
+    def get_categories(self) -> list[str]:
+        WebDriverWait(self.__driver, 5).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "li.category-menu__item"))
         )
 
-        soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        soup = BeautifulSoup(self.__driver.page_source, "html.parser")
         product_category_tags = soup.find_all("li", class_="category-menu__item")
         categories: list[str] = [
             (product_category_tag.select_one("label.subhead1-r") or Tag()).text
@@ -67,8 +74,8 @@ class MercadonaScrapper(Scrapper):
         return categories
 
     @override
-    def _scrape_category(self, category: str) -> list[Product]:
-        category_scrapper = MercadonaCategoryScrapper(self.driver, category)
+    def scrape_category(self, category: str) -> list[Product]:
+        category_scrapper = MercadonaCategoryScrapper(self.__driver, category)
         return category_scrapper.scrape()
 
 
