@@ -1,6 +1,7 @@
 import logging
 
 from application.abstractions import MarketWebScrapper, ProductRepository
+from application.product_processors import ProductProcessor
 from domain import Product
 
 
@@ -9,15 +10,20 @@ class ScrapeMarketsCommandHandler:
         self,
         product_repository: ProductRepository,
         market_web_scrappers: dict[str, MarketWebScrapper],
+        product_processor: ProductProcessor,
     ) -> None:
         self.__product_repository = product_repository
         self.__market_web_scrappers = market_web_scrappers
+        self.__product_processor = product_processor
 
     def handle(self, postal_code: str) -> None:
         assert len(self.__market_web_scrappers) > 0
 
         for market_name in self.__market_web_scrappers:
             products: list[Product] = self.__scrape_market(market_name, postal_code)
+            products = [
+                self.__product_processor.process(product) for product in products
+            ]
             self.__product_repository.save(market_name, products)
 
     def __scrape_market(self, market_name: str, postal_code: str) -> list[Product]:

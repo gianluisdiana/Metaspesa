@@ -15,7 +15,5 @@ class MarketWebScrapperFactory:
         if market_name == "Mercadona":
             return MercadonaWebScrapper(self.__web_driver)
         if market_name == "Alcampo":
-            return AlcampoWebScrapper(
-                self.__web_driver, self.__settings.scrapers.alcampo
-            )
+            return AlcampoWebScrapper(self.__web_driver, self.__settings.scrapers)
         raise ValueError(f"Unsupported market: {market_name}")

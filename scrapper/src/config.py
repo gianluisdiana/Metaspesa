@@ -4,21 +4,18 @@ import yaml
 from pydantic import BaseModel
 
 
-class ParsingSettings(BaseModel):
+class ProcessorSettings(BaseModel):
     known_brands: list[str]
+    replacements: dict[str, list[str]]
 
 
 class ScraperSettings(BaseModel):
     skipped_categories: list[str]
 
 
-class AllScrapersSettings(BaseModel):
-    alcampo: ScraperSettings
-
-
 class AppConfig(BaseModel):
-    parsing: ParsingSettings
-    scrapers: AllScrapersSettings
+    processor: ProcessorSettings
+    scrapers: ScraperSettings
 
 
 def load_config(config_path: str | Path = "config.yaml") -> AppConfig:

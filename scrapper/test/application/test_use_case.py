@@ -1,8 +1,15 @@
 from typing import override
 
 from application.abstractions import MarketWebScrapper, ProductRepository
+from application.product_processors import ProductProcessor
 from application.use_case import ScrapeMarketsCommandHandler
 from domain import Product
+
+
+class DummyProductProcessor(ProductProcessor):
+    @override
+    def _process(self, product: Product) -> Product:
+        return product
 
 
 class DummyProductRepository(ProductRepository):
@@ -80,6 +87,7 @@ def test_navigates_to_home():
     handler = ScrapeMarketsCommandHandler(
         product_repository=DummyProductRepository(),
         market_web_scrappers={"Market": market_web_scrapper},
+        product_processor=DummyProductProcessor(),
     )
 
     # Act
@@ -96,6 +104,7 @@ def test_closes_popups():
     handler = ScrapeMarketsCommandHandler(
         product_repository=DummyProductRepository(),
         market_web_scrappers={"Market": market_web_scrapper},
+        product_processor=DummyProductProcessor(),
     )
 
     # Act
@@ -112,6 +121,7 @@ def test_sets_location():
     handler = ScrapeMarketsCommandHandler(
         product_repository=DummyProductRepository(),
         market_web_scrappers={"Market": market_web_scrapper},
+        product_processor=DummyProductProcessor(),
     )
 
     # Act
@@ -128,6 +138,7 @@ def test_sets_location_with_given_postal_code():
     handler = ScrapeMarketsCommandHandler(
         product_repository=DummyProductRepository(),
         market_web_scrappers={"Market": market_web_scrapper},
+        product_processor=DummyProductProcessor(),
     )
 
     # Act
@@ -144,6 +155,7 @@ def test_navigates_to_categories():
     handler = ScrapeMarketsCommandHandler(
         product_repository=DummyProductRepository(),
         market_web_scrappers={"Market": market_web_scrapper},
+        product_processor=DummyProductProcessor(),
     )
 
     # Act
@@ -160,6 +172,7 @@ def test_gets_categories():
     handler = ScrapeMarketsCommandHandler(
         product_repository=DummyProductRepository(),
         market_web_scrappers={"Market": market_web_scrapper},
+        product_processor=DummyProductProcessor(),
     )
 
     # Act
@@ -177,6 +190,7 @@ def test_does_not_scrape_categories_if_no_categories_found():
     handler = ScrapeMarketsCommandHandler(
         product_repository=DummyProductRepository(),
         market_web_scrappers={"Market": market_web_scrapper},
+        product_processor=DummyProductProcessor(),
     )
 
     # Act
@@ -194,6 +208,7 @@ def test_scrapes_categories_if_found():
     handler = ScrapeMarketsCommandHandler(
         product_repository=DummyProductRepository(),
         market_web_scrappers={"Market": market_web_scrapper},
+        product_processor=DummyProductProcessor(),
     )
 
     # Act
@@ -214,6 +229,7 @@ def test_saves_scrapped_products_from_scraped_categories():
     handler = ScrapeMarketsCommandHandler(
         product_repository=product_repository,
         market_web_scrappers={"Market": market_web_scrapper},
+        product_processor=DummyProductProcessor(),
     )
 
     # Act

@@ -1,7 +1,7 @@
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.webdriver import WebDriver
 
-from config import AllScrapersSettings, AppConfig, ParsingSettings, ScraperSettings
+from config import AppConfig, ProcessorSettings, ScraperSettings
 from infrastructure.market_scrappers.alcampo_web_scrapper import AlcampoWebScrapper
 from infrastructure.market_scrappers.market_web_scrapper_factory import (
     MarketWebScrapperFactory,
@@ -51,8 +51,8 @@ def test_creates_alcampo_web_scrapper():
 
 def __create_default_settings() -> AppConfig:
     return AppConfig(
-        parsing=ParsingSettings(known_brands=[]),
-        scrapers=AllScrapersSettings(alcampo=ScraperSettings(skipped_categories=[])),
+        processor=ProcessorSettings(known_brands=[], replacements={}),
+        scrapers=ScraperSettings(skipped_categories=[]),
     )
 
 
