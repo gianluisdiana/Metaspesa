@@ -2,13 +2,13 @@
 name = "scrapper"
 version = "0.1.0"
 description = "Background worker for scraping products from different markets."
-readme = "./README.md"
+readme = "../README.md"
 requires-python = ">=3.14"
 dependencies = [
     "beautifulsoup4>=4.14.3",
+    "playwright>=1.58.0",
     "pydantic>=2.12.5",
     "pyyaml>=6.0.3",
-    "selenium>=4.41.0",
 ]
 
 [dependency-groups]
@@ -39,10 +39,6 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.pytest]
-pythonpath = [
-    "src"
-]
-testpaths = [
-    "test"
-]
+pythonpath = ["src"]
+testpaths = ["test"]
 strict = true

@@ -1,5 +1,4 @@
-from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.firefox.webdriver import WebDriver
+from typing import Any
 
 from config import AppConfig, ProcessorSettings, ScraperSettings
 from infrastructure.market_scrappers.alcampo_web_scrapper import AlcampoWebScrapper
@@ -56,8 +55,8 @@ def __create_default_settings() -> AppConfig:
     )
 
 
-def __create_web_driver():
-    options = Options()
-    options.add_argument("--headless")
-    driver = WebDriver(options=options)
-    return driver
+def __create_web_driver() -> Any:
+    class _StubDriver:
+        pass
+
+    return _StubDriver()

@@ -7,3 +7,9 @@ class Product:
     price: float
     quantity: str
     brand: str | None = None
+
+
+@dataclass
+class Subcategory:
+    name: str
+    url: str

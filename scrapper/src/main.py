@@ -1,9 +1,6 @@
 import logging
 from pathlib import Path
 
-from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.firefox.webdriver import WebDriver
-
 from application.abstractions import MarketWebScrapper
 from application.product_processors import (
     BrandExtractor,
@@ -16,22 +13,21 @@ from infrastructure.local_storage import CsvProductRepository
 from infrastructure.market_scrappers.market_web_scrapper_factory import (
     MarketWebScrapperFactory,
 )
+from infrastructure.playwright_driver import PlaywrightDriver
 
 
-def __create_web_driver() -> WebDriver:
-    options = Options()
-    options.add_argument("--headless")
-    driver = WebDriver(options=options)
+def __create_web_driver() -> PlaywrightDriver:
+    driver = PlaywrightDriver(headless=False)
     return driver
 
 
 def __create_market_web_scrappers(
-    settings: AppConfig, web_driver: WebDriver
+    settings: AppConfig, web_driver: PlaywrightDriver
 ) -> dict[str, MarketWebScrapper]:
     factory = MarketWebScrapperFactory(settings, web_driver)
     market_names = [
-        "Alcampo",
         "Mercadona",
+        "Alcampo",
     ]
     return {name: factory.create(name) for name in market_names}
 
@@ -51,7 +47,7 @@ def main() -> None:
     )
 
     settings: AppConfig = load_config()
-    web_driver: WebDriver = __create_web_driver()
+    web_driver: PlaywrightDriver = __create_web_driver()
     product_repository = CsvProductRepository(Path("data"))
     scrappers: dict[str, MarketWebScrapper] = __create_market_web_scrappers(
         settings, web_driver

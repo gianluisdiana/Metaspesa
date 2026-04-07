@@ -1,24 +1,21 @@
 from typing import override
 
 from bs4 import BeautifulSoup, Tag
-from selenium.webdriver.common.by import By
-from selenium.webdriver.remote.webdriver import WebDriver
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
 
 from application.abstractions import MarketWebScrapper
-from domain import Product
+from domain import Product, Subcategory
+from infrastructure.playwright_driver import PlaywrightDriver
 
 
 class MercadonaWebScrapper(MarketWebScrapper):
-    def __init__(self, driver: WebDriver) -> None:
+    def __init__(self, driver: PlaywrightDriver) -> None:
         super().__init__()
         self.__driver = driver
 
     @property
     @override
     def url(self) -> str:
-        return "https://www.mercadona.es/"
+        return "https://tienda.mercadona.es"
 
     @override
     def navigate_to_home(self) -> None:
@@ -26,43 +23,28 @@ class MercadonaWebScrapper(MarketWebScrapper):
 
     @override
     def set_location(self, postal_code: str) -> None:
-        WebDriverWait(self.__driver, 5).until(
-            EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, 'input[aria-label="Código postal"]')
-            )
-        ).send_keys(postal_code)
+        self.__driver.wait_for_presence_xpath('//input[@aria-label="Código postal"]')
 
-        WebDriverWait(self.__driver, 5).until(
-            EC.element_to_be_clickable((By.CLASS_NAME, "postal-code-form__button"))
-        ).click()
+        self.__driver.wait_and_send_keys_xpath(
+            '//input[@data-testid="postal-code-checker-input"]', postal_code
+        )
+
+        self.__driver.wait_and_click_xpath(
+            '//button[@data-testid="postal-code-checker-button"]'
+        )
 
     @override
     def navigate_to_categories(self) -> None:
-        WebDriverWait(self.__driver, 5).until(
-            EC.presence_of_element_located(
-                (By.XPATH, '//a[contains(text(), "Categorías")]')
-            )
-        )
-
-        WebDriverWait(self.__driver, 5).until(
-            EC.element_to_be_clickable(
-                (By.XPATH, '//a[contains(text(), "Categorías")]')
-            )
-        ).click()
+        self.__driver.wait_for_presence_xpath('//a[contains(text(), "Categorías")]')
+        self.__driver.wait_and_click_xpath('//a[contains(text(), "Categorías")]')
 
     @override
     def close_popups(self) -> None:
-        WebDriverWait(self.__driver, 5).until(
-            EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, "button.ui-button:nth-child(3)")
-            )
-        ).click()
+        self.__driver.wait_and_click_css("button.ui-button:nth-child(3)")
 
     @override
     def get_categories(self) -> list[str]:
-        WebDriverWait(self.__driver, 5).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "li.category-menu__item"))
-        )
+        self.__driver.wait_for_presence_css("li.category-menu__item")
 
         soup = BeautifulSoup(self.__driver.page_source, "html.parser")
         product_category_tags = soup.find_all("li", class_="category-menu__item")
@@ -75,14 +57,15 @@ class MercadonaWebScrapper(MarketWebScrapper):
 
     @override
     def scrape_category(self, category: str) -> list[Product]:
-        category_scrapper = MercadonaCategoryScrapper(self.__driver, category)
+        category_scrapper = MercadonaCategoryScrapper(self.__driver, category, self.url)
         return category_scrapper.scrape()
 
 
 class MercadonaCategoryScrapper:
-    def __init__(self, driver: WebDriver, category: str):
-        self.driver = driver
-        self.category = category
+    def __init__(self, driver: PlaywrightDriver, category: str, base_url: str):
+        self.__driver = driver
+        self.__category = category
+        self.__base_url = base_url
 
     def scrape(self) -> list[Product]:
         self.__expand_category()
@@ -94,24 +77,13 @@ class MercadonaCategoryScrapper:
 
         return products
 
-    def __get_products(self, subcategory: str) -> list[Product]:
-        WebDriverWait(self.driver, 5).until(
-            EC.element_to_be_clickable(
-                (
-                    By.XPATH,
-                    f'//button[contains(@class, "category-item__link") and text()="{subcategory}"]',  # noqa: E501
-                )
-            )
-        ).click()
+    def __get_products(self, subcategory: Subcategory) -> list[Product]:
+        self.__driver.get(subcategory.url)
 
-        WebDriverWait(self.driver, 5).until(
-            EC.presence_of_element_located(
-                (By.CSS_SELECTOR, "h1.category-detail__title")
-            )
-        )
+        self.__driver.wait_for_presence_css("h1.category-detail__title")
 
         products: list[Product] = []
-        soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        soup = BeautifulSoup(self.__driver.page_source, "html.parser")
         product_links = soup.select("button.product-cell__content-link")
         for link in product_links:
             products.append(self.__extract_product_info(link))
@@ -137,32 +109,23 @@ class MercadonaCategoryScrapper:
         return Product(name=name, price=float(price), quantity=quantity)
 
     def __expand_category(self) -> None:
-        WebDriverWait(self.driver, 5).until(
-            EC.element_to_be_clickable(
-                (
-                    By.XPATH,
-                    f'//label[contains(@class, "subhead1-r") and text()="{self.category}"]',  # noqa: E501
-                )
-            )
-        ).click()
-
-        WebDriverWait(self.driver, 5).until(
-            EC.presence_of_element_located(
-                (
-                    By.CSS_SELECTOR,
-                    "li.category-menu__item div ul li button.category-item__link",
-                )
-            )
+        self.__driver.wait_and_click_xpath(
+            f'//label[contains(@class, "subhead1-r") and text()="{self.__category}"]',
         )
 
-    def __get_subcategories(self) -> list[str]:
-        soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        self.__driver.wait_for_presence_css(
+            "li.category-menu__item div ul li button.category-item__link"
+        )
+
+    def __get_subcategories(self) -> list[Subcategory]:
+        soup = BeautifulSoup(self.__driver.page_source, "html.parser")
         subcategory_tags = soup.select(
             "li.category-menu__item div ul li button.category-item__link"
         )
-        subcategories: list[str] = []
-
-        for subcategory_tag in subcategory_tags:
-            subcategories.append(subcategory_tag.text)
-
-        return subcategories
+        return [
+            Subcategory(
+                name=tag.text,
+                url=f"{self.__base_url}/categories/{tag.get('id', '')}",
+            )
+            for tag in subcategory_tags
+        ]
