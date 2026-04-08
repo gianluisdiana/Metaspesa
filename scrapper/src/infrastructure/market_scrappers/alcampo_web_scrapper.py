@@ -76,33 +76,26 @@ class AlcampoWebScrapper(MarketWebScrapper):
         return list(self.__category_urls.keys())
 
     @override
-    def scrape_category(self, category: str) -> list[Product]:
+    def get_subcategories(self, category: str) -> list[Subcategory]:
         category_url = self.__category_urls[category]
-        category_scrapper = AlcampoCategoryScrapper(
-            self.__driver, category_url, self.url
+        return AlcampoCategoryScrapper(self.__driver, self.url).get_subcategories(
+            category_url
         )
-        return category_scrapper.scrape()
+
+    @override
+    def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
+        return AlcampoCategoryScrapper(self.__driver, self.url).scrape_subcategory(
+            subcategory
+        )
 
 
 class AlcampoCategoryScrapper:
-    def __init__(self, driver: PlaywrightDriver, url: str, base_url: str) -> None:
+    def __init__(self, driver: PlaywrightDriver, base_url: str) -> None:
         self.__driver = driver
-        self.__url = url
         self.__base_url = base_url
 
-    def scrape(self) -> list[Product]:
-        self.__driver.get(self.__url)
-
-        subcategories = self.__get_subcategories()
-
-        products: list[Product] = []
-        for subcategory in subcategories:
-            self.__try_close_popups()
-            products += self.__get_products(subcategory)
-
-        return products
-
-    def __get_subcategories(self) -> list[Subcategory]:
+    def get_subcategories(self, category_url: str) -> list[Subcategory]:
+        self.__driver.get(category_url)
         self.__driver.wait_for_presence_css(".salt-m-t--0")
 
         soup = BeautifulSoup(self.__driver.page_source, "html.parser")
@@ -114,6 +107,10 @@ class AlcampoCategoryScrapper:
             )
             for tag in subcategory_tags
         ]
+
+    def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
+        self.__try_close_popups()
+        return self.__get_products(subcategory)
 
     def __get_products(self, subcategory: Subcategory) -> list[Product]:
         self.__driver.get(subcategory.url)

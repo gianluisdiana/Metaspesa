@@ -2,7 +2,7 @@ import logging
 
 from application.abstractions import MarketWebScrapper, ProductRepository
 from application.product_processors import ProductProcessor
-from domain import Product
+from domain import Product, Subcategory
 
 
 class ScrapeMarketsCommandHandler:
@@ -47,10 +47,21 @@ class ScrapeMarketsCommandHandler:
 
         products: list[Product] = []
         for category in categories:
-            category_products = market_web_scrapper.scrape_category(category)
-            products += category_products
-            logger.info(
-                f"Scraped category '{category}' with {len(category_products)} products"
+            subcategories: list[Subcategory] = market_web_scrapper.get_subcategories(
+                category
             )
+            logger.info(
+                f"Found {len(subcategories)} subcategories in category '{category}'"
+            )
+
+            for subcategory in subcategories:
+                subcategory_products = market_web_scrapper.scrape_subcategory(
+                    subcategory
+                )
+                products += subcategory_products
+                logger.info(
+                    f"Scraped subcategory '{subcategory.name}' "
+                    f"with {len(subcategory_products)} products"
+                )
 
         return products

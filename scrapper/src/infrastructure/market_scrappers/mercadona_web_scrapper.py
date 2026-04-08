@@ -56,9 +56,16 @@ class MercadonaWebScrapper(MarketWebScrapper):
         return categories
 
     @override
-    def scrape_category(self, category: str) -> list[Product]:
-        category_scrapper = MercadonaCategoryScrapper(self.__driver, category, self.url)
-        return category_scrapper.scrape()
+    def get_subcategories(self, category: str) -> list[Subcategory]:
+        return MercadonaCategoryScrapper(
+            self.__driver, category, self.url
+        ).get_subcategories()
+
+    @override
+    def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
+        return MercadonaCategoryScrapper(
+            self.__driver, "", self.url
+        ).scrape_subcategory(subcategory)
 
 
 class MercadonaCategoryScrapper:
@@ -67,15 +74,12 @@ class MercadonaCategoryScrapper:
         self.__category = category
         self.__base_url = base_url
 
-    def scrape(self) -> list[Product]:
+    def get_subcategories(self) -> list[Subcategory]:
         self.__expand_category()
-        subcategories = self.__get_subcategories()
+        return self.__get_subcategories()
 
-        products: list[Product] = []
-        for subcategory in subcategories:
-            products += self.__get_products(subcategory)
-
-        return products
+    def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
+        return self.__get_products(subcategory)
 
     def __get_products(self, subcategory: Subcategory) -> list[Product]:
         self.__driver.get(subcategory.url)

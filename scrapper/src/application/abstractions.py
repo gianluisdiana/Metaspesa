@@ -1,6 +1,6 @@
 from abc import abstractmethod
 
-from domain import Product
+from domain import Product, Subcategory
 
 
 class MarketWebScrapper:
@@ -30,7 +30,11 @@ class MarketWebScrapper:
         pass
 
     @abstractmethod
-    def scrape_category(self, category: str) -> list[Product]:
+    def get_subcategories(self, category: str) -> list[Subcategory]:
+        pass
+
+    @abstractmethod
+    def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
         pass
 
 

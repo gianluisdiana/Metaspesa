@@ -3,7 +3,7 @@ from typing import override
 from application.abstractions import MarketWebScrapper, ProductRepository
 from application.product_processors import ProductProcessor
 from application.use_case import ScrapeMarketsCommandHandler
-from domain import Product
+from domain import Product, Subcategory
 
 
 class DummyProductProcessor(ProductProcessor):
@@ -37,7 +37,9 @@ class SpyMarketWebScrapper(MarketWebScrapper):
         self.had_navigated_to_categories = False
         self.had_gotten_categories = False
         self.__categories = categories or []
-        self.had_scraped_category = False
+        self.had_gotten_subcategories = False
+        self.get_subcategories_called_with: list[str] = []
+        self.had_scraped_subcategory = False
 
     @override
     def navigate_to_home(self) -> None:
@@ -62,21 +64,29 @@ class SpyMarketWebScrapper(MarketWebScrapper):
         return self.__categories
 
     @override
-    def scrape_category(self, category: str) -> list[Product]:
-        self.had_scraped_category = True
+    def get_subcategories(self, category: str) -> list[Subcategory]:
+        self.had_gotten_subcategories = True
+        self.get_subcategories_called_with.append(category)
+        return []
+
+    @override
+    def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
+        self.had_scraped_subcategory = True
         return []
 
 
 class FakeMarketWebScrapper(SpyMarketWebScrapper):
     def __init__(self, products: list[Product]):
+        super().__init__(categories=[""])
         self.scrapped_products = products
 
     @override
-    def get_categories(self) -> list[str]:
-        return [""]
+    def get_subcategories(self, category: str) -> list[Subcategory]:
+        return [Subcategory(name="subcategory", url="")]
 
     @override
-    def scrape_category(self, category: str) -> list[Product]:
+    def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
+        self.had_scraped_subcategory = True
         return self.scrapped_products
 
 
@@ -182,7 +192,7 @@ def test_gets_categories():
     assert market_web_scrapper.had_gotten_categories
 
 
-def test_does_not_scrape_categories_if_no_categories_found():
+def test_does_not_get_subcategories_if_no_categories_found():
     # Arrange
     categories: list[str] = []
     market_web_scrapper = SpyMarketWebScrapper(categories)
@@ -197,10 +207,10 @@ def test_does_not_scrape_categories_if_no_categories_found():
     handler.handle("12345")
 
     # Assert
-    assert not market_web_scrapper.had_scraped_category
+    assert not market_web_scrapper.had_gotten_subcategories
 
 
-def test_scrapes_categories_if_found():
+def test_gets_subcategories_for_each_category():
     # Arrange
     categories: list[str] = ["category1", "category2"]
     market_web_scrapper = SpyMarketWebScrapper(categories)
@@ -215,10 +225,48 @@ def test_scrapes_categories_if_found():
     handler.handle("12345")
 
     # Assert
-    assert market_web_scrapper.had_scraped_category
+    assert market_web_scrapper.get_subcategories_called_with == categories
 
 
-def test_saves_scrapped_products_from_scraped_categories():
+def test_does_not_scrape_subcategory_if_no_subcategories_found():
+    # Arrange
+    categories: list[str] = ["category1"]
+    market_web_scrapper = SpyMarketWebScrapper(categories)
+
+    handler = ScrapeMarketsCommandHandler(
+        product_repository=DummyProductRepository(),
+        market_web_scrappers={"Market": market_web_scrapper},
+        product_processor=DummyProductProcessor(),
+    )
+
+    # Act
+    handler.handle("12345")
+
+    # Assert
+    assert not market_web_scrapper.had_scraped_subcategory
+
+
+def test_scrapes_subcategories_if_found():
+    # Arrange
+    scrapped_products: list[Product] = [
+        Product(name="product1", price=1.0, quantity="1 unit"),
+    ]
+    market_web_scrapper = FakeMarketWebScrapper(scrapped_products)
+
+    handler = ScrapeMarketsCommandHandler(
+        product_repository=DummyProductRepository(),
+        market_web_scrappers={"Market": market_web_scrapper},
+        product_processor=DummyProductProcessor(),
+    )
+
+    # Act
+    handler.handle("12345")
+
+    # Assert
+    assert market_web_scrapper.had_scraped_subcategory
+
+
+def test_saves_scrapped_products_from_subcategories():
     scrapped_products: list[Product] = [
         Product(name="product1", price=1.0, quantity="1 unit"),
         Product(name="product2", price=2.0, quantity="1 unit"),
