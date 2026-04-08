@@ -82,31 +82,13 @@ class MercadonaCategoryScrapper:
 
         self.__driver.wait_for_presence_css("h1.category-detail__title")
 
-        products: list[Product] = []
         soup = BeautifulSoup(self.__driver.page_source, "html.parser")
-        product_links = soup.select("button.product-cell__content-link")
-        for link in product_links:
-            products.append(self.__extract_product_info(link))
+        product_tags = soup.select("button.product-cell__content-link")
+        products: list[Product] = [
+            tag.to_product() for tag in map(MercadonaProductTag, product_tags)
+        ]
 
         return products
-
-    def __extract_product_info(self, link: Tag) -> Product:
-        name = (link.select_one("h4.product-cell__description-name") or Tag()).text
-
-        quantity = str(
-            (link.select_one("div.product-format__size--cell") or Tag()).get(
-                "aria-label", ""
-            )
-        )
-
-        price = (
-            str((link.select_one("p.product-price__unit-price") or Tag()).text)
-            .replace("€", "")
-            .replace(",", ".")
-            .strip()
-        )
-
-        return Product(name=name, price=float(price), quantity=quantity)
 
     def __expand_category(self) -> None:
         self.__driver.wait_and_click_xpath(
@@ -129,3 +111,30 @@ class MercadonaCategoryScrapper:
             )
             for tag in subcategory_tags
         ]
+
+
+class MercadonaProductTag:
+    def __init__(self, tag: Tag) -> None:
+        self.__tag = tag
+
+    def to_product(self) -> Product:
+        return Product(name=self.__name, quantity=self.__quantity, price=self.__price)
+
+    @property
+    def __name(self) -> str:
+        name_tag = self.__tag.select_one("h4.product-cell__description-name")
+        return name_tag.text.strip() if name_tag else ""
+
+    @property
+    def __quantity(self) -> str:
+        quantity_tag = self.__tag.select_one("div.product-format__size--cell")
+        return str(quantity_tag.get("aria-label", "")).strip() if quantity_tag else ""
+
+    @property
+    def __price(self) -> float:
+        price_tag = self.__tag.select_one("p.product-price__unit-price")
+        if not price_tag:
+            return 0.0
+
+        price = str(price_tag.text).replace("€", "").replace(",", ".").strip()
+        return float(price) if price else 0.0

@@ -26,8 +26,8 @@ def __create_market_web_scrappers(
 ) -> dict[str, MarketWebScrapper]:
     factory = MarketWebScrapperFactory(settings, web_driver)
     market_names = [
-        "Mercadona",
         "Alcampo",
+        "Mercadona",
     ]
     return {name: factory.create(name) for name in market_names}
 

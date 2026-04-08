@@ -96,7 +96,7 @@ class AlcampoCategoryScrapper:
         subcategories = self.__get_subcategories()
 
         products: list[Product] = []
-        for subcategory in subcategories[3:]:
+        for subcategory in subcategories:
             self.__try_close_popups()
             products += self.__get_products(subcategory)
 
@@ -126,49 +126,35 @@ class AlcampoCategoryScrapper:
 
             product_tags = list(
                 filter(
-                    lambda tag: not tag.select('span[data-test="fop-featured"]'),
-                    soup.select("div.product-card-container"),
+                    lambda tag: not tag.is_featured(),
+                    map(AlcampoProductTag, soup.select("div.product-card-container")),
                 )
             )
-            visible_products = self.__get_visible_products(product_tags)
+            last_added_product = products[-1] if products else None
+            products += self.__get_new_products(product_tags, last_added_product)
 
             if len(products) >= len(product_tags):
                 break
-
-            products += filter(
-                lambda p, products=products: p not in products, visible_products
-            )
             try:
                 self.__driver.execute_script("window.scrollBy(0, window.innerHeight);")
             except Exception:
                 break
 
-        return list(products)
-
-    def __get_visible_products(self, product_tags: list[Tag]) -> list[Product]:
-        products: list[Product] = []
-        for product_tag in product_tags:
-            if not product_tag.select('h3[data-test="fop-title"]'):
-                continue
-            if product_tag.select('span[data-test="fop-featured"]'):
-                continue
-            product = self.__parse_product_from_tag(product_tag)
-            products.append(product)
         return products
 
-    def __parse_product_from_tag(self, product_tag: Tag) -> Product:
-        name = str(product_tag.select('h3[data-test="fop-title"]')[0].text)
-        quantity = str(product_tag.select('div[data-test="fop-size"] span')[0].text)
-        price = float(
-            re.sub(
-                r"\s+",
-                "",
-                str(product_tag.select('span[data-test="fop-price"]')[0].text)
-                .replace("€", "")
-                .replace(",", "."),
-            )
+    def __get_new_products(
+        self, product_tags: list[AlcampoProductTag], last_added_product: Product | None
+    ) -> list[Product]:
+        visible_products = [
+            tag.to_product() for tag in product_tags if not tag.is_skeleton()
+        ]
+
+        index_of_last_added_product = (
+            visible_products.index(last_added_product)
+            if last_added_product is not None and last_added_product in visible_products
+            else -1
         )
-        return Product(name=name, quantity=quantity, price=price)
+        return visible_products[index_of_last_added_product + 1 :]
 
     def __try_close_popups(self) -> None:
         try:
@@ -177,3 +163,41 @@ class AlcampoCategoryScrapper:
             )
         except Exception:
             pass
+
+
+class AlcampoProductTag:
+    def __init__(self, tag: Tag) -> None:
+        self.__tag = tag
+
+    def to_product(self) -> Product:
+        return Product(name=self.__name, quantity=self.__quantity, price=self.__price)
+
+    def is_skeleton(self) -> bool:
+        return self.__name == ""
+
+    def is_featured(self) -> bool:
+        return bool(self.__tag.select('span[data-test="fop-featured"]'))
+
+    @property
+    def __name(self) -> str:
+        name_tag = self.__tag.select_one('h3[data-test="fop-title"]')
+        return str(name_tag.text).strip() if name_tag else ""
+
+    @property
+    def __quantity(self) -> str:
+        quantity_tag = self.__tag.select_one('div[data-test="fop-size"] span')
+        return str(quantity_tag.text).strip() if quantity_tag else ""
+
+    @property
+    def __price(self) -> float:
+        price_tag = self.__tag.select_one('span[data-test="fop-price"]')
+        if not price_tag:
+            return 0.0
+
+        return float(
+            re.sub(
+                r"\s+|€",
+                "",
+                str(price_tag.text).replace(",", "."),
+            )
+        )
