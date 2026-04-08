@@ -10,35 +10,35 @@ class MarketWebScrapper:
         pass
 
     @abstractmethod
-    def navigate_to_home(self) -> None:
+    async def navigate_to_home(self) -> None:
         pass
 
     @abstractmethod
-    def close_popups(self) -> None:
+    async def close_popups(self) -> None:
         pass
 
     @abstractmethod
-    def set_location(self, postal_code: str) -> None:
+    async def set_location(self, postal_code: str) -> None:
         pass
 
     @abstractmethod
-    def navigate_to_categories(self) -> None:
+    async def navigate_to_categories(self) -> None:
         pass
 
     @abstractmethod
-    def get_categories(self) -> list[str]:
+    async def get_categories(self) -> list[str]:
         pass
 
     @abstractmethod
-    def get_subcategories(self, category: str) -> list[Subcategory]:
+    async def get_subcategories(self, category: str) -> list[Subcategory]:
         pass
 
     @abstractmethod
-    def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
+    async def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
         pass
 
 
 class ProductRepository:
     @abstractmethod
-    def save(self, market_name: str, products: list[Product]) -> None:
+    async def save(self, market_name: str, products: list[Product]) -> None:
         pass

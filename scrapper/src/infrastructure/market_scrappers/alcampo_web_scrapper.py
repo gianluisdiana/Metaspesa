@@ -22,49 +22,55 @@ class AlcampoWebScrapper(MarketWebScrapper):
         return "https://www.compraonline.alcampo.es"
 
     @override
-    def navigate_to_home(self) -> None:
-        self.__driver.get(self.url)
+    async def navigate_to_home(self) -> None:
+        await self.__driver.get(self.url)
 
     @override
-    def close_popups(self) -> None:
-        self.__driver.wait_and_click_css("#onetrust-reject-all-handler")
+    async def close_popups(self) -> None:
+        await self.__driver.wait_and_click_css("#onetrust-reject-all-handler")
         try:
-            self.__driver.wait_for_invisibility_css("#onetrust-reject-all-handler")
+            await self.__driver.wait_for_invisibility_css(
+                "#onetrust-reject-all-handler"
+            )
         except Exception:
             pass
 
-        self.__driver.wait_and_click_xpath(
+        await self.__driver.wait_and_click_xpath(
             '//button[@data-test="popup-banner-close-button"]', timeout=10
         )
 
     @override
-    def set_location(self, postal_code: str) -> None:
-        self.__driver.wait_and_click_css("._button--fill_ftyis_140")
-        self.__driver.wait_and_click_css("._button--primary_ftyis_42 > span")
+    async def set_location(self, postal_code: str) -> None:
+        await self.__driver.wait_and_click_css("._button--fill_ftyis_140")
+        await self.__driver.wait_and_click_css("._button--primary_ftyis_42 > span")
 
-        self.__driver.wait_for_presence_xpath('//input[@data-test="search-input"]')
-        self.__driver.wait_and_send_keys_xpath(
+        await self.__driver.wait_for_presence_xpath(
+            '//input[@data-test="search-input"]'
+        )
+        await self.__driver.wait_and_send_keys_xpath(
             '//input[@data-test="search-input"]', postal_code
         )
 
-        self.__driver.wait_and_click_xpath(f'//span[contains(text(), "{postal_code}")]')
-        self.__driver.wait_and_click_xpath('//span[text()="Confirmar ubicación"]')
-        self.__driver.wait_and_click_xpath(
+        await self.__driver.wait_and_click_xpath(
+            f'//span[contains(text(), "{postal_code}")]'
+        )
+        await self.__driver.wait_and_click_xpath('//span[text()="Confirmar ubicación"]')
+        await self.__driver.wait_and_click_xpath(
             '//button[@data-test="choose-delivery-method-submit"]'
         )
 
-        self.__driver.refresh()
+        await self.__driver.refresh()
 
     @override
-    def navigate_to_categories(self) -> None:
-        self.__driver.wait_and_click_css(".dropdown-item-button")
-        self.__driver.wait_and_click_xpath("//span[text()='Todo el catálogo']")
+    async def navigate_to_categories(self) -> None:
+        await self.__driver.wait_and_click_css(".dropdown-item-button")
+        await self.__driver.wait_and_click_xpath("//span[text()='Todo el catálogo']")
 
     @override
-    def get_categories(self) -> list[str]:
-        self.__driver.wait_for_presence_css(".salt-m-t--0")
+    async def get_categories(self) -> list[str]:
+        await self.__driver.wait_for_presence_css(".salt-m-t--0")
 
-        soup = BeautifulSoup(self.__driver.page_source, "html.parser")
+        soup = BeautifulSoup(await self.__driver.page_source(), "html.parser")
         category_tags = soup.select(".salt-m-t--0 li a")
         for tag in category_tags:
             name = tag.text
@@ -76,17 +82,17 @@ class AlcampoWebScrapper(MarketWebScrapper):
         return list(self.__category_urls.keys())
 
     @override
-    def get_subcategories(self, category: str) -> list[Subcategory]:
+    async def get_subcategories(self, category: str) -> list[Subcategory]:
         category_url = self.__category_urls[category]
-        return AlcampoCategoryScrapper(self.__driver, self.url).get_subcategories(
+        return await AlcampoCategoryScrapper(self.__driver, self.url).get_subcategories(
             category_url
         )
 
     @override
-    def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
-        return AlcampoCategoryScrapper(self.__driver, self.url).scrape_subcategory(
-            subcategory
-        )
+    async def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
+        return await AlcampoCategoryScrapper(
+            self.__driver, self.url
+        ).scrape_subcategory(subcategory)
 
 
 class AlcampoCategoryScrapper:
@@ -94,11 +100,11 @@ class AlcampoCategoryScrapper:
         self.__driver = driver
         self.__base_url = base_url
 
-    def get_subcategories(self, category_url: str) -> list[Subcategory]:
-        self.__driver.get(category_url)
-        self.__driver.wait_for_presence_css(".salt-m-t--0")
+    async def get_subcategories(self, category_url: str) -> list[Subcategory]:
+        await self.__driver.get(category_url)
+        await self.__driver.wait_for_presence_css(".salt-m-t--0")
 
-        soup = BeautifulSoup(self.__driver.page_source, "html.parser")
+        soup = BeautifulSoup(await self.__driver.page_source(), "html.parser")
         subcategory_tags = soup.select(".salt-m-t--0 li a")
         return [
             Subcategory(
@@ -108,18 +114,18 @@ class AlcampoCategoryScrapper:
             for tag in subcategory_tags
         ]
 
-    def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
-        self.__try_close_popups()
-        return self.__get_products(subcategory)
+    async def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
+        await self.__try_close_popups()
+        return await self.__get_products(subcategory)
 
-    def __get_products(self, subcategory: Subcategory) -> list[Product]:
-        self.__driver.get(subcategory.url)
+    async def __get_products(self, subcategory: Subcategory) -> list[Product]:
+        await self.__driver.get(subcategory.url)
 
-        self.__driver.wait_for_presence_xpath("//h3[@data-test='fop-title']")
+        await self.__driver.wait_for_presence_xpath("//h3[@data-test='fop-title']")
 
         products: list[Product] = []
         while True:
-            soup = BeautifulSoup(self.__driver.page_source, "html.parser")
+            soup = BeautifulSoup(await self.__driver.page_source(), "html.parser")
 
             product_tags = list(
                 filter(
@@ -133,7 +139,9 @@ class AlcampoCategoryScrapper:
             if len(products) >= len(product_tags):
                 break
             try:
-                self.__driver.execute_script("window.scrollBy(0, window.innerHeight);")
+                await self.__driver.execute_script(
+                    "window.scrollBy(0, window.innerHeight);"
+                )
             except Exception:
                 break
 
@@ -153,9 +161,9 @@ class AlcampoCategoryScrapper:
         )
         return visible_products[index_of_last_added_product + 1 :]
 
-    def __try_close_popups(self) -> None:
+    async def __try_close_popups(self) -> None:
         try:
-            self.__driver.wait_and_click_xpath(
+            await self.__driver.wait_and_click_xpath(
                 '//button[@data-test="popup-banner-close-button"]', timeout=1
             )
         except Exception:

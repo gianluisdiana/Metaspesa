@@ -15,6 +15,7 @@ dependencies = [
 dev = [
     "pre-commit>=4.5.1",
     "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
     "pytest-cov>=7.1.0",
     "ruff>=0.15.6",
 ]
@@ -38,7 +39,7 @@ ignore = []
 quote-style = "double"
 indent-style = "space"
 
-[tool.pytest]
+[tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["test"]
-strict = true
+asyncio_mode = "auto"

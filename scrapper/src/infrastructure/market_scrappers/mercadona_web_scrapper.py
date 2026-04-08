@@ -18,35 +18,39 @@ class MercadonaWebScrapper(MarketWebScrapper):
         return "https://tienda.mercadona.es"
 
     @override
-    def navigate_to_home(self) -> None:
-        self.__driver.get(self.url)
+    async def navigate_to_home(self) -> None:
+        await self.__driver.get(self.url)
 
     @override
-    def set_location(self, postal_code: str) -> None:
-        self.__driver.wait_for_presence_xpath('//input[@aria-label="Código postal"]')
+    async def set_location(self, postal_code: str) -> None:
+        await self.__driver.wait_for_presence_xpath(
+            '//input[@aria-label="Código postal"]'
+        )
 
-        self.__driver.wait_and_send_keys_xpath(
+        await self.__driver.wait_and_send_keys_xpath(
             '//input[@data-testid="postal-code-checker-input"]', postal_code
         )
 
-        self.__driver.wait_and_click_xpath(
+        await self.__driver.wait_and_click_xpath(
             '//button[@data-testid="postal-code-checker-button"]'
         )
 
     @override
-    def navigate_to_categories(self) -> None:
-        self.__driver.wait_for_presence_xpath('//a[contains(text(), "Categorías")]')
-        self.__driver.wait_and_click_xpath('//a[contains(text(), "Categorías")]')
+    async def navigate_to_categories(self) -> None:
+        await self.__driver.wait_for_presence_xpath(
+            '//a[contains(text(), "Categorías")]'
+        )
+        await self.__driver.wait_and_click_xpath('//a[contains(text(), "Categorías")]')
 
     @override
-    def close_popups(self) -> None:
-        self.__driver.wait_and_click_css("button.ui-button:nth-child(3)")
+    async def close_popups(self) -> None:
+        await self.__driver.wait_and_click_css("button.ui-button:nth-child(3)")
 
     @override
-    def get_categories(self) -> list[str]:
-        self.__driver.wait_for_presence_css("li.category-menu__item")
+    async def get_categories(self) -> list[str]:
+        await self.__driver.wait_for_presence_css("li.category-menu__item")
 
-        soup = BeautifulSoup(self.__driver.page_source, "html.parser")
+        soup = BeautifulSoup(await self.__driver.page_source(), "html.parser")
         product_category_tags = soup.find_all("li", class_="category-menu__item")
         categories: list[str] = [
             (product_category_tag.select_one("label.subhead1-r") or Tag()).text
@@ -56,14 +60,14 @@ class MercadonaWebScrapper(MarketWebScrapper):
         return categories
 
     @override
-    def get_subcategories(self, category: str) -> list[Subcategory]:
-        return MercadonaCategoryScrapper(
+    async def get_subcategories(self, category: str) -> list[Subcategory]:
+        return await MercadonaCategoryScrapper(
             self.__driver, category, self.url
         ).get_subcategories()
 
     @override
-    def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
-        return MercadonaCategoryScrapper(
+    async def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
+        return await MercadonaCategoryScrapper(
             self.__driver, "", self.url
         ).scrape_subcategory(subcategory)
 
@@ -74,19 +78,19 @@ class MercadonaCategoryScrapper:
         self.__category = category
         self.__base_url = base_url
 
-    def get_subcategories(self) -> list[Subcategory]:
-        self.__expand_category()
-        return self.__get_subcategories()
+    async def get_subcategories(self) -> list[Subcategory]:
+        await self.__expand_category()
+        return await self.__get_subcategories()
 
-    def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
-        return self.__get_products(subcategory)
+    async def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
+        return await self.__get_products(subcategory)
 
-    def __get_products(self, subcategory: Subcategory) -> list[Product]:
-        self.__driver.get(subcategory.url)
+    async def __get_products(self, subcategory: Subcategory) -> list[Product]:
+        await self.__driver.get(subcategory.url)
 
-        self.__driver.wait_for_presence_css("h1.category-detail__title")
+        await self.__driver.wait_for_presence_css("h1.category-detail__title")
 
-        soup = BeautifulSoup(self.__driver.page_source, "html.parser")
+        soup = BeautifulSoup(await self.__driver.page_source(), "html.parser")
         product_tags = soup.select("button.product-cell__content-link")
         products: list[Product] = [
             tag.to_product() for tag in map(MercadonaProductTag, product_tags)
@@ -94,17 +98,17 @@ class MercadonaCategoryScrapper:
 
         return products
 
-    def __expand_category(self) -> None:
-        self.__driver.wait_and_click_xpath(
+    async def __expand_category(self) -> None:
+        await self.__driver.wait_and_click_xpath(
             f'//label[contains(@class, "subhead1-r") and text()="{self.__category}"]',
         )
 
-        self.__driver.wait_for_presence_css(
+        await self.__driver.wait_for_presence_css(
             "li.category-menu__item div ul li button.category-item__link"
         )
 
-    def __get_subcategories(self) -> list[Subcategory]:
-        soup = BeautifulSoup(self.__driver.page_source, "html.parser")
+    async def __get_subcategories(self) -> list[Subcategory]:
+        soup = BeautifulSoup(await self.__driver.page_source(), "html.parser")
         subcategory_tags = soup.select(
             "li.category-menu__item div ul li button.category-item__link"
         )

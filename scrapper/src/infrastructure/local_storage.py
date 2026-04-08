@@ -12,7 +12,7 @@ class CsvProductRepository(ProductRepository):
         self.__today = datetime.now().strftime("%Y-%m-%d")
 
     @override
-    def save(self, market_name: str, products: list[Product]) -> None:
+    async def save(self, market_name: str, products: list[Product]) -> None:
         output_file = self.__output_dir / f"{self.__today}_{market_name.lower()}.csv"
 
         with output_file.open("w", encoding="utf-8") as f:

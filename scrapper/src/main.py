@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from pathlib import Path
 
@@ -14,11 +15,6 @@ from infrastructure.market_scrappers.market_web_scrapper_factory import (
     MarketWebScrapperFactory,
 )
 from infrastructure.playwright_driver import PlaywrightDriver
-
-
-def __create_web_driver() -> PlaywrightDriver:
-    driver = PlaywrightDriver(headless=False)
-    return driver
 
 
 def __create_market_web_scrappers(
@@ -40,14 +36,14 @@ def __create_product_processor(settings: AppConfig):
     return first_processor
 
 
-def main() -> None:
+async def main() -> None:
     logging.basicConfig(
         level=logging.INFO,
         format="\033[1m%(asctime)s\033[0m - \033[1m%(levelname)s\033[0m: %(name)s\n\t%(message)s",  # noqa: E501
     )
 
     settings: AppConfig = load_config()
-    web_driver: PlaywrightDriver = __create_web_driver()
+    web_driver = await PlaywrightDriver.create(headless=False)
     product_repository = CsvProductRepository(Path("data"))
     scrappers: dict[str, MarketWebScrapper] = __create_market_web_scrappers(
         settings, web_driver
@@ -57,10 +53,10 @@ def main() -> None:
     handler = ScrapeMarketsCommandHandler(
         product_repository, scrappers, product_processor
     )
-    handler.handle("38320")
+    await handler.handle("38320")
 
-    web_driver.quit()
+    await web_driver.quit()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
