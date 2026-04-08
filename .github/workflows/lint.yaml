@@ -3,7 +3,7 @@ name: Lint code
 on: [push, pull_request]
 
 jobs:
-  lint_scrapper:
+  lint_scraper:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -11,10 +11,10 @@ jobs:
       - name: Run Ruff Linter
         uses: astral-sh/ruff-action@v3
         with:
-          src: "scrapper/src"
+          src: "scraper/src"
 
       - name: Run Ruff Formatter
         uses: astral-sh/ruff-action@v3
         with:
           args: "format --check"
-          src: "scrapper/src"
+          src: "scraper/src"

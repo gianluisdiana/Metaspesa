@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 
-from infrastructure.market_scrappers.mercadona_web_scrapper import MercadonaProductTag
+from infrastructure.market_scrapers.mercadona_web_scraper import MercadonaProductTag
 
 
 def test_does_not_return_name_if_not_present():

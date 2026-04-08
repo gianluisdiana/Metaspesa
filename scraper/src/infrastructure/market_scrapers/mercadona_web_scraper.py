@@ -2,12 +2,12 @@ from typing import override
 
 from bs4 import BeautifulSoup, Tag
 
-from application.abstractions import MarketWebScrapper
+from application.abstractions import MarketWebScraper
 from domain import Product, Subcategory
 from infrastructure.playwright_driver import PlaywrightDriver
 
 
-class MercadonaWebScrapper(MarketWebScrapper):
+class MercadonaWebScraper(MarketWebScraper):
     def __init__(self, driver: PlaywrightDriver) -> None:
         super().__init__()
         self.__driver = driver
@@ -61,31 +61,28 @@ class MercadonaWebScrapper(MarketWebScrapper):
 
     @override
     async def get_subcategories(self, category: str) -> list[Subcategory]:
-        return await MercadonaCategoryScrapper(
-            self.__driver, category, self.url
-        ).get_subcategories()
+        await self.__driver.wait_and_click_xpath(
+            f'//label[contains(@class, "subhead1-r") and text()="{category}"]',
+        )
+
+        await self.__driver.wait_for_presence_css(
+            "li.category-menu__item div ul li button.category-item__link"
+        )
+
+        soup = BeautifulSoup(await self.__driver.page_source(), "html.parser")
+        subcategory_tags = soup.select(
+            "li.category-menu__item div ul li button.category-item__link"
+        )
+        return [
+            Subcategory(
+                name=tag.text,
+                url=f"{self.url}/categories/{tag.get('id', '')}",
+            )
+            for tag in subcategory_tags
+        ]
 
     @override
     async def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
-        return await MercadonaCategoryScrapper(
-            self.__driver, "", self.url
-        ).scrape_subcategory(subcategory)
-
-
-class MercadonaCategoryScrapper:
-    def __init__(self, driver: PlaywrightDriver, category: str, base_url: str):
-        self.__driver = driver
-        self.__category = category
-        self.__base_url = base_url
-
-    async def get_subcategories(self) -> list[Subcategory]:
-        await self.__expand_category()
-        return await self.__get_subcategories()
-
-    async def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
-        return await self.__get_products(subcategory)
-
-    async def __get_products(self, subcategory: Subcategory) -> list[Product]:
         await self.__driver.get(subcategory.url)
 
         await self.__driver.wait_for_presence_css("h1.category-detail__title")
@@ -97,28 +94,6 @@ class MercadonaCategoryScrapper:
         ]
 
         return products
-
-    async def __expand_category(self) -> None:
-        await self.__driver.wait_and_click_xpath(
-            f'//label[contains(@class, "subhead1-r") and text()="{self.__category}"]',
-        )
-
-        await self.__driver.wait_for_presence_css(
-            "li.category-menu__item div ul li button.category-item__link"
-        )
-
-    async def __get_subcategories(self) -> list[Subcategory]:
-        soup = BeautifulSoup(await self.__driver.page_source(), "html.parser")
-        subcategory_tags = soup.select(
-            "li.category-menu__item div ul li button.category-item__link"
-        )
-        return [
-            Subcategory(
-                name=tag.text,
-                url=f"{self.__base_url}/categories/{tag.get('id', '')}",
-            )
-            for tag in subcategory_tags
-        ]
 
 
 class MercadonaProductTag:

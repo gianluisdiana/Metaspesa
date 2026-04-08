@@ -7,12 +7,11 @@ on:
     branches: [main, develop]
 
 env:
-  DOTNET_VERSION: '10.0.100'
-  NODE_VERSION: '24'
+  DOTNET_VERSION: "10.0.100"
+  NODE_VERSION: "24"
 
 jobs:
   pass-backend-unit-tests:
-
     name: Pass backend unit tests on ${{matrix.os}}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -20,14 +19,14 @@ jobs:
         os: [ubuntu-latest, windows-latest, macOS-latest]
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup .NET Core
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: actions/checkout@v4
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    - name: Test backend
-      run: dotnet test server
+      - name: Test backend
+        run: dotnet test server
 
   pass-frontend-unit-tests:
     name: Pass frontend unit tests on ${{matrix.os}}
@@ -37,41 +36,41 @@ jobs:
         os: [ubuntu-latest, windows-latest, macOS-latest]
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
-    - name: Install dependencies
-      run: npm ci
-      working-directory: client
+      - name: Install dependencies
+        run: npm ci
+        working-directory: client
 
-    - name: Test frontend
-      run: npm run test
-      working-directory: client
+      - name: Test frontend
+        run: npm run test
+        working-directory: client
 
-  pass-scrapper-unit-tests:
-    name: Pass scrapper unit tests on ${{matrix.os}}
+  pass-scraper-unit-tests:
+    name: Pass scraper unit tests on ${{matrix.os}}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
+      - uses: actions/checkout@v4
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
 
-    - name: Install uv
-      run: pip install uv
+      - name: Install uv
+        run: pip install uv
 
-    - name: Install dependencies with uv
-      run: uv sync
-      working-directory: scrapper
+      - name: Install dependencies with uv
+        run: uv sync
+        working-directory: scraper
 
-    - name: Test scrapper
-      run: uv run pytest
-      working-directory: scrapper
+      - name: Test scraper
+        run: uv run pytest
+        working-directory: scraper

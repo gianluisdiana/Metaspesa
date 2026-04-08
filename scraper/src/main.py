@@ -2,7 +2,7 @@ import asyncio
 import logging
 from pathlib import Path
 
-from application.abstractions import MarketWebScrapper
+from application.abstractions import MarketWebScraper
 from application.product_processors import (
     BrandExtractor,
     BrandSimplifier,
@@ -11,16 +11,16 @@ from application.product_processors import (
 from application.use_case import ScrapeMarketsCommandHandler
 from config import AppConfig, load_config
 from infrastructure.local_storage import CsvProductRepository
-from infrastructure.market_scrappers.market_web_scrapper_factory import (
-    MarketWebScrapperFactory,
+from infrastructure.market_scrapers.market_web_scraper_factory import (
+    MarketWebScraperFactory,
 )
 from infrastructure.playwright_driver import PlaywrightDriver
 
 
-def __create_market_web_scrappers(
+def __create_market_web_scrapers(
     settings: AppConfig, web_driver: PlaywrightDriver
-) -> dict[str, MarketWebScrapper]:
-    factory = MarketWebScrapperFactory(settings, web_driver)
+) -> dict[str, MarketWebScraper]:
+    factory = MarketWebScraperFactory(settings, web_driver)
     market_names = [
         "Alcampo",
         "Mercadona",
@@ -45,13 +45,13 @@ async def main() -> None:
     settings: AppConfig = load_config()
     web_driver = await PlaywrightDriver.create(headless=False)
     product_repository = CsvProductRepository(Path("data"))
-    scrappers: dict[str, MarketWebScrapper] = __create_market_web_scrappers(
+    scrapers: dict[str, MarketWebScraper] = __create_market_web_scrapers(
         settings, web_driver
     )
     product_processor = __create_product_processor(settings)
 
     handler = ScrapeMarketsCommandHandler(
-        product_repository, scrappers, product_processor
+        product_repository, scrapers, product_processor
     )
     await handler.handle("38320")
 

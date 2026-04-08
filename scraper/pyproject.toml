@@ -1,5 +1,5 @@
 [project]
-name = "scrapper"
+name = "scraper"
 version = "0.1.0"
 description = "Background worker for scraping products from different markets."
 readme = "../README.md"

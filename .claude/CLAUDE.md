@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Metaspesa is a shopping list manager with market price tracking. It consists of four services:
 - **Client**: Next.js / react frontend communicating via gRPC
 - **Server**: C# .NET 10 gRPC backend
-- **Scrapper**: Python background worker scraping supermarkets
+- **Scraper**: Python background worker scraping supermarkets
 - **MigrationService**: Standalone database migration runner
 
 All services are orchestrated via Docker Compose and share a PostgreSQL database.
@@ -36,7 +36,7 @@ dotnet test --filter "FullyQualifiedName~ClassName"  # Filter by class
 dotnet run --project src/GrpcApi # Run gRPC server
 ```
 
-### Scraper (scrapper/)
+### Scraper (scraper/)
 ```bash
 uv sync                  # Install dependencies
 uv run pytest            # Run all tests
@@ -72,7 +72,7 @@ Dependencies flow inward: GrpcApi → Application → Domain. Database implement
 
 ### Scraper Architecture
 ```
-scrapper/src/
+scraper/src/
 ├── main.py            # Entry point; runs scheduled scraping
 ├── application/       # Use cases, product processors (brand extraction, normalization)
 ├── infrastructure/    # Selenium scrapers per market, CSV storage
@@ -84,5 +84,5 @@ Each market has its own scraper class in `infrastructure/`.
 
 - **.NET build**: All analyzer warnings and errors must be resolved.
 - **Nullable reference types**: Enabled across the .NET solution.
-- **Python**: Ruff enforces `E, F, I, UP` rules. Pre-commit hooks are configured in `scrapper/.pre-commit-config.yaml`.
+- **Python**: Ruff enforces `E, F, I, UP` rules. Pre-commit hooks are configured in `scraper/.pre-commit-config.yaml`.
 - **CI**: Tests run on Ubuntu, Windows, and macOS — avoid OS-specific assumptions.

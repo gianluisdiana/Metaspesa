@@ -20,7 +20,8 @@ services:
     profiles:
       - tools
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       POSTGRES_CONNECTION_STRING: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
     env_file:
@@ -39,11 +40,11 @@ services:
       GRPC_SERVER_URL: server:8080
       PORT: 8080
 
-  scrapper:
+  scraper:
     build:
-      context: ./scrapper
+      context: ./scraper
       dockerfile: Dockerfile
-    image: gianluisdiana/metaspesa_scrapper:latest
+    image: gianluisdiana/metaspesa_scraper:latest
     depends_on:
       - db
     environment:

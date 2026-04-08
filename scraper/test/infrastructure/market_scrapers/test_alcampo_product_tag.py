@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 
-from infrastructure.market_scrappers.alcampo_web_scrapper import AlcampoProductTag
+from infrastructure.market_scrapers.alcampo_web_scraper import AlcampoProductTag
 
 
 def test_is_skeleton_by_default():

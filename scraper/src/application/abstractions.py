@@ -3,7 +3,7 @@ from abc import abstractmethod
 from domain import Product, Subcategory
 
 
-class MarketWebScrapper:
+class MarketWebScraper:
     @property
     @abstractmethod
     def url(self) -> str:

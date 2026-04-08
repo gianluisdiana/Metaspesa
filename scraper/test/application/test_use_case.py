@@ -1,6 +1,6 @@
 from typing import override
 
-from application.abstractions import MarketWebScrapper, ProductRepository
+from application.abstractions import MarketWebScraper, ProductRepository
 from application.product_processors import ProductProcessor
 from application.use_case import ScrapeMarketsCommandHandler
 from domain import Product, Subcategory
@@ -28,7 +28,7 @@ class SpyProductRepository(ProductRepository):
         self.saved_products = products
 
 
-class SpyMarketWebScrapper(MarketWebScrapper):
+class SpyMarketWebScraper(MarketWebScraper):
     def __init__(self, categories: list[str] | None = None):
         self.had_navigated_to_home = False
         self.had_closed_popups = False
@@ -75,7 +75,7 @@ class SpyMarketWebScrapper(MarketWebScrapper):
         return []
 
 
-class FakeMarketWebScrapper(SpyMarketWebScrapper):
+class FakeMarketWebScraper(SpyMarketWebScraper):
     def __init__(self, products: list[Product]):
         super().__init__(categories=[""])
         self.scrapped_products = products
@@ -92,11 +92,11 @@ class FakeMarketWebScrapper(SpyMarketWebScrapper):
 
 async def test_navigates_to_home():
     # Arrange
-    market_web_scrapper = SpyMarketWebScrapper()
+    market_web_scraper = SpyMarketWebScraper()
 
     handler = ScrapeMarketsCommandHandler(
         product_repository=DummyProductRepository(),
-        market_web_scrappers={"Market": market_web_scrapper},
+        market_web_scrapers={"Market": market_web_scraper},
         product_processor=DummyProductProcessor(),
     )
 
@@ -104,16 +104,16 @@ async def test_navigates_to_home():
     await handler.handle("12345")
 
     # Assert
-    assert market_web_scrapper.had_navigated_to_home
+    assert market_web_scraper.had_navigated_to_home
 
 
 async def test_closes_popups():
     # Arrange
-    market_web_scrapper = SpyMarketWebScrapper()
+    market_web_scraper = SpyMarketWebScraper()
 
     handler = ScrapeMarketsCommandHandler(
         product_repository=DummyProductRepository(),
-        market_web_scrappers={"Market": market_web_scrapper},
+        market_web_scrapers={"Market": market_web_scraper},
         product_processor=DummyProductProcessor(),
     )
 
@@ -121,16 +121,16 @@ async def test_closes_popups():
     await handler.handle("12345")
 
     # Assert
-    assert market_web_scrapper.had_closed_popups
+    assert market_web_scraper.had_closed_popups
 
 
 async def test_sets_location():
     # Arrange
-    market_web_scrapper = SpyMarketWebScrapper()
+    market_web_scraper = SpyMarketWebScraper()
 
     handler = ScrapeMarketsCommandHandler(
         product_repository=DummyProductRepository(),
-        market_web_scrappers={"Market": market_web_scrapper},
+        market_web_scrapers={"Market": market_web_scraper},
         product_processor=DummyProductProcessor(),
     )
 
@@ -138,16 +138,16 @@ async def test_sets_location():
     await handler.handle("12345")
 
     # Assert
-    assert market_web_scrapper.had_set_location
+    assert market_web_scraper.had_set_location
 
 
 async def test_sets_location_with_given_postal_code():
     # Arrange
-    market_web_scrapper = SpyMarketWebScrapper()
+    market_web_scraper = SpyMarketWebScraper()
 
     handler = ScrapeMarketsCommandHandler(
         product_repository=DummyProductRepository(),
-        market_web_scrappers={"Market": market_web_scrapper},
+        market_web_scrapers={"Market": market_web_scraper},
         product_processor=DummyProductProcessor(),
     )
 
@@ -155,16 +155,16 @@ async def test_sets_location_with_given_postal_code():
     await handler.handle("12345")
 
     # Assert
-    assert market_web_scrapper.set_location_called_with == "12345"
+    assert market_web_scraper.set_location_called_with == "12345"
 
 
 async def test_navigates_to_categories():
     # Arrange
-    market_web_scrapper = SpyMarketWebScrapper()
+    market_web_scraper = SpyMarketWebScraper()
 
     handler = ScrapeMarketsCommandHandler(
         product_repository=DummyProductRepository(),
-        market_web_scrappers={"Market": market_web_scrapper},
+        market_web_scrapers={"Market": market_web_scraper},
         product_processor=DummyProductProcessor(),
     )
 
@@ -172,16 +172,16 @@ async def test_navigates_to_categories():
     await handler.handle("12345")
 
     # Assert
-    assert market_web_scrapper.had_navigated_to_categories
+    assert market_web_scraper.had_navigated_to_categories
 
 
 async def test_gets_categories():
     # Arrange
-    market_web_scrapper = SpyMarketWebScrapper()
+    market_web_scraper = SpyMarketWebScraper()
 
     handler = ScrapeMarketsCommandHandler(
         product_repository=DummyProductRepository(),
-        market_web_scrappers={"Market": market_web_scrapper},
+        market_web_scrapers={"Market": market_web_scraper},
         product_processor=DummyProductProcessor(),
     )
 
@@ -189,17 +189,17 @@ async def test_gets_categories():
     await handler.handle("12345")
 
     # Assert
-    assert market_web_scrapper.had_gotten_categories
+    assert market_web_scraper.had_gotten_categories
 
 
 async def test_does_not_get_subcategories_if_no_categories_found():
     # Arrange
     categories: list[str] = []
-    market_web_scrapper = SpyMarketWebScrapper(categories)
+    market_web_scraper = SpyMarketWebScraper(categories)
 
     handler = ScrapeMarketsCommandHandler(
         product_repository=DummyProductRepository(),
-        market_web_scrappers={"Market": market_web_scrapper},
+        market_web_scrapers={"Market": market_web_scraper},
         product_processor=DummyProductProcessor(),
     )
 
@@ -207,17 +207,17 @@ async def test_does_not_get_subcategories_if_no_categories_found():
     await handler.handle("12345")
 
     # Assert
-    assert not market_web_scrapper.had_gotten_subcategories
+    assert not market_web_scraper.had_gotten_subcategories
 
 
 async def test_gets_subcategories_for_each_category():
     # Arrange
     categories: list[str] = ["category1", "category2"]
-    market_web_scrapper = SpyMarketWebScrapper(categories)
+    market_web_scraper = SpyMarketWebScraper(categories)
 
     handler = ScrapeMarketsCommandHandler(
         product_repository=DummyProductRepository(),
-        market_web_scrappers={"Market": market_web_scrapper},
+        market_web_scrapers={"Market": market_web_scraper},
         product_processor=DummyProductProcessor(),
     )
 
@@ -225,17 +225,17 @@ async def test_gets_subcategories_for_each_category():
     await handler.handle("12345")
 
     # Assert
-    assert market_web_scrapper.get_subcategories_called_with == categories
+    assert market_web_scraper.get_subcategories_called_with == categories
 
 
 async def test_does_not_scrape_subcategory_if_no_subcategories_found():
     # Arrange
     categories: list[str] = ["category1"]
-    market_web_scrapper = SpyMarketWebScrapper(categories)
+    market_web_scraper = SpyMarketWebScraper(categories)
 
     handler = ScrapeMarketsCommandHandler(
         product_repository=DummyProductRepository(),
-        market_web_scrappers={"Market": market_web_scrapper},
+        market_web_scrapers={"Market": market_web_scraper},
         product_processor=DummyProductProcessor(),
     )
 
@@ -243,7 +243,7 @@ async def test_does_not_scrape_subcategory_if_no_subcategories_found():
     await handler.handle("12345")
 
     # Assert
-    assert not market_web_scrapper.had_scraped_subcategory
+    assert not market_web_scraper.had_scraped_subcategory
 
 
 async def test_scrapes_subcategories_if_found():
@@ -251,11 +251,11 @@ async def test_scrapes_subcategories_if_found():
     scrapped_products: list[Product] = [
         Product(name="product1", price=1.0, quantity="1 unit"),
     ]
-    market_web_scrapper = FakeMarketWebScrapper(scrapped_products)
+    market_web_scraper = FakeMarketWebScraper(scrapped_products)
 
     handler = ScrapeMarketsCommandHandler(
         product_repository=DummyProductRepository(),
-        market_web_scrappers={"Market": market_web_scrapper},
+        market_web_scrapers={"Market": market_web_scraper},
         product_processor=DummyProductProcessor(),
     )
 
@@ -263,7 +263,7 @@ async def test_scrapes_subcategories_if_found():
     await handler.handle("12345")
 
     # Assert
-    assert market_web_scrapper.had_scraped_subcategory
+    assert market_web_scraper.had_scraped_subcategory
 
 
 async def test_saves_scrapped_products_from_subcategories():
@@ -271,12 +271,12 @@ async def test_saves_scrapped_products_from_subcategories():
         Product(name="product1", price=1.0, quantity="1 unit"),
         Product(name="product2", price=2.0, quantity="1 unit"),
     ]
-    market_web_scrapper = FakeMarketWebScrapper(scrapped_products)
+    market_web_scraper = FakeMarketWebScraper(scrapped_products)
     product_repository = SpyProductRepository()
 
     handler = ScrapeMarketsCommandHandler(
         product_repository=product_repository,
-        market_web_scrappers={"Market": market_web_scrapper},
+        market_web_scrapers={"Market": market_web_scraper},
         product_processor=DummyProductProcessor(),
     )
 
@@ -284,4 +284,4 @@ async def test_saves_scrapped_products_from_subcategories():
     await handler.handle("12345")
 
     # Assert
-    assert product_repository.saved_products == market_web_scrapper.scrapped_products
+    assert product_repository.saved_products == market_web_scraper.scrapped_products

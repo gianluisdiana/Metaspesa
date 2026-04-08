@@ -1,18 +1,18 @@
 from typing import Any
 
 from config import AppConfig, ProcessorSettings, ScraperSettings
-from infrastructure.market_scrappers.alcampo_web_scrapper import AlcampoWebScrapper
-from infrastructure.market_scrappers.market_web_scrapper_factory import (
-    MarketWebScrapperFactory,
+from infrastructure.market_scrapers.alcampo_web_scraper import AlcampoWebScraper
+from infrastructure.market_scrapers.market_web_scraper_factory import (
+    MarketWebScraperFactory,
 )
-from infrastructure.market_scrappers.mercadona_web_scrapper import MercadonaWebScrapper
+from infrastructure.market_scrapers.mercadona_web_scraper import MercadonaWebScraper
 
 
 def test_raises_value_error_for_unsupported_market():
     # Arrange
     settings = __create_default_settings()
     web_driver = __create_web_driver()
-    factory = MarketWebScrapperFactory(settings, web_driver)
+    factory = MarketWebScraperFactory(settings, web_driver)
     market = "UnsupportedMarket"
 
     # Act & Assert
@@ -22,30 +22,30 @@ def test_raises_value_error_for_unsupported_market():
         assert str(e) == f"Unsupported market: {market}"
 
 
-def test_creates_mercadona_web_scrapper():
+def test_creates_mercadona_web_scraper():
     # Arrange
     settings = __create_default_settings()
     web_driver = __create_web_driver()
-    factory = MarketWebScrapperFactory(settings, web_driver)
+    factory = MarketWebScraperFactory(settings, web_driver)
 
     # Act
-    web_scrapper = factory.create("Mercadona")
+    web_scraper = factory.create("Mercadona")
 
     # Assert
-    assert isinstance(web_scrapper, MercadonaWebScrapper)
+    assert isinstance(web_scraper, MercadonaWebScraper)
 
 
-def test_creates_alcampo_web_scrapper():
+def test_creates_alcampo_web_scraper():
     # Arrange
     settings = __create_default_settings()
     web_driver = __create_web_driver()
-    factory = MarketWebScrapperFactory(settings, web_driver)
+    factory = MarketWebScraperFactory(settings, web_driver)
 
     # Act
-    web_scrapper = factory.create("Alcampo")
+    web_scraper = factory.create("Alcampo")
 
     # Assert
-    assert isinstance(web_scrapper, AlcampoWebScrapper)
+    assert isinstance(web_scraper, AlcampoWebScraper)
 
 
 def __create_default_settings() -> AppConfig:

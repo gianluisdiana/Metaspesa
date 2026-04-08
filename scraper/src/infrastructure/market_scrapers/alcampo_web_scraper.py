@@ -3,13 +3,13 @@ from typing import override
 
 from bs4 import BeautifulSoup, Tag
 
-from application.abstractions import MarketWebScrapper
+from application.abstractions import MarketWebScraper
 from config import ScraperSettings
 from domain import Product, Subcategory
 from infrastructure.playwright_driver import PlaywrightDriver
 
 
-class AlcampoWebScrapper(MarketWebScrapper):
+class AlcampoWebScraper(MarketWebScraper):
     def __init__(self, driver: PlaywrightDriver, settings: ScraperSettings) -> None:
         super().__init__()
         self.__driver = driver
@@ -84,23 +84,6 @@ class AlcampoWebScrapper(MarketWebScrapper):
     @override
     async def get_subcategories(self, category: str) -> list[Subcategory]:
         category_url = self.__category_urls[category]
-        return await AlcampoCategoryScrapper(self.__driver, self.url).get_subcategories(
-            category_url
-        )
-
-    @override
-    async def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
-        return await AlcampoCategoryScrapper(
-            self.__driver, self.url
-        ).scrape_subcategory(subcategory)
-
-
-class AlcampoCategoryScrapper:
-    def __init__(self, driver: PlaywrightDriver, base_url: str) -> None:
-        self.__driver = driver
-        self.__base_url = base_url
-
-    async def get_subcategories(self, category_url: str) -> list[Subcategory]:
         await self.__driver.get(category_url)
         await self.__driver.wait_for_presence_css(".salt-m-t--0")
 
@@ -109,11 +92,12 @@ class AlcampoCategoryScrapper:
         return [
             Subcategory(
                 name=tag.text,
-                url=f"{self.__base_url}/{str(tag.get('href', '')).removeprefix('/')}",
+                url=f"{self.url}/{str(tag.get('href', '')).removeprefix('/')}",
             )
             for tag in subcategory_tags
         ]
 
+    @override
     async def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
         await self.__try_close_popups()
         return await self.__get_products(subcategory)

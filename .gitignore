@@ -63,4 +63,4 @@ __pycache__
 .coverage
 
 # temporary product files
-scrapper/data/
+scraper/data/

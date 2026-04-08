@@ -28,9 +28,9 @@ component Website
 Website -down-> ServerInterface
 
 interface ShopApi
-component ShopScrapper
-ShopScrapper -down-> ShopApi
-ShopScrapper -down-> ProductSchema
+component ShopScraper
+ShopScraper -down-> ShopApi
+ShopScraper -down-> ProductSchema
 
 component TelemetryDashboard
 TelemetryDashboard -down-> ShopDb
@@ -38,6 +38,6 @@ TelemetryDashboard -down-> SecretDb
 TelemetryDashboard -down-> SecretVault
 TelemetryDashboard -down-> Server
 TelemetryDashboard -down-> Website
-TelemetryDashboard -down-> ShopScrapper
+TelemetryDashboard -down-> ShopScraper
 
 @enduml
