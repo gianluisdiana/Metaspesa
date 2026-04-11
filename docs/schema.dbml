@@ -1,63 +1,70 @@
 // Use DBML to define your database structure
 // Docs: https://dbml.dbdiagram.io/docs
 
+// ─────────────────────────────────────────
+// SHOPPING SCHEMA
+// ─────────────────────────────────────────
+
 Table shopping.users {
   note: 'Registered users of the shopping application'
 
-  id guid [pk]
-  username varchar(255) [
-    not null,
-    unique
-  ]
-  password varchar(255) [
-    not null,
-    unique
-  ]
+  uid guid [pk]
+  username varchar(255) [not null, unique]
+  encrypted_password varchar(255) [not null]
+
+  indexes {
+    username [name: 'idx_user_username']
+  }
 }
 
 Table shopping.shopping_lists {
   note: 'Shopping lists created by users, can be shared among multiple users'
 
-  id integer [pk]
-  name varchar [
-    not null,
-    unique
-  ]
-  last_time_used timestamp [not null]
-}
+  id integer [pk, increment]
+  name varchar [note: 'Missing name indicates a temporary shopping list, not saved by the user']
+  deleted_at timestamp
 
-Table shopping.shopping_list_ownership {
-  note: 'Associates users with shopping lists, allowing for shared lists'
-
-  id integer [pk]
-  user_id guid [not null]
-  shopping_list_id integer [not null]
-
-  indexes {
-    user_id
-    shopping_list_id
-    (user_id, shopping_list_id) [unique]
+  checks {
+    `name IS NOT NULL OR deleted_at IS NULL` [name: 'chk_shopping_list_temporary_cannot_be_soft_deleted']
   }
 }
 
-Ref: shopping.shopping_list_ownership.user_id > shopping.users.id [
+Table shopping.shopping_list_ownerships {
+  note: 'Associates users with shopping lists, allowing for shared lists'
+
+  user_uid guid [not null]
+  shopping_list_id integer [not null]
+
+  indexes {
+    user_uid [name: 'idx_shopping_list_ownership_user_uid']
+    shopping_list_id [name: 'idx_shopping_list_ownership_shopping_list_id']
+    (user_uid, shopping_list_id) [pk, name: 'pk_shopping_list_ownership']
+  }
+}
+
+Ref: shopping.shopping_list_ownerships.user_uid > shopping.users.uid [
   delete: cascade
 ]
-Ref: shopping.shopping_list_ownership.shopping_list_id > shopping.shopping_lists.id [
+Ref: shopping.shopping_list_ownerships.shopping_list_id > shopping.shopping_lists.id [
   delete: cascade
 ]
 
 Table shopping.shopping_items {
-  note: 'Items that belong to a shopping list'
+  note: 'Items that belong to a shopping list, representing planned purchases'
 
-  id integer [pk]
+  id integer [pk, increment]
   name varchar [not null]
   price float [not null]
   quantity varchar
   shopping_list_id integer [not null]
+  deleted_at timestamp
 
   indexes {
-    shopping_list_id
+    shopping_list_id [name: 'idx_shopping_item_shopping_list_id']
+  }
+
+  checks {
+    `price >= 0.00` [name: 'chk_shopping_item_positive_price']
   }
 }
 
@@ -68,75 +75,110 @@ Ref: shopping.shopping_lists.id < shopping.shopping_items.shopping_list_id [
 Table shopping.registered_items {
   note: 'Items that users have registered as purchased or planned to purchase'
 
-  id integer [pk]
+  id integer [pk, increment]
   name varchar [not null]
-  user_id integer [not null]
-
-  indexes {
-    user_id
-  }
-}
-
-Ref: shopping.users.id < shopping.registered_items.user_id [
-  delete: cascade
-]
-
-Table shopping.registered_items_history {
-  note: 'Historical records of registered items, tracking price changes and purchase history'
-
-  id integer [pk]
-  price float [not null]
+  last_known_price float [not null]
   quantity varchar
-  created_at timestamp [
-    not null,
-    default: `now()`
-  ]
-  registered_item_id integer [not null]
+  user_uid guid [not null]
 
   indexes {
-    registered_item_id
+    user_uid [name: 'idx_registered_item_user_uid']
+  }
+
+  checks {
+    `last_known_price >= 0.00` [name: 'chk_registered_item_positive_last_known_price']
   }
 }
 
-Ref: shopping.registered_items_history.registered_item_id > shopping.registered_items.id [
+Ref: shopping.users.uid < shopping.registered_items.user_uid [delete: cascade]
+
+Table shopping.purchases {
+  note: '''
+  Records the actual act of buying an item — links shopping, registered items,
+  and the market. Core of savings analytics.
+  '''
+
+  id integer [pk, increment]
+  user_uid guid [not null]
+  registered_item_id integer [not null]
+  product_id integer [note: "May not come from a known super market product"]
+  super_market_id integer [note: "May not come from a known super market"]
+  price_paid float [not null]
+  quantity varchar
+  purchased_at timestamp [not null, default: `now()`]
+
+  checks {
+    `price_paid >= 0.00` [name: 'chk_purchase_positive_price_paid']
+  }
+
+  indexes {
+    user_uid [name: 'idx_purchases_user_uid']
+    registered_item_id [name: 'idx_purchases_registered_item_id']
+    product_id [name: 'idx_purchases_product_id']
+    super_market_id [name: 'idx_purchases_super_market_id']
+    purchased_at [name: 'idx_purchases_purchased_at']
+  }
+}
+
+Ref: shopping.purchases.user_uid > shopping.users.uid [
   delete: cascade
 ]
+Ref: shopping.purchases.registered_item_id > shopping.registered_items.id [
+  delete: cascade
+]
+Ref: shopping.purchases.product_id > market.products.id [
+  delete: set null
+]
+Ref: shopping.purchases.super_market_id > market.super_markets.id [
+  delete: set null
+]
+
+
+// ─────────────────────────────────────────
+// MARKET SCHEMA
+// ─────────────────────────────────────────
 
 Table market.super_markets {
   note: 'Supermarkets where products are available'
 
-  id integer [pk]
-  name varchar [
-    not null,
-    unique
-  ]
+  id integer [pk, increment]
+  name varchar [not null, unique]
+
+  indexes {
+    name [name: 'idx_super_market_name']
+  }
 }
 
 Table market.product_brands {
   note: 'Brands of products available in the market'
 
-  id integer [pk]
-  name varchar [
-    not null,
-    unique
-  ]
+  id integer [pk, increment]
+  name varchar [not null, unique]
+
+  indexes {
+    name [name: 'idx_product_brand_name']
+  }
 }
 
 Table market.products {
   note: 'Products available in the market'
 
-  id integer [pk]
+  id integer [pk, increment]
   name varchar [not null]
   image url
-  super_market_id int [not null]
-  brand_id int [not null]
+  super_market_id integer [not null]
+  brand_id integer [not null]
 
   indexes {
-    super_market_id
-    brand_id
-    (name, super_market_id, brand_id) [unique]
+    super_market_id [name: 'idx_product_super_market_id']
+    brand_id [name: 'idx_product_brand_id']
+    (name, super_market_id, brand_id) [
+      unique,
+      name: 'idx_product_name_super_market_brand'
+    ]
   }
 }
+
 Ref: market.products.super_market_id > market.super_markets.id [
   delete: cascade
 ]
@@ -147,25 +189,22 @@ Ref: market.products.brand_id > market.product_brands.id [
 Table market.products_history {
   note: 'Historical price and quantity data for products, tracking changes over time'
 
-  id integer [pk]
+  id integer [pk, increment]
   price float [not null]
   quantity varchar [not null]
-  created_at timestamp [
-    not null,
-    default: `now()`
-  ]
-  product_id integer [
-    not null
-  ]
+  created_at timestamp [not null, default: `now()`]
+  product_id integer [not null]
 
   checks {
     `price > 0.00` [name: 'chk_positive_price']
   }
 
   indexes {
-    product_id
+    product_id [name: 'idx_product_history_product_id']
+    created_at [name: 'idx_product_history_created_at']
   }
 }
+
 Ref: market.products_history.product_id > market.products.id [
   delete: cascade
 ]

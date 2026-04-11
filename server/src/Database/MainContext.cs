@@ -12,7 +12,11 @@ internal class MainContext(
   public DbSet<ShoppingItemDbEntity> ShoppingItems { get; set; } = null!;
   public DbSet<ShoppingListOwnershipDbEntity> ShoppingListOwnerships { get; set; } = null!;
   public DbSet<RegisteredItemDbEntity> RegisteredItems { get; set; } = null!;
-  public DbSet<RegisteredItemsHistoryDbEntity> RegisteredItemsHistory { get; set; } = null!;
+  public DbSet<PurchaseDbEntity> Purchases { get; set; } = null!;
+  public DbSet<SuperMarketDbEntity> SuperMarkets { get; set; } = null!;
+  public DbSet<ProductBrandDbEntity> ProductBrands { get; set; } = null!;
+  public DbSet<ProductDbEntity> Products { get; set; } = null!;
+  public DbSet<ProductsHistoryDbEntity> ProductsHistory { get; set; } = null!;
 
   protected override void OnModelCreating(ModelBuilder modelBuilder) {
     modelBuilder.ApplyConfigurationsFromAssembly(typeof(MainContext).Assembly);

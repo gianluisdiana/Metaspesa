@@ -4,20 +4,13 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Metaspesa.Database.Configurations;
 
-internal class ShoppingListOwnershipConfiguration : IEntityTypeConfiguration<ShoppingListOwnershipDbEntity>
-{
-  public void Configure(EntityTypeBuilder<ShoppingListOwnershipDbEntity> builder)
-  {
-    builder.ToTable("shopping_list_ownerships");
-    builder.HasKey(e => e.Id);
+internal class ShoppingListOwnershipConfiguration : IEntityTypeConfiguration<ShoppingListOwnershipDbEntity> {
+  public void Configure(EntityTypeBuilder<ShoppingListOwnershipDbEntity> builder) {
+    builder.ToTable("shopping_list_ownerships", "shopping", t =>
+      t.HasComment("Associates users with shopping lists, allowing for shared lists"));
 
-    builder.Property(e => e.Id)
-      .HasColumnName("id")
-      .ValueGeneratedOnAdd();
-
-    builder.Property(e => e.LastTimeUsed)
-      .HasColumnName("last_time_used")
-      .IsRequired();
+    builder.HasKey(e => new { e.UserUid, e.ShoppingListId })
+      .HasName("pk_shopping_list_ownership");
 
     builder.Property(e => e.UserUid)
       .HasColumnName("user_uid")
@@ -26,5 +19,8 @@ internal class ShoppingListOwnershipConfiguration : IEntityTypeConfiguration<Sho
     builder.Property(e => e.ShoppingListId)
       .HasColumnName("shopping_list_id")
       .IsRequired();
+
+    builder.HasIndex(e => e.UserUid, "idx_shopping_list_ownership_user_uid");
+    builder.HasIndex(e => e.ShoppingListId, "idx_shopping_list_ownership_shopping_list_id");
   }
 }
