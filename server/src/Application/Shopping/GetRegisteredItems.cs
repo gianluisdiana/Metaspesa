@@ -5,12 +5,12 @@ using Metaspesa.Domain.Shopping;
 namespace Metaspesa.Application.Shopping;
 
 public static class GetRegisteredItems {
-  public record Query(Guid UserUid) : IQuery<IReadOnlyCollection<RegisteredItem>>;
+  public record Query(Guid UserUid) : IQuery<IReadOnlyCollection<Product>>;
 
   internal class Handler(
     IProductRepository productRepository
-  ) : IQueryHandler<Query, IReadOnlyCollection<RegisteredItem>> {
-    public async Task<Result<IReadOnlyCollection<RegisteredItem>>> Handle(
+  ) : IQueryHandler<Query, IReadOnlyCollection<Product>> {
+    public async Task<Result<IReadOnlyCollection<Product>>> Handle(
       Query query, CancellationToken cancellationToken = default
     ) {
       return await productRepository.GetRegisteredItemsAsync(

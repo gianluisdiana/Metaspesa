@@ -20,15 +20,15 @@ public class GetRegisteredItemsHandlerTest {
   public async Task Handler_ReturnsRegisteredItemsFromRepository() {
     // Arrange
     var userUid = Guid.NewGuid();
-    List<RegisteredItem> expectedItems = [
-      new("Test Item", null, null),
+    List<Product> expectedItems = [
+      new("Test Item", null, Price.Empty),
     ];
     _productRepository
       .GetRegisteredItemsAsync(userUid, TestContext.Current.CancellationToken)
       .Returns(expectedItems);
 
     // Act
-    Result<IReadOnlyCollection<RegisteredItem>> result = await handler.Handle(
+    Result<IReadOnlyCollection<Product>> result = await handler.Handle(
       new Query(userUid), TestContext.Current.CancellationToken);
 
     // Assert

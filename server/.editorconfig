@@ -232,6 +232,10 @@ dotnet_diagnostic.CA2007.severity = none
 # CA1034: Do not nest type Command. Alternatively, change its accessibility so that it is not externally visible
 dotnet_diagnostic.CA1034.severity = none
 
+[src/Domain/Shopping/ShoppingList.cs]
+# CA1710: Identifiers should have correct suffix
+dotnet_diagnostic.CA1710.severity = none
+
 [test/**/*.cs]
 # CA1515: Because an application's API isn't typically referenced from outside the assembly, types can be made internal
 dotnet_diagnostic.CA1515.severity = none

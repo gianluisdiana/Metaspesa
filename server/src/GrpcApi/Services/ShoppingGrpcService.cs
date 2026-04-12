@@ -2,22 +2,22 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Shopping;
-using Metaspesa.Domain.Shopping;
 using Metaspesa.GrpcApi.Extensions;
 using Metaspesa.GrpcApi.Protos.Shopping;
+using Product = Metaspesa.Domain.Shopping.Product;
 using ShoppingList = Metaspesa.Domain.Shopping.ShoppingList;
 
 namespace Metaspesa.GrpcApi.Services;
 
 internal class ShoppingGrpcService(
-  IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<RegisteredItem>> getRegisteredItemsHandler,
+  IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>> getRegisteredItemsHandler,
   IQueryHandler<GetCurrentShoppingList.Query, ShoppingList> getCurrentShoppingListHandler,
   ICommandHandler<RecordShoppingList.Command> recordShoppingListHandler
 ) : ShoppingService.ShoppingServiceBase {
   public override async Task<RegisteredProductsResponse> GetRegisteredProducts(
     Empty request, ServerCallContext context
   ) {
-    Result<IReadOnlyCollection<RegisteredItem>> result = await getRegisteredItemsHandler.Handle(
+    Result<IReadOnlyCollection<Product>> result = await getRegisteredItemsHandler.Handle(
       new GetRegisteredItems.Query(Guid.Empty), context.CancellationToken);
 
     result.ThrowRpcExceptionIfFailed();
@@ -52,9 +52,11 @@ internal class ShoppingGrpcService(
   public override async Task<Empty> RecordShoppingList(
     RecordShoppingListRequest request, ServerCallContext context
   ) {
-    ShoppingList shoppingList = request.ShoppingList.ToDomain();
-
-    var command = new RecordShoppingList.Command(Guid.Empty, shoppingList);
+    var command = new RecordShoppingList.Command(
+      Guid.Empty,
+      request.ShoppingList.Name,
+      [..request.ShoppingList.Products.Select(p => p.ToCommand())]
+    );
 
     Result result = await recordShoppingListHandler.Handle(
       command, context.CancellationToken);

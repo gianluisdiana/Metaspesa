@@ -11,16 +11,16 @@ internal partial class PostgreSqlProductRepository(
   MainContext context,
   ILogger<PostgreSqlProductRepository> logger
 ) : IProductRepository {
-  public async Task<List<RegisteredItem>> GetRegisteredItemsAsync(
+  public async Task<List<Product>> GetRegisteredItemsAsync(
     Guid userUid, CancellationToken cancellationToken
   ) {
     try {
       return await context.RegisteredItems
         .Where(ri => ri.UserUid == userUid)
-        .Select(ri => new RegisteredItem(
+        .Select(ri => new Product(
           Name: ri.Name,
           Quantity: ri.Quantity,
-          LastPrice: ri.History.OrderByDescending(h => h.CreatedAt).First().Price
+          Price: new Price(ri.LastKnownPrice)
         ))
         .ToListAsync(cancellationToken);
     } catch (Exception ex) when (
@@ -41,17 +41,13 @@ internal partial class PostgreSqlProductRepository(
     Guid userUid, IReadOnlyCollection<ShoppingItem> shoppingItems
   ) {
     try {
-      IEnumerable<RegisteredItemDbEntity> registeredItems = shoppingItems.Select(i => new RegisteredItemDbEntity {
-        UserUid = userUid,
-        Name = i.Name,
-        Quantity = i.Quantity,
-        History = [
-          new() {
-            Price = i.Price ?? 0,
-            CreatedAt = DateTime.UtcNow,
-          },
-        ],
-      });
+      IEnumerable<RegisteredItemDbEntity> registeredItems = shoppingItems
+        .Select(i => new RegisteredItemDbEntity {
+          UserUid = userUid,
+          Name = i.Name,
+          Quantity = i.Quantity,
+          LastKnownPrice = i.Price.Value,
+        });
 
       context.RegisteredItems.AddRange(registeredItems);
     } catch (Exception ex) when (
@@ -72,7 +68,7 @@ internal partial class PostgreSqlProductRepository(
   partial void LogErrorRegisteringItems(
     string itemNames, Guid userUid, Exception ex);
 
-  public void UpdateItems(
+  public void UpdateRegisteredItems(
     Guid userUid, IReadOnlyCollection<ShoppingItem> shoppingItems
   ) {
     try {
@@ -82,7 +78,6 @@ internal partial class PostgreSqlProductRepository(
 #pragma warning disable CA1304, CA1311
       var registeredItems = context.RegisteredItems.Where(ri =>
           ri.UserUid == userUid && itemNames.Contains(ri.Name.ToUpper()))
-        .Include(ri => ri.History)
         .ToList();
 #pragma warning restore CA1304, CA1311
 
@@ -91,10 +86,9 @@ internal partial class PostgreSqlProductRepository(
           i.Name.Equals(registeredItem.Name, StringComparison.OrdinalIgnoreCase));
 
         registeredItem.Quantity = shoppingItem.Quantity;
-        registeredItem.History.Add(new RegisteredItemsHistoryDbEntity {
-          Price = shoppingItem.Price,
-          CreatedAt = DateTime.UtcNow,
-        });
+        registeredItem.LastKnownPrice = !shoppingItem.Price.IsZero()
+          ? shoppingItem.Price.Value
+          : registeredItem.LastKnownPrice;
       }
     } catch (Exception ex) when (
       ex is NpgsqlException or OperationCanceledException ||
@@ -113,4 +107,11 @@ internal partial class PostgreSqlProductRepository(
     "Couldn't update items {ItemNames} for user {UserUid}")]
   partial void LogErrorUpdatingItems(
     string itemNames, Guid userUid, Exception ex);
+
+  [LoggerMessage(
+    LogLevel.Error,
+    "Couldn't delete items {ItemNames} for user {UserUid}")]
+  partial void LogErrorDeletingItems(
+    Guid userUid, string itemNames, Exception ex);
+
 }

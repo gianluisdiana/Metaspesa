@@ -3,28 +3,43 @@ using Metaspesa.Domain.Shopping;
 namespace Metaspesa.Domain.UnitTests.Shopping;
 
 public static class ShoppingListTest {
-  public class IsNamed {
-    [Fact(DisplayName = "Is named when name is not null or whitespace")]
-    public void ShoppingList_IsNamed_WhenNameIsNotNullOrWhitespace() {
+  public class IsTemporary {
+    [Fact(DisplayName = "Is temporary when name is null or whitespace")]
+    public void ShoppingList_IsTemporary_WhenNameIsNullOrWhitespace() {
+      // Arrange
+      var list = new ShoppingList(null, []);
+
+      // Act
+      bool isTemporary = list.IsTemporary();
+
+      // Assert
+      Assert.True(isTemporary);
+    }
+
+    [Theory(DisplayName = "Is temporary when name is empty or whitespace")]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void ShoppingList_IsTemporary_WhenNameIsEmptyOrWhitespace(string? name) {
+      // Arrange
+      var list = new ShoppingList(name, []);
+
+      // Act
+      bool isTemporary = list.IsTemporary();
+
+      // Assert
+      Assert.True(isTemporary);
+    }
+
+    [Fact(DisplayName = "Is not temporary when name is not null or whitespace")]
+    public void ShoppingList_IsNotTemporary_WhenNameIsNotNullOrWhitespace() {
       // Arrange
       var list = new ShoppingList("Groceries", []);
 
-      // Act & Assert
-      Assert.True(list.IsNamed);
-    }
+      // Act
+      bool isTemporary = list.IsTemporary();
 
-    [Theory(DisplayName = "Is not named when name is null or whitespace")]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void ShoppingList_IsNotNamed_WhenNameIsNullOrWhitespace(
-      string? name
-    ) {
-      // Arrange
-      var list = new ShoppingList(name!, []);
-
-      // Act & Assert
-      Assert.False(list.IsNamed);
+      // Assert
+      Assert.False(isTemporary);
     }
   }
 
@@ -34,12 +49,12 @@ public static class ShoppingListTest {
       // Arrange
       var list = new ShoppingList("Groceries", []);
       IReadOnlyCollection<Product> products = [
-        new RegisteredItem("Milk", null, 2.0f),
-        new RegisteredItem("Watermelon", null, 10.0f)
+        new Product("Milk", null, new Price(2.0f)),
+        new Product("Watermelon", null, new Price(10.0f))
       ];
 
       // Act
-      ShoppingList intersectingList = list.Intersecting(products);
+      ShoppingList intersectingList = list.OnlyWithPriceChangedItems(products);
 
       // Assert
       Assert.Empty(intersectingList);
@@ -49,15 +64,15 @@ public static class ShoppingListTest {
     public void ShoppingList_ReturnsEmptyList_WhenGivenListIsEmpty() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, 1.5f, false),
-        new ShoppingItem("Bread", null, 2.5f, false),
-        new ShoppingItem("Eggs", null, 12.5f, false)
+        new ShoppingItem("Milk", null, new Price(1.5f), false),
+        new ShoppingItem("Bread", null, new Price(2.5f), false),
+        new ShoppingItem("Eggs", null, new Price(12.5f), false)
       ]);
 
       IReadOnlyCollection<Product> products = [];
 
       // Act
-      ShoppingList intersectingList = list.Intersecting(products);
+      ShoppingList intersectingList = list.OnlyWithPriceChangedItems(products);
 
       // Assert
       Assert.Empty(intersectingList);
@@ -67,18 +82,18 @@ public static class ShoppingListTest {
     public void ShoppingList_ReturnsShoppingList_WithCommonItems() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, 1.5f, false),
-        new ShoppingItem("Bread", null, 2.5f, false),
-        new ShoppingItem("Eggs", null, 12.5f, false)
+        new ShoppingItem("Milk", null, new Price(1.5f), false),
+        new ShoppingItem("Bread", null, new Price(2.5f), false),
+        new ShoppingItem("Eggs", null, new Price(12.5f), false)
       ]);
 
       IReadOnlyCollection<Product> products = [
-        new RegisteredItem("Milk", null, 2.0f),
-        new RegisteredItem("Watermelon", null, 10.0f)
+        new Product("Milk", null, new Price(2.0f)),
+        new Product("Watermelon", null, new Price(10.0f))
       ];
 
       // Act
-      ShoppingList intersectingList = list.Intersecting(products);
+      ShoppingList intersectingList = list.OnlyWithPriceChangedItems(products);
 
       // Assert
       Assert.Contains(intersectingList, i => i.NormalizedName == "MILK");
@@ -88,18 +103,18 @@ public static class ShoppingListTest {
     public void ShoppingList_ReturnsShoppingList_WithoutNonIntersectingItems() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, 1.5f, false),
-        new ShoppingItem("Bread", null, 2.5f, false),
-        new ShoppingItem("Eggs", null, 12.5f, false)
+        new ShoppingItem("Milk", null, new Price(1.5f), false),
+        new ShoppingItem("Bread", null, new Price(2.5f), false),
+        new ShoppingItem("Eggs", null, new Price(12.5f), false)
       ]);
 
       IReadOnlyCollection<Product> products = [
-        new RegisteredItem("Milk", null, 2.0f),
-        new RegisteredItem("Watermelon", null, 10.0f)
+        new Product("Milk", null, new Price(2.0f)),
+        new Product("Watermelon", null, new Price(10.0f))
       ];
 
       // Act
-      ShoppingList intersectingList = list.Intersecting(products);
+      ShoppingList intersectingList = list.OnlyWithPriceChangedItems(products);
 
       // Assert
       Assert.DoesNotContain(intersectingList, i => i.NormalizedName == "BREAD");
@@ -110,21 +125,39 @@ public static class ShoppingListTest {
     public void ShoppingList_ReturnsShoppingList_WithSameNameAsSourceList() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, 1.5f, false),
-        new ShoppingItem("Bread", null, 2.5f, false),
-        new ShoppingItem("Eggs", null, 12.5f, false)
+        new ShoppingItem("Milk", null, new Price(1.5f), false),
+        new ShoppingItem("Bread", null, new Price(2.5f), false),
+        new ShoppingItem("Eggs", null, new Price(12.5f), false)
       ]);
 
       IReadOnlyCollection<Product> products = [
-        new RegisteredItem("Milk", null, 2.0f),
-        new RegisteredItem("Watermelon", null, 10.0f)
+        new Product("Milk", null, new Price(2.0f)),
+        new Product("Watermelon", null, new Price(10.0f))
       ];
 
       // Act
-      ShoppingList intersectingList = list.Intersecting(products);
+      ShoppingList intersectingList = list.OnlyWithPriceChangedItems(products);
 
       // Assert
       Assert.Equal(list.Name, intersectingList.Name);
+    }
+
+    [Fact(DisplayName = "Excludes items whose price matches the registered product")]
+    public void ShoppingList_ExcludesItems_WhenPriceMatchesRegisteredProduct() {
+      // Arrange
+      var list = new ShoppingList("Groceries", [
+        new ShoppingItem("Milk", null, new Price(2.0f), false),
+      ]);
+
+      IReadOnlyCollection<Product> products = [
+        new Product("Milk", null, new Price(2.0f)),
+      ];
+
+      // Act
+      ShoppingList intersectingList = list.OnlyWithPriceChangedItems(products);
+
+      // Assert
+      Assert.Empty(intersectingList);
     }
   }
 
@@ -134,8 +167,8 @@ public static class ShoppingListTest {
       // Arrange
       var list = new ShoppingList("Groceries", []);
       IReadOnlyCollection<Product> products = [
-        new RegisteredItem("Milk", null, 2.0f),
-        new RegisteredItem("Watermelon", null, 10.0f)
+        new Product("Milk", null, new Price(2.0f)),
+        new Product("Watermelon", null, new Price(10.0f))
       ];
 
       // Act
@@ -149,9 +182,9 @@ public static class ShoppingListTest {
     public void ShoppingList_ReturnsSameList_WhenGivenListIsEmpty() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, 1.5f, false),
-        new ShoppingItem("Bread", null, 2.5f, false),
-        new ShoppingItem("Eggs", null, 12.5f, false)
+        new ShoppingItem("Milk", null, new Price(1.5f), false),
+        new ShoppingItem("Bread", null, new Price(2.5f), false),
+        new ShoppingItem("Eggs", null, new Price(12.5f), false)
       ]);
 
       IReadOnlyCollection<Product> products = [];
@@ -169,14 +202,14 @@ public static class ShoppingListTest {
     public void ShoppingList_ReturnsShoppingList_WithoutIntersectingItems() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, 1.5f, false),
-        new ShoppingItem("Bread", null, 2.5f, false),
-        new ShoppingItem("Eggs", null, 12.5f, false)
+        new ShoppingItem("Milk", null, new Price(1.5f), false),
+        new ShoppingItem("Bread", null, new Price(2.5f), false),
+        new ShoppingItem("Eggs", null, new Price(12.5f), false)
       ]);
 
       IReadOnlyCollection<Product> products = [
-        new RegisteredItem("Milk", null, 2.0f),
-        new RegisteredItem("Watermelon", null, 10.0f)
+        new Product("Milk", null, new Price(2.0f)),
+        new Product("Watermelon", null, new Price(10.0f))
       ];
 
       // Act
@@ -190,14 +223,14 @@ public static class ShoppingListTest {
     public void ShoppingList_ReturnsShoppingList_WithSameNameAsSourceList() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, 1.5f, false),
-        new ShoppingItem("Bread", null, 2.5f, false),
-        new ShoppingItem("Eggs", null, 12.5f, false)
+        new ShoppingItem("Milk", null, new Price(1.5f), false),
+        new ShoppingItem("Bread", null, new Price(2.5f), false),
+        new ShoppingItem("Eggs", null, new Price(12.5f), false)
       ]);
 
       IReadOnlyCollection<Product> products = [
-        new RegisteredItem("Milk", null, 2.0f),
-        new RegisteredItem("Watermelon", null, 10.0f)
+        new Product("Milk", null, new Price(2.0f)),
+        new Product("Watermelon", null, new Price(10.0f))
       ];
 
       // Act
@@ -205,6 +238,113 @@ public static class ShoppingListTest {
 
       // Assert
       Assert.Equal(list.Name, withoutList.Name);
+    }
+  }
+
+  public class HasCheckedItems {
+    [Fact(DisplayName = "Doesn't have checked items when list is empty")]
+    public void ShoppingList_DoesNotHaveCheckedItems_WhenListIsEmpty() {
+      // Arrange
+      var list = new ShoppingList("Groceries", []);
+
+      // Act & Assert
+      Assert.False(list.HasCheckedItems());
+    }
+
+    [Fact(DisplayName = "Doesn't have checked items when all items are unchecked")]
+    public void ShoppingList_DoesNotHaveCheckedItems_WhenAllItemsUnchecked() {
+      // Arrange
+      var list = new ShoppingList("Groceries", [
+        new ShoppingItem("Milk", null, new Price(1.5f), false),
+        new ShoppingItem("Bread", null, new Price(2.5f), false),
+      ]);
+
+      // Act & Assert
+      Assert.False(list.HasCheckedItems());
+    }
+
+    [Fact(DisplayName = "Has checked items when at least one item is checked")]
+    public void ShoppingList_HasCheckedItems_WhenAtLeastOneItemChecked() {
+      // Arrange
+      var list = new ShoppingList("Groceries", [
+        new ShoppingItem("Milk", null, new Price(1.5f), true),
+        new ShoppingItem("Bread", null, new Price(2.5f), false),
+      ]);
+
+      // Act & Assert
+      Assert.True(list.HasCheckedItems());
+    }
+
+    [Fact(DisplayName = "Has checked items when all items are checked")]
+    public void ShoppingList_HasCheckedItems_WhenAllItemsChecked() {
+      // Arrange
+      var list = new ShoppingList("Groceries", [
+        new ShoppingItem("Milk", null, new Price(1.5f), true),
+        new ShoppingItem("Bread", null, new Price(2.5f), true),
+      ]);
+
+      // Act & Assert
+      Assert.True(list.HasCheckedItems());
+    }
+  }
+
+  public class OnlyWithCheckedItems {
+    [Fact(DisplayName = "Returns empty list when source list is empty")]
+    public void ShoppingList_OnlyWithCheckedItems_ReturnsEmpty_WhenSourceEmpty() {
+      // Arrange
+      var list = new ShoppingList("Groceries", []);
+
+      // Act
+      ShoppingList checkedList = list.OnlyWithCheckedItems();
+
+      // Assert
+      Assert.Empty(checkedList);
+    }
+
+    [Fact(DisplayName = "Returns empty list when no items are checked")]
+    public void ShoppingList_OnlyWithCheckedItems_ReturnsEmpty_WhenNoItemsChecked() {
+      // Arrange
+      var list = new ShoppingList("Groceries", [
+        new ShoppingItem("Milk", null, new Price(1.5f), false),
+        new ShoppingItem("Bread", null, new Price(2.5f), false),
+      ]);
+
+      // Act
+      ShoppingList checkedList = list.OnlyWithCheckedItems();
+
+      // Assert
+      Assert.Empty(checkedList);
+    }
+
+    [Fact(DisplayName = "Returns only checked items")]
+    public void ShoppingList_OnlyWithCheckedItems_ReturnsOnlyCheckedItems() {
+      // Arrange
+      var checkedItem = new ShoppingItem("Milk", null, new Price(1.5f), true);
+      var list = new ShoppingList("Groceries", [
+        checkedItem,
+        new ShoppingItem("Bread", null, new Price(2.5f), false),
+      ]);
+
+      // Act
+      ShoppingList checkedList = list.OnlyWithCheckedItems();
+
+      // Assert
+      Assert.Single(checkedList);
+      Assert.Contains(checkedList, i => i.NormalizedName == checkedItem.NormalizedName);
+    }
+
+    [Fact(DisplayName = "Preserves the list name")]
+    public void ShoppingList_OnlyWithCheckedItems_PreservesName() {
+      // Arrange
+      var list = new ShoppingList("Groceries", [
+        new ShoppingItem("Milk", null, new Price(1.5f), true),
+      ]);
+
+      // Act
+      ShoppingList checkedList = list.OnlyWithCheckedItems();
+
+      // Assert
+      Assert.Equal(list.Name, checkedList.Name);
     }
   }
 }

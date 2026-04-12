@@ -1,3 +1,4 @@
+using Metaspesa.Application.Shopping;
 using Metaspesa.Domain.Shopping;
 
 namespace Metaspesa.GrpcApi.Extensions;
@@ -7,7 +8,7 @@ internal static class ProtosExtensions {
     this ShoppingList shoppingList
   ) {
     var protoShoppingList = new Protos.Shopping.ShoppingList();
-    if (!string.IsNullOrWhiteSpace(shoppingList.Name)) {
+    if (!shoppingList.IsTemporary()) {
       protoShoppingList.Name = shoppingList.Name;
     }
     protoShoppingList.Products.AddRange(
@@ -16,44 +17,32 @@ internal static class ProtosExtensions {
   }
 
   private static Protos.Shopping.Product ToProto(this ShoppingItem item) {
-    var product = new Protos.Shopping.Product {
-      Name = item.Name,
-      Checked = item.IsChecked,
-    };
-    if (item.Price is not null) {
-      product.Price = item.Price.Value;
-    }
-    if (!string.IsNullOrWhiteSpace(item.Quantity)) {
-      product.Quantity = item.Quantity;
-    }
+    Protos.Shopping.Product product = ((Product)item).ToProto();
+    product.Checked = item.IsChecked;
     return product;
   }
 
-  public static Protos.Shopping.Product ToProto(this RegisteredItem item) {
+  public static Protos.Shopping.Product ToProto(this Product item) {
     var product = new Protos.Shopping.Product {
       Name = item.Name,
+      Price = item.Price.Value,
       Checked = false,
     };
-    if (item.LastPrice is not null) {
-      product.Price = item.LastPrice.Value;
-    }
     if (!string.IsNullOrWhiteSpace(item.Quantity)) {
       product.Quantity = item.Quantity;
     }
     return product;
   }
 
-  public static ShoppingList ToDomain(
-    this Protos.Shopping.ShoppingList protoShoppingList
+  public static RecordShoppingList.CommandItem ToCommand(
+    this Protos.Shopping.Product protoProduct
   ) {
-    const float Epsilon = 0.01f;
-
-    var shoppingList = new ShoppingList(
-      protoShoppingList.Name,
-      protoShoppingList.Products.Select(p => new ShoppingItem(
-        p.Name, p.Quantity, Math.Abs(p.Price) < Epsilon ? null : p.Price, p.Checked
-      )).ToList()
+    var product = new RecordShoppingList.CommandItem(
+      protoProduct.Name,
+      protoProduct.Quantity,
+      protoProduct.Price,
+      protoProduct.Checked
     );
-    return shoppingList;
+    return product;
   }
 }

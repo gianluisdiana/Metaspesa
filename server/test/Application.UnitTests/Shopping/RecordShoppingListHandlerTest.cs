@@ -29,7 +29,7 @@ public class RecordShoppingListHandlerTest {
   [Fact(DisplayName = "Returns errors when validation fails")]
   public async Task Handler_ReturnsErrors_WhenValidationFails() {
     // Arrange
-    Command command = new(Guid.NewGuid(), new ShoppingList("Test List", []));
+    Command command = new(Guid.NewGuid(), "Test List", []);
 
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult([new ValidationFailure()]));
@@ -42,48 +42,67 @@ public class RecordShoppingListHandlerTest {
     Assert.False(result.IsSuccess);
   }
 
-  [Fact(DisplayName = "Updates already registered items")]
-  public async Task Handler_UpdatesRegisteredItems() {
+  [Fact(DisplayName = "Updates registered items when price has changed")]
+  public async Task Handler_UpdatesRegisteredItems_WhenPriceHasChanged() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var commonItem = new ShoppingItem("Item 1", null, 2, true);
-    List<ShoppingItem> items = [
-      commonItem,
-      new ShoppingItem("Item 2", null, 3, true),
+    var commonItem = new ShoppingItem("Item 1", null, new Price(2), true);
+    List<CommandItem> items = [
+      new CommandItem("Item 1", null, 2f, true),
+      new CommandItem("Item 2", null, 3f, true),
     ];
-    ShoppingList shoppingList = new("Test List", items);
-    Command command = new(userUid, shoppingList);
+    Command command = new(userUid, "Test List", items);
 
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
 
-    List<RegisteredItem> registeredItems = [
-      new RegisteredItem(commonItem.Name, null, 1)
+    List<Product> registeredItems = [
+      new Product("Item 1", null, new Price(commonItem.Price.Value + 1)),
     ];
     _productRepository
       .GetRegisteredItemsAsync(userUid, TestContext.Current.CancellationToken)
       .Returns(registeredItems);
 
     // Act
-    await _handler.Handle(
-      command, TestContext.Current.CancellationToken);
+    await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
-    _productRepository.Received(1).UpdateItems(
+    _productRepository.Received(1).UpdateRegisteredItems(
       userUid,
       Arg.Is<IReadOnlyCollection<ShoppingItem>>(x => x.Single() == commonItem));
+  }
+
+  [Fact(DisplayName = "Doesn't update registered items when price hasn't changed")]
+  public async Task Handler_DoesNotUpdateRegisteredItems_WhenPriceHasNotChanged() {
+    // Arrange
+    var userUid = Guid.NewGuid();
+    var commonItem = new ShoppingItem("Item 1", null, new Price(1), true);
+    Command command = new(userUid, "Test List", [new CommandItem("Item 1", null, 1f, true)]);
+
+    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
+      .Returns(new ValidationResult());
+
+    List<Product> registeredItems = [commonItem];
+    _productRepository
+      .GetRegisteredItemsAsync(userUid, TestContext.Current.CancellationToken)
+      .Returns(registeredItems);
+
+    // Act
+    await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+    // Assert
+    _productRepository.DidNotReceive().UpdateRegisteredItems(
+      userUid, Arg.Any<IReadOnlyCollection<ShoppingItem>>());
   }
 
   [Fact(DisplayName = "Doesn't update items when there are no registered items")]
   public async Task Handler_DoesNotUpdateItems_WhenNoRegisteredItems() {
     // Arrange
     var userUid = Guid.NewGuid();
-    List<ShoppingItem> items = [
-      new ShoppingItem("Item 1", null, 2, true),
-      new ShoppingItem("Item 2", null, 3, true)
-    ];
-    ShoppingList shoppingList = new("Test List", items);
-    Command command = new(userUid, shoppingList);
+    Command command = new(userUid, "Test List", [
+      new CommandItem("Item 1", null, 2f, true),
+      new CommandItem("Item 2", null, 3f, true),
+    ]);
 
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
@@ -93,41 +112,35 @@ public class RecordShoppingListHandlerTest {
       .Returns([]);
 
     // Act
-    await _handler.Handle(
-      command, TestContext.Current.CancellationToken);
+    await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
-    _productRepository.DidNotReceive().UpdateItems(
+    _productRepository.DidNotReceive().UpdateRegisteredItems(
       userUid, Arg.Any<IReadOnlyCollection<ShoppingItem>>());
   }
 
-  [Fact(DisplayName = "Doesn't update items with completely new shopping list")]
-  public async Task Handler_DoesNotUpdateItems_WhenCompletelyNewShoppingList() {
+  [Fact(DisplayName = "Doesn't update items when no registered items match the shopping list")]
+  public async Task Handler_DoesNotUpdateItems_WhenNoRegisteredItemsMatch() {
     // Arrange
     var userUid = Guid.NewGuid();
-    List<ShoppingItem> items = [
-      new ShoppingItem("Item 1", null, 2, true),
-      new ShoppingItem("Item 2", null, 3, true)
-    ];
-    ShoppingList shoppingList = new("Test List", items);
-    Command command = new(userUid, shoppingList);
+    Command command = new(userUid, "Test List", [
+      new CommandItem("Item 1", null, 2f, true),
+      new CommandItem("Item 2", null, 3f, true),
+    ]);
 
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
 
-    List<RegisteredItem> registeredItems = [
-      new RegisteredItem("Item 3", null, 1)
-    ];
+    List<Product> registeredItems = [new Product("Item 3", null, new Price(1))];
     _productRepository
       .GetRegisteredItemsAsync(userUid, TestContext.Current.CancellationToken)
       .Returns(registeredItems);
 
     // Act
-    await _handler.Handle(
-      command, TestContext.Current.CancellationToken);
+    await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
-    _productRepository.DidNotReceive().UpdateItems(
+    _productRepository.DidNotReceive().UpdateRegisteredItems(
       userUid, Arg.Any<IReadOnlyCollection<ShoppingItem>>());
   }
 
@@ -135,28 +148,22 @@ public class RecordShoppingListHandlerTest {
   public async Task Handler_RegistersNewItems() {
     // Arrange
     var userUid = Guid.NewGuid();
-
-    var newItem = new ShoppingItem("Item 2", null, 3, true);
-    List<ShoppingItem> items = [
-      new ShoppingItem("Item 1", null, 2, true),
-      newItem
-    ];
-    ShoppingList shoppingList = new("Test List", items);
-    Command command = new(userUid, shoppingList);
+    var newItem = new ShoppingItem("Item 2", null, new Price(3), true);
+    Command command = new(userUid, "Test List", [
+      new CommandItem("Item 1", null, 2f, true),
+      new CommandItem("Item 2", null, 3f, true),
+    ]);
 
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
 
-    List<RegisteredItem> registeredItems = [
-      new RegisteredItem("Item 1", null, 1)
-    ];
+    List<Product> registeredItems = [new Product("Item 1", null, new Price(1))];
     _productRepository
       .GetRegisteredItemsAsync(userUid, TestContext.Current.CancellationToken)
       .Returns(registeredItems);
 
     // Act
-    await _handler.Handle(
-      command, TestContext.Current.CancellationToken);
+    await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
     _productRepository.Received(1).RegisterItems(
@@ -168,43 +175,35 @@ public class RecordShoppingListHandlerTest {
   public async Task Handler_DoesNotRegisterItems_WhenNoNewItems() {
     // Arrange
     var userUid = Guid.NewGuid();
-    List<ShoppingItem> items = [
-      new ShoppingItem("Item 1", null, 2, true),
-      new ShoppingItem("Item 2", null, 3, true)
-    ];
-    ShoppingList shoppingList = new("Test List", items);
-    Command command = new(userUid, shoppingList);
+    Command command = new(userUid, "Test List", [
+      new CommandItem("Item 1", null, 2f, true),
+      new CommandItem("Item 2", null, 3f, true),
+    ]);
 
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
 
-    List<RegisteredItem> registeredItems = [
-      new RegisteredItem("Item 1", null, 1),
-      new RegisteredItem("Item 2", null, 1)
+    List<Product> registeredItems = [
+      new Product("Item 1", null, new Price(1)),
+      new Product("Item 2", null, new Price(1)),
     ];
     _productRepository
       .GetRegisteredItemsAsync(userUid, TestContext.Current.CancellationToken)
       .Returns(registeredItems);
 
     // Act
-    await _handler.Handle(
-      command, TestContext.Current.CancellationToken);
+    await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
     _productRepository.DidNotReceive().RegisterItems(
       userUid, Arg.Any<IReadOnlyCollection<ShoppingItem>>());
   }
 
-  [Fact(DisplayName = "Records shopping list when it has a name")]
-  public async Task Handler_RecordsShoppingList_WhenItHasName() {
+  [Fact(DisplayName = "Always records the shopping list")]
+  public async Task Handler_AlwaysRecordsShoppingList() {
     // Arrange
     var userUid = Guid.NewGuid();
-    List<ShoppingItem> items = [
-      new ShoppingItem("Item 1", null, 2, true),
-      new ShoppingItem("Item 2", null, 3, true)
-    ];
-    ShoppingList shoppingList = new("Test List", items);
-    Command command = new(userUid, shoppingList);
+    Command command = new(userUid, "Test List", [new CommandItem("Item 1", null, 2f, true)]);
 
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
@@ -214,34 +213,25 @@ public class RecordShoppingListHandlerTest {
       .Returns([]);
 
     // Act
-    await _handler.Handle(
-      command, TestContext.Current.CancellationToken);
+    await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
-    _shoppingRepository.Received(1).RecordShoppingList(userUid, shoppingList);
+    _shoppingRepository.Received(1).RecordShoppingList(
+      userUid,
+      Arg.Is<ShoppingList>(sl => sl.Name == "Test List"));
   }
 
-  [Fact(DisplayName = "Doesn't record shopping list when it doesn't have a name")]
-  public async Task Handler_DoesNotRecordShoppingList_WhenItDoesNotHaveName() {
+  [Fact(DisplayName = "Does not record shopping list when validation fails")]
+  public async Task Handler_DoesNotRecordShoppingList_WhenValidationFails() {
     // Arrange
     var userUid = Guid.NewGuid();
-    List<ShoppingItem> items = [
-      new ShoppingItem("Item 1", null, 2, true),
-      new ShoppingItem("Item 2", null, 3, true)
-    ];
-    ShoppingList shoppingList = new("", items);
-    Command command = new(userUid, shoppingList);
+    Command command = new(userUid, "Test List", []);
 
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult());
-
-    _productRepository
-      .GetRegisteredItemsAsync(userUid, TestContext.Current.CancellationToken)
-      .Returns([]);
+      .Returns(new ValidationResult([new ValidationFailure()]));
 
     // Act
-    await _handler.Handle(
-      command, TestContext.Current.CancellationToken);
+    await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
     _shoppingRepository.DidNotReceive().RecordShoppingList(
@@ -252,12 +242,7 @@ public class RecordShoppingListHandlerTest {
   public async Task Handler_SavesChangesToUnitOfWork() {
     // Arrange
     var userUid = Guid.NewGuid();
-    List<ShoppingItem> items = [
-      new ShoppingItem("Item 1", null, 2, true),
-      new ShoppingItem("Item 2", null, 3, true)
-    ];
-    ShoppingList shoppingList = new("Test List", items);
-    Command command = new(userUid, shoppingList);
+    Command command = new(userUid, "Test List", [new CommandItem("Item 1", null, 2f, true)]);
 
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
@@ -267,8 +252,7 @@ public class RecordShoppingListHandlerTest {
       .Returns([]);
 
     // Act
-    await _handler.Handle(
-      command, TestContext.Current.CancellationToken);
+    await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
     await _unitOfWork.Received(1)
@@ -279,12 +263,7 @@ public class RecordShoppingListHandlerTest {
   public async Task Handler_ReturnsSuccessResult_WhenHandlingIsSuccessful() {
     // Arrange
     var userUid = Guid.NewGuid();
-    List<ShoppingItem> items = [
-      new ShoppingItem("Item 1", null, 2, true),
-      new ShoppingItem("Item 2", null, 3, true)
-    ];
-    ShoppingList shoppingList = new("Test List", items);
-    Command command = new(userUid, shoppingList);
+    Command command = new(userUid, "Test List", [new CommandItem("Item 1", null, 2f, true)]);
 
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());

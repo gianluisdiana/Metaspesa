@@ -3,6 +3,6 @@ namespace Metaspesa.Domain.Shopping;
 public record ShoppingItem(
   string Name,
   string? Quantity,
-  float? Price,
+  Price Price,
   bool IsChecked
-) : Product(Name, Quantity);
+) : Product(Name, Quantity, Price);

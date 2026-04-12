@@ -3,9 +3,9 @@ using Metaspesa.Domain.Shopping;
 namespace Metaspesa.Application.Abstractions.Shopping;
 
 public interface IProductRepository {
-  Task<List<RegisteredItem>> GetRegisteredItemsAsync(
+  Task<List<Product>> GetRegisteredItemsAsync(
     Guid userUid, CancellationToken cancellationToken);
-  void UpdateItems(
+  void UpdateRegisteredItems(
     Guid userUid, IReadOnlyCollection<ShoppingItem> shoppingItems);
   void RegisterItems(
     Guid userUid, IReadOnlyCollection<ShoppingItem> shoppingItems);

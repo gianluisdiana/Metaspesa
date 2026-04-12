@@ -19,7 +19,7 @@ public static class ApplicationDependencyInjection {
       RecordShoppingList.Handler>();
 
     services.AddScoped<
-      IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<RegisteredItem>>,
+      IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>,
       GetRegisteredItems.Handler>();
 
     services.AddValidatorsFromAssemblyContaining<Result>(includeInternalTypes: true);
