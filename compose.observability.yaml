@@ -1,0 +1,53 @@
+services:
+  alloy:
+    image: grafana/alloy:latest
+    volumes:
+      - ./observability/alloy/config.alloy:/etc/alloy/config.alloy
+    command: run /etc/alloy/config.alloy
+    ports:
+      - 4317:4317
+    networks:
+      - metaspesa_telemetry_default
+
+  loki:
+    image: grafana/loki:3.5.0
+    volumes:
+      - ./observability/loki/loki.yaml:/etc/loki/loki.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/loki.yaml
+    networks:
+      - metaspesa_telemetry_default
+
+  mimir:
+    image: grafana/mimir:latest
+    volumes:
+      - ./observability/mimir/mimir.yaml:/etc/mimir/mimir.yaml
+      - mimir_data:/tmp/mimir
+    command: -config.file=/etc/mimir/mimir.yaml
+    networks:
+      - metaspesa_telemetry_default
+
+  tempo:
+    image: grafana/tempo:latest
+    volumes:
+      - ./observability/tempo/tempo.yaml:/etc/tempo/tempo.yaml
+    command: -config.file=/etc/tempo/tempo.yaml
+    networks:
+      - metaspesa_telemetry_default
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - 3001:3000
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - metaspesa_telemetry_default
+
+volumes:
+  loki_data:
+  mimir_data:
+
+networks:
+  metaspesa_telemetry_default:
+    external: true
