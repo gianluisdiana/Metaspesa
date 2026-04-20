@@ -12,17 +12,18 @@ using Product = Metaspesa.Domain.Shopping.Product;
 namespace Metaspesa.GrpcApi.UnitTests.Shopping;
 
 public static class ShoppingGrpcServiceTests {
-  public class GetRegisteredProductsRpc {
+  public class GetRegisteredItemsRpc {
     private readonly IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>> _useCaseHandler;
     private readonly ShoppingGrpcService service;
 
-    public GetRegisteredProductsRpc() {
+    public GetRegisteredItemsRpc() {
       _useCaseHandler = Substitute.For<
       IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>();
       service = new ShoppingGrpcService(
         _useCaseHandler,
         Substitute.For<IQueryHandler<GetCurrentShoppingList.Query, Domain.Shopping.ShoppingList>>(),
-        Substitute.For<ICommandHandler<RecordShoppingList.Command>>()
+        Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
+        Substitute.For<ICommandHandler<CreateShoppingList.Command>>()
       );
     }
 
@@ -34,7 +35,7 @@ public static class ShoppingGrpcServiceTests {
         .Returns(new DomainError(string.Empty, string.Empty, ErrorKind.Unexpected));
 
       // Act
-      async Task action() => await service.GetRegisteredProducts(
+      async Task action() => await service.GetRegisteredItems(
         new Empty(), CreateServerCallContext());
 
       // Assert
@@ -53,11 +54,11 @@ public static class ShoppingGrpcServiceTests {
         .Returns(registeredItems);
 
       // Act
-      RegisteredProductsResponse response = await service.GetRegisteredProducts(
+      RegisteredItemsResponse response = await service.GetRegisteredItems(
         new Empty(), CreateServerCallContext());
 
       // Assert
-      Assert.Equal(registeredItems.Count, response.Products.Count);
+      Assert.Equal(registeredItems.Count, response.Items.Count);
     }
 
     [Fact(DisplayName = "Maps product name from registered items")]
@@ -72,12 +73,12 @@ public static class ShoppingGrpcServiceTests {
         .Returns(registeredItems);
 
       // Act
-      RegisteredProductsResponse response = await service.GetRegisteredProducts(
+      RegisteredItemsResponse response = await service.GetRegisteredItems(
         new Empty(), CreateServerCallContext());
 
       // Assert
       for (int i = 0; i < registeredItems.Count; i++) {
-        Assert.Equal(registeredItems[i].Name, response.Products[i].Name);
+        Assert.Equal(registeredItems[i].Name, response.Items[i].Name);
       }
     }
 
@@ -93,12 +94,12 @@ public static class ShoppingGrpcServiceTests {
         .Returns(registeredItems);
 
       // Act
-      RegisteredProductsResponse response = await service.GetRegisteredProducts(
+      RegisteredItemsResponse response = await service.GetRegisteredItems(
         new Empty(), CreateServerCallContext());
 
       // Assert
       for (int i = 0; i < registeredItems.Count; i++) {
-        Assert.Equal(registeredItems[i].Quantity, response.Products[i].Quantity);
+        Assert.Equal(registeredItems[i].Quantity, response.Items[i].Quantity);
       }
     }
 
@@ -114,12 +115,12 @@ public static class ShoppingGrpcServiceTests {
         .Returns(registeredItems);
 
       // Act
-      RegisteredProductsResponse response = await service.GetRegisteredProducts(
+      RegisteredItemsResponse response = await service.GetRegisteredItems(
         new Empty(), CreateServerCallContext());
 
       // Assert
       for (int i = 0; i < registeredItems.Count; i++) {
-        Assert.Empty(response.Products[i].Quantity);
+        Assert.Empty(response.Items[i].Quantity);
       }
     }
 
@@ -135,12 +136,12 @@ public static class ShoppingGrpcServiceTests {
         .Returns(registeredItems);
 
       // Act
-      RegisteredProductsResponse response = await service.GetRegisteredProducts(
+      RegisteredItemsResponse response = await service.GetRegisteredItems(
         new Empty(), CreateServerCallContext());
 
       // Assert
       for (int i = 0; i < registeredItems.Count; i++) {
-        Assert.Equal(registeredItems[i].Price.Value, response.Products[i].Price);
+        Assert.Equal(registeredItems[i].Price.Value, response.Items[i].Price);
       }
     }
 
@@ -156,12 +157,12 @@ public static class ShoppingGrpcServiceTests {
         .Returns(registeredItems);
 
       // Act
-      RegisteredProductsResponse response = await service.GetRegisteredProducts(
+      RegisteredItemsResponse response = await service.GetRegisteredItems(
         new Empty(), CreateServerCallContext());
 
       // Assert
       for (int i = 0; i < registeredItems.Count; i++) {
-        Assert.Equal(0, response.Products[i].Price);
+        Assert.Equal(0, response.Items[i].Price);
       }
     }
 
@@ -177,12 +178,12 @@ public static class ShoppingGrpcServiceTests {
         .Returns(registeredItems);
 
       // Act
-      RegisteredProductsResponse response = await service.GetRegisteredProducts(
+      RegisteredItemsResponse response = await service.GetRegisteredItems(
         new Empty(), CreateServerCallContext());
 
       // Assert
       for (int i = 0; i < registeredItems.Count; i++) {
-        Assert.False(response.Products[i].Checked);
+        Assert.False(response.Items[i].Checked);
       }
     }
   }
@@ -197,7 +198,8 @@ public static class ShoppingGrpcServiceTests {
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
         _useCaseHandler,
-        Substitute.For<ICommandHandler<RecordShoppingList.Command>>()
+        Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
+        Substitute.For<ICommandHandler<CreateShoppingList.Command>>()
       );
     }
 
@@ -254,7 +256,7 @@ public static class ShoppingGrpcServiceTests {
         new Empty(), CreateServerCallContext());
 
       // Assert
-      Assert.Equal(shoppingList.Items.Count, response.ShoppingList.Products.Count);
+      Assert.Equal(shoppingList.Items.Count, response.ShoppingList.Items.Count);
     }
 
     [Fact(DisplayName = "Maps shopping list name to product name in the response")]
@@ -278,7 +280,7 @@ public static class ShoppingGrpcServiceTests {
       for (int i = 0; i < shoppingList.Items.Count; i++) {
         Assert.Equal(
           shoppingList.Items.ElementAt(i).Name,
-          response.ShoppingList.Products[i].Name);
+          response.ShoppingList.Items[i].Name);
       }
     }
 
@@ -303,7 +305,7 @@ public static class ShoppingGrpcServiceTests {
       for (int i = 0; i < shoppingList.Items.Count; i++) {
         Assert.Equal(
           shoppingList.Items.ElementAt(i).Quantity,
-          response.ShoppingList.Products[i].Quantity);
+          response.ShoppingList.Items[i].Quantity);
       }
     }
 
@@ -326,7 +328,7 @@ public static class ShoppingGrpcServiceTests {
 
       // Assert
       for (int i = 0; i < shoppingList.Items.Count; i++) {
-        Assert.Empty(response.ShoppingList.Products[i].Quantity);
+        Assert.Empty(response.ShoppingList.Items[i].Quantity);
       }
     }
 
@@ -351,7 +353,7 @@ public static class ShoppingGrpcServiceTests {
       for (int i = 0; i < shoppingList.Items.Count; i++) {
         Assert.Equal(
           shoppingList.Items.ElementAt(i).Price.Value,
-          response.ShoppingList.Products[i].Price);
+          response.ShoppingList.Items[i].Price);
       }
     }
 
@@ -374,7 +376,7 @@ public static class ShoppingGrpcServiceTests {
 
       // Assert
       for (int i = 0; i < shoppingList.Items.Count; i++) {
-        Assert.Equal(0f, response.ShoppingList.Products[i].Price);
+        Assert.Equal(0f, response.ShoppingList.Items[i].Price);
       }
     }
 
@@ -399,7 +401,7 @@ public static class ShoppingGrpcServiceTests {
       for (int i = 0; i < shoppingList.Items.Count; i++) {
         Assert.Equal(
           shoppingList.Items.ElementAt(i).IsChecked,
-          response.ShoppingList.Products[i].Checked);
+          response.ShoppingList.Items[i].Checked);
       }
     }
   }
@@ -413,7 +415,8 @@ public static class ShoppingGrpcServiceTests {
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
         Substitute.For<IQueryHandler<GetCurrentShoppingList.Query, Domain.Shopping.ShoppingList>>(),
-        _useCaseHandler
+        _useCaseHandler,
+        Substitute.For<ICommandHandler<CreateShoppingList.Command>>()
       );
     }
 
@@ -427,7 +430,7 @@ public static class ShoppingGrpcServiceTests {
       var request = new RecordShoppingListRequest {
         ShoppingList = new Protos.Shopping.ShoppingList {
           Name = "Weekly Groceries",
-          Products = { }
+          Items = { }
         }
       };
 
@@ -449,7 +452,7 @@ public static class ShoppingGrpcServiceTests {
       var request = new RecordShoppingListRequest {
         ShoppingList = new Protos.Shopping.ShoppingList {
           Name = "Weekly Groceries",
-          Products = { }
+          Items = { }
         }
       };
 
@@ -468,7 +471,7 @@ public static class ShoppingGrpcServiceTests {
       var request = new RecordShoppingListRequest {
         ShoppingList = new Protos.Shopping.ShoppingList {
           Name = ListName,
-          Products = { }
+          Items = { }
         }
       };
 
@@ -492,14 +495,14 @@ public static class ShoppingGrpcServiceTests {
       var request = new RecordShoppingListRequest {
         ShoppingList = new Protos.Shopping.ShoppingList {
           Name = "Weekly Groceries",
-          Products = {
-            new Protos.Shopping.Product {
+          Items = {
+            new Protos.Shopping.ShoppingItem {
               Name = "Product 1",
               Quantity = "1 litre",
               Price = 3,
               Checked = true,
             },
-            new Protos.Shopping.Product {
+            new Protos.Shopping.ShoppingItem {
               Name = "Product 2",
               Quantity = "2 kg",
               Price = 10.3f,
@@ -518,11 +521,11 @@ public static class ShoppingGrpcServiceTests {
         request, CreateServerCallContext());
 
       // Assert
-      for (int i = 0; i < request.ShoppingList.Products.Count; i++) {
+      for (int i = 0; i < request.ShoppingList.Items.Count; i++) {
         await _useCaseHandler.Received(1).Handle(
           Arg.Is<RecordShoppingList.Command>(cmd =>
             cmd.ShoppingListItems.ElementAt(i).Name ==
-            request.ShoppingList.Products[i].Name),
+            request.ShoppingList.Items[i].Name),
           TestContext.Current.CancellationToken);
       }
     }
@@ -533,14 +536,14 @@ public static class ShoppingGrpcServiceTests {
       var request = new RecordShoppingListRequest {
         ShoppingList = new Protos.Shopping.ShoppingList {
           Name = "Weekly Groceries",
-          Products = {
-            new Protos.Shopping.Product {
+          Items = {
+            new Protos.Shopping.ShoppingItem {
               Name = "Product 1",
               Quantity = "1 litre",
               Price = 3,
               Checked = true,
             },
-            new Protos.Shopping.Product {
+            new Protos.Shopping.ShoppingItem {
               Name = "Product 2",
               Quantity = "2 kg",
               Price = 10.3f,
@@ -558,11 +561,11 @@ public static class ShoppingGrpcServiceTests {
       await service.RecordShoppingList(request, CreateServerCallContext());
 
       // Assert
-      for (int i = 0; i < request.ShoppingList.Products.Count; i++) {
+      for (int i = 0; i < request.ShoppingList.Items.Count; i++) {
         await _useCaseHandler.Received(1).Handle(
           Arg.Is<RecordShoppingList.Command>(cmd =>
             cmd.ShoppingListItems.ElementAt(i).Quantity ==
-            request.ShoppingList.Products[i].Quantity),
+            request.ShoppingList.Items[i].Quantity),
           TestContext.Current.CancellationToken);
       }
     }
@@ -573,14 +576,14 @@ public static class ShoppingGrpcServiceTests {
       var request = new RecordShoppingListRequest {
         ShoppingList = new Protos.Shopping.ShoppingList {
           Name = "Weekly Groceries",
-          Products = {
-            new Protos.Shopping.Product {
+          Items = {
+            new Protos.Shopping.ShoppingItem {
               Name = "Product 1",
               Quantity = "1 litre",
               Price = 3,
               Checked = true,
             },
-            new Protos.Shopping.Product {
+            new Protos.Shopping.ShoppingItem {
               Name = "Product 2",
               Quantity = "2 kg",
               Price = 10.3f,
@@ -599,8 +602,8 @@ public static class ShoppingGrpcServiceTests {
 
       // Assert
       const float Epsilon = 0.01f;
-      for (int i = 0; i < request.ShoppingList.Products.Count; i++) {
-        float price = request.ShoppingList.Products[i].Price;
+      for (int i = 0; i < request.ShoppingList.Items.Count; i++) {
+        float price = request.ShoppingList.Items[i].Price;
         await _useCaseHandler.Received(1).Handle(
           Arg.Is<RecordShoppingList.Command>(cmd => Math.Abs(
             cmd.ShoppingListItems.ElementAt(i).Price - price
@@ -615,14 +618,14 @@ public static class ShoppingGrpcServiceTests {
       var request = new RecordShoppingListRequest {
         ShoppingList = new Protos.Shopping.ShoppingList {
           Name = "Weekly Groceries",
-          Products = {
-            new Protos.Shopping.Product {
+          Items = {
+            new Protos.Shopping.ShoppingItem {
               Name = "Product 1",
               Quantity = "1 litre",
               Price = 3,
               Checked = true,
             },
-            new Protos.Shopping.Product {
+            new Protos.Shopping.ShoppingItem {
               Name = "Product 2",
               Quantity = "2 kg",
               Price = 10.3f,
@@ -640,13 +643,109 @@ public static class ShoppingGrpcServiceTests {
       await service.RecordShoppingList(request, CreateServerCallContext());
 
       // Assert
-      for (int i = 0; i < request.ShoppingList.Products.Count; i++) {
+      for (int i = 0; i < request.ShoppingList.Items.Count; i++) {
         await _useCaseHandler.Received(1).Handle(
           Arg.Is<RecordShoppingList.Command>(cmd =>
             cmd.ShoppingListItems.ElementAt(i).IsChecked ==
-            request.ShoppingList.Products[i].Checked),
+            request.ShoppingList.Items[i].Checked),
           TestContext.Current.CancellationToken);
       }
+    }
+  }
+
+  public class CreateShoppingListRpc {
+    private readonly ICommandHandler<CreateShoppingList.Command> _useCaseHandler;
+    private readonly ShoppingGrpcService service;
+
+    public CreateShoppingListRpc() {
+      _useCaseHandler = Substitute.For<ICommandHandler<CreateShoppingList.Command>>();
+      service = new ShoppingGrpcService(
+        Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
+        Substitute.For<IQueryHandler<GetCurrentShoppingList.Query, Domain.Shopping.ShoppingList>>(),
+        Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
+        _useCaseHandler
+      );
+    }
+
+    [Fact(DisplayName = "Throws RpcException if the command handler returns a failure result")]
+    public async Task Api_ThrowsRpcException_IfCommandHandlerFails() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<CreateShoppingList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(new DomainError(string.Empty, string.Empty, ErrorKind.Unexpected));
+
+      // Act
+      async Task action() => await service.CreateShoppingList(
+        new CreateShoppingListRequest { Name = "Groceries" }, CreateServerCallContext());
+
+      // Assert
+      await Assert.ThrowsAsync<RpcException>(action);
+    }
+
+    [Fact(DisplayName = "Returns response with name when handler succeeds with a named list")]
+    public async Task Api_ReturnsResponseWithName_WhenHandlerSucceedsWithNamedList() {
+      // Arrange
+      const string ListName = "Groceries";
+      _useCaseHandler
+        .Handle(Arg.Any<CreateShoppingList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      // Act
+      CreateShoppingListResponse response = await service.CreateShoppingList(
+        new CreateShoppingListRequest { Name = ListName }, CreateServerCallContext());
+
+      // Assert
+      Assert.Equal(ListName, response.Name);
+    }
+
+    [Fact(DisplayName = "Returns response without name when handler succeeds with a temporary list")]
+    public async Task Api_ReturnsResponseWithoutName_WhenHandlerSucceedsWithTemporaryList() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<CreateShoppingList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      // Act
+      CreateShoppingListResponse response = await service.CreateShoppingList(
+        new CreateShoppingListRequest(), CreateServerCallContext());
+
+      // Assert
+      Assert.False(response.HasName);
+    }
+
+    [Fact(DisplayName = "Maps name from request to command")]
+    public async Task Api_MapsName_FromRequestToCommand() {
+      // Arrange
+      const string ListName = "Weekly";
+      _useCaseHandler
+        .Handle(Arg.Any<CreateShoppingList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      // Act
+      await service.CreateShoppingList(
+        new CreateShoppingListRequest { Name = ListName }, CreateServerCallContext());
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<CreateShoppingList.Command>(cmd => cmd.ShoppingListName == ListName),
+        TestContext.Current.CancellationToken);
+    }
+
+    [Fact(DisplayName = "Maps null name when request has no name")]
+    public async Task Api_MapsNullName_WhenRequestHasNoName() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<CreateShoppingList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      // Act
+      await service.CreateShoppingList(
+        new CreateShoppingListRequest(), CreateServerCallContext());
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<CreateShoppingList.Command>(cmd => cmd.ShoppingListName == null),
+        TestContext.Current.CancellationToken);
     }
   }
 

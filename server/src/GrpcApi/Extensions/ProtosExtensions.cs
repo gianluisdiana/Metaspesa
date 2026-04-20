@@ -11,19 +11,19 @@ internal static class ProtosExtensions {
     if (!shoppingList.IsTemporary()) {
       protoShoppingList.Name = shoppingList.Name;
     }
-    protoShoppingList.Products.AddRange(
+    protoShoppingList.Items.AddRange(
       shoppingList.Select(item => item.ToProto()));
     return protoShoppingList;
   }
 
-  private static Protos.Shopping.Product ToProto(this ShoppingItem item) {
-    Protos.Shopping.Product product = ((Product)item).ToProto();
+  private static Protos.Shopping.ShoppingItem ToProto(this ShoppingItem item) {
+    Protos.Shopping.ShoppingItem product = ((Product)item).ToProto();
     product.Checked = item.IsChecked;
     return product;
   }
 
-  public static Protos.Shopping.Product ToProto(this Product item) {
-    var product = new Protos.Shopping.Product {
+  public static Protos.Shopping.ShoppingItem ToProto(this Product item) {
+    var product = new Protos.Shopping.ShoppingItem {
       Name = item.Name,
       Price = item.Price.Value,
       Checked = false,
@@ -35,7 +35,7 @@ internal static class ProtosExtensions {
   }
 
   public static RecordShoppingList.CommandItem ToCommand(
-    this Protos.Shopping.Product protoProduct
+    this Protos.Shopping.ShoppingItem protoProduct
   ) {
     var product = new RecordShoppingList.CommandItem(
       protoProduct.Name,

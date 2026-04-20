@@ -7,5 +7,6 @@ public interface IShoppingRepository {
     Guid userUid, CancellationToken cancellationToken);
   Task<bool> CheckShoppingListExistAsync(
     Guid userUid, string? shoppingListName, CancellationToken cancellationToken);
+  void CreateShoppingList(Guid userUid, string? name);
   void RecordShoppingList(Guid userUid, ShoppingList shoppingList);
 }

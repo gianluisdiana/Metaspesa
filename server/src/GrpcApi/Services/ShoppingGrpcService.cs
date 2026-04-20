@@ -2,9 +2,9 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Shopping;
+using Metaspesa.Domain.Shopping;
 using Metaspesa.GrpcApi.Extensions;
 using Metaspesa.GrpcApi.Protos.Shopping;
-using Product = Metaspesa.Domain.Shopping.Product;
 using ShoppingList = Metaspesa.Domain.Shopping.ShoppingList;
 
 namespace Metaspesa.GrpcApi.Services;
@@ -12,9 +12,10 @@ namespace Metaspesa.GrpcApi.Services;
 internal class ShoppingGrpcService(
   IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>> getRegisteredItemsHandler,
   IQueryHandler<GetCurrentShoppingList.Query, ShoppingList> getCurrentShoppingListHandler,
-  ICommandHandler<RecordShoppingList.Command> recordShoppingListHandler
+  ICommandHandler<RecordShoppingList.Command> recordShoppingListHandler,
+  ICommandHandler<CreateShoppingList.Command> createShoppingListHandler
 ) : ShoppingService.ShoppingServiceBase {
-  public override async Task<RegisteredProductsResponse> GetRegisteredProducts(
+  public override async Task<RegisteredItemsResponse> GetRegisteredItems(
     Empty request, ServerCallContext context
   ) {
     Result<IReadOnlyCollection<Product>> result = await getRegisteredItemsHandler.Handle(
@@ -22,8 +23,8 @@ internal class ShoppingGrpcService(
 
     result.ThrowRpcExceptionIfFailed();
 
-    var response = new RegisteredProductsResponse();
-    response.Products.AddRange(
+    var response = new RegisteredItemsResponse();
+    response.Items.AddRange(
       result.Value.Select(item => item.ToProto())
     );
 
@@ -49,13 +50,33 @@ internal class ShoppingGrpcService(
     return response;
   }
 
+  public override async Task<CreateShoppingListResponse> CreateShoppingList(
+    CreateShoppingListRequest request, ServerCallContext context
+  ) {
+    var command = new CreateShoppingList.Command(
+      Guid.Empty,
+      request.HasName ? request.Name : null
+    );
+
+    Result result = await createShoppingListHandler.Handle(
+      command, context.CancellationToken);
+
+    result.ThrowRpcExceptionIfFailed();
+
+    var response = new CreateShoppingListResponse();
+    if (!string.IsNullOrWhiteSpace(command.ShoppingListName)) {
+      response.Name = command.ShoppingListName;
+    }
+    return response;
+  }
+
   public override async Task<Empty> RecordShoppingList(
     RecordShoppingListRequest request, ServerCallContext context
   ) {
     var command = new RecordShoppingList.Command(
       Guid.Empty,
       request.ShoppingList.Name,
-      [..request.ShoppingList.Products.Select(p => p.ToCommand())]
+      [..request.ShoppingList.Items.Select(p => p.ToCommand())]
     );
 
     Result result = await recordShoppingListHandler.Handle(

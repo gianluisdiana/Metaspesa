@@ -74,6 +74,15 @@ internal partial class PostgreSqlShoppingRepository(
   partial void LogErrorCheckingShoppingListExists(
     Guid userUid, string? shoppingListName, Exception ex);
 
+  public void CreateShoppingList(Guid userUid, string? name) {
+    var list = new ShoppingListDbEntity { Name = name };
+    context.ShoppingLists.Add(list);
+    context.ShoppingListOwnerships.Add(new ShoppingListOwnershipDbEntity {
+      UserUid = userUid,
+      ShoppingList = list,
+    });
+  }
+
   public void RecordShoppingList(Guid userUid, ShoppingList shoppingList) {
     Debug.Assert(shoppingList.HasCheckedItems());
 
