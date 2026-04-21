@@ -8,5 +8,6 @@ public interface IShoppingRepository {
   Task<bool> CheckShoppingListExistAsync(
     Guid userUid, string? shoppingListName, CancellationToken cancellationToken);
   void CreateShoppingList(Guid userUid, string? name);
+  void AddItemsToList(Guid userUid, string? listName, IReadOnlyCollection<ShoppingItem> items);
   void RecordShoppingList(Guid userUid, ShoppingList shoppingList);
 }

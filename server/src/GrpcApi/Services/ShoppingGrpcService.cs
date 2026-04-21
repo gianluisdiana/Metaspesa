@@ -13,7 +13,8 @@ internal class ShoppingGrpcService(
   IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>> getRegisteredItemsHandler,
   IQueryHandler<GetCurrentShoppingList.Query, ShoppingList> getCurrentShoppingListHandler,
   ICommandHandler<RecordShoppingList.Command> recordShoppingListHandler,
-  ICommandHandler<CreateShoppingList.Command> createShoppingListHandler
+  ICommandHandler<CreateShoppingList.Command> createShoppingListHandler,
+  ICommandHandler<AddItemsToList.Command> addItemsToListHandler
 ) : ShoppingService.ShoppingServiceBase {
   public override async Task<RegisteredItemsResponse> GetRegisteredItems(
     Empty request, ServerCallContext context
@@ -68,6 +69,23 @@ internal class ShoppingGrpcService(
       response.Name = command.ShoppingListName;
     }
     return response;
+  }
+
+  public override async Task<Empty> AddItemsToList(
+    AddItemsToListRequest request, ServerCallContext context
+  ) {
+    var command = new AddItemsToList.Command(
+      Guid.Empty,
+      request.HasShoppingListName ? request.ShoppingListName : null,
+      [..request.Items.Select(i => i.ToAddItemsCommand())]
+    );
+
+    Result result = await addItemsToListHandler.Handle(
+      command, context.CancellationToken);
+
+    result.ThrowRpcExceptionIfFailed();
+
+    return new Empty();
   }
 
   public override async Task<Empty> RecordShoppingList(

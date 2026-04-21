@@ -36,13 +36,19 @@ internal static class ProtosExtensions {
 
   public static RecordShoppingList.CommandItem ToCommand(
     this Protos.Shopping.ShoppingItem protoProduct
-  ) {
-    var product = new RecordShoppingList.CommandItem(
-      protoProduct.Name,
-      protoProduct.Quantity,
-      protoProduct.Price,
-      protoProduct.Checked
-    );
-    return product;
-  }
+  ) => new(
+    protoProduct.Name,
+    protoProduct.HasQuantity ? protoProduct.Quantity : null,
+    protoProduct.HasPrice ? protoProduct.Price : 0f,
+    protoProduct.Checked
+  );
+
+  public static AddItemsToList.CommandItem ToAddItemsCommand(
+    this Protos.Shopping.ShoppingItem protoItem
+  ) => new(
+    protoItem.Name,
+    protoItem.HasQuantity ? protoItem.Quantity : null,
+    protoItem.HasPrice ? protoItem.Price : 0f,
+    protoItem.Checked
+  );
 }

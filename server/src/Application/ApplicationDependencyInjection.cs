@@ -26,6 +26,10 @@ public static class ApplicationDependencyInjection {
       ICommandHandler<CreateShoppingList.Command>,
       CreateShoppingList.Handler>();
 
+    services.AddScoped<
+      ICommandHandler<AddItemsToList.Command>,
+      AddItemsToList.Handler>();
+
     services.AddValidatorsFromAssemblyContaining<Result>(includeInternalTypes: true);
 
     return services;

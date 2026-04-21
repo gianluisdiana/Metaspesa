@@ -23,7 +23,8 @@ public static class ShoppingGrpcServiceTests {
         _useCaseHandler,
         Substitute.For<IQueryHandler<GetCurrentShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
-        Substitute.For<ICommandHandler<CreateShoppingList.Command>>()
+        Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
+        Substitute.For<ICommandHandler<AddItemsToList.Command>>()
       );
     }
 
@@ -199,7 +200,8 @@ public static class ShoppingGrpcServiceTests {
         Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
         _useCaseHandler,
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
-        Substitute.For<ICommandHandler<CreateShoppingList.Command>>()
+        Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
+        Substitute.For<ICommandHandler<AddItemsToList.Command>>()
       );
     }
 
@@ -416,7 +418,8 @@ public static class ShoppingGrpcServiceTests {
         Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
         Substitute.For<IQueryHandler<GetCurrentShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         _useCaseHandler,
-        Substitute.For<ICommandHandler<CreateShoppingList.Command>>()
+        Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
+        Substitute.For<ICommandHandler<AddItemsToList.Command>>()
       );
     }
 
@@ -663,7 +666,8 @@ public static class ShoppingGrpcServiceTests {
         Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
         Substitute.For<IQueryHandler<GetCurrentShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
-        _useCaseHandler
+        _useCaseHandler,
+        Substitute.For<ICommandHandler<AddItemsToList.Command>>()
       );
     }
 
@@ -746,6 +750,129 @@ public static class ShoppingGrpcServiceTests {
       await _useCaseHandler.Received(1).Handle(
         Arg.Is<CreateShoppingList.Command>(cmd => cmd.ShoppingListName == null),
         TestContext.Current.CancellationToken);
+    }
+  }
+
+  public class AddItemsToListRpc {
+    private readonly ICommandHandler<AddItemsToList.Command> _useCaseHandler;
+    private readonly ShoppingGrpcService service;
+
+    public AddItemsToListRpc() {
+      _useCaseHandler = Substitute.For<ICommandHandler<AddItemsToList.Command>>();
+      service = new ShoppingGrpcService(
+        Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
+        Substitute.For<IQueryHandler<GetCurrentShoppingList.Query, Domain.Shopping.ShoppingList>>(),
+        Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
+        Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
+        _useCaseHandler
+      );
+    }
+
+    [Fact(DisplayName = "Throws RpcException if the command handler returns a failure result")]
+    public async Task Api_ThrowsRpcException_IfCommandHandlerFails() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<AddItemsToList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(new DomainError(string.Empty, string.Empty, ErrorKind.Unexpected));
+
+      var request = new AddItemsToListRequest {
+        ShoppingListName = "Weekly",
+        Items = { new Protos.Shopping.ShoppingItem { Name = "Milk" } }
+      };
+
+      // Act
+      async Task action() => await service.AddItemsToList(request, CreateServerCallContext());
+
+      // Assert
+      await Assert.ThrowsAsync<RpcException>(action);
+    }
+
+    [Fact(DisplayName = "Returns empty when handler succeeds")]
+    public async Task Api_ReturnsEmpty_WhenHandlerSucceeds() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<AddItemsToList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new AddItemsToListRequest {
+        ShoppingListName = "Weekly",
+        Items = { new Protos.Shopping.ShoppingItem { Name = "Milk" } }
+      };
+
+      // Act
+      Empty response = await service.AddItemsToList(request, CreateServerCallContext());
+
+      // Assert
+      Assert.NotNull(response);
+    }
+
+    [Fact(DisplayName = "Maps shopping list name from request to command")]
+    public async Task Api_MapsShoppingListName_FromRequestToCommand() {
+      // Arrange
+      const string ListName = "Weekly";
+      _useCaseHandler
+        .Handle(Arg.Any<AddItemsToList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new AddItemsToListRequest {
+        ShoppingListName = ListName,
+        Items = { new Protos.Shopping.ShoppingItem { Name = "Milk" } }
+      };
+
+      // Act
+      await service.AddItemsToList(request, CreateServerCallContext());
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<AddItemsToList.Command>(cmd => cmd.ShoppingListName == ListName),
+        TestContext.Current.CancellationToken);
+    }
+
+    [Fact(DisplayName = "Maps null list name when request has no shopping list name")]
+    public async Task Api_MapsNullListName_WhenRequestHasNoShoppingListName() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<AddItemsToList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new AddItemsToListRequest {
+        Items = { new Protos.Shopping.ShoppingItem { Name = "Milk" } }
+      };
+
+      // Act
+      await service.AddItemsToList(request, CreateServerCallContext());
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<AddItemsToList.Command>(cmd => cmd.ShoppingListName == null),
+        TestContext.Current.CancellationToken);
+    }
+
+    [Fact(DisplayName = "Maps item names from request to command")]
+    public async Task Api_MapsItemNames_FromRequestToCommand() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<AddItemsToList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new AddItemsToListRequest {
+        ShoppingListName = "Weekly",
+        Items = {
+          new Protos.Shopping.ShoppingItem { Name = "Milk", Price = 2f },
+          new Protos.Shopping.ShoppingItem { Name = "Bread", Price = 1.5f },
+        }
+      };
+
+      // Act
+      await service.AddItemsToList(request, CreateServerCallContext());
+
+      // Assert
+      for (int i = 0; i < request.Items.Count; i++) {
+        await _useCaseHandler.Received(1).Handle(
+          Arg.Is<AddItemsToList.Command>(cmd =>
+            cmd.Items.ElementAt(i).Name == request.Items[i].Name),
+          TestContext.Current.CancellationToken);
+      }
     }
   }
 

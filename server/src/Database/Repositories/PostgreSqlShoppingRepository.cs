@@ -83,6 +83,30 @@ internal partial class PostgreSqlShoppingRepository(
     });
   }
 
+  public void AddItemsToList(
+    Guid userUid, string? listName, IReadOnlyCollection<ShoppingItem> items
+  ) {
+#pragma warning disable CA1862, CA1304, CA1311
+    ShoppingListDbEntity list = context.ShoppingListOwnerships
+      .Where(o => o.UserUid == userUid && (
+        o.ShoppingList.Name == null && listName == null ||
+        o.ShoppingList.Name != null &&
+        listName != null &&
+        o.ShoppingList.Name.ToUpper() == listName.ToUpper()
+      ))
+      .Select(o => o.ShoppingList)
+      .First();
+#pragma warning restore CA1862, CA1304, CA1311
+
+    context.ShoppingItems.AddRange(items.Select(i => new ShoppingItemDbEntity {
+      ShoppingListId = list.Id,
+      Name = i.Name,
+      Quantity = i.Quantity,
+      Price = i.Price.Value,
+      IsChecked = i.IsChecked,
+    }));
+  }
+
   public void RecordShoppingList(Guid userUid, ShoppingList shoppingList) {
     Debug.Assert(shoppingList.HasCheckedItems());
 
