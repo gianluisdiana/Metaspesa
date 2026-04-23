@@ -25,7 +25,8 @@ public static class ShoppingGrpcServiceTests {
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
         Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
-        Substitute.For<ICommandHandler<UpdateItem.Command>>()
+        Substitute.For<ICommandHandler<UpdateItem.Command>>(),
+        Substitute.For<ICommandHandler<RemoveItem.Command>>()
       );
     }
 
@@ -203,7 +204,8 @@ public static class ShoppingGrpcServiceTests {
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
         Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
-        Substitute.For<ICommandHandler<UpdateItem.Command>>()
+        Substitute.For<ICommandHandler<UpdateItem.Command>>(),
+        Substitute.For<ICommandHandler<RemoveItem.Command>>()
       );
     }
 
@@ -422,7 +424,8 @@ public static class ShoppingGrpcServiceTests {
         _useCaseHandler,
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
         Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
-        Substitute.For<ICommandHandler<UpdateItem.Command>>()
+        Substitute.For<ICommandHandler<UpdateItem.Command>>(),
+        Substitute.For<ICommandHandler<RemoveItem.Command>>()
       );
     }
 
@@ -671,7 +674,8 @@ public static class ShoppingGrpcServiceTests {
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         _useCaseHandler,
         Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
-        Substitute.For<ICommandHandler<UpdateItem.Command>>()
+        Substitute.For<ICommandHandler<UpdateItem.Command>>(),
+        Substitute.For<ICommandHandler<RemoveItem.Command>>()
       );
     }
 
@@ -769,7 +773,8 @@ public static class ShoppingGrpcServiceTests {
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
         _useCaseHandler,
-        Substitute.For<ICommandHandler<UpdateItem.Command>>()
+        Substitute.For<ICommandHandler<UpdateItem.Command>>(),
+        Substitute.For<ICommandHandler<RemoveItem.Command>>()
       );
     }
 
@@ -893,7 +898,8 @@ public static class ShoppingGrpcServiceTests {
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
         Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
-        _useCaseHandler
+        _useCaseHandler,
+        Substitute.For<ICommandHandler<RemoveItem.Command>>()
       );
     }
 
@@ -1109,6 +1115,75 @@ public static class ShoppingGrpcServiceTests {
       // Assert
       await _useCaseHandler.Received(1).Handle(
         Arg.Is<UpdateItem.Command>(cmd => cmd.IsChecked == null),
+        TestContext.Current.CancellationToken);
+    }
+  }
+
+  public class RemoveItemRpc {
+    private readonly ICommandHandler<RemoveItem.Command> _useCaseHandler;
+    private readonly ShoppingGrpcService service;
+
+    public RemoveItemRpc() {
+      _useCaseHandler = Substitute.For<ICommandHandler<RemoveItem.Command>>();
+      service = new ShoppingGrpcService(
+        Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
+        Substitute.For<IQueryHandler<GetCurrentShoppingList.Query, Domain.Shopping.ShoppingList>>(),
+        Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
+        Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
+        Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
+        Substitute.For<ICommandHandler<UpdateItem.Command>>(),
+        _useCaseHandler
+      );
+    }
+
+    [Fact(DisplayName = "Throws RpcException if the command handler returns a failure result")]
+    public async Task Api_ThrowsRpcException_IfCommandHandlerFails() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<RemoveItem.Command>(), TestContext.Current.CancellationToken)
+        .Returns(new DomainError(string.Empty, string.Empty, ErrorKind.Unexpected));
+
+      var request = new RemoveItemRequest { ShoppingListName = "Weekly", ItemName = "Milk" };
+
+      // Act
+      async Task action() => await service.RemoveItem(request, CreateServerCallContext());
+
+      // Assert
+      await Assert.ThrowsAsync<RpcException>(action);
+    }
+
+    [Fact(DisplayName = "Returns empty when handler succeeds")]
+    public async Task Api_ReturnsEmpty_WhenHandlerSucceeds() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<RemoveItem.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new RemoveItemRequest { ShoppingListName = "Weekly", ItemName = "Milk" };
+
+      // Act
+      Empty response = await service.RemoveItem(request, CreateServerCallContext());
+
+      // Assert
+      Assert.NotNull(response);
+    }
+
+    [Fact(DisplayName = "Maps shopping list name and item name from request to command")]
+    public async Task Api_MapsNames_FromRequestToCommand() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<RemoveItem.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new RemoveItemRequest { ShoppingListName = "Weekly", ItemName = "Milk" };
+
+      // Act
+      await service.RemoveItem(request, CreateServerCallContext());
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<RemoveItem.Command>(cmd =>
+          cmd.ShoppingListName == "Weekly" && cmd.ItemName == "Milk"),
         TestContext.Current.CancellationToken);
     }
   }

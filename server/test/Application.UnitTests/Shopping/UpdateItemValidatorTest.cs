@@ -1,4 +1,5 @@
 using FluentValidation.TestHelper;
+using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Shopping;
 using NSubstitute;
 using static Metaspesa.Application.Shopping.UpdateItem;
@@ -29,7 +30,8 @@ public class UpdateItemValidatorTest {
 
     // Assert
     result.ShouldHaveValidationErrorFor(x => x.ShoppingListName)
-      .WithErrorCode("ShoppingList.NotFound");
+      .WithErrorCode("ShoppingList.NotFound")
+      .WithCustomState(ErrorKind.Missing);
   }
 
   [Fact(DisplayName = "Doesn't fail when item does not exist in the list")]
@@ -73,7 +75,8 @@ public class UpdateItemValidatorTest {
 
     // Assert
     result.ShouldHaveValidationErrorFor(x => x.NewName)
-      .WithErrorCode("ShoppingList.Item.AlreadyExists");
+      .WithErrorCode("ShoppingList.Item.AlreadyExists")
+      .WithCustomState(ErrorKind.Conflict);
   }
 
   [Fact(DisplayName = "Passes when new name equals original name (case-insensitive)")]
@@ -241,7 +244,8 @@ public class UpdateItemValidatorTest {
     // Assert
     result.ShouldHaveValidationErrorFor(x => x.ShoppingListName)
       .WithErrorCode("ShoppingList.NotFound")
-      .WithErrorMessage($"User {userUid} doesn't have a temporary shopping list.");
+      .WithErrorMessage($"User {userUid} doesn't have a temporary shopping list.")
+      .WithCustomState(ErrorKind.Missing);
   }
 
   [Fact(DisplayName = "Fails if no fields to update are provided")]

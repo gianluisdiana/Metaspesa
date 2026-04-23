@@ -12,5 +12,6 @@ public interface IShoppingRepository {
   Task<bool> CheckItemExistsAsync(Guid userUid, string? listName, string itemName, CancellationToken cancellationToken);
   Task<ShoppingItem?> GetItemAsync(Guid userUid, string? listName, string itemName, CancellationToken cancellationToken);
   void UpdateItem(Guid userUid, string? listName, string originalItemName, ShoppingItem update);
+  void RemoveItem(Guid userUid, string? listName, string itemName);
   void RecordShoppingList(Guid userUid, ShoppingList shoppingList);
 }

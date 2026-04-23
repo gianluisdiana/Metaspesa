@@ -34,6 +34,10 @@ public static class ApplicationDependencyInjection {
       ICommandHandler<UpdateItem.Command>,
       UpdateItem.Handler>();
 
+    services.AddScoped<
+      ICommandHandler<RemoveItem.Command>,
+      RemoveItem.Handler>();
+
     services.AddValidatorsFromAssemblyContaining<Result>(includeInternalTypes: true);
 
     return services;

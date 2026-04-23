@@ -1,4 +1,5 @@
 using FluentValidation.TestHelper;
+using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Shopping;
 using NSubstitute;
 using static Metaspesa.Application.Shopping.AddItemsToList;
@@ -29,7 +30,8 @@ public class AddItemsToListValidatorTest {
 
     // Assert
     result.ShouldHaveValidationErrorFor(x => x.ShoppingListName)
-      .WithErrorCode("ShoppingList.NotFound");
+      .WithErrorCode("ShoppingList.NotFound")
+      .WithCustomState(ErrorKind.Missing);
   }
 
   [Fact(DisplayName = "Fails when items collection is empty")]
@@ -142,7 +144,9 @@ public class AddItemsToListValidatorTest {
       command, cancellationToken: TestContext.Current.CancellationToken);
 
     // Assert
-    Assert.Contains(result.Errors, e => e.ErrorCode == "ShoppingList.Item.AlreadyExists");
+    Assert.Contains(result.Errors, e =>
+      e.ErrorCode == "ShoppingList.Item.AlreadyExists" &&
+      (ErrorKind)e.CustomState == ErrorKind.Conflict);
   }
 
   [Fact(DisplayName = "Passes when item price is zero")]
@@ -213,6 +217,7 @@ public class AddItemsToListValidatorTest {
     // Assert
     result.ShouldHaveValidationErrorFor(x => x.ShoppingListName)
       .WithErrorCode("ShoppingList.NotFound")
-      .WithErrorMessage($"User {userUid} doesn't have a temporary shopping list.");
+      .WithErrorMessage($"User {userUid} doesn't have a temporary shopping list.")
+      .WithCustomState(ErrorKind.Missing);
   }
 }

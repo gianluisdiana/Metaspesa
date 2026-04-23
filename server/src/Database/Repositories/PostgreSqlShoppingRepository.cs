@@ -199,6 +199,23 @@ internal partial class PostgreSqlShoppingRepository(
     item.IsChecked = update.IsChecked;
   }
 
+  public void RemoveItem(Guid userUid, string? listName, string itemName) {
+#pragma warning disable CA1862, CA1304, CA1311
+    ShoppingItemDbEntity item = context.ShoppingItems
+      .Where(i => i.DeletedAt == null &&
+        i.ShoppingList.Ownerships.Any(o => o.UserUid == userUid) && (
+          i.ShoppingList.Name == null && listName == null ||
+          i.ShoppingList.Name != null &&
+          listName != null &&
+          i.ShoppingList.Name.ToUpper() == listName.ToUpper()
+        ) &&
+        i.Name.ToUpper() == itemName.ToUpper())
+      .First();
+#pragma warning restore CA1862, CA1304, CA1311
+
+    item.DeletedAt = DateTime.UtcNow;
+  }
+
   public void RecordShoppingList(Guid userUid, ShoppingList shoppingList) {
     Debug.Assert(shoppingList.HasCheckedItems());
 

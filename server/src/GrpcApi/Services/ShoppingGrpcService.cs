@@ -15,7 +15,8 @@ internal class ShoppingGrpcService(
   ICommandHandler<RecordShoppingList.Command> recordShoppingListHandler,
   ICommandHandler<CreateShoppingList.Command> createShoppingListHandler,
   ICommandHandler<AddItemsToList.Command> addItemsToListHandler,
-  ICommandHandler<UpdateItem.Command> updateItemHandler
+  ICommandHandler<UpdateItem.Command> updateItemHandler,
+  ICommandHandler<RemoveItem.Command> removeItemHandler
 ) : ShoppingService.ShoppingServiceBase {
   public override async Task<RegisteredItemsResponse> GetRegisteredItems(
     Empty request, ServerCallContext context
@@ -103,6 +104,22 @@ internal class ShoppingGrpcService(
     );
 
     Result result = await updateItemHandler.Handle(command, context.CancellationToken);
+
+    result.ThrowRpcExceptionIfFailed();
+
+    return new Empty();
+  }
+
+  public override async Task<Empty> RemoveItem(
+    RemoveItemRequest request, ServerCallContext context
+  ) {
+    var command = new RemoveItem.Command(
+      Guid.Empty,
+      request.ShoppingListName,
+      request.ItemName
+    );
+
+    Result result = await removeItemHandler.Handle(command, context.CancellationToken);
 
     result.ThrowRpcExceptionIfFailed();
 
