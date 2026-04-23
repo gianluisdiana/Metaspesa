@@ -37,8 +37,8 @@ public class AddItemsToListValidatorTest {
     // Arrange
     var userUid = Guid.NewGuid();
     var command = new Command(userUid, "Weekly", []);
-    _shoppingRepository
-      .CheckShoppingListExistAsync(userUid, "Weekly", TestContext.Current.CancellationToken)
+    _shoppingRepository.CheckShoppingListExistAsync(
+      userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
       .Returns(true);
 
     // Act
@@ -58,8 +58,8 @@ public class AddItemsToListValidatorTest {
     // Arrange
     var userUid = Guid.NewGuid();
     var command = new Command(userUid, "Weekly", [new(name!, null, 1f, false)]);
-    _shoppingRepository
-      .CheckShoppingListExistAsync(userUid, "Weekly", TestContext.Current.CancellationToken)
+    _shoppingRepository.CheckShoppingListExistAsync(
+      userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
       .Returns(true);
 
     // Act
@@ -76,8 +76,8 @@ public class AddItemsToListValidatorTest {
     // Arrange
     var userUid = Guid.NewGuid();
     var command = new Command(userUid, "Weekly", [new("Milk", null, -1f, false)]);
-    _shoppingRepository
-      .CheckShoppingListExistAsync(userUid, "Weekly", TestContext.Current.CancellationToken)
+    _shoppingRepository.CheckShoppingListExistAsync(
+      userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
       .Returns(true);
 
     // Act
@@ -95,8 +95,8 @@ public class AddItemsToListValidatorTest {
     var userUid = Guid.NewGuid();
     var command = new Command(
       userUid, "Weekly", [new("Milk", new string('a', 51), 1f, false)]);
-    _shoppingRepository
-      .CheckShoppingListExistAsync(userUid, "Weekly", TestContext.Current.CancellationToken)
+    _shoppingRepository.CheckShoppingListExistAsync(
+      userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
       .Returns(true);
 
     // Act
@@ -113,8 +113,8 @@ public class AddItemsToListValidatorTest {
     // Arrange
     var userUid = Guid.NewGuid();
     var command = new Command(userUid, "Weekly", [new("Milk", "1 litre", 2f, false)]);
-    _shoppingRepository
-      .CheckShoppingListExistAsync(userUid, "Weekly", TestContext.Current.CancellationToken)
+    _shoppingRepository.CheckShoppingListExistAsync(
+      userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
       .Returns(true);
 
     // Act
@@ -123,5 +123,96 @@ public class AddItemsToListValidatorTest {
 
     // Assert
     result.ShouldNotHaveAnyValidationErrors();
+  }
+
+  [Fact(DisplayName = "Fails when item already exists in the list")]
+  public async Task Validator_Fails_WhenItemAlreadyExistsInList() {
+    // Arrange
+    var userUid = Guid.NewGuid();
+    var command = new Command(userUid, "Weekly", [new("Milk", null, 1f, false)]);
+    _shoppingRepository.CheckShoppingListExistAsync(
+        userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
+      .Returns(true);
+    _shoppingRepository.CheckItemExistsAsync(
+        userUid, command.ShoppingListName, "Milk", TestContext.Current.CancellationToken)
+      .Returns(true);
+
+    // Act
+    TestValidationResult<Command> result = await _validator.TestValidateAsync(
+      command, cancellationToken: TestContext.Current.CancellationToken);
+
+    // Assert
+    Assert.Contains(result.Errors, e => e.ErrorCode == "ShoppingList.Item.AlreadyExists");
+  }
+
+  [Fact(DisplayName = "Passes when item price is zero")]
+  public async Task Validator_Passes_WhenItemPriceIsZero() {
+    // Arrange
+    var userUid = Guid.NewGuid();
+    var command = new Command(userUid, "Weekly", [new("Milk", null, 0f, false)]);
+    _shoppingRepository.CheckShoppingListExistAsync(
+      userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
+      .Returns(true);
+
+    // Act
+    TestValidationResult<Command> result = await _validator.TestValidateAsync(
+      command, cancellationToken: TestContext.Current.CancellationToken);
+
+    // Assert
+    result.ShouldNotHaveValidationErrorFor("Items[0].Price");
+  }
+
+  [Fact(DisplayName = "Passes when item quantity is exactly 50 characters")]
+  public async Task Validator_Passes_WhenItemQuantityIsExactly50Chars() {
+    // Arrange
+    var userUid = Guid.NewGuid();
+    var command = new Command(userUid, "Weekly", [new("Milk", new string('a', 50), 1f, false)]);
+    _shoppingRepository.CheckShoppingListExistAsync(
+      userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
+      .Returns(true);
+
+    // Act
+    TestValidationResult<Command> result = await _validator.TestValidateAsync(
+      command, cancellationToken: TestContext.Current.CancellationToken);
+
+    // Assert
+    result.ShouldNotHaveValidationErrorFor("Items[0].Quantity");
+  }
+
+  [Fact(DisplayName = "Does not check for duplicates when item name is empty")]
+  public async Task Validator_DoesNotCheckDuplicates_WhenItemNameIsEmpty() {
+    // Arrange
+    var userUid = Guid.NewGuid();
+    var command = new Command(userUid, "Weekly", [new("", null, 1f, false)]);
+    _shoppingRepository.CheckShoppingListExistAsync(
+      userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
+      .Returns(true);
+
+    // Act
+    await _validator.TestValidateAsync(
+      command, cancellationToken: TestContext.Current.CancellationToken);
+
+    // Assert
+    await _shoppingRepository.DidNotReceive()
+      .CheckItemExistsAsync(Arg.Any<Guid>(), Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+  }
+
+  [Fact(DisplayName = "Fails with temporary list message when list name is null")]
+  public async Task Validator_Fails_WithTemporaryListMessage_WhenListNameIsNull() {
+    // Arrange
+    var userUid = Guid.NewGuid();
+    var command = new Command(userUid, null, [new("Milk", null, 1f, false)]);
+    _shoppingRepository
+      .CheckShoppingListExistAsync(userUid, null, TestContext.Current.CancellationToken)
+      .Returns(false);
+
+    // Act
+    TestValidationResult<Command> result = await _validator.TestValidateAsync(
+      command, cancellationToken: TestContext.Current.CancellationToken);
+
+    // Assert
+    result.ShouldHaveValidationErrorFor(x => x.ShoppingListName)
+      .WithErrorCode("ShoppingList.NotFound")
+      .WithErrorMessage($"User {userUid} doesn't have a temporary shopping list.");
   }
 }

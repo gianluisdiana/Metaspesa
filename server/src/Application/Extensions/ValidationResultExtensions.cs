@@ -8,7 +8,7 @@ internal static class ValidationResultExtensions {
   extension(ValidationResult result) {
     public ImmutableList<DomainError> ToDomainErrors() => result.Errors
       .OrderBy(f => f.Severity)
-      .Select(f => new DomainError(f.ErrorCode, f.ErrorMessage, ErrorKind.Validation))
+      .Select(f => f.ToDomainError())
       .ToImmutableList();
   }
 }

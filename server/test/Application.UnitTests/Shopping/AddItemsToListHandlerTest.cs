@@ -92,6 +92,44 @@ public class AddItemsToListHandlerTest {
       Arg.Is<IReadOnlyCollection<ShoppingItem>>(x => x.First().Name == "Milk"));
   }
 
+  [Fact(DisplayName = "Maps item prices to shopping items")]
+  public async Task Handler_MapsItemPrices_ToShoppingItems() {
+    // Arrange
+    var userUid = Guid.NewGuid();
+    List<CommandItem> items = [new("Milk", null, 3.99f, false)];
+    var command = new Command(userUid, "Weekly", items);
+    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
+      .Returns(new ValidationResult());
+
+    // Act
+    await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+    // Assert
+    _shoppingRepository.Received(1).AddItemsToList(
+      userUid,
+      "Weekly",
+      Arg.Is<IReadOnlyCollection<ShoppingItem>>(x => x.First().Price == new Price(3.99f)));
+  }
+
+  [Fact(DisplayName = "Maps item IsChecked to shopping items")]
+  public async Task Handler_MapsItemIsChecked_ToShoppingItems() {
+    // Arrange
+    var userUid = Guid.NewGuid();
+    List<CommandItem> items = [new("Milk", null, 1f, true)];
+    var command = new Command(userUid, "Weekly", items);
+    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
+      .Returns(new ValidationResult());
+
+    // Act
+    await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+    // Assert
+    _shoppingRepository.Received(1).AddItemsToList(
+      userUid,
+      "Weekly",
+      Arg.Is<IReadOnlyCollection<ShoppingItem>>(x => x.First().IsChecked));
+  }
+
   [Fact(DisplayName = "Saves changes to unit of work")]
   public async Task Handler_SavesChangesToUnitOfWork() {
     // Arrange
@@ -104,6 +142,20 @@ public class AddItemsToListHandlerTest {
 
     // Assert
     await _unitOfWork.Received(1).SaveChangesAsync(TestContext.Current.CancellationToken);
+  }
+
+  [Fact(DisplayName = "Does not save changes when validation fails")]
+  public async Task Handler_DoesNotSaveChanges_WhenValidationFails() {
+    // Arrange
+    var command = new Command(Guid.NewGuid(), "Weekly", []);
+    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
+      .Returns(new ValidationResult([new ValidationFailure()]));
+
+    // Act
+    await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+    // Assert
+    await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
   }
 
   [Fact(DisplayName = "Returns success result when handling is successful")]

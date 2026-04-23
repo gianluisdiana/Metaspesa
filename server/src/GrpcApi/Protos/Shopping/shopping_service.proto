@@ -56,9 +56,11 @@ message AddItemsToListRequest {
 // Request message to update an item in a shopping list.
 message UpdateItemRequest {
   string shopping_list_name = 1;
-  string item_name = 2;
-  optional string item_quantity = 3;
-  optional float item_price = 4;
+  string original_item_name = 2;
+  optional string item_name = 3;
+  optional string item_quantity = 4;
+  optional float item_price = 5;
+  optional bool checked = 6;
 }
 
 // Request message to remove an item from a shopping list.

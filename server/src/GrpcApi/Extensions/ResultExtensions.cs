@@ -17,6 +17,8 @@ internal static class ResultExtensions {
     result.Errors.FirstOrDefault()?.Kind switch {
       null => StatusCode.OK,
       ErrorKind.Validation => StatusCode.InvalidArgument,
+      ErrorKind.Missing => StatusCode.NotFound,
+      ErrorKind.Conflict => StatusCode.AlreadyExists,
       _ => StatusCode.Internal,
     };
 

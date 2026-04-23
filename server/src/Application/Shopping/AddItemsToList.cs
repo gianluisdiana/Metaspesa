@@ -61,7 +61,8 @@ public static class AddItemsToList {
         .WithMessage(command => string.IsNullOrWhiteSpace(command.ShoppingListName)
           ? $"User {command.UserUid} doesn't have a temporary shopping list."
           : $"User {command.UserUid} doesn't have a shopping list named '{command.ShoppingListName}'.")
-        .WithErrorCode("ShoppingList.NotFound");
+        .WithErrorCode("ShoppingList.NotFound")
+        .WithState(_ => ErrorKind.Missing);
 
       RuleFor(x => x.Items)
         .NotEmpty()
@@ -84,7 +85,16 @@ public static class AddItemsToList {
             .MaximumLength(50)
             .WithMessage("Item quantity must not exceed 50 characters.")
             .WithErrorCode("ShoppingList.Items.Quantity.TooLong");
-        });
+        })
+        .MustAsync(async (command, item, ct) =>
+          !await shoppingRepository.CheckItemExistsAsync(
+            command.UserUid, command.ShoppingListName, item.Name!, ct))
+        .When(x => x.Items.All(i => !string.IsNullOrWhiteSpace(i.Name)), ApplyConditionTo.CurrentValidator)
+        .WithName("Items[].Name")
+        .WithMessage((_, item) =>
+          $"Item '{item.Name}' already exists in the shopping list.")
+        .WithErrorCode("ShoppingList.Item.AlreadyExists")
+        .WithState(_ => ErrorKind.Conflict);
     }
   }
 }
