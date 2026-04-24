@@ -16,12 +16,24 @@ namespace Metaspesa.Database.Migrations
                 name: "FK_registered_items_users_user_id",
                 table: "registered_items");
 
+            migrationBuilder.DropForeignKey(
+                name: "FK_shopping_list_ownerships_users_user_uid",
+                table: "shopping_list_ownerships");
+
             migrationBuilder.DropTable(
                 name: "registered_items_history");
 
             migrationBuilder.DropPrimaryKey(
                 name: "PK_users",
                 table: "users");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_shopping_items_shopping_lists_shopping_list_id",
+                table: "shopping_items");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_shopping_list_ownerships_shopping_lists_shopping_list_id",
+                table: "shopping_list_ownerships");
 
             migrationBuilder.DropPrimaryKey(
                 name: "PK_shopping_lists",
@@ -482,6 +494,36 @@ namespace Metaspesa.Database.Migrations
                 principalTable: "users",
                 principalColumn: "id",
                 onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_shopping_list_ownerships_users_user_uid",
+                schema: "shopping",
+                table: "shopping_list_ownerships",
+                column: "user_uid",
+                principalSchema: "shopping",
+                principalTable: "users",
+                principalColumn: "id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_shopping_items_shopping_lists_shopping_list_id",
+                schema: "shopping",
+                table: "shopping_items",
+                column: "shopping_list_id",
+                principalSchema: "shopping",
+                principalTable: "shopping_lists",
+                principalColumn: "id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_shopping_list_ownerships_shopping_lists_shopping_list_id",
+                schema: "shopping",
+                table: "shopping_list_ownerships",
+                column: "shopping_list_id",
+                principalSchema: "shopping",
+                principalTable: "shopping_lists",
+                principalColumn: "id",
+                onDelete: ReferentialAction.Cascade);
         }
 
         /// <inheritdoc />
@@ -491,6 +533,11 @@ namespace Metaspesa.Database.Migrations
                 name: "FK_registered_items_users_user_uid",
                 schema: "shopping",
                 table: "registered_items");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_shopping_list_ownerships_users_user_uid",
+                schema: "shopping",
+                table: "shopping_list_ownerships");
 
             migrationBuilder.DropTable(
                 name: "products_history",
@@ -516,6 +563,16 @@ namespace Metaspesa.Database.Migrations
                 name: "pk_user",
                 schema: "shopping",
                 table: "users");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_shopping_items_shopping_lists_shopping_list_id",
+                schema: "shopping",
+                table: "shopping_items");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_shopping_list_ownerships_shopping_lists_shopping_list_id",
+                schema: "shopping",
+                table: "shopping_list_ownerships");
 
             migrationBuilder.DropPrimaryKey(
                 name: "pk_shopping_list",
@@ -757,6 +814,30 @@ namespace Metaspesa.Database.Migrations
                 column: "user_id",
                 principalTable: "users",
                 principalColumn: "uid",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_shopping_list_ownerships_users_user_uid",
+                table: "shopping_list_ownerships",
+                column: "user_uid",
+                principalTable: "users",
+                principalColumn: "uid",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_shopping_items_shopping_lists_shopping_list_id",
+                table: "shopping_items",
+                column: "shopping_list_id",
+                principalTable: "shopping_lists",
+                principalColumn: "id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_shopping_list_ownerships_shopping_lists_shopping_list_id",
+                table: "shopping_list_ownerships",
+                column: "shopping_list_id",
+                principalTable: "shopping_lists",
+                principalColumn: "id",
                 onDelete: ReferentialAction.Cascade);
         }
     }

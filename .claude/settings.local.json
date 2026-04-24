@@ -3,7 +3,8 @@
     "allow": [
       "Bash(dotnet build:*)",
       "Bash(dotnet test:*)",
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Bash(docker info *)"
     ]
   }
 }

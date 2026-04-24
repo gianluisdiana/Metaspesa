@@ -26,7 +26,7 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Test backend
-        run: dotnet test server
+        run: dotnet test server -- --explicit on
 
   pass-frontend-unit-tests:
     name: Pass frontend unit tests on ${{matrix.os}}
