@@ -13,9 +13,14 @@ class ScraperSettings(BaseModel):
     skipped_categories: list[str]
 
 
+class FallbackPersistenceSettings(BaseModel):
+    folder_path: Path
+
+
 class AppConfig(BaseModel):
     processor: ProcessorSettings
     scrapers: ScraperSettings
+    fallback_persistence: FallbackPersistenceSettings
 
 
 def load_config(config_path: str | Path = "config.yaml") -> AppConfig:
