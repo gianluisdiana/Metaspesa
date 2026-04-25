@@ -50,6 +50,10 @@ services:
       - db
     environment:
       POSTGRES_CONNECTION_STRING: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+    networks:
+      - default
+      - metaspesa_telemetry_default
 
   db:
     image: postgres:latest
@@ -67,3 +71,7 @@ services:
 
 volumes:
   db_data:
+
+networks:
+  metaspesa_telemetry_default:
+    external: true

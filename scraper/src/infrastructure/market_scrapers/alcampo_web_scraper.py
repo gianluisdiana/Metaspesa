@@ -1,3 +1,4 @@
+import logging
 import re
 from typing import override
 
@@ -6,15 +7,16 @@ from bs4 import BeautifulSoup, Tag
 from application.abstractions import MarketWebScraper
 from config import ScraperSettings
 from domain import Product, Subcategory
-from infrastructure.playwright_driver import PlaywrightDriver
+from infrastructure.web_driver import WebDriver
 
 
 class AlcampoWebScraper(MarketWebScraper):
-    def __init__(self, driver: PlaywrightDriver, settings: ScraperSettings) -> None:
+    def __init__(self, driver: WebDriver, settings: ScraperSettings) -> None:
         super().__init__()
         self.__driver = driver
         self.__skipped_categories: set[str] = set(settings.skipped_categories)
         self.__category_urls: dict[str, str] = {}
+        self.__logger = logging.getLogger(self.__class__.__name__)
 
     @property
     @override
@@ -24,6 +26,7 @@ class AlcampoWebScraper(MarketWebScraper):
     @override
     async def navigate_to_home(self) -> None:
         await self.__driver.get(self.url)
+        self.__logger.info("Navigated to %s", self.url)
 
     @override
     async def close_popups(self) -> None:
@@ -38,6 +41,7 @@ class AlcampoWebScraper(MarketWebScraper):
         await self.__driver.wait_and_click_xpath(
             '//button[@data-test="popup-banner-close-button"]', timeout=10
         )
+        self.__logger.info("Closed popups")
 
     @override
     async def set_location(self, postal_code: str) -> None:
@@ -60,11 +64,13 @@ class AlcampoWebScraper(MarketWebScraper):
         )
 
         await self.__driver.refresh()
+        self.__logger.info("Location set to postal code %s", postal_code)
 
     @override
     async def navigate_to_categories(self) -> None:
         await self.__driver.wait_and_click_css(".dropdown-item-button")
         await self.__driver.wait_and_click_xpath("//span[text()='Todo el catálogo']")
+        self.__logger.info("Navigated to categories")
 
     @override
     async def get_categories(self) -> list[str]:
@@ -79,7 +85,9 @@ class AlcampoWebScraper(MarketWebScraper):
             href = str(tag.get("href", "")).removeprefix("/")
             self.__category_urls[name] = f"{self.url}/{href}"
 
-        return list(self.__category_urls.keys())
+        categories = list(self.__category_urls.keys())
+        self.__logger.info("Found %d categories", len(categories))
+        return categories
 
     @override
     async def get_subcategories(self, category: str) -> list[Subcategory]:
@@ -89,18 +97,30 @@ class AlcampoWebScraper(MarketWebScraper):
 
         soup = BeautifulSoup(await self.__driver.page_source(), "html.parser")
         subcategory_tags = soup.select(".salt-m-t--0 li a")
-        return [
+        subcategories = [
             Subcategory(
                 name=tag.text,
                 url=f"{self.url}/{str(tag.get('href', '')).removeprefix('/')}",
             )
             for tag in subcategory_tags
         ]
+        self.__logger.info(
+            "Found %d subcategories in category '%s'",
+            len(subcategories),
+            category,
+        )
+        return subcategories
 
     @override
     async def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
         await self.__try_close_popups()
-        return await self.__get_products(subcategory)
+        products = await self.__get_products(subcategory)
+        self.__logger.info(
+            "Scraped subcategory '%s' with %d products",
+            subcategory.name,
+            len(products),
+        )
+        return products
 
     async def __get_products(self, subcategory: Subcategory) -> list[Product]:
         await self.__driver.get(subcategory.url)
