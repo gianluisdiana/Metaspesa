@@ -27,6 +27,15 @@ internal class UserConfiguration : IEntityTypeConfiguration<UserDbEntity> {
       .HasMaxLength(255)
       .IsRequired();
 
+    builder.Property(e => e.RoleId)
+      .HasColumnName("role_id")
+      .IsRequired();
+
+    builder.HasOne(e => e.Role)
+      .WithMany(r => r.Users)
+      .HasForeignKey(e => e.RoleId)
+      .OnDelete(DeleteBehavior.Restrict);
+
     builder.HasMany(e => e.RegisteredItems)
       .WithOne(e => e.User)
       .HasForeignKey(e => e.UserUid)

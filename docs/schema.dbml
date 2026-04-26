@@ -5,17 +5,35 @@
 // SHOPPING SCHEMA
 // ─────────────────────────────────────────
 
+Table shopping.roles {
+  note: 'User roles for access control'
+
+  id integer [pk, increment]
+  name varchar(100) [not null, unique]
+  description varchar(255) [not null]
+
+  indexes {
+    name [name: 'idx_role_name']
+  }
+}
+
 Table shopping.users {
   note: 'Registered users of the shopping application'
 
   uid guid [pk]
   username varchar(255) [not null, unique]
   encrypted_password varchar(255) [not null]
+  role_id integer [not null]
 
   indexes {
     username [name: 'idx_user_username']
+    role_id [name: 'idx_user_role_id']
   }
 }
+
+Ref: shopping.users.role_id > shopping.roles.id [
+  delete: set null
+]
 
 Table shopping.shopping_lists {
   note: 'Shopping lists created by users, can be shared among multiple users'

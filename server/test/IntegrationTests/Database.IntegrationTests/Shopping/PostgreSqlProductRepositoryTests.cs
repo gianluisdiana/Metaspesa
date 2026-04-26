@@ -1,12 +1,18 @@
 using Metaspesa.Database.Entities;
 using Metaspesa.Database.Repositories;
 using Metaspesa.Domain.Shopping;
+using Metaspesa.Domain.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Metaspesa.Database.IntegrationTests.Shopping;
 
 public static class PostgreSqlProductRepositoryTests {
+  private static readonly UserRoleDbEntity TestRole = new() {
+    Name = "TestRole",
+    Description = "Role for testing",
+  };
+
   [Collection("Database")]
   public class GetRegisteredItemsAsync : IAsyncLifetime {
     private readonly MainContext _context;
@@ -18,7 +24,10 @@ public static class PostgreSqlProductRepositoryTests {
         _context, NullLogger<PostgreSqlProductRepository>.Instance);
     }
 
-    public ValueTask InitializeAsync() => ValueTask.CompletedTask;
+    public async ValueTask InitializeAsync() {
+      await _context.Users.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.UserRoles.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+    }
 
     public async ValueTask DisposeAsync() {
       await _context.DisposeAsync();
@@ -35,6 +44,7 @@ public static class PostgreSqlProductRepositoryTests {
         Uid = userUid,
         Username = userUid.ToString(),
         EncryptedPassword = "x",
+        Role = TestRole
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -53,7 +63,10 @@ public static class PostgreSqlProductRepositoryTests {
       // Arrange
       var userUid = Guid.CreateVersion7();
       _context.Users.Add(new UserDbEntity {
-        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x",
+        Uid = userUid,
+        Username = userUid.ToString(),
+        EncryptedPassword = "x",
+        Role = TestRole
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.RegisterItems(userUid, [
@@ -77,7 +90,10 @@ public static class PostgreSqlProductRepositoryTests {
       // Arrange
       var userUid = Guid.CreateVersion7();
       _context.Users.Add(new UserDbEntity {
-        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x",
+        Uid = userUid,
+        Username = userUid.ToString(),
+        EncryptedPassword = "x",
+        Role = TestRole,
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.RegisterItems(
@@ -104,10 +120,10 @@ public static class PostgreSqlProductRepositoryTests {
       var otherUid = Guid.CreateVersion7();
       _context.Users.AddRange(
         new UserDbEntity {
-          Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x"
+          Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", Role = TestRole
         },
         new UserDbEntity {
-          Uid = otherUid, Username = otherUid.ToString(), EncryptedPassword = "x"
+          Uid = otherUid, Username = otherUid.ToString(), EncryptedPassword = "x", Role = TestRole
         }
       );
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -135,7 +151,10 @@ public static class PostgreSqlProductRepositoryTests {
         _context, NullLogger<PostgreSqlProductRepository>.Instance);
     }
 
-    public ValueTask InitializeAsync() => ValueTask.CompletedTask;
+    public async ValueTask InitializeAsync() {
+      await _context.Users.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.UserRoles.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+    }
 
     public async ValueTask DisposeAsync() {
       await _context.DisposeAsync();
@@ -149,7 +168,10 @@ public static class PostgreSqlProductRepositoryTests {
       // Arrange
       var userUid = Guid.CreateVersion7();
       _context.Users.Add(new UserDbEntity {
-        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x",
+        Uid = userUid,
+        Username = userUid.ToString(),
+        EncryptedPassword = "x",
+        Role = TestRole,
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -171,7 +193,10 @@ public static class PostgreSqlProductRepositoryTests {
       // Arrange
       var userUid = Guid.CreateVersion7();
       _context.Users.Add(new UserDbEntity {
-        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x"
+        Uid = userUid,
+        Username = userUid.ToString(),
+        EncryptedPassword = "x",
+        Role = TestRole,
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -196,7 +221,10 @@ public static class PostgreSqlProductRepositoryTests {
       // Arrange
       var userUid = Guid.CreateVersion7();
       _context.Users.Add(new UserDbEntity {
-        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x"
+        Uid = userUid,
+        Username = userUid.ToString(),
+        EncryptedPassword = "x",
+        Role = TestRole,
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -226,7 +254,10 @@ public static class PostgreSqlProductRepositoryTests {
         _context, NullLogger<PostgreSqlProductRepository>.Instance);
     }
 
-    public ValueTask InitializeAsync() => ValueTask.CompletedTask;
+    public async ValueTask InitializeAsync() {
+      await _context.Users.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.UserRoles.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+    }
 
     public async ValueTask DisposeAsync() {
       await _context.DisposeAsync();
@@ -240,7 +271,10 @@ public static class PostgreSqlProductRepositoryTests {
       // Arrange
       var userUid = Guid.CreateVersion7();
       _context.Users.Add(new UserDbEntity {
-        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x",
+        Uid = userUid,
+        Username = userUid.ToString(),
+        EncryptedPassword = "x",
+        Role = TestRole,
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.RegisterItems(
@@ -265,7 +299,10 @@ public static class PostgreSqlProductRepositoryTests {
       // Arrange
       var userUid = Guid.CreateVersion7();
       _context.Users.Add(new UserDbEntity {
-        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x",
+        Uid = userUid,
+        Username = userUid.ToString(),
+        EncryptedPassword = "x",
+        Role = TestRole,
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.RegisterItems(
@@ -290,7 +327,10 @@ public static class PostgreSqlProductRepositoryTests {
       // Arrange
       var userUid = Guid.CreateVersion7();
       _context.Users.Add(new UserDbEntity {
-        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x",
+        Uid = userUid,
+        Username = userUid.ToString(),
+        EncryptedPassword = "x",
+        Role = TestRole,
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.RegisterItems(
@@ -315,7 +355,7 @@ public static class PostgreSqlProductRepositoryTests {
       // Arrange
       var userUid = Guid.CreateVersion7();
       _context.Users.Add(new UserDbEntity {
-        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x",
+        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", Role = TestRole
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.RegisterItems(
@@ -342,10 +382,10 @@ public static class PostgreSqlProductRepositoryTests {
       var otherUid = Guid.CreateVersion7();
       _context.Users.AddRange(
         new UserDbEntity {
-          Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x",
+          Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", Role = TestRole
         },
         new UserDbEntity {
-          Uid = otherUid, Username = otherUid.ToString(), EncryptedPassword = "x",
+          Uid = otherUid, Username = otherUid.ToString(), EncryptedPassword = "x", Role = TestRole
         });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.RegisterItems(

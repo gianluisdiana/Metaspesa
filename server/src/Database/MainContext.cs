@@ -8,6 +8,7 @@ internal class MainContext(
   DbContextOptions<MainContext> options
 ) : DbContext(options), IUnitOfWork {
   public DbSet<UserDbEntity> Users { get; set; } = null!;
+  public DbSet<UserRoleDbEntity> UserRoles { get; set; } = null!;
   public DbSet<ShoppingListDbEntity> ShoppingLists { get; set; } = null!;
   public DbSet<ShoppingItemDbEntity> ShoppingItems { get; set; } = null!;
   public DbSet<ShoppingListOwnershipDbEntity> ShoppingListOwnerships { get; set; } = null!;
