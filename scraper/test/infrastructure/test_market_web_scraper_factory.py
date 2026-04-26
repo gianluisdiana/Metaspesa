@@ -1,6 +1,11 @@
 from typing import Any
 
-from config import AppConfig, ProcessorSettings, ScraperSettings
+from config import (
+    AppConfig,
+    FallbackPersistenceSettings,
+    ProcessorSettings,
+    ScraperSettings,
+)
 from infrastructure.market_scrapers.alcampo_web_scraper import AlcampoWebScraper
 from infrastructure.market_scrapers.market_web_scraper_factory import (
     MarketWebScraperFactory,
@@ -52,6 +57,7 @@ def __create_default_settings() -> AppConfig:
     return AppConfig(
         processor=ProcessorSettings(known_brands=[], replacements={}),
         scrapers=ScraperSettings(skipped_categories=[]),
+        fallback_persistence=FallbackPersistenceSettings(folder_path="data"),
     )
 
 

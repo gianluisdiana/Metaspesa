@@ -1,8 +1,6 @@
-import logging
-
 from application.abstractions import MarketWebScraper, ProductRepository
 from application.product_processors import ProductProcessor
-from domain import Product, Subcategory
+from domain import Product
 
 
 class ScrapeMarketsCommandHandler:
@@ -20,52 +18,22 @@ class ScrapeMarketsCommandHandler:
         assert len(self.__market_web_scrapers) > 0
 
         for market_name in self.__market_web_scrapers:
-            products: list[Product] = await self.__scrape_market(
-                market_name, postal_code
-            )
-            products = [
-                self.__product_processor.process(product) for product in products
-            ]
+            scraper = self.__market_web_scrapers[market_name]
+            products = await self.__scrape(scraper, postal_code)
+            products = [self.__product_processor.process(p) for p in products]
             await self.__product_repository.save(market_name, products)
 
-    async def __scrape_market(
-        self, market_name: str, postal_code: str
+    async def __scrape(
+        self, scraper: MarketWebScraper, postal_code: str
     ) -> list[Product]:
-        logger = logging.getLogger(f"{market_name}WebScraper")
-        market_web_scraper = self.__market_web_scrapers[market_name]
-
-        await market_web_scraper.navigate_to_home()
-        logger.info(f"Navigated to {market_web_scraper.url}")
-
-        await market_web_scraper.close_popups()
-        logger.info("Closed popups")
-
-        await market_web_scraper.set_location(postal_code)
-        logger.info(f"Location set to postal code {postal_code}")
-
-        await market_web_scraper.navigate_to_categories()
-        logger.info("Navigated to categories")
-
-        categories = await market_web_scraper.get_categories()
-        logger.info(f"Found {len(categories)} categories")
-
+        await scraper.navigate_to_home()
+        await scraper.close_popups()
+        await scraper.set_location(postal_code)
+        await scraper.navigate_to_categories()
+        categories = await scraper.get_categories()
         products: list[Product] = []
-        for category in categories:
-            subcategories: list[
-                Subcategory
-            ] = await market_web_scraper.get_subcategories(category)
-            logger.info(
-                f"Found {len(subcategories)} subcategories in category '{category}'"
-            )
-
-            for subcategory in subcategories:
-                subcategory_products = await market_web_scraper.scrape_subcategory(
-                    subcategory
-                )
-                products += subcategory_products
-                logger.info(
-                    f"Scraped subcategory '{subcategory.name}' "
-                    f"with {len(subcategory_products)} products"
-                )
-
+        for category in categories[:1]:
+            subcategories = await scraper.get_subcategories(category)
+            for subcategory in subcategories[:1]:
+                products += await scraper.scrape_subcategory(subcategory)
         return products

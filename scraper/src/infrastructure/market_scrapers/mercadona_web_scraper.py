@@ -1,16 +1,18 @@
+import logging
 from typing import override
 
 from bs4 import BeautifulSoup, Tag
 
 from application.abstractions import MarketWebScraper
 from domain import Product, Subcategory
-from infrastructure.playwright_driver import PlaywrightDriver
+from infrastructure.web_driver import WebDriver
 
 
 class MercadonaWebScraper(MarketWebScraper):
-    def __init__(self, driver: PlaywrightDriver) -> None:
+    def __init__(self, driver: WebDriver) -> None:
         super().__init__()
         self.__driver = driver
+        self.__logger = logging.getLogger(self.__class__.__name__)
 
     @property
     @override
@@ -20,6 +22,7 @@ class MercadonaWebScraper(MarketWebScraper):
     @override
     async def navigate_to_home(self) -> None:
         await self.__driver.get(self.url)
+        self.__logger.info("Navigated to %s", self.url)
 
     @override
     async def set_location(self, postal_code: str) -> None:
@@ -34,6 +37,7 @@ class MercadonaWebScraper(MarketWebScraper):
         await self.__driver.wait_and_click_xpath(
             '//button[@data-testid="postal-code-checker-button"]'
         )
+        self.__logger.info(f"Location set to postal code {postal_code}")
 
     @override
     async def navigate_to_categories(self) -> None:
@@ -41,10 +45,12 @@ class MercadonaWebScraper(MarketWebScraper):
             '//a[contains(text(), "Categorías")]'
         )
         await self.__driver.wait_and_click_xpath('//a[contains(text(), "Categorías")]')
+        self.__logger.info("Navigated to categories")
 
     @override
     async def close_popups(self) -> None:
         await self.__driver.wait_and_click_css("button.ui-button:nth-child(3)")
+        self.__logger.info("Closed popups")
 
     @override
     async def get_categories(self) -> list[str]:
@@ -57,6 +63,7 @@ class MercadonaWebScraper(MarketWebScraper):
             for product_category_tag in product_category_tags
         ]
 
+        self.__logger.info("Found %d categories", len(categories))
         return categories
 
     @override
@@ -73,13 +80,19 @@ class MercadonaWebScraper(MarketWebScraper):
         subcategory_tags = soup.select(
             "li.category-menu__item div ul li button.category-item__link"
         )
-        return [
+        subcategories = [
             Subcategory(
                 name=tag.text,
                 url=f"{self.url}/categories/{tag.get('id', '')}",
             )
             for tag in subcategory_tags
         ]
+        self.__logger.info(
+            "Found %d subcategories in category '%s'",
+            len(subcategories),
+            category,
+        )
+        return subcategories
 
     @override
     async def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
@@ -93,6 +106,11 @@ class MercadonaWebScraper(MarketWebScraper):
             tag.to_product() for tag in map(MercadonaProductTag, product_tags)
         ]
 
+        self.__logger.info(
+            "Scraped subcategory '%s' with %d products",
+            subcategory.name,
+            len(products),
+        )
         return products
 
 

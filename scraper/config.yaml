@@ -115,3 +115,6 @@ scrapers:
     - "Deportes y Maletas"
     - "Textil"
     - "Campañas"
+
+fallback_persistence:
+  folder_path: "data"

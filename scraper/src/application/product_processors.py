@@ -54,7 +54,7 @@ class BrandExtractor(ProductProcessor):
 
                 return product_with_brand
 
-        self.__logger.warning(f"Could not extract brand for product: '{product.name}'")
+        self.__logger.warning("Could not extract brand for product: '%s'", product.name)
         return product
 
 

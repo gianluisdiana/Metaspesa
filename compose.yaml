@@ -53,9 +53,16 @@ services:
       dockerfile: Dockerfile
     image: gianluisdiana/metaspesa_scraper:latest
     depends_on:
-      - db
+      - server
     environment:
+      GRPC_SERVER_URL: server:8080
       POSTGRES_CONNECTION_STRING: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+    volumes:
+      - scraper_data:/app/data
+    networks:
+      - default
+      - metaspesa_telemetry_default
 
   db:
     image: postgres:latest
@@ -66,13 +73,14 @@ services:
     volumes:
       - db_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 5s
       timeout: 5s
       retries: 5
 
 volumes:
   db_data:
+  scraper_data:
 
 networks:
   metaspesa_telemetry_default:

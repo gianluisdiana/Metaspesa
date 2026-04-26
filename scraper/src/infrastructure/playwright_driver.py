@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from playwright.async_api import Browser, Page, Playwright, async_playwright
 
+from infrastructure.web_driver import WebDriver
 
-class PlaywrightDriver:
+
+class PlaywrightDriver(WebDriver):
     def __init__(self, playwright: Playwright, browser: Browser, page: Page) -> None:
         self.__playwright = playwright
         self.__browser = browser
