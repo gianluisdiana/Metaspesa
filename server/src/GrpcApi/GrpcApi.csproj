@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Protobuf Include="Protos\Auth\auth_service.proto" GrpcServices="Server" />
     <Protobuf Include="Protos\Markets\domain.proto" />
     <Protobuf Include="Protos\Markets\markets_service.proto" GrpcServices="Server" />
     <Protobuf Include="Protos\Shopping\domain.proto" />
@@ -17,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Database\Database.csproj" />
+    <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
     <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
   </ItemGroup>
 

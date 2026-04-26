@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 namespace Metaspesa.ServiceDefaults;
@@ -16,9 +17,9 @@ public static class ServiceDefaultExtensions {
   private const string AlivenessEndpointPath = "/alive";
 
   public static TBuilder AddServiceDefaults<TBuilder>(
-    this TBuilder builder
+    this TBuilder builder, string? serviceName = null
   ) where TBuilder : IHostApplicationBuilder {
-    builder.ConfigureOpenTelemetry();
+    builder.ConfigureOpenTelemetry(serviceName);
 
     builder.AddDefaultHealthChecks();
 
@@ -33,7 +34,7 @@ public static class ServiceDefaultExtensions {
   }
 
   public static TBuilder ConfigureOpenTelemetry<TBuilder>(
-    this TBuilder builder
+    this TBuilder builder, string? serviceName = null
   ) where TBuilder : IHostApplicationBuilder {
     builder.Logging.AddOpenTelemetry(logging => {
       logging.IncludeFormattedMessage = true;
@@ -41,6 +42,8 @@ public static class ServiceDefaultExtensions {
     });
 
     builder.Services.AddOpenTelemetry()
+      .ConfigureResource(resource =>
+        resource.AddService(serviceName ?? builder.Environment.ApplicationName))
       .WithMetrics(metrics => metrics.AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
         .AddRuntimeInstrumentation())

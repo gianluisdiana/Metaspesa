@@ -6,7 +6,7 @@ HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddHostedService<Worker>();
 
-builder.AddServiceDefaults();
+builder.AddServiceDefaults("metaspesa-migration-service");
 builder.Services.AddDatabase();
 
 IHost host = builder.Build();

@@ -4,6 +4,7 @@
     <Project Path="src/Database/Database.csproj" />
     <Project Path="src/Domain/Domain.csproj" />
     <Project Path="src/GrpcApi/GrpcApi.csproj" />
+    <Project Path="src/Infrastructure/Infrastructure.csproj" />
     <Project Path="src/MigrationService/MigrationService.csproj" />
     <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />
   </Folder>
