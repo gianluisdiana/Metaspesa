@@ -13,19 +13,14 @@ class MercadonaWebScraper(MarketWebScraper):
         super().__init__()
         self.__driver = driver
         self.__logger = logging.getLogger(self.__class__.__name__)
-
-    @property
-    @override
-    def url(self) -> str:
-        return "https://tienda.mercadona.es"
-
-    @override
-    async def navigate_to_home(self) -> None:
-        await self.__driver.get(self.url)
-        self.__logger.info("Navigated to %s", self.url)
+        self.__url = "https://tienda.mercadona.es"
 
     @override
     async def set_location(self, postal_code: str) -> None:
+        await self.__driver.get(self.__url)
+
+        await self.__driver.wait_and_click_css("button.ui-button:nth-child(3)")
+
         await self.__driver.wait_for_presence_xpath(
             '//input[@aria-label="Código postal"]'
         )
@@ -37,23 +32,15 @@ class MercadonaWebScraper(MarketWebScraper):
         await self.__driver.wait_and_click_xpath(
             '//button[@data-testid="postal-code-checker-button"]'
         )
-        self.__logger.info(f"Location set to postal code {postal_code}")
+        self.__logger.info("Location set to postal code %s", postal_code)
 
     @override
-    async def navigate_to_categories(self) -> None:
+    async def get_categories(self) -> list[str]:
         await self.__driver.wait_for_presence_xpath(
             '//a[contains(text(), "Categorías")]'
         )
         await self.__driver.wait_and_click_xpath('//a[contains(text(), "Categorías")]')
-        self.__logger.info("Navigated to categories")
 
-    @override
-    async def close_popups(self) -> None:
-        await self.__driver.wait_and_click_css("button.ui-button:nth-child(3)")
-        self.__logger.info("Closed popups")
-
-    @override
-    async def get_categories(self) -> list[str]:
         await self.__driver.wait_for_presence_css("li.category-menu__item")
 
         soup = BeautifulSoup(await self.__driver.page_source(), "html.parser")
@@ -83,7 +70,7 @@ class MercadonaWebScraper(MarketWebScraper):
         subcategories = [
             Subcategory(
                 name=tag.text,
-                url=f"{self.url}/categories/{tag.get('id', '')}",
+                url=f"{self.__url}/categories/{tag.get('id', '')}",
             )
             for tag in subcategory_tags
         ]

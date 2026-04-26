@@ -1,6 +1,7 @@
 import grpc.aio
 
 from application.abstractions import MarketWebScraper, ProductRepository
+from application.app_product_repository import AppProductRepository
 from application.product_processors import (
     BrandExtractor,
     BrandSimplifier,
@@ -9,7 +10,6 @@ from application.product_processors import (
 )
 from application.use_case import ScrapeMarketsCommandHandler
 from config import AppConfig
-from infrastructure.app_product_repository import AppProductRepository
 from infrastructure.grpc.grpc_product_repository import GrpcProductRepository
 from infrastructure.local_storage import CsvProductRepository
 from infrastructure.market_scrapers.market_web_scraper_factory import (

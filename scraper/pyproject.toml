@@ -28,10 +28,7 @@ dev = [
 
 [tool.ruff]
 line-length = 88
-exclude = [
-    "src/infrastructure/grpc/protos/*_pb2.py",
-    "src/infrastructure/grpc/protos/*_pb2_grpc.py",
-]
+exclude = ["src/infrastructure/grpc/protos/*.py"]
 
 target-version = "py314"
 

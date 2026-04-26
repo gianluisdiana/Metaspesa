@@ -30,11 +30,8 @@ class SpyProductRepository(ProductRepository):
 
 class SpyMarketWebScraper(MarketWebScraper):
     def __init__(self, categories: list[str] | None = None):
-        self.had_navigated_to_home = False
-        self.had_closed_popups = False
         self.had_set_location = False
         self.set_location_called_with: str | None = None
-        self.had_navigated_to_categories = False
         self.had_gotten_categories = False
         self.__categories = categories or []
         self.had_gotten_subcategories = False
@@ -42,21 +39,9 @@ class SpyMarketWebScraper(MarketWebScraper):
         self.had_scraped_subcategory = False
 
     @override
-    async def navigate_to_home(self) -> None:
-        self.had_navigated_to_home = True
-
-    @override
-    async def close_popups(self) -> None:
-        self.had_closed_popups = True
-
-    @override
     async def set_location(self, postal_code: str) -> None:
         self.had_set_location = True
         self.set_location_called_with = postal_code
-
-    @override
-    async def navigate_to_categories(self) -> None:
-        self.had_navigated_to_categories = True
 
     @override
     async def get_categories(self) -> list[str]:
@@ -88,40 +73,6 @@ class FakeMarketWebScraper(SpyMarketWebScraper):
     async def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
         self.had_scraped_subcategory = True
         return self.scrapped_products
-
-
-async def test_navigates_to_home():
-    # Arrange
-    market_web_scraper = SpyMarketWebScraper()
-
-    handler = ScrapeMarketsCommandHandler(
-        product_repository=DummyProductRepository(),
-        market_web_scrapers={"Market": market_web_scraper},
-        product_processor=DummyProductProcessor(),
-    )
-
-    # Act
-    await handler.handle("12345")
-
-    # Assert
-    assert market_web_scraper.had_navigated_to_home
-
-
-async def test_closes_popups():
-    # Arrange
-    market_web_scraper = SpyMarketWebScraper()
-
-    handler = ScrapeMarketsCommandHandler(
-        product_repository=DummyProductRepository(),
-        market_web_scrapers={"Market": market_web_scraper},
-        product_processor=DummyProductProcessor(),
-    )
-
-    # Act
-    await handler.handle("12345")
-
-    # Assert
-    assert market_web_scraper.had_closed_popups
 
 
 async def test_sets_location():
@@ -156,23 +107,6 @@ async def test_sets_location_with_given_postal_code():
 
     # Assert
     assert market_web_scraper.set_location_called_with == "12345"
-
-
-async def test_navigates_to_categories():
-    # Arrange
-    market_web_scraper = SpyMarketWebScraper()
-
-    handler = ScrapeMarketsCommandHandler(
-        product_repository=DummyProductRepository(),
-        market_web_scrapers={"Market": market_web_scraper},
-        product_processor=DummyProductProcessor(),
-    )
-
-    # Act
-    await handler.handle("12345")
-
-    # Assert
-    assert market_web_scraper.had_navigated_to_categories
 
 
 async def test_gets_categories():

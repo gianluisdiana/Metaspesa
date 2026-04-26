@@ -26,10 +26,7 @@ class ScrapeMarketsCommandHandler:
     async def __scrape(
         self, scraper: MarketWebScraper, postal_code: str
     ) -> list[Product]:
-        await scraper.navigate_to_home()
-        await scraper.close_popups()
         await scraper.set_location(postal_code)
-        await scraper.navigate_to_categories()
         categories = await scraper.get_categories()
         products: list[Product] = []
         for category in categories:

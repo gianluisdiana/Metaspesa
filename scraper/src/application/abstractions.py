@@ -1,28 +1,11 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 from domain import Product, Subcategory
 
 
-class MarketWebScraper:
-    @property
-    @abstractmethod
-    def url(self) -> str:
-        pass
-
-    @abstractmethod
-    async def navigate_to_home(self) -> None:
-        pass
-
-    @abstractmethod
-    async def close_popups(self) -> None:
-        pass
-
+class MarketWebScraper(ABC):
     @abstractmethod
     async def set_location(self, postal_code: str) -> None:
-        pass
-
-    @abstractmethod
-    async def navigate_to_categories(self) -> None:
         pass
 
     @abstractmethod
@@ -38,7 +21,7 @@ class MarketWebScraper:
         pass
 
 
-class ProductRepository:
+class ProductRepository(ABC):
     @abstractmethod
     async def save(self, market_name: str, products: list[Product]) -> None:
         pass

@@ -17,19 +17,12 @@ class AlcampoWebScraper(MarketWebScraper):
         self.__skipped_categories: set[str] = set(settings.skipped_categories)
         self.__category_urls: dict[str, str] = {}
         self.__logger = logging.getLogger(self.__class__.__name__)
-
-    @property
-    @override
-    def url(self) -> str:
-        return "https://www.compraonline.alcampo.es"
+        self.__url = "https://www.compraonline.alcampo.es"
 
     @override
-    async def navigate_to_home(self) -> None:
-        await self.__driver.get(self.url)
-        self.__logger.info("Navigated to %s", self.url)
+    async def set_location(self, postal_code: str) -> None:
+        await self.__driver.get(self.__url)
 
-    @override
-    async def close_popups(self) -> None:
         await self.__driver.wait_and_click_css("#onetrust-reject-all-handler")
         try:
             await self.__driver.wait_for_invisibility_css(
@@ -41,10 +34,6 @@ class AlcampoWebScraper(MarketWebScraper):
         await self.__driver.wait_and_click_xpath(
             '//button[@data-test="popup-banner-close-button"]', timeout=10
         )
-        self.__logger.info("Closed popups")
-
-    @override
-    async def set_location(self, postal_code: str) -> None:
         await self.__driver.wait_and_click_css("._button--fill_ftyis_140")
         await self.__driver.wait_and_click_css("._button--primary_ftyis_42 > span")
 
@@ -67,13 +56,11 @@ class AlcampoWebScraper(MarketWebScraper):
         self.__logger.info("Location set to postal code %s", postal_code)
 
     @override
-    async def navigate_to_categories(self) -> None:
+    async def get_categories(self) -> list[str]:
         await self.__driver.wait_and_click_css(".dropdown-item-button")
         await self.__driver.wait_and_click_xpath("//span[text()='Todo el catálogo']")
         self.__logger.info("Navigated to categories")
 
-    @override
-    async def get_categories(self) -> list[str]:
         await self.__driver.wait_for_presence_css(".salt-m-t--0")
 
         soup = BeautifulSoup(await self.__driver.page_source(), "html.parser")
@@ -83,7 +70,7 @@ class AlcampoWebScraper(MarketWebScraper):
             if name in self.__skipped_categories:
                 continue
             href = str(tag.get("href", "")).removeprefix("/")
-            self.__category_urls[name] = f"{self.url}/{href}"
+            self.__category_urls[name] = f"{self.__url}/{href}"
 
         categories = list(self.__category_urls.keys())
         self.__logger.info("Found %d categories", len(categories))
@@ -100,7 +87,7 @@ class AlcampoWebScraper(MarketWebScraper):
         subcategories = [
             Subcategory(
                 name=tag.text,
-                url=f"{self.url}/{str(tag.get('href', '')).removeprefix('/')}",
+                url=f"{self.__url}/{str(tag.get('href', '')).removeprefix('/')}",
             )
             for tag in subcategory_tags
         ]
