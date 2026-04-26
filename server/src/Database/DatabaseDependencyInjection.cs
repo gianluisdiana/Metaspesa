@@ -1,4 +1,5 @@
 using Metaspesa.Application.Abstractions.Core;
+using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Abstractions.Shopping;
 using Metaspesa.Database.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +25,7 @@ public static class DatabaseDependencyInjection {
       .WithTracing(tracing => tracing.AddSqlClientInstrumentation())
       .WithMetrics(metrics => metrics.AddSqlClientInstrumentation());
 
+    services.AddScoped<IMarketRepository, PostgreSqlMarketRepository>();
     services.AddScoped<IProductRepository, PostgreSqlProductRepository>();
     services.AddScoped<IShoppingRepository, PostgreSqlShoppingRepository>();
 

@@ -12,6 +12,9 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
     env_file:
       - .env
+    networks:
+      - default
+      - metaspesa_telemetry_default
 
   migrations:
     image: gianluisdiana/metaspesa_migrations:latest
@@ -27,6 +30,9 @@ services:
       POSTGRES_CONNECTION_STRING: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
     env_file:
       - .env
+    networks:
+      - default
+      - metaspesa_telemetry_default
 
   client:
     build:
@@ -67,3 +73,7 @@ services:
 
 volumes:
   db_data:
+
+networks:
+  metaspesa_telemetry_default:
+    external: true

@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package Metaspesa.Protos.Markets;
+
+option csharp_namespace = "Metaspesa.GrpcApi.Protos.Markets";
+
+// A product sold in the market with its details.
+message Product {
+  string name = 1;
+  float price = 2;
+  string quantity = 3;
+  string market_name = 4;
+  string brand_name = 5;
+}

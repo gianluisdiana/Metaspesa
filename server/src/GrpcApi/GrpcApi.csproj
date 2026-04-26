@@ -5,6 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Protobuf Include="Protos\Markets\domain.proto" />
+    <Protobuf Include="Protos\Markets\markets_service.proto" GrpcServices="Server" />
     <Protobuf Include="Protos\Shopping\domain.proto" />
     <Protobuf Include="Protos\Shopping\shopping_service.proto" GrpcServices="Server" />
   </ItemGroup>

@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package Metaspesa.Protos.Markets;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+import "Protos/Markets/domain.proto";
+
+option csharp_namespace = "Metaspesa.GrpcApi.Protos.Markets";
+
+// Handles the market related operations.
+service MarketService {
+  // Adds new products to the system.
+  rpc AddProducts(AddProductsRequest) returns (google.protobuf.Empty);
+}
+
+// Request message for adding new products.
+message AddProductsRequest {
+  repeated Product products = 1;
+  optional google.protobuf.Timestamp registered_at = 2;
+}

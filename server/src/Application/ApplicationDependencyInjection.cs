@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using FluentValidation;
 using Metaspesa.Application.Abstractions.Core;
+using Metaspesa.Application.Markets;
 using Metaspesa.Application.Shopping;
 using Metaspesa.Domain.Shopping;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,39 +9,58 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Metaspesa.Application;
 
 public static class ApplicationDependencyInjection {
-  public static IServiceCollection AddApplication(
-    this IServiceCollection services
-  ) {
-    services.AddScoped<
-      IQueryHandler<GetCurrentShoppingList.Query, ShoppingList>,
-      GetCurrentShoppingList.Handler>();
+#pragma warning disable CA1034 // Nested types should not be visible
+  extension(IServiceCollection services) {
+#pragma warning restore CA1034 // Nested types should not be visible
+    public IServiceCollection AddApplication() {
+      Debug.Assert(services != null);
 
-    services.AddScoped<
-      ICommandHandler<RecordShoppingList.Command>,
-      RecordShoppingList.Handler>();
+      services.AddMarketUseCases();
+      services.AddShoppingUseCases();
 
-    services.AddScoped<
-      IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>,
-      GetRegisteredItems.Handler>();
+      services.AddValidatorsFromAssemblyContaining<Result>(includeInternalTypes: true);
 
-    services.AddScoped<
-      ICommandHandler<CreateShoppingList.Command>,
-      CreateShoppingList.Handler>();
+      return services;
+    }
 
-    services.AddScoped<
-      ICommandHandler<AddItemsToList.Command>,
-      AddItemsToList.Handler>();
+    private IServiceCollection AddMarketUseCases() {
+      services.AddScoped<
+        ICommandHandler<AddMarketProducts.Command>,
+        AddMarketProducts.Handler>();
 
-    services.AddScoped<
-      ICommandHandler<UpdateItem.Command>,
-      UpdateItem.Handler>();
+      return services;
+    }
 
-    services.AddScoped<
-      ICommandHandler<RemoveItem.Command>,
-      RemoveItem.Handler>();
+    private IServiceCollection AddShoppingUseCases() {
+      services.AddScoped<
+        IQueryHandler<GetCurrentShoppingList.Query, ShoppingList>,
+        GetCurrentShoppingList.Handler>();
 
-    services.AddValidatorsFromAssemblyContaining<Result>(includeInternalTypes: true);
+      services.AddScoped<
+        ICommandHandler<RecordShoppingList.Command>,
+        RecordShoppingList.Handler>();
 
-    return services;
+      services.AddScoped<
+        IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>,
+        GetRegisteredItems.Handler>();
+
+      services.AddScoped<
+        ICommandHandler<CreateShoppingList.Command>,
+        CreateShoppingList.Handler>();
+
+      services.AddScoped<
+        ICommandHandler<AddItemsToList.Command>,
+        AddItemsToList.Handler>();
+
+      services.AddScoped<
+        ICommandHandler<UpdateItem.Command>,
+        UpdateItem.Handler>();
+
+      services.AddScoped<
+        ICommandHandler<RemoveItem.Command>,
+        RemoveItem.Handler>();
+
+      return services;
+    }
   }
 }
