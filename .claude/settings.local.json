@@ -2,6 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(dotnet build:*)",
+      "Bash(dotnet restore:*)",
       "Bash(dotnet test:*)",
       "Bash(xargs grep *)",
       "Bash(docker info *)"
