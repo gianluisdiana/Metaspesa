@@ -5,6 +5,8 @@ package Metaspesa.Protos.Markets;
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
+import "infrastructure/grpc/protos/domain.proto";
+
 // Handles the market related operations.
 service MarketService {
   // Adds new products to the system.
@@ -15,13 +17,4 @@ service MarketService {
 message AddProductsRequest {
   repeated Product products = 1;
   optional google.protobuf.Timestamp registered_at = 2;
-}
-
-// A product sold in the market with its details.
-message Product {
-  string name = 1;
-  float price = 2;
-  string quantity = 3;
-  string market_name = 4;
-  string brand_name = 5;
 }

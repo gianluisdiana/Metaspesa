@@ -27,6 +27,7 @@ processor:
     - "Enervit Sport"
     - "Fanta"
     - "Firgas"
+    - "Florette"
     - "Flor de Esgueva"
     - "Fonteide"
     - "Fontébil"
@@ -81,11 +82,13 @@ processor:
     - "TGT"
     - "Torremilano"
     - "Trevijano"
+    - "Tuki Frutti"
     - "Unusual foods"
     - "Vega Sotuelamos"
     - "Wasa"
     - "Ybarra"
     - "Zero"
+    - "Zespri"
 
   replacements:
     "Alcampo":

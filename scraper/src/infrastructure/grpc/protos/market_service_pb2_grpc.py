@@ -30,7 +30,7 @@ class MarketServiceStub(object):
     """Handles the market related operations.
     """
 
-    def __init__(self, channel: grpc.aio.Channel):
+    def __init__(self, channel):
         """Constructor.
 
         Args:

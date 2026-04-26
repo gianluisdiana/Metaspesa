@@ -24,7 +24,7 @@ async def main() -> None:
     web_driver: WebDriver = await create_web_driver()
 
     async with grpc.aio.insecure_channel(
-        os.environ["GRPC_SERVER_URL"],
+        os.getenv("GRPC_SERVER_URL") or "localhost:5000",
         interceptors=aio_client_interceptors(),  # type: ignore
     ) as channel:
         try:
