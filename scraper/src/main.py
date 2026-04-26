@@ -2,6 +2,9 @@ import asyncio
 import logging
 import os
 
+import grpc.aio
+from opentelemetry.instrumentation.grpc import aio_client_interceptors  # type: ignore
+
 from application.use_case import ScrapeMarketsCommandHandler
 from config import AppConfig, load_config
 from dependency_injection import create_handler, create_web_driver
@@ -19,12 +22,20 @@ async def main() -> None:
 
     settings: AppConfig = load_config()
     web_driver: WebDriver = await create_web_driver()
-    handler: ScrapeMarketsCommandHandler = create_handler(settings, web_driver)
 
-    with telemetry.measure_run():
-        await handler.handle("38320")
+    async with grpc.aio.insecure_channel(
+        os.environ["GRPC_SERVER_URL"],
+        interceptors=aio_client_interceptors(),  # type: ignore
+    ) as channel:
+        try:
+            handler: ScrapeMarketsCommandHandler = create_handler(
+                settings, web_driver, channel
+            )
 
-    await web_driver.quit()
+            with telemetry.measure_run():
+                await handler.handle("38320")
+        finally:
+            await web_driver.quit()
 
 
 if __name__ == "__main__":

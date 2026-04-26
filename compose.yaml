@@ -47,8 +47,9 @@ services:
       dockerfile: Dockerfile
     image: gianluisdiana/metaspesa_scraper:latest
     depends_on:
-      - db
+      - server
     environment:
+      GRPC_SERVER_URL: server:8080
       POSTGRES_CONNECTION_STRING: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
     volumes:

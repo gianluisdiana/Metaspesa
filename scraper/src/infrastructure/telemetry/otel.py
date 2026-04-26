@@ -5,6 +5,7 @@ from opentelemetry._logs import set_logger_provider
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.grpc import GrpcAioInstrumentorClient
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.metrics import MeterProvider
@@ -18,11 +19,11 @@ from infrastructure.telemetry.scraper_telemetry import ScraperTelemetry
 
 def setup_telemetry(endpoint: str | None) -> ScraperTelemetry:
     if endpoint is not None:
-        _configure_sdk(endpoint)
+        __configure_sdk(endpoint)
     return ScraperTelemetry(trace.get_tracer("scraper"), metrics.get_meter("scraper"))
 
 
-def _configure_sdk(endpoint: str) -> None:
+def __configure_sdk(endpoint: str) -> None:
     resource = Resource({SERVICE_NAME: "scraper"})
 
     tracer_provider = TracerProvider(resource=resource)
@@ -44,3 +45,5 @@ def _configure_sdk(endpoint: str) -> None:
     )
     set_logger_provider(logger_provider)
     logging.getLogger().addHandler(LoggingHandler(logger_provider=logger_provider))
+
+    GrpcAioInstrumentorClient().instrument()

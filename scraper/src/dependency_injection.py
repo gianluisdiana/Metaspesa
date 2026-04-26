@@ -1,3 +1,5 @@
+import grpc.aio
+
 from application.abstractions import MarketWebScraper, ProductRepository
 from application.product_processors import (
     BrandExtractor,
@@ -7,6 +9,8 @@ from application.product_processors import (
 )
 from application.use_case import ScrapeMarketsCommandHandler
 from config import AppConfig
+from infrastructure.app_product_repository import AppProductRepository
+from infrastructure.grpc.grpc_product_repository import GrpcProductRepository
 from infrastructure.local_storage import CsvProductRepository
 from infrastructure.market_scrapers.market_web_scraper_factory import (
     MarketWebScraperFactory,
@@ -37,18 +41,25 @@ def __create_product_processor(settings: AppConfig) -> ProductProcessor:
     return first_processor
 
 
-def __create_product_repository(settings: AppConfig) -> ProductRepository:
-    return CsvProductRepository(settings.fallback_persistence.folder_path)
+def __create_product_repository(
+    settings: AppConfig, channel: grpc.aio.Channel
+) -> ProductRepository:
+    return AppProductRepository(
+        main_repository=GrpcProductRepository(channel),
+        fallback_repository=CsvProductRepository(
+            settings.fallback_persistence.folder_path
+        ),
+    )
 
 
-def create_handler(settings, web_driver) -> ScrapeMarketsCommandHandler:
-    handler = ScrapeMarketsCommandHandler(
-        product_repository=__create_product_repository(settings),
+def create_handler(
+    settings: AppConfig, web_driver: WebDriver, channel: grpc.aio.Channel
+) -> ScrapeMarketsCommandHandler:
+    return ScrapeMarketsCommandHandler(
+        product_repository=__create_product_repository(settings, channel),
         market_web_scrapers=__create_market_web_scrapers(settings, web_driver),
         product_processor=__create_product_processor(settings),
     )
-
-    return handler
 
 
 async def create_web_driver() -> WebDriver:
