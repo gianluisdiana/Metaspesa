@@ -5,8 +5,7 @@ using Metaspesa.Application.Abstractions.Users;
 using Metaspesa.Database.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Trace;
+using Npgsql;
 
 namespace Metaspesa.Database;
 
@@ -23,8 +22,7 @@ public static class DatabaseDependencyInjection {
     services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<MainContext>());
 
     services.AddOpenTelemetry()
-      .WithTracing(tracing => tracing.AddSqlClientInstrumentation())
-      .WithMetrics(metrics => metrics.AddSqlClientInstrumentation());
+      .WithTracing(tracing => tracing.AddNpgsql());
 
     services.AddScoped<IUserRepository, PostgreSqlUserRepository>();
     services.AddScoped<IMarketRepository, PostgreSqlMarketRepository>();
