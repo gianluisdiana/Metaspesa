@@ -35,9 +35,9 @@ internal partial class PostgreSqlUserRepository(
 
   public void SaveUser(User user) {
     context.Users.Add(new UserDbEntity {
-      Uid = Guid.CreateVersion7(),
+      Uid = user.Uid,
       Username = user.Username,
-      EncryptedPassword = user.EncryptedPassword,
+      EncryptedPassword = user.HashedPassword,
       RoleId = (int)user.Role,
     });
   }
@@ -58,7 +58,7 @@ internal partial class PostgreSqlUserRepository(
       }
 
       return Enum.TryParse(entity.Role.Name, out Role role)
-        ? new User(entity.Username, entity.EncryptedPassword, role)
+        ? new User(entity.Uid, entity.Username, entity.EncryptedPassword, role)
         : null;
     } catch (Exception ex) when (
       ex is NpgsqlException or OperationCanceledException ||

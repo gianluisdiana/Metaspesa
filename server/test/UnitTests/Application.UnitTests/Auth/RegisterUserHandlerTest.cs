@@ -69,7 +69,7 @@ public class RegisterUserHandlerTest {
   public async Task Handler_HashesPassword_WhenValidationPasses() {
     // Arrange
     const string Password = "SecurePass1!";
-    var command = new Command("alice", Password);
+    var command = new Command("estela", Password);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
 
@@ -84,7 +84,7 @@ public class RegisterUserHandlerTest {
   public async Task Handler_SavesUserWithHashedPassword_ViaRepository() {
     // Arrange
     const string HashedPassword = "hashed_value";
-    var command = new Command("alice", "SecurePass1!");
+    var command = new Command("estela", "SecurePass1!");
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
     _hasher.Hash(Arg.Any<string>()).Returns(HashedPassword);
@@ -94,13 +94,13 @@ public class RegisterUserHandlerTest {
 
     // Assert
     _userRepository.Received(1).SaveUser(
-      Arg.Is<User>(u => u.EncryptedPassword == HashedPassword));
+      Arg.Is<User>(u => u.HashedPassword == HashedPassword));
   }
 
   [Fact(DisplayName = "Saves user as Shopper role via repository")]
   public async Task Handler_SavesUserAsShopperRole_ViaRepository() {
     // Arrange
-    var command = new Command("alice", "SecurePass1!");
+    var command = new Command("estela", "SecurePass1!");
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
 
@@ -115,7 +115,7 @@ public class RegisterUserHandlerTest {
   [Fact(DisplayName = "Saves changes to unit of work")]
   public async Task Handler_SavesChangesToUnitOfWork() {
     // Arrange
-    var command = new Command("alice", "SecurePass1!");
+    var command = new Command("estela", "SecurePass1!");
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
 
@@ -129,7 +129,7 @@ public class RegisterUserHandlerTest {
   [Fact(DisplayName = "Returns success result when handling is successful")]
   public async Task Handler_ReturnsSuccessResult_WhenHandlingIsSuccessful() {
     // Arrange
-    var command = new Command("alice", "SecurePass1!");
+    var command = new Command("estela", "SecurePass1!");
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
 

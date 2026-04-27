@@ -3,12 +3,15 @@ using Grpc.Core;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Shopping;
 using Metaspesa.Domain.Shopping;
+using Metaspesa.Domain.Users;
 using Metaspesa.GrpcApi.Extensions;
 using Metaspesa.GrpcApi.Protos.Shopping;
+using Microsoft.AspNetCore.Authorization;
 using ShoppingList = Metaspesa.Domain.Shopping.ShoppingList;
 
 namespace Metaspesa.GrpcApi.Services;
 
+[Authorize(Roles = nameof(Role.Shopper))]
 internal class ShoppingGrpcService(
   IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>> getRegisteredItemsHandler,
   IQueryHandler<GetCurrentShoppingList.Query, ShoppingList> getCurrentShoppingListHandler,
@@ -18,11 +21,15 @@ internal class ShoppingGrpcService(
   ICommandHandler<UpdateItem.Command> updateItemHandler,
   ICommandHandler<RemoveItem.Command> removeItemHandler
 ) : ShoppingService.ShoppingServiceBase {
+
   public override async Task<RegisteredItemsResponse> GetRegisteredItems(
     Empty request, ServerCallContext context
   ) {
+    var query = new GetRegisteredItems.Query(
+      UserUid: context.GetHttpContext().GetUserUid());
+
     Result<IReadOnlyCollection<Product>> result = await getRegisteredItemsHandler.Handle(
-      new GetRegisteredItems.Query(Guid.Empty), context.CancellationToken);
+      query, context.CancellationToken);
 
     result.ThrowRpcExceptionIfFailed();
 
@@ -37,7 +44,8 @@ internal class ShoppingGrpcService(
   public override async Task<CurrentShoppingList> GetCurrentShoppingList(
     Empty request, ServerCallContext context
   ) {
-    var query = new GetCurrentShoppingList.Query(Guid.Empty);
+    var query = new GetCurrentShoppingList.Query(
+      UserUid: context.GetHttpContext().GetUserUid());
 
     Result<ShoppingList> result = await getCurrentShoppingListHandler
       .Handle(query, context.CancellationToken);
@@ -57,9 +65,8 @@ internal class ShoppingGrpcService(
     CreateShoppingListRequest request, ServerCallContext context
   ) {
     var command = new CreateShoppingList.Command(
-      Guid.Empty,
-      request.HasName ? request.Name : null
-    );
+      UserUid: context.GetHttpContext().GetUserUid(),
+      ShoppingListName: request.HasName ? request.Name : null);
 
     Result result = await createShoppingListHandler.Handle(
       command, context.CancellationToken);
@@ -77,10 +84,9 @@ internal class ShoppingGrpcService(
     AddItemsToListRequest request, ServerCallContext context
   ) {
     var command = new AddItemsToList.Command(
-      Guid.Empty,
-      request.HasShoppingListName ? request.ShoppingListName : null,
-      [..request.Items.Select(i => i.ToAddItemsCommand())]
-    );
+      UserUid: context.GetHttpContext().GetUserUid(),
+      ShoppingListName: request.HasShoppingListName ? request.ShoppingListName : null,
+      Items: [.. request.Items.Select(i => i.ToAddItemsCommand())]);
 
     Result result = await addItemsToListHandler.Handle(
       command, context.CancellationToken);
@@ -94,14 +100,13 @@ internal class ShoppingGrpcService(
     UpdateItemRequest request, ServerCallContext context
   ) {
     var command = new UpdateItem.Command(
-      Guid.Empty,
-      request.ShoppingListName,
-      request.OriginalItemName,
-      request.HasItemName ? request.ItemName : null,
-      request.HasItemQuantity ? request.ItemQuantity : null,
-      request.HasItemPrice ? request.ItemPrice : null,
-      request.HasChecked ? request.Checked : null
-    );
+      UserUid: context.GetHttpContext().GetUserUid(),
+      ShoppingListName: request.ShoppingListName,
+      OriginalItemName: request.OriginalItemName,
+      NewName: request.HasItemName ? request.ItemName : null,
+      Quantity: request.HasItemQuantity ? request.ItemQuantity : null,
+      Price: request.HasItemPrice ? request.ItemPrice : null,
+      IsChecked: request.HasChecked ? request.Checked : null);
 
     Result result = await updateItemHandler.Handle(command, context.CancellationToken);
 
@@ -114,10 +119,9 @@ internal class ShoppingGrpcService(
     RemoveItemRequest request, ServerCallContext context
   ) {
     var command = new RemoveItem.Command(
-      Guid.Empty,
-      request.ShoppingListName,
-      request.ItemName
-    );
+      UserUid: context.GetHttpContext().GetUserUid(),
+      ShoppingListName: request.ShoppingListName,
+      ItemName: request.ItemName);
 
     Result result = await removeItemHandler.Handle(command, context.CancellationToken);
 
@@ -130,10 +134,9 @@ internal class ShoppingGrpcService(
     RecordShoppingListRequest request, ServerCallContext context
   ) {
     var command = new RecordShoppingList.Command(
-      Guid.Empty,
-      request.ShoppingList.Name,
-      [..request.ShoppingList.Items.Select(p => p.ToCommand())]
-    );
+      UserUid: context.GetHttpContext().GetUserUid(),
+      ShoppingListName: request.ShoppingList.Name,
+      ShoppingListItems: [.. request.ShoppingList.Items.Select(p => p.ToCommand())]);
 
     Result result = await recordShoppingListHandler.Handle(
       command, context.CancellationToken);

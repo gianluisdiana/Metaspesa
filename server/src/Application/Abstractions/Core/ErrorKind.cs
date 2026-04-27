@@ -4,5 +4,6 @@ public enum ErrorKind {
   Validation,
   Missing,
   Conflict,
+  Unauthenticated,
   Unexpected,
 }

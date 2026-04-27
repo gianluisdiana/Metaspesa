@@ -10,14 +10,16 @@ using Microsoft.IdentityModel.Tokens;
 namespace Metaspesa.Infrastructure;
 
 internal class JwtTokenProvider(IOptions<JwtOptions> options) : ITokenProvider {
-  public string GenerateToken(User user) {
+  public Token GenerateToken(User user) {
     Debug.Assert(user is not null);
 
     JwtOptions jwtOptions = options.Value;
     SymmetricSecurityKey key = new(Encoding.UTF8.GetBytes(jwtOptions.SecretKey));
     SigningCredentials credentials = new(key, SecurityAlgorithms.HmacSha256);
+    DateTime expiresAt = DateTime.UtcNow.AddMinutes(jwtOptions.ExpirationMinutes);
 
     Claim[] claims = [
+      new(ClaimTypes.NameIdentifier, user.Uid.ToString()),
       new(ClaimTypes.Name, user.Username),
       new(ClaimTypes.Role, user.Role.ToString()),
     ];
@@ -26,10 +28,10 @@ internal class JwtTokenProvider(IOptions<JwtOptions> options) : ITokenProvider {
       issuer: jwtOptions.Issuer,
       audience: jwtOptions.Audience,
       claims: claims,
-      expires: DateTime.UtcNow.AddMinutes(jwtOptions.ExpirationMinutes),
+      expires: expiresAt,
       signingCredentials: credentials
     );
 
-    return new JwtSecurityTokenHandler().WriteToken(token);
+    return new Token(new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
   }
 }

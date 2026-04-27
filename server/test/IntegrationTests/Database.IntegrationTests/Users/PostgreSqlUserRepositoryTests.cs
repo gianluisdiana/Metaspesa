@@ -52,13 +52,13 @@ public static class PostgreSqlUserRepositoryTests {
       // Arrange
       var uid = Guid.CreateVersion7();
       _context.Users.Add(new UserDbEntity {
-        Uid = uid, Username = "alice", EncryptedPassword = "x", Role = TestRole
+        Uid = uid, Username = "estela", EncryptedPassword = "x", Role = TestRole
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
       bool result = await _repository.CheckUsernameExistsAsync(
-        "alice", TestContext.Current.CancellationToken);
+        "estela", TestContext.Current.CancellationToken);
 
       // Assert
       Assert.True(result);
@@ -116,7 +116,7 @@ public static class PostgreSqlUserRepositoryTests {
         Description = "Shopper role for testing",
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      var user = new User("bob", "hashed_password", Role.Shopper);
+      var user = new User(Guid.CreateVersion7(), "bob", "hashed_password", Role.Shopper);
 
       // Act
       _repository.SaveUser(user);
@@ -141,7 +141,7 @@ public static class PostgreSqlUserRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       const string HashedPassword = "hashed_password_value";
-      var user = new User("carol", HashedPassword, Role.Shopper);
+      var user = new User(Guid.CreateVersion7(), "carol", HashedPassword, Role.Shopper);
 
       // Act
       _repository.SaveUser(user);
@@ -150,7 +150,7 @@ public static class PostgreSqlUserRepositoryTests {
       // Assert
       User? retrieved = await _repository.GetUserByUsernameAsync(
         "carol", TestContext.Current.CancellationToken);
-      Assert.Equal(HashedPassword, retrieved!.EncryptedPassword);
+      Assert.Equal(HashedPassword, retrieved!.HashedPassword);
     }
 
     [Fact(
@@ -165,7 +165,7 @@ public static class PostgreSqlUserRepositoryTests {
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-      var user = new User("dave", "hashed_password", Role.Shopper);
+      var user = new User(Guid.CreateVersion7(), "dave", "hashed_password", Role.Shopper);
 
       // Act
       _repository.SaveUser(user);
@@ -223,7 +223,7 @@ public static class PostgreSqlUserRepositoryTests {
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-      var user = new User("eve", "hashed", Role.Shopper);
+      var user = new User(Guid.CreateVersion7(), "eve", "hashed", Role.Shopper);
       _repository.SaveUser(user);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -248,7 +248,7 @@ public static class PostgreSqlUserRepositoryTests {
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-      var user = new User("Frank", "hashed", Role.Shopper);
+      var user = new User(Guid.CreateVersion7(), "Frank", "hashed", Role.Shopper);
       _repository.SaveUser(user);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -272,7 +272,7 @@ public static class PostgreSqlUserRepositoryTests {
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-      var user = new User("grace", "hashed", Role.Shopper);
+      var user = new User(Guid.CreateVersion7(), "grace", "hashed", Role.Shopper);
       _repository.SaveUser(user);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -282,6 +282,31 @@ public static class PostgreSqlUserRepositoryTests {
 
       // Assert
       Assert.Equal(Role.Shopper, result!.Role);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns correct Uid for saved user")]
+    public async Task GetUserByUsernameAsync_ReturnsCorrectUid_ForSavedUser() {
+      // Arrange
+      _context.UserRoles.Add(new UserRoleDbEntity {
+        Id = (int)Role.Shopper,
+        Name = Role.Shopper.ToString(),
+        Description = "Shopper role for testing",
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      var expectedUid = Guid.CreateVersion7();
+      var user = new User(expectedUid, "henry", "hashed", Role.Shopper);
+      _repository.SaveUser(user);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      User? result = await _repository.GetUserByUsernameAsync(
+        "henry", TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Equal(expectedUid, result!.Uid);
     }
   }
 }

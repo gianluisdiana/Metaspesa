@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Grpc.Core.Testing;
@@ -6,6 +7,7 @@ using Metaspesa.Application.Shopping;
 using Metaspesa.Domain.Shopping;
 using Metaspesa.GrpcApi.Protos.Shopping;
 using Metaspesa.GrpcApi.Services;
+using Microsoft.AspNetCore.Http;
 using NSubstitute;
 using Product = Metaspesa.Domain.Shopping.Product;
 
@@ -188,6 +190,23 @@ public static class ShoppingGrpcServiceTests {
       for (int i = 0; i < registeredItems.Count; i++) {
         Assert.False(response.Items[i].Checked);
       }
+    }
+
+    [Fact(DisplayName = "Passes user UID from JWT claim to query")]
+    public async Task Api_PassesUserUidFromClaim_ToQuery() {
+      // Arrange
+      var expectedUid = Guid.CreateVersion7();
+      _useCaseHandler
+        .Handle(Arg.Any<GetRegisteredItems.Query>(), TestContext.Current.CancellationToken)
+        .Returns(new List<Product>());
+
+      // Act
+      await service.GetRegisteredItems(new Empty(), CreateServerCallContext(expectedUid));
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<GetRegisteredItems.Query>(q => q.UserUid == expectedUid),
+        TestContext.Current.CancellationToken);
     }
   }
 
@@ -409,6 +428,23 @@ public static class ShoppingGrpcServiceTests {
           shoppingList.Items.ElementAt(i).IsChecked,
           response.ShoppingList.Items[i].Checked);
       }
+    }
+
+    [Fact(DisplayName = "Passes user UID from JWT claim to query")]
+    public async Task Api_PassesUserUidFromClaim_ToQuery() {
+      // Arrange
+      var expectedUid = Guid.CreateVersion7();
+      _useCaseHandler
+        .Handle(Arg.Any<GetCurrentShoppingList.Query>(), TestContext.Current.CancellationToken)
+        .Returns(new Domain.Shopping.ShoppingList("test", []));
+
+      // Act
+      await service.GetCurrentShoppingList(new Empty(), CreateServerCallContext(expectedUid));
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<GetCurrentShoppingList.Query>(q => q.UserUid == expectedUid),
+        TestContext.Current.CancellationToken);
     }
   }
 
@@ -660,6 +696,27 @@ public static class ShoppingGrpcServiceTests {
           TestContext.Current.CancellationToken);
       }
     }
+
+    [Fact(DisplayName = "Passes user UID from JWT claim to command")]
+    public async Task Api_PassesUserUidFromClaim_ToCommand() {
+      // Arrange
+      var expectedUid = Guid.CreateVersion7();
+      _useCaseHandler
+        .Handle(Arg.Any<RecordShoppingList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new RecordShoppingListRequest {
+        ShoppingList = new Protos.Shopping.ShoppingList { Name = "Weekly", Items = { } }
+      };
+
+      // Act
+      await service.RecordShoppingList(request, CreateServerCallContext(expectedUid));
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<RecordShoppingList.Command>(cmd => cmd.UserUid == expectedUid),
+        TestContext.Current.CancellationToken);
+    }
   }
 
   public class CreateShoppingListRpc {
@@ -757,6 +814,23 @@ public static class ShoppingGrpcServiceTests {
       // Assert
       await _useCaseHandler.Received(1).Handle(
         Arg.Is<CreateShoppingList.Command>(cmd => cmd.ShoppingListName == null),
+        TestContext.Current.CancellationToken);
+    }
+
+    [Fact(DisplayName = "Passes user UID from JWT claim to command")]
+    public async Task Api_PassesUserUidFromClaim_ToCommand() {
+      // Arrange
+      var expectedUid = Guid.CreateVersion7();
+      _useCaseHandler
+        .Handle(Arg.Any<CreateShoppingList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      // Act
+      await service.CreateShoppingList(new CreateShoppingListRequest(), CreateServerCallContext(expectedUid));
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<CreateShoppingList.Command>(cmd => cmd.UserUid == expectedUid),
         TestContext.Current.CancellationToken);
     }
   }
@@ -883,6 +957,27 @@ public static class ShoppingGrpcServiceTests {
             cmd.Items.ElementAt(i).Name == request.Items[i].Name),
           TestContext.Current.CancellationToken);
       }
+    }
+
+    [Fact(DisplayName = "Passes user UID from JWT claim to command")]
+    public async Task Api_PassesUserUidFromClaim_ToCommand() {
+      // Arrange
+      var expectedUid = Guid.CreateVersion7();
+      _useCaseHandler
+        .Handle(Arg.Any<AddItemsToList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new AddItemsToListRequest {
+        Items = { new Protos.Shopping.ShoppingItem { Name = "Milk" } }
+      };
+
+      // Act
+      await service.AddItemsToList(request, CreateServerCallContext(expectedUid));
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<AddItemsToList.Command>(cmd => cmd.UserUid == expectedUid),
+        TestContext.Current.CancellationToken);
     }
   }
 
@@ -1117,6 +1212,25 @@ public static class ShoppingGrpcServiceTests {
         Arg.Is<UpdateItem.Command>(cmd => cmd.IsChecked == null),
         TestContext.Current.CancellationToken);
     }
+
+    [Fact(DisplayName = "Passes user UID from JWT claim to command")]
+    public async Task Api_PassesUserUidFromClaim_ToCommand() {
+      // Arrange
+      var expectedUid = Guid.CreateVersion7();
+      _useCaseHandler
+        .Handle(Arg.Any<UpdateItem.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new UpdateItemRequest { ShoppingListName = "Weekly", OriginalItemName = "Milk" };
+
+      // Act
+      await service.UpdateItem(request, CreateServerCallContext(expectedUid));
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<UpdateItem.Command>(cmd => cmd.UserUid == expectedUid),
+        TestContext.Current.CancellationToken);
+    }
   }
 
   public class RemoveItemRpc {
@@ -1186,18 +1300,48 @@ public static class ShoppingGrpcServiceTests {
           cmd.ShoppingListName == "Weekly" && cmd.ItemName == "Milk"),
         TestContext.Current.CancellationToken);
     }
+
+    [Fact(DisplayName = "Passes user UID from JWT claim to command")]
+    public async Task Api_PassesUserUidFromClaim_ToCommand() {
+      // Arrange
+      var expectedUid = Guid.CreateVersion7();
+      _useCaseHandler
+        .Handle(Arg.Any<RemoveItem.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new RemoveItemRequest { ShoppingListName = "Weekly", ItemName = "Milk" };
+
+      // Act
+      await service.RemoveItem(request, CreateServerCallContext(expectedUid));
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<RemoveItem.Command>(cmd => cmd.UserUid == expectedUid),
+        TestContext.Current.CancellationToken);
+    }
   }
 
-  private static ServerCallContext CreateServerCallContext() => TestServerCallContext.Create(
-    method: string.Empty,
-    host: string.Empty,
-    deadline: DateTime.UtcNow.AddMinutes(1),
-    requestHeaders: [],
-    cancellationToken: TestContext.Current.CancellationToken,
-    peer: string.Empty,
-    authContext: null!,
-    contextPropagationToken: null!,
-    writeHeadersFunc: _ => Task.CompletedTask,
-    writeOptionsGetter: () => new WriteOptions(),
-    writeOptionsSetter: _ => { });
+  private static ServerCallContext CreateServerCallContext(Guid? userId = null) {
+    ServerCallContext context = TestServerCallContext.Create(
+      method: string.Empty,
+      host: string.Empty,
+      deadline: DateTime.UtcNow.AddMinutes(1),
+      requestHeaders: [],
+      cancellationToken: TestContext.Current.CancellationToken,
+      peer: string.Empty,
+      authContext: null!,
+      contextPropagationToken: null!,
+      writeHeadersFunc: _ => Task.CompletedTask,
+      writeOptionsGetter: () => new WriteOptions(),
+      writeOptionsSetter: _ => { });
+
+    var httpContext = new DefaultHttpContext {
+      User = new(new ClaimsIdentity([
+        new Claim(ClaimTypes.NameIdentifier, (userId ?? Guid.CreateVersion7()).ToString()),
+      ]))
+    };
+    context.UserState["__HttpContext"] = httpContext;
+
+    return context;
+  }
 }

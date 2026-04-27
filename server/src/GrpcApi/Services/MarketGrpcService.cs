@@ -2,11 +2,14 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Markets;
+using Metaspesa.Domain.Users;
 using Metaspesa.GrpcApi.Extensions;
 using Metaspesa.GrpcApi.Protos.Markets;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Metaspesa.GrpcApi.Services;
 
+[Authorize(Roles = nameof(Role.ProductManager))]
 internal class MarketGrpcService(
   ICommandHandler<AddMarketProducts.Command> addProductsHandler
 ) : MarketService.MarketServiceBase {

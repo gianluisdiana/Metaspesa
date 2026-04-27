@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using FluentValidation;
 using Metaspesa.Application.Abstractions.Core;
+using Metaspesa.Application.Abstractions.Users;
 using Metaspesa.Application.Auth;
 using Metaspesa.Application.Markets;
 using Metaspesa.Application.Shopping;
@@ -29,6 +30,10 @@ public static class ApplicationDependencyInjection {
       services.AddScoped<
         ICommandHandler<RegisterUser.Command>,
         RegisterUser.Handler>();
+
+      services.AddScoped<
+        IQueryHandler<LoginUser.Query, Token>,
+        LoginUser.Handler>();
 
       return services;
     }

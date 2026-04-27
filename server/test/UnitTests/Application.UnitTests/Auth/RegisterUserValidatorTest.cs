@@ -32,7 +32,7 @@ public class RegisterUserValidatorTest {
   [Fact(DisplayName = "Fails when password is too short")]
   public async Task Validator_Fails_WhenPasswordIsTooShort() {
     // Arrange
-    var command = new Command("alice", "Abc!12345");
+    var command = new Command("estela", "Abc!12345");
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -46,7 +46,7 @@ public class RegisterUserValidatorTest {
   [Fact(DisplayName = "Fails when password has no uppercase letter")]
   public async Task Validator_Fails_WhenPasswordMissingUppercase() {
     // Arrange
-    var command = new Command("alice", "nouppercas3!");
+    var command = new Command("estela", "nouppercas3!");
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -60,7 +60,7 @@ public class RegisterUserValidatorTest {
   [Fact(DisplayName = "Fails when password has no lowercase letter")]
   public async Task Validator_Fails_WhenPasswordMissingLowercase() {
     // Arrange
-    var command = new Command("alice", "NOLOWERCASE3!");
+    var command = new Command("estela", "NOLOWERCASE3!");
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -74,7 +74,7 @@ public class RegisterUserValidatorTest {
   [Fact(DisplayName = "Fails when password has no digit")]
   public async Task Validator_Fails_WhenPasswordMissingDigit() {
     // Arrange
-    var command = new Command("alice", "NoDigitHere!!");
+    var command = new Command("estela", "NoDigitHere!!");
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -88,7 +88,7 @@ public class RegisterUserValidatorTest {
   [Fact(DisplayName = "Fails when password has no special character")]
   public async Task Validator_Fails_WhenPasswordMissingSpecialChar() {
     // Arrange
-    var command = new Command("alice", "NoSpecial1234");
+    var command = new Command("estela", "NoSpecial1234");
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -102,7 +102,7 @@ public class RegisterUserValidatorTest {
   [Fact(DisplayName = "Fails with Conflict error kind when username is already taken")]
   public async Task Validator_Fails_WhenUsernameAlreadyExists() {
     // Arrange
-    const string Username = "alice";
+    const string Username = "estela";
     var command = new Command(Username, "SecurePass1!");
     _userRepository
       .CheckUsernameExistsAsync(Username, TestContext.Current.CancellationToken)
@@ -121,7 +121,7 @@ public class RegisterUserValidatorTest {
   [Fact(DisplayName = "Passes with valid credentials and unique username")]
   public async Task Validator_Passes_WhenCredentialsAreValid() {
     // Arrange
-    const string Username = "alice";
+    const string Username = "estela";
     var command = new Command(Username, "SecurePass1!");
     _userRepository
       .CheckUsernameExistsAsync(Username, TestContext.Current.CancellationToken)

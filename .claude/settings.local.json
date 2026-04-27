@@ -4,8 +4,10 @@
       "Bash(dotnet build:*)",
       "Bash(dotnet restore:*)",
       "Bash(dotnet test:*)",
+      "Bash(dotnet format:*)",
       "Bash(xargs grep *)",
       "Bash(docker info *)"
-    ]
+    ],
+    "defaultMode": "plan"
   }
 }

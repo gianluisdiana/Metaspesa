@@ -25,7 +25,12 @@ public static class RegisterUser {
       }
 
       string hashedPassword = hasher.Hash(command.Password);
-      User user = new(command.Username, hashedPassword, Role.Shopper);
+      User user = new(
+        Uid: Guid.CreateVersion7(),
+        Username: command.Username,
+        HashedPassword: hashedPassword,
+        Role: Role.Shopper
+      );
 
       userRepository.SaveUser(user);
       await unitOfWork.SaveChangesAsync(cancellationToken);

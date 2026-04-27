@@ -19,6 +19,7 @@ internal static class ResultExtensions {
       ErrorKind.Validation => StatusCode.InvalidArgument,
       ErrorKind.Missing => StatusCode.NotFound,
       ErrorKind.Conflict => StatusCode.AlreadyExists,
+      ErrorKind.Unauthenticated => StatusCode.Unauthenticated,
       _ => StatusCode.Internal,
     };
 
