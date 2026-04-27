@@ -12,6 +12,8 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
     env_file:
       - .env
+    secrets:
+      - jwt_secret_key
     networks:
       - default
       - metaspesa_telemetry_default
@@ -90,6 +92,8 @@ networks:
     external: true
 
 secrets:
+  jwt_secret_key:
+    file: ./secrets/jwt_secret_key
   scraper_username:
     file: ./secrets/scraper_username
   scraper_password:

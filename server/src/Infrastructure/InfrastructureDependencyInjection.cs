@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using Metaspesa.Application.Abstractions.Users;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -11,17 +12,32 @@ public static class InfrastructureDependencyInjection {
   public static IServiceCollection AddInfrastructure(
     this IServiceCollection services
   ) {
-    services.AddOptionsWithValidateOnStart<JwtOptions>()
-      .BindConfiguration("Jwt")
-      .Validate(o => !string.IsNullOrWhiteSpace(o.SecretKey))
-      .Validate(o => !string.IsNullOrWhiteSpace(o.Issuer))
-      .Validate(o => !string.IsNullOrWhiteSpace(o.Audience))
-      .Validate(o => o.ExpirationMinutes > 0);
+    services.AddOpenTelemetry()
+      .WithTracing(tracing => tracing.AddSource(SecretsLoaderWorker.ActivitySourceName));
+
+    services.AddSingleton<ISecretVault, LocalSecretVault>();
+    services.AddHostedService<SecretsLoaderWorker>();
 
     services.AddSingleton<ITokenProvider, JwtTokenProvider>();
     services.AddSingleton<IHasher, Pbkdf2Hasher>();
 
+    services.AddJwt();
+
+    return services;
+  }
+
+  private static IServiceCollection AddJwt(
+    this IServiceCollection services
+  ) {
+    services.AddOptionsWithValidateOnStart<JwtOptions>()
+      .BindConfiguration("Jwt")
+      .Validate(o => !string.IsNullOrWhiteSpace(o.KeySecretName), "Jwt:KeySecretName must be provided")
+      .Validate(o => !string.IsNullOrWhiteSpace(o.Issuer), "Jwt:Issuer must be provided")
+      .Validate(o => !string.IsNullOrWhiteSpace(o.Audience), "Jwt:Audience must be provided")
+      .Validate(o => o.ExpirationMinutes > 0, "Jwt:ExpirationMinutes must be greater than 0");
+
     services
+      .AddAuthorization()
       .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
       .AddJwtBearer();
 
@@ -32,14 +48,12 @@ public static class InfrastructureDependencyInjection {
           ValidIssuer = jwtOptions.Value.Issuer,
           ValidAudience = jwtOptions.Value.Audience,
           IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(jwtOptions.Value.SecretKey)),
+            Encoding.UTF8.GetBytes(jwtOptions.Value.Key!)),
           ValidateIssuer = true,
           ValidateAudience = true,
           ValidateLifetime = true,
           ValidateIssuerSigningKey = true,
         });
-
-    services.AddAuthorization();
 
     return services;
   }

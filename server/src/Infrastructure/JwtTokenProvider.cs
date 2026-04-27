@@ -12,9 +12,10 @@ namespace Metaspesa.Infrastructure;
 internal class JwtTokenProvider(IOptions<JwtOptions> options) : ITokenProvider {
   public Token GenerateToken(User user) {
     Debug.Assert(user is not null);
+    Debug.Assert(options.Value.Key is not null);
 
     JwtOptions jwtOptions = options.Value;
-    SymmetricSecurityKey key = new(Encoding.UTF8.GetBytes(jwtOptions.SecretKey));
+    SymmetricSecurityKey key = new(Encoding.UTF8.GetBytes(jwtOptions.Key));
     SigningCredentials credentials = new(key, SecurityAlgorithms.HmacSha256);
     DateTime expiresAt = DateTime.UtcNow.AddMinutes(jwtOptions.ExpirationMinutes);
 
