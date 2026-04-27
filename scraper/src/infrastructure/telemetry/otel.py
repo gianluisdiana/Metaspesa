@@ -20,11 +20,13 @@ from infrastructure.telemetry.scraper_telemetry import ScraperTelemetry
 def setup_telemetry(endpoint: str | None) -> ScraperTelemetry:
     if endpoint is not None:
         __configure_sdk(endpoint)
-    return ScraperTelemetry(trace.get_tracer("scraper"), metrics.get_meter("scraper"))
+    return ScraperTelemetry(
+        trace.get_tracer("metaspesa_scraper"), metrics.get_meter("metaspesa_scraper")
+    )
 
 
 def __configure_sdk(endpoint: str) -> None:
-    resource = Resource({SERVICE_NAME: "scraper"})
+    resource = Resource({SERVICE_NAME: "metaspesa_scraper"})
 
     tracer_provider = TracerProvider(resource=resource)
     tracer_provider.add_span_processor(

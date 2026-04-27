@@ -2,6 +2,7 @@ from typing import Any
 
 from config import (
     AppConfig,
+    CredentialsSettings,
     FallbackPersistenceSettings,
     ProcessorSettings,
     ScraperSettings,
@@ -58,6 +59,10 @@ def __create_default_settings() -> AppConfig:
         processor=ProcessorSettings(known_brands=[], replacements={}),
         scrapers=ScraperSettings(skipped_categories=[]),
         fallback_persistence=FallbackPersistenceSettings(folder_path="data"),
+        credentials=CredentialsSettings(
+            username_secret="scraper_username",
+            password_secret="scraper_password",
+        ),
     )
 
 

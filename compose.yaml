@@ -57,10 +57,12 @@ services:
       - server
     environment:
       GRPC_SERVER_URL: server:8080
-      POSTGRES_CONNECTION_STRING: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
     volumes:
       - scraper_data:/app/data
+    secrets:
+      - scraper_username
+      - scraper_password
     networks:
       - default
       - metaspesa_telemetry_default
@@ -86,3 +88,9 @@ volumes:
 networks:
   metaspesa_telemetry_default:
     external: true
+
+secrets:
+  scraper_username:
+    file: ./secrets/scraper_username
+  scraper_password:
+    file: ./secrets/scraper_password

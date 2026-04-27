@@ -64,3 +64,6 @@ __pycache__
 
 # temporary product files
 scraper/data/
+
+# docker secrets (local copies)
+secrets/

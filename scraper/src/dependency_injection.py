@@ -16,6 +16,7 @@ from infrastructure.market_scrapers.market_web_scraper_factory import (
     MarketWebScraperFactory,
 )
 from infrastructure.playwright_driver import PlaywrightDriver
+from infrastructure.secrets import LocalSecretVault
 from infrastructure.telemetry.instrumented_playwright_driver import (
     InstrumentedPlaywrightDriver,
 )
@@ -44,11 +45,18 @@ def __create_product_processor(settings: AppConfig) -> ProductProcessor:
 def __create_product_repository(
     settings: AppConfig, channel: grpc.aio.Channel
 ) -> ProductRepository:
+    vault = LocalSecretVault()
+    username = vault.read_secret(settings.credentials.username_secret)
+    password = vault.read_secret(settings.credentials.password_secret)
+
+    main_repository = GrpcProductRepository(channel, username, password)
+    fallback_repository = CsvProductRepository(
+        settings.fallback_persistence.folder_path
+    )
+
     return AppProductRepository(
-        main_repository=GrpcProductRepository(channel),
-        fallback_repository=CsvProductRepository(
-            settings.fallback_persistence.folder_path
-        ),
+        main_repository=main_repository,
+        fallback_repository=fallback_repository,
     )
 
 

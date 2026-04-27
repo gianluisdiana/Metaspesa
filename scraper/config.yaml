@@ -121,3 +121,7 @@ scrapers:
 
 fallback_persistence:
   folder_path: "data"
+
+credentials:
+  username_secret: "scraper_username"
+  password_secret: "scraper_password"

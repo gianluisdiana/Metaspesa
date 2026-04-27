@@ -17,10 +17,16 @@ class FallbackPersistenceSettings(BaseModel):
     folder_path: Path
 
 
+class CredentialsSettings(BaseModel):
+    username_secret: str
+    password_secret: str
+
+
 class AppConfig(BaseModel):
     processor: ProcessorSettings
     scrapers: ScraperSettings
     fallback_persistence: FallbackPersistenceSettings
+    credentials: CredentialsSettings
 
 
 def load_config(config_path: str | Path = "config.yaml") -> AppConfig:
