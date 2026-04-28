@@ -67,3 +67,4 @@ scraper/data/
 
 # docker secrets (local copies)
 secrets/
+!**/test/**/Secrets/

@@ -10,10 +10,12 @@
   </Folder>
   <Folder Name="/test/IntegrationTests/">
     <Project Path="test/IntegrationTests/Database.IntegrationTests/Database.IntegrationTests.csproj" />
+    <Project Path="test/IntegrationTests/Infrastructure.IntegrationTests/Infrastructure.IntegrationTests.csproj" />
   </Folder>
   <Folder Name="/test/UnitTests/">
     <Project Path="test/UnitTests/Application.UnitTests/Application.UnitTests.csproj" />
     <Project Path="test/UnitTests/Domain.UnitTests/Domain.UnitTests.csproj" />
     <Project Path="test/UnitTests/GrpcApi.UnitTests/GrpcApi.UnitTests.csproj" />
+    <Project Path="test/UnitTests/Infrastructure.UnitTests/Infrastructure.UnitTests.csproj" />
   </Folder>
 </Solution>
