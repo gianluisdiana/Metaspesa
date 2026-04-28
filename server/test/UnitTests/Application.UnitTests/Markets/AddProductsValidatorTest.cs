@@ -114,12 +114,12 @@ public class AddProductsValidatorTest {
       .WithErrorCode("Market.Product.Price.Negative");
   }
 
-  [Fact(DisplayName = "Fails when duplicate product exists in same market and brand")]
+  [Fact(DisplayName = "Fails when duplicate product exists in same market, brand and quantity")]
   public async Task Validator_Fails_WhenDuplicateProductExists() {
     // Arrange
     var command = new Command([
       new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike"),
-      new CommandProduct("Milk", 2.50f, "2L", "Walmart", "Nike"),
+      new CommandProduct("Milk", 2.50f, "1L", "Walmart", "Nike"),
     ], null);
 
     // Act

@@ -349,7 +349,10 @@ public static class PostgreSqlMarketRepositoryTests {
 
     private static Market MakeMarket(string productName, float price, string quantity) =>
       new Market(MarketName, [
-        new MarketProduct(productName, quantity, new Price(price), new ProductBrand(BrandName))
+        new MarketProduct(
+          productName,
+          new ProductBrand(BrandName),
+          [new ProductFormat(quantity, new Price(price))])
       ]);
 
     [Fact(
@@ -484,7 +487,11 @@ public static class PostgreSqlMarketRepositoryTests {
 
     private static Market MakeMarket(params string[] productNames) =>
       new(MarketName, [
-        ..productNames.Select(n => new MarketProduct(n, "1kg", new Price(1.00f), new ProductBrand(BrandName)))
+        ..productNames.Select(n => new MarketProduct(
+          n,
+          new ProductBrand(BrandName),
+          [new ProductFormat("1kg", new Price(1.00f))]
+        ))
       ]);
 
     [Fact(
@@ -694,7 +701,11 @@ public static class PostgreSqlMarketRepositoryTests {
 
     private static Market MakeMarket(string productName) =>
       new(MarketName, [
-        new MarketProduct(productName, "1kg", new Price(1.00f), new ProductBrand(BrandName))
+        new MarketProduct(
+          productName,
+          new ProductBrand(BrandName),
+          [new ProductFormat("1kg", new Price(1.00f))]
+        )
       ]);
 
     [Fact(
@@ -787,7 +798,11 @@ public static class PostgreSqlMarketRepositoryTests {
 
     private static Market MakeMarket(string marketName, string productName) =>
       new(marketName, [
-        new MarketProduct(productName, "1kg", new Price(1.00f), new ProductBrand(BrandName))
+        new MarketProduct(
+          productName,
+          new ProductBrand(BrandName),
+          [new ProductFormat("1kg", new Price(1.00f))]
+        )
       ]);
 
     [Fact(

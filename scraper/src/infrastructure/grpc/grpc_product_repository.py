@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import override
@@ -28,6 +29,7 @@ class GrpcProductRepository(ProductRepository):
         self.__username = username
         self.__password = password
         self.__token: Token | None = None
+        self.__logger = logging.getLogger(self.__class__.__name__)
 
     @override
     async def save(self, market_name: str, products: list[Product]) -> None:
@@ -51,12 +53,21 @@ class GrpcProductRepository(ProductRepository):
 
         assert self.__token
 
-        await self.__market_stub.AddProducts(  # type: ignore
-            request,
-            metadata=grpc.aio.Metadata(
-                ("authorization", f"Bearer {self.__token.value}")
-            ),
-        )
+        try:
+            await self.__market_stub.AddProducts(  # type: ignore
+                request,
+                metadata=grpc.aio.Metadata(
+                    ("authorization", f"Bearer {self.__token.value}")
+                ),
+            )
+        except grpc.aio.AioRpcError as e:
+            self.__logger.error(
+                "Failed to save products for market '%s': %s",
+                market_name,
+                e.trailing_metadata(),
+                exc_info=e,
+            )
+            raise
 
     async def __ensure_authenticated(self) -> None:
         if self.__token is None or self.__token.expires_at <= datetime.now(UTC):

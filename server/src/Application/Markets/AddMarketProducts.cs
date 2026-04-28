@@ -22,15 +22,21 @@ public static class AddMarketProducts {
     IReadOnlyCollection<CommandProduct> Products,
     DateOnly? RegisteredAt
   ) : ICommand {
-    internal List<Market> ToMarkets() => [.. Products.GroupBy(p => p.MarketName!)
-      .Select(g => new Market(g.Key, [..
-        g.Select(p => new MarketProduct(
-          p.Name!,
-          p.Quantity!,
-          new Price(p.Price),
-          new ProductBrand(p.BrandName!)
-        ))])
-      )
+    internal List<Market> ToMarkets() => [
+      ..Products.GroupBy(p => p.MarketName!)
+        .Select(g => new Market(
+          Name: g.Key,
+          Products: [
+            ..g.GroupBy(p => (p.Name, p.BrandName))
+              .Select(gg => new MarketProduct(
+                Name: gg.Key.Name!,
+                Brand: new ProductBrand(gg.Key.BrandName!),
+                Formats: [
+                  ..gg.Select(p => new ProductFormat(p.Quantity!, new Price(p.Price)))
+                ]
+              ))
+          ]
+        ))
     ];
   }
 
@@ -172,9 +178,10 @@ public static class AddMarketProducts {
           p != product &&
           p.Name == product.Name &&
           p.MarketName == product.MarketName &&
-          p.BrandName == product.BrandName
+          p.BrandName == product.BrandName &&
+          p.Quantity == product.Quantity
         ))
-        .WithMessage("Each product must be unique in name, market and brand combination.")
+        .WithMessage("Each product must be unique in name, market, brand and quantity combination.")
         .WithErrorCode("Market.Product.Duplicate");
     }
   }

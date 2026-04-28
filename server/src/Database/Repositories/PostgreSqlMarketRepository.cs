@@ -131,12 +131,12 @@ internal partial class PostgreSqlMarketRepository(
       (string Name, int brandId) key = (mp.Name, brandId);
 
       if (existingProducts.TryGetValue(key, out int existingId)) {
-        history.Add(new ProductsHistoryDbEntity {
+        history.AddRange(mp.Formats.Select(f => new ProductsHistoryDbEntity {
           ProductId = existingId,
-          Price = mp.Price.Value,
-          Quantity = mp.Quantity!,
+          Price = f.Price.Value,
+          Quantity = f.Quantity,
           CreatedAt = now
-        });
+        }));
       } else {
         toInsert.Add((new ProductDbEntity {
           Name = mp.Name,
@@ -157,12 +157,12 @@ internal partial class PostgreSqlMarketRepository(
         context.ChangeTracker.Clear();
 
         addedProductIds.AddRange(batch.Select(x => x.Entity.Id));
-        history.AddRange(batch.Select(x => new ProductsHistoryDbEntity {
+        history.AddRange(batch.SelectMany(x => x.Source.Formats.Select(f => new ProductsHistoryDbEntity {
           ProductId = x.Entity.Id,
-          Price = x.Source.Price.Value,
-          Quantity = x.Source.Quantity!,
+          Price = f.Price.Value,
+          Quantity = f.Quantity,
           CreatedAt = now
-        }));
+        })));
       }
     }
 
