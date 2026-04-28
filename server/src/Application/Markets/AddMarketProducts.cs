@@ -5,6 +5,7 @@ using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Extensions;
 using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.Shopping;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Metaspesa.Application.Markets;
 
@@ -35,10 +36,17 @@ public static class AddMarketProducts {
 
   internal class Handler(
     IValidator<Command> validator,
-    IMarketRepository marketRepository
-  ) : ICommandHandler<Command> {
-    public async Task<Result> Handle(
-      Command command, CancellationToken cancellationToken = default
+    IMarketRepository marketRepository,
+    IServiceScopeFactory scopeFactory
+  ) : CancellableCommandHandler<Command>(scopeFactory) {
+    private List<Market> _addedMarkets = [];
+    private List<ProductBrand> _addedBrands = [];
+    private readonly List<int> _addedProductIds = [];
+    private readonly List<string> _completedMarketNames = [];
+    private DateOnly _registeredAt;
+
+    protected override async Task<Result> ExecuteAsync(
+      Command command, CancellationToken cancellationToken
     ) {
       ValidationResult validationResult = await validator.ValidateAsync(command, cancellationToken);
       if (!validationResult.IsValid) {
@@ -47,6 +55,16 @@ public static class AddMarketProducts {
 
       List<Market> markets = command.ToMarkets();
 
+      await AddMarketsAsync(markets, cancellationToken);
+      await AddBrandsAsync(markets, cancellationToken);
+      await AddProductsAsync(command, markets, cancellationToken);
+
+      return Result.Success();
+    }
+
+    private async Task AddMarketsAsync(
+      List<Market> markets, CancellationToken cancellationToken
+    ) {
       List<Market> existingMarkets = await marketRepository.GetMarketsAsync(
         cancellationToken);
       var newMarkets = markets.Where(m =>
@@ -55,8 +73,13 @@ public static class AddMarketProducts {
 
       if (newMarkets.Count != 0) {
         await marketRepository.AddMarketsAsync(newMarkets, cancellationToken);
+        _addedMarkets = newMarkets;
       }
+    }
 
+    private async Task AddBrandsAsync(
+      List<Market> markets, CancellationToken cancellationToken
+    ) {
       var brands = markets.SelectMany(m => m.Products)
         .Select(p => p.Brand)
         .DistinctBy(b => b.Name)
@@ -70,14 +93,42 @@ public static class AddMarketProducts {
 
       if (newBrands.Count != 0) {
         await marketRepository.AddBrandsAsync(newBrands, cancellationToken);
+        _addedBrands = newBrands;
       }
+    }
 
-      DateOnly date = command.RegisteredAt ?? DateOnly.FromDateTime(DateTime.UtcNow);
+    private async Task AddProductsAsync(
+      Command command, List<Market> markets, CancellationToken cancellationToken
+    ) {
+      _registeredAt = command.RegisteredAt ?? DateOnly.FromDateTime(DateTime.UtcNow);
       foreach (Market market in markets) {
-        await marketRepository.AddMarketProductsAsync(market, date, cancellationToken);
+        IReadOnlyCollection<int> addedIds = await marketRepository
+          .AddMarketProductsAsync(market, _registeredAt, cancellationToken);
+        _addedProductIds.AddRange(addedIds);
+        _completedMarketNames.Add(market.Name);
       }
+    }
 
-      return Result.Success();
+    protected override async Task RollbackAsync(
+      Command command, IServiceProvider services, CancellationToken cancellationToken
+    ) {
+      IMarketRepository repo = services.GetRequiredService<IMarketRepository>();
+
+      if (_completedMarketNames.Count > 0) {
+        await repo.DeleteProductsHistoryForMarketsAsync(
+          _completedMarketNames, _registeredAt, cancellationToken);
+      }
+      if (_addedProductIds.Count > 0) {
+        await repo.DeleteProductsAsync(_addedProductIds, cancellationToken);
+      }
+      if (_addedBrands.Count > 0) {
+        await repo.DeleteBrandsAsync(
+          [.. _addedBrands.Select(b => b.Name)], cancellationToken);
+      }
+      if (_addedMarkets.Count > 0) {
+        await repo.DeleteMarketsAsync(
+          [.. _addedMarkets.Select(m => m.Name)], cancellationToken);
+      }
     }
   }
 

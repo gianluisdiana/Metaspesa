@@ -94,12 +94,11 @@ internal partial class PostgreSqlMarketRepository(
     "Couldn't add brands {BrandNames}")]
   partial void LogErrorAddingBrands(string brandNames, Exception ex);
 
-  public async Task AddMarketProductsAsync(
+  public async Task<IReadOnlyCollection<int>> AddMarketProductsAsync(
     Market market,
     DateOnly registeredAt,
     CancellationToken cancellationToken
   ) {
-
     context.ChangeTracker.AutoDetectChangesEnabled = false;
     context.ChangeTracker.Clear();
 
@@ -107,7 +106,6 @@ internal partial class PostgreSqlMarketRepository(
       .Where(s => s.Name == market.Name)
       .Select(s => s.Id)
       .SingleAsync(cancellationToken);
-
 
     var brandNamesInImport = market.Products
         .Select(p => p.Brand.Name)
@@ -125,6 +123,7 @@ internal partial class PostgreSqlMarketRepository(
 
     var history = new List<ProductsHistoryDbEntity>();
     var toInsert = new List<(ProductDbEntity Entity, MarketProduct Source)>();
+    var addedProductIds = new List<int>();
 
     var now = registeredAt.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
     foreach (MarketProduct mp in market.Products) {
@@ -157,6 +156,7 @@ internal partial class PostgreSqlMarketRepository(
         await context.SaveChangesAsync(cancellationToken);
         context.ChangeTracker.Clear();
 
+        addedProductIds.AddRange(batch.Select(x => x.Entity.Id));
         history.AddRange(batch.Select(x => new ProductsHistoryDbEntity {
           ProductId = x.Entity.Id,
           Price = x.Source.Price.Value,
@@ -173,6 +173,53 @@ internal partial class PostgreSqlMarketRepository(
       await context.SaveChangesAsync(cancellationToken);
       context.ChangeTracker.Clear();
     }
+
+    return addedProductIds;
+  }
+
+  public async Task DeleteProductsAsync(
+    IReadOnlyCollection<int> productIds, CancellationToken cancellationToken
+  ) {
+    await context.Products
+      .Where(p => productIds.Contains(p.Id))
+      .ExecuteDeleteAsync(cancellationToken);
+  }
+
+  public async Task DeleteProductsHistoryForMarketsAsync(
+    IReadOnlyCollection<string> marketNames,
+    DateOnly registeredAt,
+    CancellationToken cancellationToken
+  ) {
+    var date = registeredAt.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+    IQueryable<ProductsHistoryDbEntity> productsHistoryDbEntities =
+      from h in context.ProductsHistory
+      join p in context.Products
+        on h.ProductId equals p.Id
+      join sm in context.SuperMarkets
+        on p.SuperMarketId equals sm.Id
+      where marketNames.Contains(sm.Name) &&
+        h.CreatedAt == date
+      select h;
+
+    await productsHistoryDbEntities
+      .ExecuteDeleteAsync(cancellationToken);
+  }
+
+  public async Task DeleteMarketsAsync(
+    IReadOnlyCollection<string> marketNames, CancellationToken cancellationToken
+  ) {
+    await context.SuperMarkets
+      .Where(m => marketNames.Contains(m.Name))
+      .ExecuteDeleteAsync(cancellationToken);
+  }
+
+  public async Task DeleteBrandsAsync(
+    IReadOnlyCollection<string> brandNames, CancellationToken cancellationToken
+  ) {
+    await context.ProductBrands
+      .Where(b => brandNames.Contains(b.Name))
+      .ExecuteDeleteAsync(cancellationToken);
   }
 
   [LoggerMessage(

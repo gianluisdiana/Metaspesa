@@ -442,4 +442,442 @@ public static class PostgreSqlMarketRepositoryTests {
       Assert.Equal(2, historyCount);
     }
   }
+
+  [Collection("Database")]
+  public class AddMarketProductsReturnsTests : IAsyncLifetime {
+    private readonly MainContext _context;
+    private readonly PostgreSqlMarketRepository _repository;
+    private const string MarketName = "TestMarketForReturns";
+    private const string BrandName = "TestBrandForReturns";
+
+    public AddMarketProductsReturnsTests(DatabaseFixture fixture) {
+      _context = fixture.CreateContext();
+      _repository = new PostgreSqlMarketRepository(
+        _context, NullLogger<PostgreSqlMarketRepository>.Instance);
+    }
+
+    public async ValueTask InitializeAsync() {
+      await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+
+      bool marketExists = await _context.SuperMarkets
+        .AnyAsync(m => m.Name == MarketName, TestContext.Current.CancellationToken);
+      if (!marketExists) {
+        _context.SuperMarkets.Add(new SuperMarketDbEntity { Name = MarketName });
+      }
+
+      bool brandExists = await _context.ProductBrands
+        .AnyAsync(b => b.Name == BrandName, TestContext.Current.CancellationToken);
+      if (!brandExists) {
+        _context.ProductBrands.Add(new ProductBrandDbEntity { Name = BrandName });
+      }
+
+      if (_context.ChangeTracker.HasChanges()) {
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      }
+    }
+
+    public async ValueTask DisposeAsync() {
+      await _context.DisposeAsync();
+      GC.SuppressFinalize(this);
+    }
+
+    private static Market MakeMarket(params string[] productNames) =>
+      new(MarketName, [
+        ..productNames.Select(n => new MarketProduct(n, "1kg", new Price(1.00f), new ProductBrand(BrandName)))
+      ]);
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns IDs of newly created products")]
+    public async Task Repository_ReturnsNewProductIds_WhenProductsAreNew() {
+      // Act
+      IReadOnlyCollection<int> result = await _repository.AddMarketProductsAsync(
+        MakeMarket("ReturnProduct1", "ReturnProduct2"),
+        DateOnly.FromDateTime(DateTime.Today),
+        TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Equal(2, result.Count);
+      Assert.All(result, id => Assert.True(id > 0));
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns empty collection when all products already exist")]
+    public async Task Repository_ReturnsEmptyCollection_WhenAllProductsAlreadyExist() {
+      // Arrange — seed the product first
+      await _repository.AddMarketProductsAsync(
+        MakeMarket("ExistingReturnProduct"),
+        DateOnly.FromDateTime(DateTime.Today),
+        TestContext.Current.CancellationToken);
+
+      // Act — same product again
+      IReadOnlyCollection<int> result = await _repository.AddMarketProductsAsync(
+        MakeMarket("ExistingReturnProduct"),
+        DateOnly.FromDateTime(DateTime.Today),
+        TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Empty(result);
+    }
+  }
+
+  [Collection("Database")]
+  public class DeleteBrandsTests : IAsyncLifetime {
+    private readonly MainContext _context;
+    private readonly PostgreSqlMarketRepository _repository;
+
+    public DeleteBrandsTests(DatabaseFixture fixture) {
+      _context = fixture.CreateContext();
+      _repository = new PostgreSqlMarketRepository(
+        _context, NullLogger<PostgreSqlMarketRepository>.Instance);
+    }
+
+    public async ValueTask InitializeAsync() {
+      await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.ProductBrands.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+    }
+
+    public async ValueTask DisposeAsync() {
+      await _context.DisposeAsync();
+      GC.SuppressFinalize(this);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Deletes specified brands")]
+    public async Task Repository_DeletesSpecifiedBrands() {
+      // Arrange
+      await _repository.AddBrandsAsync(
+        [new ProductBrand("BrandToDelete"), new ProductBrand("BrandToKeep")],
+        TestContext.Current.CancellationToken);
+
+      // Act
+      await _repository.DeleteBrandsAsync(
+        ["BrandToDelete"],
+        TestContext.Current.CancellationToken);
+
+      // Assert
+      bool exists = await _context.ProductBrands
+        .AsNoTracking()
+        .AnyAsync(b => b.Name == "BrandToDelete", TestContext.Current.CancellationToken);
+      Assert.False(exists);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Does not delete other brands")]
+    public async Task Repository_DoesNotDeleteOtherBrands() {
+      // Arrange
+      await _repository.AddBrandsAsync(
+        [new ProductBrand("BrandToDelete2"), new ProductBrand("BrandToKeep2")],
+        TestContext.Current.CancellationToken);
+
+      // Act
+      await _repository.DeleteBrandsAsync(
+        ["BrandToDelete2"],
+        TestContext.Current.CancellationToken);
+
+      // Assert
+      bool exists = await _context.ProductBrands
+        .AsNoTracking()
+        .AnyAsync(b => b.Name == "BrandToKeep2", TestContext.Current.CancellationToken);
+      Assert.True(exists);
+    }
+  }
+
+  [Collection("Database")]
+  public class DeleteMarketsTests : IAsyncLifetime {
+    private readonly MainContext _context;
+    private readonly PostgreSqlMarketRepository _repository;
+
+    public DeleteMarketsTests(DatabaseFixture fixture) {
+      _context = fixture.CreateContext();
+      _repository = new PostgreSqlMarketRepository(
+        _context, NullLogger<PostgreSqlMarketRepository>.Instance);
+    }
+
+    public async ValueTask InitializeAsync() {
+      await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.SuperMarkets.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+    }
+
+    public async ValueTask DisposeAsync() {
+      await _context.DisposeAsync();
+      GC.SuppressFinalize(this);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Deletes specified markets")]
+    public async Task Repository_DeletesSpecifiedMarkets() {
+      // Arrange
+      await _repository.AddMarketsAsync(
+        [new Market("MarketToDelete", []), new Market("MarketToKeep", [])],
+        TestContext.Current.CancellationToken);
+
+      // Act
+      await _repository.DeleteMarketsAsync(
+        ["MarketToDelete"],
+        TestContext.Current.CancellationToken);
+
+      // Assert
+      bool exists = await _context.SuperMarkets
+        .AsNoTracking()
+        .AnyAsync(m => m.Name == "MarketToDelete", TestContext.Current.CancellationToken);
+      Assert.False(exists);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Does not delete other markets")]
+    public async Task Repository_DoesNotDeleteOtherMarkets() {
+      // Arrange
+      await _repository.AddMarketsAsync(
+        [new Market("MarketToDelete2", []), new Market("MarketToKeep2", [])],
+        TestContext.Current.CancellationToken);
+
+      // Act
+      await _repository.DeleteMarketsAsync(
+        ["MarketToDelete2"],
+        TestContext.Current.CancellationToken);
+
+      // Assert
+      bool exists = await _context.SuperMarkets
+        .AsNoTracking()
+        .AnyAsync(m => m.Name == "MarketToKeep2", TestContext.Current.CancellationToken);
+      Assert.True(exists);
+    }
+  }
+
+  [Collection("Database")]
+  public class DeleteProductsTests : IAsyncLifetime {
+    private readonly MainContext _context;
+    private readonly PostgreSqlMarketRepository _repository;
+    private const string MarketName = "TestMarketForDeleting";
+    private const string BrandName = "TestBrandForDeleting";
+
+    public DeleteProductsTests(DatabaseFixture fixture) {
+      _context = fixture.CreateContext();
+      _repository = new PostgreSqlMarketRepository(
+        _context, NullLogger<PostgreSqlMarketRepository>.Instance);
+    }
+
+    public async ValueTask InitializeAsync() {
+      await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+
+      bool marketExists = await _context.SuperMarkets
+        .AnyAsync(m => m.Name == MarketName, TestContext.Current.CancellationToken);
+      if (!marketExists) {
+        _context.SuperMarkets.Add(new SuperMarketDbEntity { Name = MarketName });
+      }
+
+      bool brandExists = await _context.ProductBrands
+        .AnyAsync(b => b.Name == BrandName, TestContext.Current.CancellationToken);
+      if (!brandExists) {
+        _context.ProductBrands.Add(new ProductBrandDbEntity { Name = BrandName });
+      }
+
+      if (_context.ChangeTracker.HasChanges()) {
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      }
+    }
+
+    public async ValueTask DisposeAsync() {
+      await _context.DisposeAsync();
+      GC.SuppressFinalize(this);
+    }
+
+    private static Market MakeMarket(string productName) =>
+      new(MarketName, [
+        new MarketProduct(productName, "1kg", new Price(1.00f), new ProductBrand(BrandName))
+      ]);
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Deletes specified products")]
+    public async Task Repository_DeletesSpecifiedProducts() {
+      // Arrange
+      IReadOnlyCollection<int> ids = await _repository.AddMarketProductsAsync(
+        MakeMarket("DeleteProduct1"),
+        DateOnly.FromDateTime(DateTime.Today),
+        TestContext.Current.CancellationToken);
+      int id = ids.Single();
+
+      // Act
+      await _repository.DeleteProductsAsync([id], TestContext.Current.CancellationToken);
+
+      // Assert
+      bool exists = await _context.Products
+        .AsNoTracking()
+        .AnyAsync(p => p.Id == id, TestContext.Current.CancellationToken);
+      Assert.False(exists);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Does not delete other products")]
+    public async Task Repository_DoesNotDeleteOtherProducts() {
+      // Arrange
+      IReadOnlyCollection<int> idsToDelete = await _repository.AddMarketProductsAsync(
+        MakeMarket("DeleteProduct2"),
+        DateOnly.FromDateTime(DateTime.Today),
+        TestContext.Current.CancellationToken);
+      IReadOnlyCollection<int> idsToKeep = await _repository.AddMarketProductsAsync(
+        MakeMarket("KeepProduct2"),
+        DateOnly.FromDateTime(DateTime.Today),
+        TestContext.Current.CancellationToken);
+
+      // Act
+      await _repository.DeleteProductsAsync(idsToDelete, TestContext.Current.CancellationToken);
+
+      // Assert
+      bool exists = await _context.Products
+        .AsNoTracking()
+        .AnyAsync(p => p.Id == idsToKeep.Single(), TestContext.Current.CancellationToken);
+      Assert.True(exists);
+    }
+  }
+
+  [Collection("Database")]
+  public class DeleteProductsHistoryForMarketsTests : IAsyncLifetime {
+    private readonly MainContext _context;
+    private readonly PostgreSqlMarketRepository _repository;
+    private const string MarketName = "TestMarketForHistory";
+    private const string OtherMarketName = "OtherMarketForHistory";
+    private const string BrandName = "TestBrandForHistory";
+
+    public DeleteProductsHistoryForMarketsTests(DatabaseFixture fixture) {
+      _context = fixture.CreateContext();
+      _repository = new PostgreSqlMarketRepository(
+        _context, NullLogger<PostgreSqlMarketRepository>.Instance);
+    }
+
+    public async ValueTask InitializeAsync() {
+      await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+
+      foreach (string name in new[] { MarketName, OtherMarketName }) {
+        bool exists = await _context.SuperMarkets
+          .AnyAsync(m => m.Name == name, TestContext.Current.CancellationToken);
+        if (!exists) {
+          _context.SuperMarkets.Add(new SuperMarketDbEntity { Name = name });
+        }
+      }
+
+      bool brandExists = await _context.ProductBrands
+        .AnyAsync(b => b.Name == BrandName, TestContext.Current.CancellationToken);
+      if (!brandExists) {
+        _context.ProductBrands.Add(new ProductBrandDbEntity { Name = BrandName });
+      }
+
+      if (_context.ChangeTracker.HasChanges()) {
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      }
+    }
+
+    public async ValueTask DisposeAsync() {
+      await _context.DisposeAsync();
+      GC.SuppressFinalize(this);
+    }
+
+    private static Market MakeMarket(string marketName, string productName) =>
+      new(marketName, [
+        new MarketProduct(productName, "1kg", new Price(1.00f), new ProductBrand(BrandName))
+      ]);
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Deletes history for specified markets at specified date")]
+    public async Task Repository_DeletesHistory_ForSpecifiedMarketsAtDate() {
+      // Arrange
+      var date = new DateOnly(2024, 6, 1);
+      await _repository.AddMarketProductsAsync(
+        MakeMarket(MarketName, "HistoryProduct1"),
+        date,
+        TestContext.Current.CancellationToken);
+
+      // Act
+      await _repository.DeleteProductsHistoryForMarketsAsync(
+        [MarketName],
+        date,
+        TestContext.Current.CancellationToken);
+
+      // Assert
+      var expectedDate = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+      bool historyExists = await _context.ProductsHistory
+        .AsNoTracking()
+        .AnyAsync(
+          h => h.Product.SuperMarket.Name == MarketName && h.CreatedAt == expectedDate,
+          TestContext.Current.CancellationToken);
+      Assert.False(historyExists);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Does not delete history for other markets")]
+    public async Task Repository_DoesNotDeleteHistory_ForOtherMarkets() {
+      // Arrange
+      var date = new DateOnly(2024, 6, 2);
+      await _repository.AddMarketProductsAsync(
+        MakeMarket(MarketName, "HistoryProduct2"),
+        date,
+        TestContext.Current.CancellationToken);
+      await _repository.AddMarketProductsAsync(
+        MakeMarket(OtherMarketName, "OtherHistoryProduct2"),
+        date,
+        TestContext.Current.CancellationToken);
+
+      // Act
+      await _repository.DeleteProductsHistoryForMarketsAsync(
+        [MarketName],
+        date,
+        TestContext.Current.CancellationToken);
+
+      // Assert
+      var expectedDate = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+      bool otherHistoryExists = await _context.ProductsHistory
+        .AsNoTracking()
+        .AnyAsync(
+          h => h.Product.SuperMarket.Name == OtherMarketName && h.CreatedAt == expectedDate,
+          TestContext.Current.CancellationToken);
+      Assert.True(otherHistoryExists);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Does not delete history for same market at different date")]
+    public async Task Repository_DoesNotDeleteHistory_ForSameMarketAtDifferentDate() {
+      // Arrange
+      var targetDate = new DateOnly(2024, 6, 3);
+      var otherDate = new DateOnly(2024, 6, 4);
+      await _repository.AddMarketProductsAsync(
+        MakeMarket(MarketName, "HistoryProduct3"),
+        targetDate,
+        TestContext.Current.CancellationToken);
+      await _repository.AddMarketProductsAsync(
+        MakeMarket(MarketName, "HistoryProduct3b"),
+        otherDate,
+        TestContext.Current.CancellationToken);
+
+      // Act
+      await _repository.DeleteProductsHistoryForMarketsAsync(
+        [MarketName],
+        targetDate,
+        TestContext.Current.CancellationToken);
+
+      // Assert
+      var otherExpectedDate = otherDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+      bool otherHistoryExists = await _context.ProductsHistory
+        .AsNoTracking()
+        .AnyAsync(
+          h => h.Product.SuperMarket.Name == MarketName && h.CreatedAt == otherExpectedDate,
+          TestContext.Current.CancellationToken);
+      Assert.True(otherHistoryExists);
+    }
+  }
 }
