@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Shopping;
 using Metaspesa.Database.Entities;
 using Metaspesa.Domain.Shopping;
@@ -10,6 +11,7 @@ namespace Metaspesa.Database.Repositories;
 
 internal partial class PostgreSqlShoppingRepository(
   MainContext context,
+  IClock clock,
   ILogger<PostgreSqlShoppingRepository> logger
 ) : IShoppingRepository {
   public async Task<ShoppingList?> GetCurrentShoppingListAsync(
@@ -213,7 +215,7 @@ internal partial class PostgreSqlShoppingRepository(
       .First();
 #pragma warning restore CA1862, CA1304, CA1311
 
-    item.DeletedAt = DateTime.UtcNow;
+    item.DeletedAt = clock.GetCurrentTime();
   }
 
   public void RecordShoppingList(Guid userUid, ShoppingList shoppingList) {
@@ -222,12 +224,13 @@ internal partial class PostgreSqlShoppingRepository(
     try {
       List<ShoppingItem> checkedItems = [.. shoppingList.Items.Where(i => i.IsChecked)];
 
+      DateTime now = clock.GetCurrentTime();
       context.Purchases.AddRange(checkedItems.Select(ci => new PurchaseDbEntity {
         UserUid = userUid,
         RegisteredItemId = 0, // Temporary
         PricePaid = ci.Price.Value,
         Quantity = ci.Quantity,
-        PurchasedAt = DateTime.UtcNow,
+        PurchasedAt = now,
       }));
 
 #pragma warning disable CA1304, CA1311
@@ -240,7 +243,7 @@ internal partial class PostgreSqlShoppingRepository(
 #pragma warning restore CA1304, CA1311
 
       foreach (ShoppingItemDbEntity itemEntity in purchasedEntities) {
-        itemEntity.DeletedAt = DateTime.UtcNow;
+        itemEntity.DeletedAt = now;
       }
     } catch (Exception ex) when (
         ex is NpgsqlException or OperationCanceledException ||

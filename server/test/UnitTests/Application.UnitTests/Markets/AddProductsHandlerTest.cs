@@ -25,7 +25,9 @@ public class AddMarketProductsHandlerTest {
       .BuildServiceProvider()
       .GetRequiredService<IServiceScopeFactory>();
 
-    _handler = new Handler(_validator, _marketRepository, scopeFactory);
+    IClock clock = Substitute.For<IClock>();
+    clock.GetCurrentTime().Returns(DateTime.UtcNow);
+    _handler = new Handler(_validator, _marketRepository, scopeFactory, clock);
 
     _marketRepository.GetMarketsAsync(Arg.Any<CancellationToken>()).Returns([]);
     _marketRepository.GetBrandsAsync(Arg.Any<CancellationToken>()).Returns([]);

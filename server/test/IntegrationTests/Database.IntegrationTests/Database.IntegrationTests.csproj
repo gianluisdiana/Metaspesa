@@ -16,6 +16,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="NSubstitute.Analyzers.CSharp">
+      <IncludeAssets>runtime; build; native; contentFiles; analyzers; buildTransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="xunit.v3" />
   </ItemGroup>

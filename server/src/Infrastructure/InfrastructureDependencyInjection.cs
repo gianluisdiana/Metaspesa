@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Users;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +16,7 @@ public static class InfrastructureDependencyInjection {
     services.AddOpenTelemetry()
       .WithTracing(tracing => tracing.AddSource(SecretsLoaderWorker.ActivitySourceName));
 
+    services.AddSingleton<IClock, SystemClock>();
     services.AddSingleton<ISecretVault, LocalSecretVault>();
     services.AddHostedService<SecretsLoaderWorker>();
 

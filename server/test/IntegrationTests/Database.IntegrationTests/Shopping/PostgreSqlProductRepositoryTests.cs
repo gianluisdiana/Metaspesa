@@ -1,7 +1,6 @@
 using Metaspesa.Database.Entities;
 using Metaspesa.Database.Repositories;
 using Metaspesa.Domain.Shopping;
-using Metaspesa.Domain.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 

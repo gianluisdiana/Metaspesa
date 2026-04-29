@@ -43,7 +43,8 @@ public static class AddMarketProducts {
   internal class Handler(
     IValidator<Command> validator,
     IMarketRepository marketRepository,
-    IServiceScopeFactory scopeFactory
+    IServiceScopeFactory scopeFactory,
+    IClock clock
   ) : CancellableCommandHandler<Command>(scopeFactory) {
     private List<Market> _addedMarkets = [];
     private List<ProductBrand> _addedBrands = [];
@@ -106,7 +107,7 @@ public static class AddMarketProducts {
     private async Task AddProductsAsync(
       Command command, List<Market> markets, CancellationToken cancellationToken
     ) {
-      _registeredAt = command.RegisteredAt ?? DateOnly.FromDateTime(DateTime.UtcNow);
+      _registeredAt = command.RegisteredAt ?? DateOnly.FromDateTime(clock.GetCurrentTime());
       foreach (Market market in markets) {
         IReadOnlyCollection<int> addedIds = await marketRepository
           .AddMarketProductsAsync(market, _registeredAt, cancellationToken);

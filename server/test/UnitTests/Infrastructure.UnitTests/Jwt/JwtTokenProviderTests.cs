@@ -1,10 +1,12 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Users;
 using Metaspesa.Domain.Users;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using NSubstitute;
 
 namespace Metaspesa.Infrastructure.UnitTests.Jwt;
 
@@ -15,7 +17,10 @@ public static class JwtTokenProviderTests {
     private const string TestAudience = "test-audience";
     private const int TestExpirationMinutes = 30;
 
-    private static JwtTokenProvider CreateProvider(int expirationMinutes = TestExpirationMinutes) {
+    private static JwtTokenProvider CreateProvider(
+      int expirationMinutes = TestExpirationMinutes,
+      IClock? clock = null
+    ) {
       JwtOptions opts = new() {
         Key = TestKey,
         KeySecretName = "unused-in-test",
@@ -23,7 +28,11 @@ public static class JwtTokenProviderTests {
         Audience = TestAudience,
         ExpirationMinutes = expirationMinutes,
       };
-      return new JwtTokenProvider(Options.Create(opts));
+      IClock resolvedClock = clock ?? Substitute.For<IClock>();
+      if (clock is null) {
+        resolvedClock.GetCurrentTime().Returns(_ => DateTime.UtcNow);
+      }
+      return new JwtTokenProvider(Options.Create(opts), resolvedClock);
     }
 
     private static User TestUser(Role role = Role.Shopper) =>
@@ -96,19 +105,19 @@ public static class JwtTokenProviderTests {
       Assert.Contains(TestAudience, jwt.Audiences);
     }
 
-    [Fact(DisplayName = "Sets ExpiresAt approximately ExpirationMinutes from now")]
+    [Fact(DisplayName = "Sets ExpiresAt exactly ExpirationMinutes from current time")]
     public void GenerateToken_SetsExpiresAt_InConfiguredMinutes() {
       // Arrange
-      DateTime before = DateTime.UtcNow;
+      DateTime fixedTime = new(2025, 6, 1, 12, 0, 0, DateTimeKind.Utc);
+      IClock clock = Substitute.For<IClock>();
+      clock.GetCurrentTime().Returns(fixedTime);
+      JwtTokenProvider provider = CreateProvider(clock: clock);
 
       // Act
-      Token token = _provider.GenerateToken(TestUser());
-      DateTime after = DateTime.UtcNow;
+      Token token = provider.GenerateToken(TestUser());
 
       // Assert
-      DateTime expectedMin = before.AddMinutes(TestExpirationMinutes);
-      DateTime expectedMax = after.AddMinutes(TestExpirationMinutes);
-      Assert.InRange(token.ExpiresAt, expectedMin, expectedMax);
+      Assert.Equal(fixedTime.AddMinutes(TestExpirationMinutes), token.ExpiresAt);
     }
 
     [Fact(DisplayName = "Produces token that passes validation with correct key")]
