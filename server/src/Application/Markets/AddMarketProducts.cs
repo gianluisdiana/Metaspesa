@@ -20,7 +20,7 @@ public static class AddMarketProducts {
 
   public record Command(
     IReadOnlyCollection<CommandProduct> Products,
-    DateOnly? RegisteredAt
+    DateOnly RegisteredAt
   ) : ICommand {
     internal List<Market> ToMarkets() => [
       ..Products.GroupBy(p => p.MarketName!)
@@ -43,14 +43,12 @@ public static class AddMarketProducts {
   internal class Handler(
     IValidator<Command> validator,
     IMarketRepository marketRepository,
-    IServiceScopeFactory scopeFactory,
-    IClock clock
+    IServiceScopeFactory scopeFactory
   ) : CancellableCommandHandler<Command>(scopeFactory) {
     private List<Market> _addedMarkets = [];
     private List<ProductBrand> _addedBrands = [];
     private readonly List<int> _addedProductIds = [];
     private readonly List<string> _completedMarketNames = [];
-    private DateOnly _registeredAt;
 
     protected override async Task<Result> ExecuteAsync(
       Command command, CancellationToken cancellationToken
@@ -107,10 +105,9 @@ public static class AddMarketProducts {
     private async Task AddProductsAsync(
       Command command, List<Market> markets, CancellationToken cancellationToken
     ) {
-      _registeredAt = command.RegisteredAt ?? DateOnly.FromDateTime(clock.GetCurrentTime());
       foreach (Market market in markets) {
         IReadOnlyCollection<int> addedIds = await marketRepository
-          .AddMarketProductsAsync(market, _registeredAt, cancellationToken);
+          .AddMarketProductsAsync(market, command.RegisteredAt, cancellationToken);
         _addedProductIds.AddRange(addedIds);
         _completedMarketNames.Add(market.Name);
       }
@@ -123,7 +120,7 @@ public static class AddMarketProducts {
 
       if (_completedMarketNames.Count > 0) {
         await repo.DeleteProductsHistoryForMarketsAsync(
-          _completedMarketNames, _registeredAt, cancellationToken);
+          _completedMarketNames, command.RegisteredAt, cancellationToken);
       }
       if (_addedProductIds.Count > 0) {
         await repo.DeleteProductsAsync(_addedProductIds, cancellationToken);
@@ -145,6 +142,12 @@ public static class AddMarketProducts {
         .NotEmpty()
         .WithMessage("At least one product must be provided.")
         .WithErrorCode("Market.Products.Empty");
+
+      RuleFor(x => x.RegisteredAt)
+        .Must(registeredAt => registeredAt >= DateOnly.FromDateTime(
+          new DateTime(2023, 1, 1, 0, 0, 0, DateTimeKind.Utc)))
+        .WithMessage("RegisteredAt must be on or after January 1, 2023.")
+        .WithErrorCode("Market.RegisteredAt.TooOld");
 
       RuleForEach(x => x.Products)
         .ChildRules(product => {

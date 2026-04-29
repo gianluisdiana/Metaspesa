@@ -16,9 +16,8 @@ internal class MarketGrpcService(
   public override async Task<Empty> AddProducts(
     AddProductsRequest request, ServerCallContext context
   ) {
-    DateOnly? registeredAt = request.RegisteredAt is null ?
-      null :
-      DateOnly.FromDateTime(request.RegisteredAt.ToDateTime());
+    var registeredAt = DateOnly.FromDateTime(
+      request.RegisteredAt.ToDateTime());
     var command = new AddMarketProducts.Command(
       [.. request.Products.Select(p => new AddMarketProducts.CommandProduct(
         p.Name, p.Price, p.Quantity, p.MarketName, p.BrandName))],

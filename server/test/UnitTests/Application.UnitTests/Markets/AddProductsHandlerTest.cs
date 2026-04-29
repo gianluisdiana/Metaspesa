@@ -25,9 +25,7 @@ public class AddMarketProductsHandlerTest {
       .BuildServiceProvider()
       .GetRequiredService<IServiceScopeFactory>();
 
-    IClock clock = Substitute.For<IClock>();
-    clock.GetCurrentTime().Returns(DateTime.UtcNow);
-    _handler = new Handler(_validator, _marketRepository, scopeFactory, clock);
+    _handler = new Handler(_validator, _marketRepository, scopeFactory);
 
     _marketRepository.GetMarketsAsync(Arg.Any<CancellationToken>()).Returns([]);
     _marketRepository.GetBrandsAsync(Arg.Any<CancellationToken>()).Returns([]);
@@ -39,7 +37,7 @@ public class AddMarketProductsHandlerTest {
   [Fact(DisplayName = "Returns errors when validation fails")]
   public async Task Handler_ReturnsErrors_WhenValidationFails() {
     // Arrange
-    var command = new Command([], null);
+    var command = new Command([], DateOnly.MinValue);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult([new ValidationFailure()]));
 
@@ -53,7 +51,7 @@ public class AddMarketProductsHandlerTest {
   [Fact(DisplayName = "Does not call repository when validation fails")]
   public async Task Handler_DoesNotCallRepository_WhenValidationFails() {
     // Arrange
-    var command = new Command([], null);
+    var command = new Command([], DateOnly.MinValue);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult([new ValidationFailure()]));
 
@@ -72,7 +70,7 @@ public class AddMarketProductsHandlerTest {
     // Arrange
     var command = new Command(
       [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike")],
-      null);
+      DateOnly.MinValue);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
 
@@ -91,7 +89,7 @@ public class AddMarketProductsHandlerTest {
     // Arrange
     var command = new Command(
       [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike")],
-      null);
+      DateOnly.MinValue);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
 
@@ -128,7 +126,7 @@ public class AddMarketProductsHandlerTest {
     // Arrange
     var command = new Command(
       [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike")],
-      null);
+      DateOnly.MinValue);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
     _marketRepository.GetMarketsAsync(Arg.Any<CancellationToken>())
@@ -148,7 +146,7 @@ public class AddMarketProductsHandlerTest {
     // Arrange
     var command = new Command(
       [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike")],
-      null);
+      DateOnly.MinValue);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
     _marketRepository.GetBrandsAsync(Arg.Any<CancellationToken>())
@@ -168,7 +166,7 @@ public class AddMarketProductsHandlerTest {
     // Arrange
     var command = new Command(
       [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike")],
-      null);
+      DateOnly.MinValue);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
 
@@ -196,7 +194,7 @@ public class AddMarketProductsHandlerTest {
     // Arrange
     var command = new Command(
       [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike")],
-      null);
+      DateOnly.MinValue);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
 
@@ -229,7 +227,7 @@ public class AddMarketProductsHandlerTest {
     // Arrange
     var command = new Command(
       [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike")],
-      null);
+      DateOnly.MinValue);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
 
@@ -263,7 +261,7 @@ public class AddMarketProductsHandlerTest {
     // Arrange
     var command = new Command(
       [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike")],
-      null);
+      DateOnly.MinValue);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
 

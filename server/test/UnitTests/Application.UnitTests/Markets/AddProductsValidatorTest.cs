@@ -17,7 +17,7 @@ public class AddProductsValidatorTest {
   [Fact(DisplayName = "Fails when products collection is empty")]
   public async Task Validator_Fails_WhenProductsCollectionIsEmpty() {
     // Arrange
-    var command = new Command([], null);
+    var command = new Command([], DateOnly.MinValue);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -34,7 +34,7 @@ public class AddProductsValidatorTest {
   [InlineData("   ")]
   public async Task Validator_Fails_WhenAnyProductNameIsEmpty(string? name) {
     // Arrange
-    var command = new Command([new CommandProduct(name, 1.99f, "1L", "Walmart", "Nike")], null);
+    var command = new Command([new CommandProduct(name, 1.99f, "1L", "Walmart", "Nike")], DateOnly.MinValue);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -52,7 +52,7 @@ public class AddProductsValidatorTest {
   public async Task Validator_Fails_WhenAnyMarketNameIsEmpty(string? marketName) {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 1.99f, "1L", marketName, "Nike")], null);
+      [new CommandProduct("Milk", 1.99f, "1L", marketName, "Nike")], DateOnly.MinValue);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -70,7 +70,7 @@ public class AddProductsValidatorTest {
   public async Task Validator_Fails_WhenAnyBrandNameIsEmpty(string? brandName) {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", brandName)], null);
+      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", brandName)], DateOnly.MinValue);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -88,7 +88,7 @@ public class AddProductsValidatorTest {
   public async Task Validator_Fails_WhenQuantityIsEmpty(string? quantity) {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 1.99f, quantity, "Walmart", "Nike")], null);
+      [new CommandProduct("Milk", 1.99f, quantity, "Walmart", "Nike")], DateOnly.MinValue);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -103,7 +103,7 @@ public class AddProductsValidatorTest {
   public async Task Validator_Fails_WhenPriceIsNegative() {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", -1f, "1L", "Walmart", "Nike")], null);
+      [new CommandProduct("Milk", -1f, "1L", "Walmart", "Nike")], DateOnly.MinValue);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -120,7 +120,7 @@ public class AddProductsValidatorTest {
     var command = new Command([
       new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike"),
       new CommandProduct("Milk", 2.50f, "1L", "Walmart", "Nike"),
-    ], null);
+    ], DateOnly.MinValue);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -131,13 +131,34 @@ public class AddProductsValidatorTest {
       .WithErrorCode("Market.Product.Duplicate");
   }
 
+  [Theory(DisplayName = "Fails when RegisteredAt is before January 1, 2023")]
+  [InlineData(2022, 12, 31)]
+  [InlineData(2020, 1, 1)]
+  public async Task Validator_Fails_WhenRegisteredAtIsTooOld(
+    int year, int month, int day
+  ) {
+    // Arrange
+    var registeredAt = new DateOnly(year, month, day);
+    var command = new Command([
+      new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike"),
+    ], registeredAt);
+
+    // Act
+    TestValidationResult<Command> result = await _validator.TestValidateAsync(
+      command, cancellationToken: TestContext.Current.CancellationToken);
+
+    // Assert
+    result.ShouldHaveValidationErrorFor(x => x.RegisteredAt)
+      .WithErrorCode("Market.RegisteredAt.TooOld");
+  }
+
   [Fact(DisplayName = "Passes when all products are valid")]
   public async Task Validator_Passes_WhenAllProductsAreValid() {
     // Arrange
     var command = new Command([
       new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike"),
       new CommandProduct("Bread", 0.99f, "500g", "Carrefour", "Adidas"),
-    ], null);
+    ], DateOnly.FromDateTime(new DateTime(2024, 6, 15, 12, 0, 0, DateTimeKind.Utc)));
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -151,7 +172,8 @@ public class AddProductsValidatorTest {
   public async Task Validator_Passes_WhenPriceIsZero() {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 0f, "1L", "Walmart", "Nike")], null);
+      [new CommandProduct("Milk", 0f, "1L", "Walmart", "Nike")], 
+      DateOnly.FromDateTime(new DateTime(2024, 6, 15, 12, 0, 0, DateTimeKind.Utc)));
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(

@@ -33,7 +33,8 @@ public static class MarketGrpcServiceTests {
             Name = "Milk", Price = 1.99f, Quantity = "1L",
             MarketName = "Walmart", BrandName = "Nike"
           }
-        }
+        },
+        RegisteredAt = Timestamp.FromDateTime(DateTime.UtcNow),
       };
 
       // Act
@@ -56,7 +57,8 @@ public static class MarketGrpcServiceTests {
             Name = "Milk", Price = 1.99f, Quantity = "1L",
             MarketName = "Walmart", BrandName = "Nike"
           }
-        }
+        },
+        RegisteredAt = Timestamp.FromDateTime(DateTime.UtcNow),
       };
 
       // Act
@@ -77,7 +79,8 @@ public static class MarketGrpcServiceTests {
         Products = {
           new Product { Name = "Milk", Price = 1.99f, MarketName = "Walmart", BrandName = "Nike" },
           new Product { Name = "Bread", Price = 0.99f, MarketName = "Carrefour", BrandName = "Adidas" },
-        }
+        },
+        RegisteredAt = Timestamp.FromDateTime(DateTime.UtcNow),
       };
 
       // Act
@@ -109,31 +112,11 @@ public static class MarketGrpcServiceTests {
 
       // Assert
       await _useCaseHandler.Received(1).Handle(
-        Arg.Is<AddMarketProducts.Command>(cmd => cmd.RegisteredAt == DateOnly.FromDateTime(expectedTime)),
+        Arg.Is<AddMarketProducts.Command>(cmd =>
+          cmd.RegisteredAt == DateOnly.FromDateTime(expectedTime)),
         TestContext.Current.CancellationToken);
     }
 
-    [Fact(DisplayName = "Passes null registered_at when not provided")]
-    public async Task Api_PassesNullRegisteredAt_WhenNotProvided() {
-      // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<AddMarketProducts.Command>(), TestContext.Current.CancellationToken)
-        .Returns(Result.Success());
-
-      var request = new AddProductsRequest {
-        Products = {
-          new Product { Name = "Milk", Price = 1.99f, MarketName = "Walmart", BrandName = "Nike" }
-        }
-      };
-
-      // Act
-      await _service.AddProducts(request, CreateServerCallContext());
-
-      // Assert
-      await _useCaseHandler.Received(1).Handle(
-        Arg.Is<AddMarketProducts.Command>(cmd => cmd.RegisteredAt == null),
-        TestContext.Current.CancellationToken);
-    }
     private static ServerCallContext CreateServerCallContext() => TestServerCallContext.Create(
       method: string.Empty,
       host: string.Empty,
