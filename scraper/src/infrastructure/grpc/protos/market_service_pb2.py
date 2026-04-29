@@ -27,15 +27,15 @@ from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__
 from infrastructure.grpc.protos import domain_pb2 as infrastructure_dot_grpc_dot_protos_dot_domain__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n/infrastructure/grpc/protos/market_service.proto\x12\x18Metaspesa.Protos.Markets\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\'infrastructure/grpc/protos/domain.proto\"\x93\x01\n\x12\x41\x64\x64ProductsRequest\x12\x33\n\x08products\x18\x01 \x03(\x0b\x32!.Metaspesa.Protos.Markets.Product\x12\x36\n\rregistered_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x00\x88\x01\x01\x42\x10\n\x0e_registered_at2d\n\rMarketService\x12S\n\x0b\x41\x64\x64Products\x12,.Metaspesa.Protos.Markets.AddProductsRequest\x1a\x16.google.protobuf.Emptyb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n/infrastructure/grpc/protos/market_service.proto\x12\x18Metaspesa.Protos.Markets\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\'infrastructure/grpc/protos/domain.proto\"|\n\x12\x41\x64\x64ProductsRequest\x12\x33\n\x08products\x18\x01 \x03(\x0b\x32!.Metaspesa.Protos.Markets.Product\x12\x31\n\rregistered_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp2d\n\rMarketService\x12S\n\x0b\x41\x64\x64Products\x12,.Metaspesa.Protos.Markets.AddProductsRequest\x1a\x16.google.protobuf.Emptyb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'infrastructure.grpc.protos.market_service_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_ADDPRODUCTSREQUEST']._serialized_start=181
-  _globals['_ADDPRODUCTSREQUEST']._serialized_end=328
-  _globals['_MARKETSERVICE']._serialized_start=330
-  _globals['_MARKETSERVICE']._serialized_end=430
+  _globals['_ADDPRODUCTSREQUEST']._serialized_start=180
+  _globals['_ADDPRODUCTSREQUEST']._serialized_end=304
+  _globals['_MARKETSERVICE']._serialized_start=306
+  _globals['_MARKETSERVICE']._serialized_end=406
 # @@protoc_insertion_point(module_scope)

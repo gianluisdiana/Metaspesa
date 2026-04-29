@@ -8,6 +8,6 @@ class ScraperTelemetry:
         self.__tracer = tracer
 
     @contextmanager
-    def measure_run(self):
-        with self.__tracer.start_as_current_span("scrape_all_markets"):
+    def measure_run(self, span_name: str):
+        with self.__tracer.start_as_current_span(span_name):
             yield

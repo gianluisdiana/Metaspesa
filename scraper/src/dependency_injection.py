@@ -1,14 +1,20 @@
 import grpc.aio
 
-from application.abstractions import MarketWebScraper, ProductRepository
-from application.app_product_repository import AppProductRepository
+from application.abstractions import (
+    FallbackProductRepository,
+    MarketWebScraper,
+    ProductRepository,
+)
 from application.product_processors import (
     BrandExtractor,
     BrandSimplifier,
     ProductProcessor,
     QuantityRedundancyRemover,
 )
-from application.use_case import ScrapeMarketsCommandHandler
+from application.use_case import (
+    RetryFailedSavesCommandHandler,
+    ScrapeMarketsCommandHandler,
+)
 from config import AppConfig
 from infrastructure.grpc.grpc_product_repository import GrpcProductRepository
 from infrastructure.local_storage import CsvProductRepository
@@ -42,31 +48,37 @@ def __create_product_processor(settings: AppConfig) -> ProductProcessor:
     return first_processor
 
 
-def __create_product_repository(
+def __create_main_repository(
     settings: AppConfig, channel: grpc.aio.Channel
 ) -> ProductRepository:
     vault = LocalSecretVault()
     username = vault.read_secret(settings.credentials.username_secret)
     password = vault.read_secret(settings.credentials.password_secret)
 
-    main_repository = GrpcProductRepository(channel, username, password)
-    fallback_repository = CsvProductRepository(
-        settings.fallback_persistence.folder_path
-    )
-
-    return AppProductRepository(
-        main_repository=main_repository,
-        fallback_repository=fallback_repository,
-    )
+    return GrpcProductRepository(channel, username, password)
 
 
-def create_handler(
+def __create_fallback_repository(settings: AppConfig) -> FallbackProductRepository:
+    return CsvProductRepository(settings.fallback_persistence.folder_path)
+
+
+def create_scrape_handler(
     settings: AppConfig, web_driver: WebDriver, channel: grpc.aio.Channel
 ) -> ScrapeMarketsCommandHandler:
     return ScrapeMarketsCommandHandler(
-        product_repository=__create_product_repository(settings, channel),
+        main_repository=__create_main_repository(settings, channel),
+        fallback_repository=__create_fallback_repository(settings),
         market_web_scrapers=__create_market_web_scrapers(settings, web_driver),
         product_processor=__create_product_processor(settings),
+    )
+
+
+def create_retry_handler(
+    settings: AppConfig, channel: grpc.aio.Channel
+) -> RetryFailedSavesCommandHandler:
+    return RetryFailedSavesCommandHandler(
+        fallback_repository=__create_fallback_repository(settings),
+        main_repository=__create_main_repository(settings, channel),
     )
 
 

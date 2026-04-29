@@ -16,5 +16,5 @@ service MarketService {
 // Request message for adding new products.
 message AddProductsRequest {
   repeated Product products = 1;
-  optional google.protobuf.Timestamp registered_at = 2;
+  google.protobuf.Timestamp registered_at = 2;
 }
