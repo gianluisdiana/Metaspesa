@@ -24,3 +24,108 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@theme {
+  /* MD3 color tokens */
+  --color-primary: #875200;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #fbaf52;
+  --color-on-primary-container: #6f4300;
+  --color-primary-fixed: #ffddba;
+  --color-primary-fixed-dim: #ffb865;
+  --color-on-primary-fixed: #2b1700;
+  --color-on-primary-fixed-variant: #673d00;
+  --color-inverse-primary: #ffb865;
+  --color-secondary: #615888;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #d0c5fd;
+  --color-on-secondary-container: #584f7f;
+  --color-secondary-fixed: #e6deff;
+  --color-secondary-fixed-dim: #cabff7;
+  --color-on-secondary-fixed: #1d1441;
+  --color-on-secondary-fixed-variant: #49406f;
+  --color-tertiary: #0062a0;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #8bc3ff;
+  --color-on-tertiary-container: #005085;
+  --color-tertiary-fixed: #d0e4ff;
+  --color-tertiary-fixed-dim: #9ccaff;
+  --color-on-tertiary-fixed: #001d35;
+  --color-on-tertiary-fixed-variant: #00497a;
+  --color-surface: #fff8f3;
+  --color-on-surface: #1e1b18;
+  --color-surface-variant: #e8e1dc;
+  --color-on-surface-variant: #524437;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #faf2ed;
+  --color-surface-container: #f4ede7;
+  --color-surface-container-high: #eee7e1;
+  --color-surface-container-highest: #e8e1dc;
+  --color-surface-dim: #dfd9d3;
+  --color-surface-bright: #fff8f3;
+  --color-surface-tint: #875200;
+  --color-inverse-surface: #33302c;
+  --color-inverse-on-surface: #f7efea;
+  --color-outline: #847465;
+  --color-outline-variant: #d7c3b1;
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+
+  /* Spacing tokens */
+  --spacing-stack-sm: 8px;
+  --spacing-stack-md: 16px;
+  --spacing-stack-lg: 24px;
+  --spacing-gutter: 16px;
+  --spacing-unit: 8px;
+  --spacing-container-margin: 20px;
+
+  /* Font family tokens */
+  --font-body-md: 'Plus Jakarta Sans', sans-serif;
+  --font-headline-md: 'Plus Jakarta Sans', sans-serif;
+  --font-headline-lg: 'Plus Jakarta Sans', sans-serif;
+  --font-label-md: 'Plus Jakarta Sans', sans-serif;
+  --font-label-sm: 'Plus Jakarta Sans', sans-serif;
+  --font-body-lg: 'Plus Jakarta Sans', sans-serif;
+}
+
+/* Typography scale — composite tokens not expressible in @theme */
+.text-body-md {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+}
+.text-headline-md {
+  font-size: 24px;
+  line-height: 32px;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+}
+.text-headline-lg {
+  font-size: 32px;
+  line-height: 40px;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+.text-label-md {
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  font-weight: 600;
+}
+.text-label-sm {
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.02em;
+  font-weight: 500;
+}
+.text-body-lg {
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 400;
+}
+
+.inner-glow {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}

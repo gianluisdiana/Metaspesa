@@ -7,7 +7,8 @@
       "Bash(dotnet format:*)",
       "Bash(xargs grep *)",
       "Bash(docker info *)",
-      "Bash(dotnet run *)"
+      "Bash(dotnet run *)",
+      "Bash(npm run *)"
     ],
     "defaultMode": "plan"
   }
