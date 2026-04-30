@@ -15,6 +15,14 @@ common:
     kvstore:
       store: inmemory
 
+limits_config:
+  retention_period: 72h
+
+compactor:
+  working_directory: /loki/compactor
+  retention_enabled: true
+  delete_request_store: filesystem
+
 schema_config:
   configs:
     - from: 2020-10-24

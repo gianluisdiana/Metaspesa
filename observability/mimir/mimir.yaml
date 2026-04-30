@@ -7,17 +7,20 @@ server:
 blocks_storage:
   backend: filesystem
   filesystem:
-    dir: /tmp/mimir/blocks
+    dir: /var/mimir/blocks
   bucket_store:
-    sync_dir: /tmp/mimir/tsdb-sync
+    sync_dir: /var/mimir/tsdb-sync
 
 compactor:
-  data_dir: /tmp/mimir/compactor
+  data_dir: /var/mimir/compactor
 
 ruler_storage:
   backend: filesystem
   local:
-    directory: /tmp/mimir/ruler
+    directory: /var/mimir/ruler
+
+limits:
+  compactor_blocks_retention_period: 72h
 
 ingester:
   ring:

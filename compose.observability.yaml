@@ -10,7 +10,7 @@ services:
       - metaspesa_telemetry_default
 
   loki:
-    image: grafana/loki:3.5.0
+    image: grafana/loki:latest
     volumes:
       - ./observability/loki/loki.yaml:/etc/loki/loki.yaml
       - loki_data:/loki
@@ -22,7 +22,7 @@ services:
     image: grafana/mimir:latest
     volumes:
       - ./observability/mimir/mimir.yaml:/etc/mimir/mimir.yaml
-      - mimir_data:/tmp/mimir
+      - mimir_data:/var/mimir
     command: -config.file=/etc/mimir/mimir.yaml
     networks:
       - metaspesa_telemetry_default
@@ -31,6 +31,7 @@ services:
     image: grafana/tempo:latest
     volumes:
       - ./observability/tempo/tempo.yaml:/etc/tempo/tempo.yaml
+      - tempo_data:/var/tempo
     command: -config.file=/etc/tempo/tempo.yaml
     networks:
       - metaspesa_telemetry_default
@@ -39,6 +40,8 @@ services:
     image: grafana/grafana:latest
     ports:
       - 3001:3000
+    env_file:
+      - .env
     volumes:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning
     networks:
@@ -47,6 +50,7 @@ services:
 volumes:
   loki_data:
   mimir_data:
+  tempo_data:
 
 networks:
   metaspesa_telemetry_default:

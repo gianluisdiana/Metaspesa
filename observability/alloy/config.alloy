@@ -4,19 +4,15 @@ otelcol.receiver.otlp "default" {
   }
 
   output {
-    logs    = [otelcol.exporter.loki.default.input]
+    logs    = [otelcol.exporter.otlphttp.loki.input]
     traces  = [otelcol.exporter.otlp.tempo.input]
     metrics = [otelcol.exporter.otlphttp.mimir.input]
   }
 }
 
-otelcol.exporter.loki "default" {
-  forward_to = [loki.write.default.receiver]
-}
-
-loki.write "default" {
-  endpoint {
-    url = "http://loki:3100/loki/api/v1/push"
+otelcol.exporter.otlphttp "loki" {
+  client {
+    endpoint = "http://loki:3100/otlp"
   }
 }
 
