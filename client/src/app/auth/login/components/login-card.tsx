@@ -1,3 +1,5 @@
+import TextField from '@/app/components/text-field';
+
 export function CardHeading() {
   return (
     <div className="mb-stack-lg">
@@ -5,38 +7,8 @@ export function CardHeading() {
         Sign In
       </h2>
       <p className="font-body-md text-body-md text-on-surface-variant mt-unit">
-        Please enter your username to continue.
+        Please enter your credentials to continue.
       </p>
-    </div>
-  );
-}
-
-export function UsernameField() {
-  return (
-    <div className="space-y-unit">
-      <label
-        className="block font-label-md text-label-md text-on-surface"
-        htmlFor="username"
-      >
-        Username
-      </label>
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <span
-            className="material-symbols-outlined text-on-surface-variant"
-            style={{ fontSize: '20px' }}
-          >
-            person
-          </span>
-        </div>
-        <input
-          className="block w-full pl-10 pr-3 py-3 bg-surface-container border-transparent rounded-lg font-body-md text-body-md text-on-surface placeholder:text-outline focus:border-transparent focus:ring-2 focus:ring-tertiary-fixed-dim focus:bg-surface-container-highest transition-all duration-200"
-          id="username"
-          name="username"
-          placeholder="Enter your username"
-          type="text"
-        />
-      </div>
     </div>
   );
 }
@@ -65,7 +37,7 @@ export function RegistrationLink() {
         New here?{' '}
         <a
           className="font-label-md text-label-md text-primary hover:text-primary-fixed-dim transition-colors underline-offset-4 hover:underline"
-          href="#"
+          href="/auth/register"
         >
           Create an account
         </a>
@@ -79,7 +51,19 @@ export default function LoginCard() {
     <div className="bg-surface-container-lowest/70 backdrop-blur-xl border border-surface-variant rounded-xl p-stack-lg md:p-[32px] shadow-[0_8px_32px_rgba(97,88,136,0.08)]">
       <CardHeading />
       <form action="#" className="space-y-stack-md">
-        <UsernameField />
+        <TextField
+          id="username"
+          label="Username"
+          icon="person"
+          placeholder="Enter your username"
+        />
+        <TextField
+          id="password"
+          label="Password"
+          icon="lock"
+          type="password"
+          placeholder="••••••••"
+        />
         <LoginButton />
       </form>
       <RegistrationLink />
