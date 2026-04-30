@@ -30,7 +30,7 @@ function BottomNavItem({
 
 const NAV_ITEMS: BottomNavItemProps[] = [
   { active: true, href: '/markets', icon: 'storefront', label: 'Markets' },
-  { href: '/lists', icon: 'list_alt', label: 'Lists' },
+  { href: '/shopping', icon: 'list_alt', label: 'Lists' },
   { href: '#', icon: 'group', label: 'Shared' },
   { href: '#', icon: 'person', label: 'Profile' },
 ];

@@ -11,26 +11,42 @@ export function SideNavItem({
   icon,
   label,
 }: Readonly<SideNavItemProps>) {
-  const activeClass = 'bg-white text-orange-700 rounded-lg shadow-sm font-bold';
-  const inactiveClass = 'text-slate-600 hover:bg-orange-100/50 transition-all';
+  if (active) {
+    return (
+      <a
+        className="flex items-center gap-3 bg-primary-container/20 text-on-primary-container rounded-lg px-4 py-3 shadow-sm border border-primary-container/30 relative overflow-hidden"
+        href={href}
+      >
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full" />
+        <span
+          className="material-symbols-outlined text-primary"
+          style={{ fontVariationSettings: "'FILL' 1" }}
+        >
+          {icon}
+        </span>
+        <span className="font-label-md text-label-md font-bold">{label}</span>
+      </a>
+    );
+  }
   return (
     <a
-      className={`flex items-center gap-3 px-4 py-3 hover:translate-x-1 duration-200 ${active ? activeClass : inactiveClass}`}
+      className="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container rounded-lg transition-colors group"
       href={href}
     >
       <span
-        className={`material-symbols-outlined${active ? ' icon-fill' : ''}`}
+        className="material-symbols-outlined group-hover:text-primary transition-colors"
+        style={{ fontVariationSettings: "'FILL' 0" }}
       >
         {icon}
       </span>
-      {label}
+      <span className="font-label-md text-label-md">{label}</span>
     </a>
   );
 }
 
 const MAIN_LINKS: SideNavItemProps[] = [
   { active: true, href: '/markets', icon: 'storefront', label: 'Markets' },
-  { href: '/lists', icon: 'receipt_long', label: 'Shopping Lists' },
+  { href: '/shopping', icon: 'receipt_long', label: 'Shopping Lists' },
 ];
 
 const FOOTER_LINKS: SideNavItemProps[] = [
@@ -60,11 +76,21 @@ export function SideNavHeader() {
   );
 }
 
-export function MainNavLinks() {
+export function MainNavLinks({
+  activeHref,
+}: Readonly<{ activeHref?: string }> = {}) {
   return (
-    <div className="flex-1 flex flex-col gap-1">
+    <div className="flex-1 flex flex-col gap-unit">
       {MAIN_LINKS.map(link => (
-        <SideNavItem key={link.href} {...link} />
+        <SideNavItem
+          key={link.href}
+          {...link}
+          active={
+            activeHref === undefined
+              ? (link.active ?? false)
+              : link.href === activeHref
+          }
+        />
       ))}
     </div>
   );
@@ -72,7 +98,7 @@ export function MainNavLinks() {
 
 export function FooterNavLinks() {
   return (
-    <div className="mt-auto border-t border-orange-100 pt-4 flex flex-col gap-1">
+    <div className="mt-auto border-t border-surface-variant pt-4 flex flex-col gap-unit">
       {FOOTER_LINKS.map(link => (
         <SideNavItem key={link.href} {...link} />
       ))}
