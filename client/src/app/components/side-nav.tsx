@@ -47,6 +47,7 @@ export function SideNavItem({
 const MAIN_LINKS: SideNavItemProps[] = [
   { active: true, href: '/markets', icon: 'storefront', label: 'Markets' },
   { href: '/shopping', icon: 'receipt_long', label: 'Shopping Lists' },
+  { href: '/evolution', icon: 'monitoring', label: 'Evolution' },
 ];
 
 const FOOTER_LINKS: SideNavItemProps[] = [
@@ -106,11 +107,13 @@ export function FooterNavLinks() {
   );
 }
 
-export default function SideNav() {
+export default function SideNav({
+  activeHref,
+}: Readonly<{ activeHref?: string }> = {}) {
   return (
     <aside className="hidden md:flex flex-col h-screen p-4 gap-2 w-72 border-r border-orange-100 bg-orange-50/95 backdrop-blur-lg text-orange-600 font-plus-jakarta shadow-xl shadow-purple-900/5 fixed top-16 left-0 z-40 pb-20">
       <SideNavHeader />
-      <MainNavLinks />
+      <MainNavLinks activeHref={activeHref} />
       <FooterNavLinks />
     </aside>
   );
