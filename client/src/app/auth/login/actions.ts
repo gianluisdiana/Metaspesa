@@ -1,6 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 
 import GrpcAuthService from '@/infrastructure/grpc-auth-service';
 import { Credentials } from '@/lib/auth-domain';
@@ -19,13 +20,26 @@ export async function loginAction(
     return { error: 'Username cannot be empty.' };
   }
   const service = new GrpcAuthService();
+  let token: string;
+  let expirationInUtc: string;
   try {
-    await service.login({ password, username });
+    const result = await service.login({ password, username });
+    token = result.token;
+    expirationInUtc = result.expirationInUtc;
   } catch (err) {
     return { error: getGrpcErrorMessage(err) };
   }
 
-  redirect('/shopping');
+  const cookieStore = await cookies();
+  cookieStore.set('auth_token', token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    expires: new Date(expirationInUtc),
+    path: '/',
+  });
+
+  redirect('/markets');
 }
 
 function getGrpcErrorMessage(err: unknown): string {
