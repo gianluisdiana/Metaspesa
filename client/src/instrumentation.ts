@@ -11,9 +11,13 @@ export async function register() {
   const { OTLPMetricExporter } = await import(
     '@opentelemetry/exporter-metrics-otlp-grpc'
   );
+  const { OTLPLogExporter } = await import(
+    '@opentelemetry/exporter-logs-otlp-grpc'
+  );
   const { PeriodicExportingMetricReader } = await import(
     '@opentelemetry/sdk-metrics'
   );
+  const { BatchLogRecordProcessor } = await import('@opentelemetry/sdk-logs');
   const { resourceFromAttributes } = await import('@opentelemetry/resources');
   const { ATTR_SERVICE_NAME } = await import(
     '@opentelemetry/semantic-conventions'
@@ -24,6 +28,9 @@ export async function register() {
 
   const sdk = new NodeSDK({
     instrumentations: [getNodeAutoInstrumentations()],
+    logRecordProcessors: [
+      new BatchLogRecordProcessor(new OTLPLogExporter({ url: otlpEndpoint })),
+    ],
     metricReader: new PeriodicExportingMetricReader({
       exportIntervalMillis: Number(
         process.env.OTEL_METRIC_EXPORT_INTERVAL ?? '60000',

@@ -1,5 +1,11 @@
+'use client';
+
+import { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
+
 import TextField from '@/app/components/text-field';
 
+import { RegisterState, registerAction } from '../actions';
 import DecorativeHeader from './decorative-header';
 
 export function FormHeading() {
@@ -16,16 +22,17 @@ export function FormHeading() {
 }
 
 export function RegisterButton() {
+  const { pending } = useFormStatus();
   return (
     <div className="pt-4">
       <button
-        className="w-full bg-linear-to-r from-primary-fixed-dim to-primary-container text-on-primary-container font-label-md text-label-md py-3 px-6 rounded-full shadow-sm hover:shadow-md transition-all active:scale-[0.98] relative overflow-hidden group"
-        type="button"
+        className="w-full bg-linear-to-r from-primary-fixed-dim to-primary-container text-on-primary-container font-label-md text-label-md py-3 px-6 rounded-full shadow-sm hover:shadow-md transition-all active:scale-[0.98] relative overflow-hidden group disabled:opacity-60 disabled:cursor-not-allowed"
+        disabled={pending}
+        type="submit"
       >
         <div className="absolute top-0 left-0 w-full h-px bg-white/40" />
         <span className="relative z-10 flex items-center justify-center gap-2">
-          Create Account
-          {''}
+          {pending ? 'Creating account…' : 'Create Account'}
           <span className="material-symbols-outlined text-sm">
             arrow_forward
           </span>
@@ -52,32 +59,41 @@ export function LoginLink() {
 }
 
 export default function RegisterCard() {
+  const [state, formAction] = useActionState<RegisterState, FormData>(
+    registerAction,
+    null,
+  );
   return (
     <div className="w-full max-w-md bg-surface-container-lowest rounded-xl shadow-[0_8px_32px_rgba(168,85,247,0.05)] overflow-hidden relative">
       <DecorativeHeader />
       <div className="p-8">
         <FormHeading />
-        <form action="#" className="space-y-stack-lg">
+        <form action={formAction} className="space-y-stack-lg">
           <TextField
             id="username"
-            label="Username"
             icon="person"
+            label="Username"
             placeholder="e.g. shopper"
           />
           <TextField
             id="password"
-            label="Password"
             icon="lock"
-            type="password"
+            label="Password"
             placeholder="••••••••"
+            type="password"
           />
           <TextField
             id="confirm-password"
-            label="Confirm Password"
             icon="lock_clock"
-            type="password"
+            label="Confirm Password"
             placeholder="••••••••"
+            type="password"
           />
+          {state?.error && (
+            <p className="font-body-sm text-body-sm text-error">
+              {state.error}
+            </p>
+          )}
           <RegisterButton />
         </form>
         <LoginLink />

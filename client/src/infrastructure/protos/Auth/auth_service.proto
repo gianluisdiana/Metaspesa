@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package Metaspesa.Protos.Auth;
+
+import "google/protobuf/empty.proto";
+
+option csharp_namespace = "Metaspesa.GrpcApi.Protos.Auth";
+
+// Handles the authentication related operations.
+service AuthService {
+  // Registers a new user with the provided credentials.
+  rpc Register(RegisterRequest) returns (google.protobuf.Empty);
+
+  // Logs in a user with the provided credentials.
+  rpc Login(LoginRequest) returns (LoginResponse);
+}
+
+// Request message for registering a new user.
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+}
+
+// Request message for logging in a user.
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+// Response message for a successful login, containing the authentication token.
+message LoginResponse {
+  string token = 1;
+  string expiration_in_utc = 2;
+}

@@ -2,10 +2,14 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   serverExternalPackages: [
-    '@opentelemetry/sdk-node',
+    '@opentelemetry/api',
+    '@opentelemetry/api-logs',
     '@opentelemetry/auto-instrumentations-node',
-    '@opentelemetry/exporter-trace-otlp-grpc',
+    '@opentelemetry/exporter-logs-otlp-grpc',
     '@opentelemetry/exporter-metrics-otlp-grpc',
+    '@opentelemetry/exporter-trace-otlp-grpc',
+    '@opentelemetry/sdk-logs',
+    '@opentelemetry/sdk-node',
   ],
 };
 
