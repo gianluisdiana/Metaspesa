@@ -17,7 +17,7 @@ export function HelperText() {
   return (
     <div className="mt-stack-lg text-center opacity-70">
       <p className="font-label-sm text-label-sm text-on-surface-variant">
-        Secure, calm, and ready to list.
+        Beyond a regular shopping experience.
       </p>
     </div>
   );

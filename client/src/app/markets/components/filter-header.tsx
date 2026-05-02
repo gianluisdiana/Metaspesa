@@ -10,7 +10,7 @@ export function MarketTitle() {
 
 export function SearchBar() {
   return (
-    <div className="relative flex-grow md:max-w-md">
+    <div className="relative grow md:max-w-md">
       <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
         search
       </span>
@@ -38,7 +38,7 @@ export function FilterDropdown({ label }: Readonly<{ label: string }>) {
 
 export default function FilterHeader() {
   return (
-    <div className="sticky top-[64px] z-30 bg-surface/90 backdrop-blur-md border-b border-surface-variant px-container-margin py-stack-md flex flex-col gap-stack-sm shadow-sm shadow-secondary/5">
+    <div className="sticky top-16 z-30 bg-surface/90 backdrop-blur-md border-b border-surface-variant px-container-margin py-stack-md flex flex-col gap-stack-sm shadow-sm shadow-secondary/5">
       <MarketTitle />
       <div className="flex flex-wrap gap-unit mt-unit items-center">
         <SearchBar />

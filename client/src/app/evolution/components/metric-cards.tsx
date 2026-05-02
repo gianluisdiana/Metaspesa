@@ -63,7 +63,7 @@ function VolumeMetricCard() {
           </span>
         </div>
         <div className="w-full bg-surface-container-high rounded-full h-2 overflow-hidden">
-          <div className="bg-gradient-to-r from-tertiary-container to-primary-container h-full w-[65%] rounded-full" />
+          <div className="bg-linear-to-r from-tertiary-container to-primary-container h-full w-[65%] rounded-full" />
         </div>
       </div>
     </div>

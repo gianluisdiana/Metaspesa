@@ -17,6 +17,7 @@ function ChartHeader() {
       </h3>
       <span className="bg-primary-container/20 text-on-primary-container px-3 py-1 rounded-full font-label-sm text-label-sm flex items-center gap-1">
         <span className="material-symbols-outlined text-[14px]">eco</span>
+        {''}
         Organic Avocados
       </span>
     </div>

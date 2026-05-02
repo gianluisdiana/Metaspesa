@@ -12,7 +12,7 @@ export default function EvolutionPage() {
     <div className="bg-surface text-on-surface antialiased font-body-md text-body-md selection:bg-primary-container selection:text-on-primary-container">
       <TopNav />
       <SideNav activeHref="/evolution" />
-      <main className="pt-[64px] pb-[80px] md:pb-8 md:ml-72 min-h-screen">
+      <main className="pt-16 pb-20 md:pb-8 md:ml-72 min-h-screen">
         <EvolutionPageHeader />
         <div className="p-container-margin">
           <FiltersCard />

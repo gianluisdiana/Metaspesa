@@ -17,7 +17,7 @@ export function LoginButton() {
   return (
     <div className="pt-stack-sm">
       <button
-        className="w-full relative overflow-hidden bg-gradient-to-r from-primary-fixed to-primary-container text-on-primary-container font-label-md text-label-md py-3 px-4 rounded-lg flex items-center justify-center gap-2 shadow-sm shadow-primary/20 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group"
+        className="w-full relative overflow-hidden bg-linear-to-r from-primary-fixed to-primary-container text-on-primary-container font-label-md text-label-md py-3 px-4 rounded-lg flex items-center justify-center gap-2 shadow-sm shadow-primary/20 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group"
         type="submit"
       >
         <div className="absolute inset-0 inner-glow rounded-lg pointer-events-none" />

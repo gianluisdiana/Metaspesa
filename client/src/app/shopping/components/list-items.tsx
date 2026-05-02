@@ -69,6 +69,7 @@ function LowStockWarning() {
       <span className="material-symbols-outlined text-[14px] mr-1">
         warning
       </span>
+      {''}
       Low Stock
     </span>
   );
@@ -102,7 +103,7 @@ function CompletedDivider() {
 function UncheckedItem({ item }: Readonly<{ item: UncheckedItemData }>) {
   return (
     <div className="group flex items-center gap-stack-md bg-surface-container-lowest p-stack-md rounded-xl shadow-[0_2px_8px_rgba(208,197,253,0.08)] border border-transparent hover:border-primary-container/30 transition-all">
-      <button className="w-7 h-7 rounded-full border-[2.5px] border-primary flex-shrink-0 hover:bg-primary/10 transition-colors" />
+      <button className="w-7 h-7 rounded-full border-[2.5px] border-primary shrink-0 hover:bg-primary/10 transition-colors" />
       <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="flex flex-col">
           <span className="font-body-lg text-body-lg text-on-surface">
@@ -139,7 +140,7 @@ function UncheckedItem({ item }: Readonly<{ item: UncheckedItemData }>) {
 function CheckedItem({ item }: Readonly<{ item: CheckedItemData }>) {
   return (
     <div className="flex items-center gap-stack-md bg-secondary-fixed/30 p-stack-md rounded-xl border border-secondary-fixed/50 transition-all opacity-80">
-      <button className="w-7 h-7 rounded-full bg-primary border-primary flex-shrink-0 flex items-center justify-center text-on-primary">
+      <button className="w-7 h-7 rounded-full bg-primary border-primary shrink-0 flex items-center justify-center text-on-primary">
         <span
           className="material-symbols-outlined text-[18px]"
           style={{ fontVariationSettings: "'wght' 700" }}
@@ -168,7 +169,7 @@ export function ProgressTracker() {
       </div>
       <div className="h-2 w-full bg-surface-variant rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-tertiary to-primary rounded-full transition-all duration-500 ease-out"
+          className="h-full bg-linear-to-r from-tertiary to-primary rounded-full transition-all duration-500 ease-out"
           style={{ width: '37.5%' }}
         />
       </div>

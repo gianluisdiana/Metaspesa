@@ -31,7 +31,7 @@ export function ProductBadge({
 
 export function ProductImage({ product }: Readonly<{ product: Product }>) {
   return (
-    <div className="aspect-[4/3] rounded-lg bg-surface-container-high overflow-hidden relative">
+    <div className="aspect-4/3 rounded-lg bg-surface-container-high overflow-hidden relative">
       <img
         alt={product.imageAlt}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -106,7 +106,7 @@ export function AddButton() {
   );
 }
 
-export function ProductActions({ product }: { product: Product }) {
+export function ProductActions({ product }: Readonly<{ product: Product }>) {
   if (product.hasQuantityControl) {
     return (
       <div className="flex items-center gap-2">
@@ -122,7 +122,9 @@ export function ProductActions({ product }: { product: Product }) {
   );
 }
 
-export default function ProductCard({ product }: { product: Product }) {
+export default function ProductCard({
+  product,
+}: Readonly<{ product: Product }>) {
   return (
     <div className="bg-surface-container-lowest rounded-xl p-3 flex flex-col gap-3 shadow-[0_4px_16px_rgba(97,88,136,0.08)] hover:shadow-[0_8px_24px_rgba(97,88,136,0.12)] transition-shadow duration-300 relative group overflow-hidden">
       <ProductImage product={product} />

@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 type NavActionButtonProps = { icon: string };
 
 function NavActionButton({ icon }: Readonly<NavActionButtonProps>) {
@@ -12,8 +14,8 @@ const ACTION_ICONS = ['account_circle', 'notifications'];
 
 export function NavLogo() {
   return (
-    <div className="text-2xl font-extrabold bg-gradient-to-r from-orange-400 to-yellow-500 bg-clip-text text-transparent">
-      Metaspesa
+    <div className="text-2xl font-extrabold bg-linear-to-r from-orange-400 to-yellow-500 bg-clip-text text-transparent">
+      <Link href="/">Metaspesa</Link>
     </div>
   );
 }

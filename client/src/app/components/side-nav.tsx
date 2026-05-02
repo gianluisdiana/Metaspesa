@@ -51,7 +51,6 @@ const MAIN_LINKS: SideNavItemProps[] = [
 ];
 
 const FOOTER_LINKS: SideNavItemProps[] = [
-  { href: '#', icon: 'group', label: 'Shared with Me' },
   { href: '#', icon: 'settings', label: 'Settings' },
 ];
 
@@ -59,18 +58,19 @@ export function SideNavHeader() {
   return (
     <div className="mb-6 px-2 mt-4">
       <div className="flex items-center gap-3 mb-2">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary-container to-secondary-container flex items-center justify-center text-on-primary-container font-headline-md shadow-sm">
-          M
+        <div className="w-10 h-10 rounded-full bg-linear-to-tr from-primary-container to-secondary-container flex items-center justify-center text-on-primary-container font-headline-md shadow-sm">
+          U
         </div>
         <div>
-          <h2 className="text-xl font-black text-orange-600">Metaspesa</h2>
+          <h2 className="text-xl font-black text-orange-600">Username</h2>
           <p className="text-[11px] text-slate-500 font-medium">
-            Your serene grocery assistant
+            username@example.com
           </p>
         </div>
       </div>
       <button className="w-full mt-4 py-2.5 px-4 bg-white border border-orange-200 text-orange-700 rounded-lg text-sm font-bold shadow-sm hover:bg-orange-50 hover:shadow transition-all flex items-center justify-center gap-2">
         <span className="material-symbols-outlined text-[18px]">add</span>
+        {''}
         Create New List
       </button>
     </div>

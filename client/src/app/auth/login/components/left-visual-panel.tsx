@@ -7,7 +7,7 @@ export function BackgroundImage() {
       className="absolute inset-0 z-0 bg-cover bg-center"
       style={{ backgroundImage: `url('${BG_IMAGE_URL}')` }}
     >
-      <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/60 to-transparent" />
+      <div className="absolute inset-0 bg-linear-to-t from-surface via-surface/60 to-transparent" />
     </div>
   );
 }

@@ -10,8 +10,8 @@ export default function ShoppingPage() {
     <div className="bg-surface text-on-surface antialiased font-body-md text-body-md selection:bg-primary-container selection:text-on-primary-container">
       <TopNav />
       <SideNav activeHref="/shopping" />
-      <main className="pt-[64px] pb-[80px] md:pb-8 md:ml-72 min-h-screen">
-        <div className="top-[64px] z-30 bg-surface/90 backdrop-blur-md border-b border-surface-variant px-container-margin py-stack-md flex flex-col gap-stack-sm shadow-sm shadow-secondary/5">
+      <main className="pt-16 pb-20 md:pb-8 md:ml-72 min-h-screen">
+        <div className="top-16 z-30 bg-surface/90 backdrop-blur-md border-b border-surface-variant px-container-margin py-stack-md flex flex-col gap-stack-sm shadow-sm shadow-secondary/5">
           <ListPageHeader />
           <ListTabs />
         </div>

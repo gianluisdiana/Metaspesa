@@ -66,6 +66,7 @@ function TableHeader() {
       </h3>
       <button className="flex items-center gap-2 px-4 py-2 bg-surface-container rounded-lg font-label-md text-label-md text-on-surface hover:bg-surface-container-high transition-colors">
         <span className="material-symbols-outlined text-[18px]">download</span>
+        {''}
         Export CSV
       </button>
     </div>

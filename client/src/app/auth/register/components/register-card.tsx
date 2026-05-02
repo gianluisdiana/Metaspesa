@@ -19,12 +19,13 @@ export function RegisterButton() {
   return (
     <div className="pt-4">
       <button
-        className="w-full bg-gradient-to-r from-primary-fixed-dim to-primary-container text-on-primary-container font-label-md text-label-md py-3 px-6 rounded-full shadow-sm hover:shadow-md transition-all active:scale-[0.98] relative overflow-hidden group"
+        className="w-full bg-linear-to-r from-primary-fixed-dim to-primary-container text-on-primary-container font-label-md text-label-md py-3 px-6 rounded-full shadow-sm hover:shadow-md transition-all active:scale-[0.98] relative overflow-hidden group"
         type="button"
       >
-        <div className="absolute top-0 left-0 w-full h-[1px] bg-white/40" />
+        <div className="absolute top-0 left-0 w-full h-px bg-white/40" />
         <span className="relative z-10 flex items-center justify-center gap-2">
           Create Account
+          {''}
           <span className="material-symbols-outlined text-sm">
             arrow_forward
           </span>
