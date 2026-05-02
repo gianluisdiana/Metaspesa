@@ -15,6 +15,13 @@
   "dependencies": {
     "@grpc/grpc-js": "1.14.3",
     "@grpc/proto-loader": "0.8.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.74.0",
+    "@opentelemetry/exporter-metrics-otlp-grpc": "^0.216.0",
+    "@opentelemetry/exporter-trace-otlp-grpc": "^0.216.0",
+    "@opentelemetry/resources": "^2.7.1",
+    "@opentelemetry/sdk-metrics": "^2.7.1",
+    "@opentelemetry/sdk-node": "^0.216.0",
+    "@opentelemetry/semantic-conventions": "^1.40.0",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3"

@@ -48,7 +48,7 @@ export function RegistrationLink() {
 
 export default function LoginCard() {
   return (
-    <div className="bg-surface-container-lowest/70 backdrop-blur-xl border border-surface-variant rounded-xl p-stack-lg md:p-[32px] shadow-[0_8px_32px_rgba(97,88,136,0.08)]">
+    <div className="bg-surface-container-lowest/70 backdrop-blur-xl border border-surface-variant rounded-xl p-stack-lg md:p-8 shadow-[0_8px_32px_rgba(97,88,136,0.08)]">
       <CardHeading />
       <form action="#" className="space-y-stack-md">
         <TextField

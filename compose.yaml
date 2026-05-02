@@ -48,7 +48,11 @@ services:
       - server
     environment:
       GRPC_SERVER_URL: server:8080
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
       PORT: 8080
+    networks:
+      - default
+      - metaspesa_telemetry_default
 
   scraper:
     build:
