@@ -29,17 +29,23 @@ function BottomNavItem({
 }
 
 const NAV_ITEMS: BottomNavItemProps[] = [
-  { active: true, href: '/markets', icon: 'storefront', label: 'Markets' },
+  { href: '/markets', icon: 'storefront', label: 'Markets' },
   { href: '/shopping', icon: 'list_alt', label: 'Lists' },
-  { href: '#', icon: 'group', label: 'Shared' },
+  { href: '/evolution', icon: 'monitoring', label: 'Evolution' },
   { href: '#', icon: 'person', label: 'Profile' },
 ];
 
-export default function BottomNav() {
+export default function BottomNav({
+  activeHref,
+}: Readonly<{ activeHref: string }>) {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-2 bg-white/90 backdrop-blur-xl text-orange-500 text-[10px] font-bold font-plus-jakarta z-50 border-t border-orange-50 shadow-[0_-4px_12px_rgba(168,85,247,0.08)]">
       {NAV_ITEMS.map(item => (
-        <BottomNavItem key={item.label} {...item} />
+        <BottomNavItem
+          key={item.label}
+          {...item}
+          active={item.href === activeHref}
+        />
       ))}
     </nav>
   );

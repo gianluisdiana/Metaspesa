@@ -4,9 +4,6 @@ export function MarketTitle() {
       <h1 className="font-headline-lg text-headline-lg text-on-surface">
         Whole Foods Market
       </h1>
-      <span className="bg-primary-container/30 text-on-primary-container px-3 py-1 rounded-full font-label-sm text-label-sm shadow-sm">
-        Open until 10 PM
-      </span>
     </div>
   );
 }

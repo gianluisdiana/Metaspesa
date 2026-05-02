@@ -8,12 +8,12 @@ export default function MarketsPage() {
   return (
     <div className="bg-surface text-on-surface antialiased font-body-md text-body-md selection:bg-primary-container selection:text-on-primary-container">
       <TopNav />
-      <SideNav />
+      <SideNav activeHref="/markets" />
       <main className="pt-[64px] pb-[80px] md:pb-8 md:ml-72 min-h-screen">
         <FilterHeader />
         <ProductGrid />
       </main>
-      <BottomNav />
+      <BottomNav activeHref="/markets" />
     </div>
   );
 }

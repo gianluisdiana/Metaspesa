@@ -60,7 +60,7 @@ const TABLE_ROWS: TableRowData[] = [
 
 function TableHeader() {
   return (
-    <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-bright">
+    <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center">
       <h3 className="font-headline-md text-headline-md text-on-surface">
         Historical Data Points
       </h3>

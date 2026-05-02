@@ -1,6 +1,6 @@
 export default function EvolutionPageHeader() {
   return (
-    <div className="flex flex-col gap-stack-sm mb-stack-lg">
+    <div className="top-[64px] z-30 bg-surface/90 backdrop-blur-md border-b border-surface-variant px-container-margin py-stack-md flex flex-col gap-stack-sm shadow-sm shadow-secondary/5">
       <h2 className="font-headline-lg text-headline-lg text-on-surface">
         Product Evolution
       </h2>

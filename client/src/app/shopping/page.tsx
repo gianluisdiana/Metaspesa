@@ -1,29 +1,27 @@
+import BottomNav from '../components/bottom-nav';
+import SideNav from '../components/side-nav';
+import TopNav from '../components/top-nav';
 import ListTabs, { ListPageHeader } from './components/list-header';
 import ItemsContainer, { ProgressTracker } from './components/list-items';
-import ShoppingBottomNav from './components/shopping-bottom-nav';
-import ShoppingHeader from './components/shopping-header';
-import ShoppingSideNav from './components/shopping-side-nav';
 import SummaryFooter from './components/summary-footer';
 
 export default function ShoppingPage() {
   return (
-    <div className="bg-surface text-on-surface font-body-md antialiased overflow-hidden flex h-screen selection:bg-primary-container selection:text-on-primary-container">
-      <ShoppingSideNav />
-      <main className="flex-1 flex flex-col h-full relative overflow-hidden">
-        <ShoppingHeader />
-        <div className="flex-1 overflow-y-auto pt-24 pb-32 md:pb-8 px-container-margin md:px-8">
-          <div className="max-w-4xl mx-auto flex flex-col gap-stack-lg">
-            <div className="flex flex-col gap-stack-md">
-              <ListPageHeader />
-              <ListTabs />
-            </div>
-            <ProgressTracker />
-            <ItemsContainer />
-          </div>
+    <div className="bg-surface text-on-surface antialiased font-body-md text-body-md selection:bg-primary-container selection:text-on-primary-container">
+      <TopNav />
+      <SideNav activeHref="/shopping" />
+      <main className="pt-[64px] pb-[80px] md:pb-8 md:ml-72 min-h-screen">
+        <div className="top-[64px] z-30 bg-surface/90 backdrop-blur-md border-b border-surface-variant px-container-margin py-stack-md flex flex-col gap-stack-sm shadow-sm shadow-secondary/5">
+          <ListPageHeader />
+          <ListTabs />
+        </div>
+        <div className="p-container-margin">
+          <ProgressTracker />
+          <ItemsContainer />
         </div>
         <SummaryFooter />
       </main>
-      <ShoppingBottomNav />
+      <BottomNav activeHref="/shopping" />
     </div>
   );
 }

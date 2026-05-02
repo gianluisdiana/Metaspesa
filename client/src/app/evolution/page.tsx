@@ -1,27 +1,29 @@
+import BottomNav from '../components/bottom-nav';
 import SideNav from '../components/side-nav';
 import TopNav from '../components/top-nav';
 import ChartCard from './components/chart-card';
 import DataTable from './components/data-table';
-import EvolutionBottomNav from './components/evolution-bottom-nav';
 import FiltersCard from './components/filters-card';
 import MetricCards from './components/metric-cards';
 import EvolutionPageHeader from './components/page-header';
 
 export default function EvolutionPage() {
   return (
-    <div className="bg-background text-on-background min-h-screen font-body-md text-body-md">
-      <SideNav activeHref="/evolution" />
+    <div className="bg-surface text-on-surface antialiased font-body-md text-body-md selection:bg-primary-container selection:text-on-primary-container">
       <TopNav />
-      <main className="flex-1 w-full pt-20 md:pl-72 pb-24 md:pb-8 px-container-margin md:px-8 max-w-7xl mx-auto">
+      <SideNav activeHref="/evolution" />
+      <main className="pt-[64px] pb-[80px] md:pb-8 md:ml-72 min-h-screen">
         <EvolutionPageHeader />
-        <FiltersCard />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter mb-stack-lg">
-          <ChartCard />
-          <MetricCards />
+        <div className="p-container-margin">
+          <FiltersCard />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter mb-stack-lg">
+            <ChartCard />
+            <MetricCards />
+          </div>
+          <DataTable />
         </div>
-        <DataTable />
       </main>
-      <EvolutionBottomNav />
+      <BottomNav activeHref="/evolution" />
     </div>
   );
 }
