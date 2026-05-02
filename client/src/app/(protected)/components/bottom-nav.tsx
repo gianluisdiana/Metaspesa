@@ -1,3 +1,7 @@
+'use client';
+
+import { usePathname } from 'next/navigation';
+
 type BottomNavItemProps = {
   active?: boolean;
   href: string;
@@ -35,16 +39,15 @@ const NAV_ITEMS: BottomNavItemProps[] = [
   { href: '#', icon: 'person', label: 'Profile' },
 ];
 
-export default function BottomNav({
-  activeHref,
-}: Readonly<{ activeHref: string }>) {
+export default function BottomNav() {
+  const pathname = usePathname();
   return (
     <nav className="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-2 bg-white/90 backdrop-blur-xl text-orange-500 text-[10px] font-bold font-plus-jakarta z-50 border-t border-orange-50 shadow-[0_-4px_12px_rgba(168,85,247,0.08)]">
       {NAV_ITEMS.map(item => (
         <BottomNavItem
           key={item.label}
           {...item}
-          active={item.href === activeHref}
+          active={item.href === pathname}
         />
       ))}
     </nav>

@@ -1,3 +1,7 @@
+'use client';
+
+import { usePathname } from 'next/navigation';
+
 type SideNavItemProps = {
   active?: boolean;
   href: string;
@@ -77,14 +81,15 @@ export function SideNavHeader() {
   );
 }
 
-export function MainNavLinks({ activeHref }: Readonly<{ activeHref: string }>) {
+export function MainNavLinks() {
+  const pathname = usePathname();
   return (
     <div className="flex-1 flex flex-col gap-unit">
       {MAIN_LINKS.map(link => (
         <SideNavItem
           key={link.href}
           {...link}
-          active={link.href === activeHref}
+          active={link.href === pathname}
         />
       ))}
     </div>
@@ -101,13 +106,11 @@ export function FooterNavLinks() {
   );
 }
 
-export default function SideNav({
-  activeHref,
-}: Readonly<{ activeHref: string }>) {
+export default function SideNav() {
   return (
     <aside className="hidden md:flex flex-col h-screen p-4 gap-2 w-72 border-r border-orange-100 bg-orange-50/95 backdrop-blur-lg text-orange-600 font-plus-jakarta shadow-xl shadow-purple-900/5 fixed top-16 left-0 z-40 pb-20">
       <SideNavHeader />
-      <MainNavLinks activeHref={activeHref} />
+      <MainNavLinks />
       <FooterNavLinks />
     </aside>
   );
