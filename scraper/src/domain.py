@@ -6,6 +6,7 @@ class Product:
     name: str
     price: float
     quantity: str
+    image_url: str
     brand: str | None = None
 
     def __eq__(self, value: object) -> bool:

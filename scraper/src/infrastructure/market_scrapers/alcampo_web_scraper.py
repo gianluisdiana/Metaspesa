@@ -166,7 +166,12 @@ class AlcampoProductTag:
         self.__tag = tag
 
     def to_product(self) -> Product:
-        return Product(name=self.__name, quantity=self.__quantity, price=self.__price)
+        return Product(
+            name=self.__name,
+            quantity=self.__quantity,
+            price=self.__price,
+            image_url=self.__image_url,
+        )
 
     def is_skeleton(self) -> bool:
         return self.__name == ""
@@ -197,3 +202,8 @@ class AlcampoProductTag:
                 str(price_tag.text).replace(",", "."),
             )
         )
+
+    @property
+    def __image_url(self) -> str:
+        image_tag = self.__tag.select_one('img[data-test="lazy-load-image"]')
+        return str(image_tag.get("src", "")).strip() if image_tag else ""

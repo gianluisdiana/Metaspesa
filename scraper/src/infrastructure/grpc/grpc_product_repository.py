@@ -71,6 +71,7 @@ class GrpcProductRepository(ProductRepository):
                     quantity=p.quantity,
                     market_name=market_name,
                     brand_name=p.brand,
+                    image_url=p.image_url,
                 )
                 for p in products
                 if p.brand is not None

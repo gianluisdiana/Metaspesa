@@ -50,6 +50,7 @@ class BrandExtractor(ProductProcessor):
                     price=product.price,
                     quantity=product.quantity,
                     brand=brand,
+                    image_url=product.image_url,
                 )
 
                 return product_with_brand
@@ -82,6 +83,7 @@ class QuantityRedundancyRemover(ProductProcessor):
             price=product.price,
             quantity=product.quantity,
             brand=product.brand,
+            image_url=product.image_url,
         )
 
 
@@ -108,7 +110,8 @@ class BrandSimplifier(ProductProcessor):
                     name=simplified_name,
                     price=product.price,
                     quantity=product.quantity,
-                    brand=None,
+                    brand=product.brand,
+                    image_url=product.image_url,
                 )
                 return simplified_product
 

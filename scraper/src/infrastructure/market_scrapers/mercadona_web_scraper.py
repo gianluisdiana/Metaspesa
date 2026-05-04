@@ -106,7 +106,12 @@ class MercadonaProductTag:
         self.__tag = tag
 
     def to_product(self) -> Product:
-        return Product(name=self.__name, quantity=self.__quantity, price=self.__price)
+        return Product(
+            name=self.__name,
+            quantity=self.__quantity,
+            price=self.__price,
+            image_url=self.__image_url,
+        )
 
     @property
     def __name(self) -> str:
@@ -126,3 +131,8 @@ class MercadonaProductTag:
 
         price = str(price_tag.text).replace("€", "").replace(",", ".").strip()
         return float(price) if price else 0.0
+
+    @property
+    def __image_url(self) -> str:
+        image_tag = self.__tag.select_one("div.product-cell__image-wrapper img")
+        return str(image_tag.get("src", "")).strip() if image_tag else ""

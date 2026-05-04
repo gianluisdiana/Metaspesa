@@ -22,7 +22,7 @@ from infrastructure.market_scrapers.market_web_scraper_factory import (
     MarketWebScraperFactory,
 )
 from infrastructure.playwright_driver import PlaywrightDriver
-from infrastructure.secrets import LocalSecretVault
+from infrastructure.secrets import LocalSecretVault, SecretNotFoundError
 from infrastructure.telemetry.instrumented_playwright_driver import (
     InstrumentedPlaywrightDriver,
 )
@@ -52,9 +52,12 @@ def __create_main_repository(
     settings: AppConfig, channel: grpc.aio.Channel
 ) -> ProductRepository:
     vault = LocalSecretVault()
-    username = vault.read_secret(settings.credentials.username_secret)
-    password = vault.read_secret(settings.credentials.password_secret)
-
+    try:
+        username = vault.read_secret(settings.credentials.username_secret)
+        password = vault.read_secret(settings.credentials.password_secret)
+    except SecretNotFoundError:
+        username = ""
+        password = ""
     return GrpcProductRepository(channel, username, password)
 
 

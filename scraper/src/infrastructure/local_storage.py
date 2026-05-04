@@ -19,10 +19,10 @@ class CsvProductRepository(FallbackProductRepository):
         output_file = self.__output_dir / file_name
 
         with output_file.open("w", encoding="utf-8") as f:
-            f.write("Name;Price;Quantity;Brand\n")
+            f.write("Name;Price;Quantity;Brand;ImageURL\n")
             for product in products:
                 f.write(
-                    f'"{product.name}";{product.price};{product.quantity};{product.brand}\n'
+                    f'"{product.name}";{product.price};{product.quantity};{product.brand};{product.image_url}\n'
                 )
 
     @override
@@ -53,13 +53,14 @@ class CsvProductRepository(FallbackProductRepository):
         with input_file.open("r", encoding="utf-8") as f:
             next(f)  # Skip header
             for line in f:
-                name, price, quantity, brand = line.strip().split(";")
+                name, price, quantity, brand, image_url = line.strip().split(";")
                 products.append(
                     Product(
                         name=name.strip('"'),
                         price=float(price),
                         quantity=quantity,
                         brand=brand,
+                        image_url=image_url,
                     )
                 )
 
