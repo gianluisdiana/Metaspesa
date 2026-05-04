@@ -8,7 +8,7 @@ function toProduct(p: MarketProductMessage): Product {
     category: p.brandName,
     id: p.name,
     imageAlt: p.name,
-    imageUrl: '',
+    imageUrl: first.imageUrl ?? '',
     name: p.name,
     price: first ? `€${first.price.toFixed(2)}` : '—',
     unit: first?.quantity ?? '',

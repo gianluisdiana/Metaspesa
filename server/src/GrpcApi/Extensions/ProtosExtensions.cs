@@ -44,7 +44,7 @@ internal static class ProtosExtensions {
       Products = { market.Products.Select(p => p.ToProto()) },
     };
 
-  public static Protos.Markets.MarketProduct ToProto(this MarketProduct product) =>
+  private static Protos.Markets.MarketProduct ToProto(this MarketProduct product) =>
     new() {
       Name = product.Name,
       BrandName = product.Brand.Name,
@@ -52,7 +52,8 @@ internal static class ProtosExtensions {
         product.Formats.Select(f => new Protos.Markets.MarketProductFormat {
           Quantity = f.Quantity,
           Price = f.Price.Value,
-        })
+          ImageUrl = f.ImageUrl?.ToString() ?? string.Empty,
+        }),
       },
     };
 

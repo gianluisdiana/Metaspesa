@@ -6,10 +6,15 @@ import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 
 import MarketApiService, { MarketFilter } from '@/lib/market-api-service';
-import { MarketMessage, MarketProductsResult } from '@/lib/market-messages';
+import {
+  MarketMessage,
+  MarketProductsResult,
+  MarketSummaryMessage,
+} from '@/lib/market-messages';
 
 import { Market__Output } from '@/protos/markets/Market';
 import { MarketServiceClient } from '@/protos/markets/MarketService';
+import { MarketSummary__Output } from '@/protos/markets/MarketSummary';
 import { ProtoGrpcType } from '@/protos/markets_service';
 
 import { createTracingMetadata } from './grpc-metadata';
@@ -67,13 +72,30 @@ export default class GrpcMarketApiService implements MarketApiService {
     }
   }
 
-  async getMarkets(): Promise<string[]> {
-    // TODO: call dedicated GetMarkets RPC once added to server
-    return [
-      "Alcampo",
-      "Mercadona",
-    ];
+  async getMarkets(): Promise<MarketSummaryMessage[]> {
+    try {
+      return await new Promise<MarketSummaryMessage[]>((resolve, reject) => {
+        this.client.GetMarkets({}, this.metadata, (err, response) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve(response!.markets?.map(mapMarketSummary) ?? []);
+        });
+      });
+    } catch {
+      return [];
+    }
   }
+}
+
+function mapMarketSummary(
+  summary: MarketSummary__Output,
+): MarketSummaryMessage {
+  return {
+    logoUrl: summary.logoUrl || null,
+    name: summary.name,
+  };
 }
 
 function mapMarket(market: Market__Output): MarketMessage {
@@ -84,6 +106,7 @@ function mapMarket(market: Market__Output): MarketMessage {
         brandName: p.brandName,
         formats:
           p.formats?.map(f => ({
+            imageUrl: f.imageUrl || null,
             price: f.price,
             quantity: f.quantity,
           })) ?? [],

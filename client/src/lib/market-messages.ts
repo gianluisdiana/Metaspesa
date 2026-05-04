@@ -1,6 +1,12 @@
+export interface MarketSummaryMessage {
+  name: string;
+  logoUrl: string | null;
+}
+
 export interface MarketProductFormatMessage {
   quantity: string;
   price: number;
+  imageUrl: string | null;
 }
 
 export interface MarketProductMessage {

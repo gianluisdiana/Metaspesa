@@ -1,4 +1,4 @@
-import { MarketProductsResult } from './market-messages';
+import { MarketProductsResult, MarketSummaryMessage } from './market-messages';
 
 export interface MarketFilter {
   marketName?: string;
@@ -8,5 +8,5 @@ export interface MarketFilter {
 
 export default interface MarketApiService {
   getMarketProducts(filter: MarketFilter): Promise<MarketProductsResult>;
-  getMarkets(): Promise<string[]>;
+  getMarkets(): Promise<MarketSummaryMessage[]>;
 }

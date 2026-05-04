@@ -28,7 +28,7 @@ export default async function MarketsPage({
   };
 
   const service = new GrpcMarketApiService(token);
-  const [result, allMarketNames] = await Promise.all([
+  const [result, markets] = await Promise.all([
     service.getMarketProducts(filter),
     service.getMarkets(),
   ]);
@@ -36,7 +36,7 @@ export default async function MarketsPage({
   return (
     <>
       <Suspense>
-        <FilterHeader marketNames={allMarketNames} />
+        <FilterHeader marketNames={markets.map(m => m.name)} />
       </Suspense>
       <ProductGrid markets={result.markets} />
     </>
