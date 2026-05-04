@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
+import Image from "next/image";
 
 export type Product = {
   id: string;
@@ -32,7 +32,7 @@ export function ProductBadge({
 export function ProductImage({ product }: Readonly<{ product: Product }>) {
   return (
     <div className="aspect-4/3 rounded-lg bg-surface-container-high overflow-hidden relative">
-      <img
+      <Image
         alt={product.imageAlt}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         src={product.imageUrl}

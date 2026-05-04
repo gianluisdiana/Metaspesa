@@ -8,10 +8,11 @@ import * as protoLoader from '@grpc/proto-loader';
 import ApiService from '@/lib/api-service';
 import { ProductMessage, ShoppingListMessage } from '@/lib/messages';
 
-import { createTracingMetadata } from './grpc-metadata';
 import { ShoppingList__Output } from '@/protos/shopping/ShoppingList';
 import { ShoppingServiceClient } from '@/protos/shopping/ShoppingService';
 import { ProtoGrpcType } from '@/protos/shopping_service';
+
+import { createTracingMetadata } from './grpc-metadata';
 
 export default class GrpcApiService implements ApiService {
   private readonly client: ShoppingServiceClient;
@@ -40,14 +41,18 @@ export default class GrpcApiService implements ApiService {
     try {
       const shoppingList = await new Promise<ShoppingListMessage>(
         (resolve, reject) => {
-          this.client.GetCurrentShoppingList({}, createTracingMetadata(), (err, response) => {
-            if (err) {
-              reject(err);
-              return;
-            }
+          this.client.GetCurrentShoppingList(
+            {},
+            createTracingMetadata(),
+            (err, response) => {
+              if (err) {
+                reject(err);
+                return;
+              }
 
-            resolve(this.mapShoppingList(response!.shoppingList!));
-          });
+              resolve(this.mapShoppingList(response!.shoppingList!));
+            },
+          );
         },
       );
 

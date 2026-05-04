@@ -1,7 +1,7 @@
 'use server';
 
-import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 import GrpcAuthService from '@/infrastructure/grpc-auth-service';
 import { Credentials } from '@/lib/auth-domain';
@@ -23,20 +23,23 @@ export async function loginAction(
   let token: string;
   let expirationInUtc: string;
   try {
-    const result = await service.login({ password, username });
-    token = result.token;
-    expirationInUtc = result.expirationInUtc;
+    const { token: t, expirationInUtc: exp } = await service.login({
+      password,
+      username,
+    });
+    token = t;
+    expirationInUtc = exp;
   } catch (err) {
     return { error: getGrpcErrorMessage(err) };
   }
 
   const cookieStore = await cookies();
   cookieStore.set('auth_token', token, {
+    expires: new Date(expirationInUtc),
     httpOnly: true,
+    path: '/',
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
-    expires: new Date(expirationInUtc),
-    path: '/',
   });
 
   redirect('/markets');
@@ -49,4 +52,3 @@ function getGrpcErrorMessage(err: unknown): string {
   }
   return 'Login failed. Please try again.';
 }
-

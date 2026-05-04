@@ -55,4 +55,3 @@ export class LoginResult {
     return new Date() > this.expirationInUtc;
   }
 }
-

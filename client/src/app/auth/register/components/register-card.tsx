@@ -1,9 +1,8 @@
 'use client';
 
+import TextField from '@/app/components/text-field';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
-
-import TextField from '@/app/components/text-field';
 
 import { RegisterState, registerAction } from '../actions';
 import DecorativeHeader from './decorative-header';

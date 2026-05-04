@@ -26,6 +26,9 @@
       ],
       "@/protos/auth/*": [
         "./src/infrastructure/protos_generated/Metaspesa/Protos/Auth/*"
+      ],
+      "@/protos/markets/*": [
+        "./src/infrastructure/protos_generated/Metaspesa/Protos/Markets/*"
       ]
     }
   },

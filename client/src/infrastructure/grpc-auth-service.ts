@@ -6,12 +6,13 @@ import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 import { SeverityNumber, logs } from '@opentelemetry/api-logs';
 
-import AuthService from '@/lib/auth-service';
 import { CredentialsMessage, LoginResultMessage } from '@/lib/auth-messages';
+import AuthService from '@/lib/auth-service';
 
-import { createTracingMetadata } from './grpc-metadata';
 import { AuthServiceClient } from '@/protos/auth/AuthService';
 import { ProtoGrpcType } from '@/protos/auth_service';
+
+import { createTracingMetadata } from './grpc-metadata';
 
 const logger = logs.getLogger('grpc-auth-service');
 
@@ -41,16 +42,20 @@ export default class GrpcAuthService implements AuthService {
   async login(credentials: CredentialsMessage): Promise<LoginResultMessage> {
     try {
       return await new Promise<LoginResultMessage>((resolve, reject) => {
-        this.client.Login(credentials, createTracingMetadata(), (err, response) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve({
-            expirationInUtc: response!.expirationInUtc,
-            token: response!.token,
-          });
-        });
+        this.client.Login(
+          credentials,
+          createTracingMetadata(),
+          (err, response) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve({
+              expirationInUtc: response!.expirationInUtc,
+              token: response!.token,
+            });
+          },
+        );
       });
     } catch (err) {
       logger.emit({
