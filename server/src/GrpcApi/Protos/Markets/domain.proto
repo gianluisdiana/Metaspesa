@@ -12,3 +12,23 @@ message Product {
   string market_name = 4;
   string brand_name = 5;
 }
+
+// A format (size/quantity + price) for a market product.
+message MarketProductFormat {
+  string quantity = 1;
+  float price = 2;
+}
+
+// A market product with all its available formats.
+message MarketProduct {
+  string name = 1;
+  string brand_name = 2;
+  // field 3 reserved (was market_name)
+  repeated MarketProductFormat formats = 4;
+}
+
+// A market with its products.
+message Market {
+  string name = 1;
+  repeated MarketProduct products = 2;
+}

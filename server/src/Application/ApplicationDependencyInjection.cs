@@ -5,6 +5,7 @@ using Metaspesa.Application.Abstractions.Users;
 using Metaspesa.Application.Auth;
 using Metaspesa.Application.Markets;
 using Metaspesa.Application.Shopping;
+using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.Shopping;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -42,6 +43,10 @@ public static class ApplicationDependencyInjection {
       services.AddScoped<
         ICommandHandler<AddMarketProducts.Command>,
         AddMarketProducts.Handler>();
+
+      services.AddScoped<
+        IQueryHandler<GetMarketProducts.Query, PagedResult<Market>>,
+        GetMarketProducts.Handler>();
 
       return services;
     }

@@ -1,8 +1,11 @@
+using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Domain.Markets;
 
 namespace Metaspesa.Application.Abstractions.Markets;
 
 public interface IMarketRepository {
+  Task<PagedResult<Market>> GetProductsAsync(
+    GetMarketProductsFilter filter, CancellationToken cancellationToken);
   Task<List<Market>> GetMarketsAsync(CancellationToken cancellationToken);
   Task AddMarketsAsync(
     IReadOnlyCollection<Market> markets, CancellationToken cancellationToken);

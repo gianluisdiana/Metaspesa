@@ -1,6 +1,8 @@
+using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Database.Entities;
 using Metaspesa.Domain.Markets;
+using Metaspesa.Domain.Shopping;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -11,6 +13,68 @@ internal partial class PostgreSqlMarketRepository(
   MainContext context,
   ILogger<PostgreSqlMarketRepository> logger
 ) : IMarketRepository {
+  public async Task<PagedResult<Market>> GetProductsAsync(
+    GetMarketProductsFilter filter, CancellationToken cancellationToken
+  ) {
+    try {
+      IQueryable<ProductDbEntity> baseQuery = context.Products
+        .Include(p => p.Brand)
+        .Include(p => p.SuperMarket)
+        .Where(p => p.History.Any());
+
+      if (filter.MarketName is not null) {
+        baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.SuperMarket.Name, filter.MarketName));
+      }
+      if (filter.BrandName is not null) {
+        baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.Brand.Name, filter.BrandName));
+      }
+      if (filter.NameSegment is not null) {
+        baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.Name, $"%{filter.NameSegment}%"));
+      }
+
+      int totalCount = await baseQuery.CountAsync(cancellationToken);
+
+      IQueryable<ProductDbEntity> orderedQuery = baseQuery
+        .Include(p => p.History)
+        .OrderBy(p => p.SuperMarket.Name).ThenBy(p => p.Name);
+
+      bool isInfinite = filter.Pagination is null || filter.Pagination.IsInfinite;
+
+      List<ProductDbEntity> entities = isInfinite
+        ? await orderedQuery.ToListAsync(cancellationToken)
+        : await orderedQuery
+            .Skip(filter.Pagination!.Skip)
+            .Take(filter.Pagination.Size)
+            .ToListAsync(cancellationToken);
+
+      IReadOnlyCollection<Market> markets = [..entities
+        .GroupBy(p => p.SuperMarket.Name)
+        .Select(g => new Market(
+          g.Key,
+          [..g.Select(p => {
+            DateTime latest = p.History.Max(h => h.CreatedAt);
+            return new MarketProduct(
+              p.Name,
+              new ProductBrand(p.Brand.Name),
+              [..p.History
+                .Where(h => h.CreatedAt == latest)
+                .Select(h => new ProductFormat(h.Quantity, new Price(h.Price)))]);
+          })]
+        ))];
+
+      return new PagedResult<Market>(markets, totalCount);
+    } catch (Exception ex) when (
+      ex is NpgsqlException or OperationCanceledException ||
+      ex.InnerException is NpgsqlException
+    ) {
+      LogErrorGettingProducts(ex);
+      return new PagedResult<Market>([], 0);
+    }
+  }
+
+  [LoggerMessage(LogLevel.Error, "Couldn't get market products")]
+  partial void LogErrorGettingProducts(Exception ex);
+
   public async Task<List<Market>> GetMarketsAsync(
     CancellationToken cancellationToken
   ) {

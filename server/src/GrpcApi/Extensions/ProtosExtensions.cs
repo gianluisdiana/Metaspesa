@@ -1,4 +1,5 @@
 using Metaspesa.Application.Shopping;
+using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.Shopping;
 
 namespace Metaspesa.GrpcApi.Extensions;
@@ -33,6 +34,24 @@ internal static class ProtosExtensions {
     }
     return product;
   }
+
+  public static Protos.Markets.Market ToProto(this Market market) =>
+    new() {
+      Name = market.Name,
+      Products = { market.Products.Select(p => p.ToProto()) },
+    };
+
+  public static Protos.Markets.MarketProduct ToProto(this MarketProduct product) =>
+    new() {
+      Name = product.Name,
+      BrandName = product.Brand.Name,
+      Formats = {
+        product.Formats.Select(f => new Protos.Markets.MarketProductFormat {
+          Quantity = f.Quantity,
+          Price = f.Price.Value,
+        })
+      },
+    };
 
   public static RecordShoppingList.CommandItem ToCommand(
     this Protos.Shopping.ShoppingItem protoProduct

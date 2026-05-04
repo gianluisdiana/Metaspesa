@@ -29,4 +29,6 @@ public class Result<TValue> : Result where TValue : notnull {
     new(value, []);
   public static implicit operator Result<TValue>(DomainError error) =>
     new(default, [error]);
+  public static implicit operator Result<TValue>(ImmutableList<DomainError> errors) =>
+    new(default, errors);
 }

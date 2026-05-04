@@ -1,3 +1,5 @@
+using Metaspesa.Application.Abstractions.Core;
+using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Database.Entities;
 using Metaspesa.Database.Repositories;
 using Metaspesa.Domain.Markets;
@@ -751,6 +753,351 @@ public static class PostgreSqlMarketRepositoryTests {
         .AsNoTracking()
         .AnyAsync(p => p.Id == idsToKeep.Single(), TestContext.Current.CancellationToken);
       Assert.True(exists);
+    }
+  }
+
+  [Collection("Database")]
+  public class GetProductsAsync : IAsyncLifetime {
+    private readonly MainContext _context;
+    private readonly PostgreSqlMarketRepository _repository;
+    private const string MarketA = "GetProductsMarketA";
+    private const string MarketB = "GetProductsMarketB";
+    private const string BrandA = "GetProductsBrandA";
+    private const string BrandB = "GetProductsBrandB";
+
+    public GetProductsAsync(DatabaseFixture fixture) {
+      _context = fixture.CreateContext();
+      _repository = new PostgreSqlMarketRepository(
+        _context, NullLogger<PostgreSqlMarketRepository>.Instance);
+    }
+
+    public async ValueTask InitializeAsync() {
+      await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+
+      foreach (string name in new[] { MarketA, MarketB }) {
+        bool exists = await _context.SuperMarkets
+          .AnyAsync(m => m.Name == name, TestContext.Current.CancellationToken);
+        if (!exists) {
+          _context.SuperMarkets.Add(new SuperMarketDbEntity { Name = name });
+        }
+      }
+
+      foreach (string name in new[] { BrandA, BrandB }) {
+        bool exists = await _context.ProductBrands
+          .AnyAsync(b => b.Name == name, TestContext.Current.CancellationToken);
+        if (!exists) {
+          _context.ProductBrands.Add(new ProductBrandDbEntity { Name = name });
+        }
+      }
+
+      if (_context.ChangeTracker.HasChanges()) {
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      }
+    }
+
+    public async ValueTask DisposeAsync() {
+      await _context.DisposeAsync();
+      GC.SuppressFinalize(this);
+    }
+
+    private async Task SeedProductWithHistoryAsync(
+      string marketName, string brandName, string productName,
+      float price, string quantity, DateTime createdAt
+    ) {
+      int marketId = await _context.SuperMarkets
+        .Where(m => m.Name == marketName)
+        .Select(m => m.Id)
+        .SingleAsync(TestContext.Current.CancellationToken);
+
+      int brandId = await _context.ProductBrands
+        .Where(b => b.Name == brandName)
+        .Select(b => b.Id)
+        .SingleAsync(TestContext.Current.CancellationToken);
+
+      ProductDbEntity? existing = await _context.Products
+        .FirstOrDefaultAsync(
+          p => p.Name == productName && p.SuperMarketId == marketId && p.BrandId == brandId,
+          TestContext.Current.CancellationToken);
+
+      if (existing is null) {
+        existing = new ProductDbEntity {
+          Name = productName,
+          SuperMarketId = marketId,
+          BrandId = brandId,
+        };
+        _context.Products.Add(existing);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      }
+
+      _context.ProductsHistory.Add(new ProductsHistoryDbEntity {
+        ProductId = existing.Id,
+        Price = price,
+        Quantity = quantity,
+        CreatedAt = createdAt,
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    private static GetMarketProductsFilter Filter(
+      string? market = null, string? brand = null, string? segment = null,
+      Pagination? pagination = null
+    ) => new(market, brand, segment, pagination);
+
+    private static GetMarketProductsFilter FilterWithPage(
+      string? market = null, string? brand = null, string? segment = null,
+      int page = 1, int pageSize = 100
+    ) => new(market, brand, segment, new Pagination(page, pageSize));
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns empty values when no products exist")]
+    public async Task Repository_ReturnsEmptyValues_WhenNoProductsExist() {
+      // Arrange & Act
+      PagedResult<Market> result = await _repository.GetProductsAsync(
+        Filter(), TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Empty(result.Values);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns zero total count when no products exist")]
+    public async Task Repository_ReturnsZeroTotalCount_WhenNoProductsExist() {
+      // Arrange & Act
+      PagedResult<Market> result = await _repository.GetProductsAsync(
+        Filter(), TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Equal(0, result.TotalCount);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns products without filter")]
+    public async Task Repository_ReturnsProducts_WithoutFilter() {
+      // Arrange
+      DateTime now = DateTime.UtcNow;
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Entera GP", 0.89f, "1L", now);
+      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan Blanco GP", 1.20f, "500g", now);
+
+      // Act
+      PagedResult<Market> result = await _repository.GetProductsAsync(
+        Filter(), TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.True(result.Values.SelectMany(m => m.Products).Count() >= 2);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns total count without filter")]
+    public async Task Repository_ReturnsTotalCount_WithoutFilter() {
+      // Arrange
+      DateTime now = DateTime.UtcNow;
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Entera TCF", 0.89f, "1L", now);
+      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan Blanco TCF", 1.20f, "500g", now);
+
+      // Act
+      PagedResult<Market> result = await _repository.GetProductsAsync(
+        Filter(), TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.True(result.TotalCount >= 2);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Groups products under their market")]
+    public async Task Repository_GroupsProducts_UnderTheirMarket() {
+      // Arrange
+      DateTime now = DateTime.UtcNow;
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche GroupTest", 0.89f, "1L", now);
+      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan GroupTest", 1.20f, "500g", now);
+
+      // Act
+      PagedResult<Market> result = await _repository.GetProductsAsync(
+        Filter(), TestContext.Current.CancellationToken);
+
+      // Assert
+      Market marketA = result.Values.Single(m => m.Name == MarketA);
+      Assert.Contains(marketA.Products, p => p.Name == "Leche GroupTest");
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Filters by market name returns only matching market (case-insensitive)")]
+    public async Task Repository_FiltersByMarketName_ReturnsOnlyMatchingMarket() {
+      // Arrange
+      DateTime now = DateTime.UtcNow;
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche MarketFilter", 0.89f, "1L", now);
+      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan MarketFilter", 1.20f, "500g", now);
+
+      // Act
+      PagedResult<Market> result = await _repository.GetProductsAsync(
+        Filter(market: MarketA.ToUpperInvariant()), TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Single(result.Values);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Filters by market name returns correct market name (case-insensitive)")]
+    public async Task Repository_FiltersByMarketName_ReturnsCorrectMarketName() {
+      // Arrange
+      DateTime now = DateTime.UtcNow;
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche MarketNameFilter", 0.89f, "1L", now);
+      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan MarketNameFilter", 1.20f, "500g", now);
+
+      // Act
+      PagedResult<Market> result = await _repository.GetProductsAsync(
+        Filter(market: MarketA.ToUpperInvariant()), TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Equal(MarketA, result.Values.Single().Name);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Filters by brand name (case-insensitive)")]
+    public async Task Repository_FiltersByBrandName_CaseInsensitive() {
+      // Arrange
+      DateTime now = DateTime.UtcNow;
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche BrandFilter", 0.89f, "1L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandB, "Pan BrandFilter", 1.20f, "500g", now);
+
+      // Act
+      PagedResult<Market> result = await _repository.GetProductsAsync(
+        Filter(brand: BrandA.ToUpperInvariant()), TestContext.Current.CancellationToken);
+
+      // Assert
+      IEnumerable<MarketProduct> products = result.Values.SelectMany(m => m.Products);
+      Assert.All(products, p => Assert.Equal(BrandA, p.Brand.Name));
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Filters by name segment (case-insensitive contains)")]
+    public async Task Repository_FiltersByNameSegment_CaseInsensitiveContains() {
+      // Arrange
+      DateTime now = DateTime.UtcNow;
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Entera SegFilter", 0.89f, "1L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Pan Blanco SegFilter", 1.20f, "500g", now);
+
+      // Act
+      PagedResult<Market> result = await _repository.GetProductsAsync(
+        Filter(segment: "leche entera segfilter"), TestContext.Current.CancellationToken);
+
+      // Assert
+      MarketProduct product = result.Values.SelectMany(m => m.Products).Single();
+      Assert.Equal("Leche Entera SegFilter", product.Name);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns only one format from the latest history date per product")]
+    public async Task Repository_ReturnsOnlyOneFormat_FromLatestHistoryDate() {
+      // Arrange
+      DateTime older = new(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+      DateTime newer = new(2024, 6, 1, 0, 0, 0, DateTimeKind.Utc);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche HistoryTest", 0.79f, "1L", older);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche HistoryTest", 0.89f, "1L", newer);
+
+      // Act
+      PagedResult<Market> result = await _repository.GetProductsAsync(
+        Filter(segment: "Leche HistoryTest"), TestContext.Current.CancellationToken);
+
+      // Assert
+      MarketProduct product = result.Values.SelectMany(m => m.Products).Single();
+      Assert.Single(product.Formats);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns format with price from the latest history date per product")]
+    public async Task Repository_ReturnsLatestPrice_PerProduct() {
+      // Arrange
+      DateTime older = new(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+      DateTime newer = new(2024, 6, 1, 0, 0, 0, DateTimeKind.Utc);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche LatestPriceTest", 0.79f, "1L", older);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche LatestPriceTest", 0.89f, "1L", newer);
+
+      // Act
+      PagedResult<Market> result = await _repository.GetProductsAsync(
+        Filter(segment: "Leche LatestPriceTest"), TestContext.Current.CancellationToken);
+
+      // Assert
+      MarketProduct product = result.Values.SelectMany(m => m.Products).Single();
+      Assert.Equal(0.89f, product.Formats.Single().Price.Value, precision: 2);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Excludes products with no history")]
+    public async Task Repository_ExcludesProducts_WithNoHistory() {
+      // Arrange
+      int marketId = await _context.SuperMarkets
+        .Where(m => m.Name == MarketA)
+        .Select(m => m.Id)
+        .SingleAsync(TestContext.Current.CancellationToken);
+      int brandId = await _context.ProductBrands
+        .Where(b => b.Name == BrandA)
+        .Select(b => b.Id)
+        .SingleAsync(TestContext.Current.CancellationToken);
+
+      _context.Products.Add(new ProductDbEntity {
+        Name = "NoHistoryProduct",
+        SuperMarketId = marketId,
+        BrandId = brandId,
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      PagedResult<Market> result = await _repository.GetProductsAsync(
+        Filter(segment: "NoHistoryProduct"), TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Empty(result.Values);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Respects pagination — total count reflects all matching products")]
+    public async Task Repository_Pagination_TotalCountReflectsAllMatches() {
+      // Arrange
+      DateTime now = DateTime.UtcNow;
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Page1", 1.00f, "1L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Page2", 1.10f, "1L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Page3", 1.20f, "1L", now);
+
+      // Act — page 2 with pageSize 1, filtered by segment "Leche Page"
+      PagedResult<Market> result = await _repository.GetProductsAsync(
+        FilterWithPage(segment: "Leche Page", page: 2, pageSize: 1),
+        TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Equal(3, result.TotalCount);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Respects pagination — returns single product on page 2 with page size 1")]
+    public async Task Repository_Pagination_ReturnsSingleProductOnSecondPage() {
+      // Arrange
+      DateTime now = DateTime.UtcNow;
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche PgB1", 1.00f, "1L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche PgB2", 1.10f, "1L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche PgB3", 1.20f, "1L", now);
+
+      // Act
+      PagedResult<Market> result = await _repository.GetProductsAsync(
+        FilterWithPage(segment: "Leche PgB", page: 2, pageSize: 1),
+        TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Single(result.Values.SelectMany(m => m.Products));
     }
   }
 
