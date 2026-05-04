@@ -4,6 +4,7 @@ using Metaspesa.Domain.Markets;
 namespace Metaspesa.Application.Abstractions.Markets;
 
 public interface IMarketRepository {
+  Task<List<MarketSummary>> GetMarketSummariesAsync(CancellationToken cancellationToken);
   Task<PagedResult<Market>> GetProductsAsync(
     GetMarketProductsFilter filter, CancellationToken cancellationToken);
   Task<List<Market>> GetMarketsAsync(CancellationToken cancellationToken);

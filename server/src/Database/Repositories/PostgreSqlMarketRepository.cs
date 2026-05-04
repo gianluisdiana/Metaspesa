@@ -13,6 +13,30 @@ internal partial class PostgreSqlMarketRepository(
   MainContext context,
   ILogger<PostgreSqlMarketRepository> logger
 ) : IMarketRepository {
+  public async Task<List<MarketSummary>> GetMarketSummariesAsync(
+    CancellationToken cancellationToken
+  ) {
+    try {
+      List<MarketSummary> marketSummaries = await context.SuperMarkets
+        .Select(m => new MarketSummary(
+          m.Name,
+          m.LogoUrl == null ? null : new Uri(m.LogoUrl)
+        ))
+        .ToListAsync(cancellationToken);
+
+      return marketSummaries;
+    } catch (Exception ex) when (
+      ex is NpgsqlException or OperationCanceledException ||
+      ex.InnerException is NpgsqlException
+    ) {
+      LogErrorGettingMarketSummaries(ex);
+      return [];
+    }
+  }
+
+  [LoggerMessage(LogLevel.Error, "Couldn't get market summaries")]
+  partial void LogErrorGettingMarketSummaries(Exception ex);
+
   public async Task<PagedResult<Market>> GetProductsAsync(
     GetMarketProductsFilter filter, CancellationToken cancellationToken
   ) {

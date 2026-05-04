@@ -32,3 +32,9 @@ message Market {
   string name = 1;
   repeated MarketProduct products = 2;
 }
+
+// Lightweight market summary without product data.
+message MarketSummary {
+  string name = 1;
+  string logo_url = 2;
+}

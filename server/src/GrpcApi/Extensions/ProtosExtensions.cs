@@ -35,6 +35,9 @@ internal static class ProtosExtensions {
     return product;
   }
 
+  public static Protos.Markets.MarketSummary ToProto(this MarketSummary summary) =>
+    new() { Name = summary.Name, LogoUrl = summary.LogoUrl?.ToString() ?? string.Empty };
+
   public static Protos.Markets.Market ToProto(this Market market) =>
     new() {
       Name = market.Name,

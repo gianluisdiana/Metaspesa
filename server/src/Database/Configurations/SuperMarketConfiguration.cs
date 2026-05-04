@@ -19,6 +19,10 @@ internal class SuperMarketConfiguration : IEntityTypeConfiguration<SuperMarketDb
       .HasColumnName("name")
       .IsRequired();
 
+    builder.Property(e => e.LogoUrl)
+      .HasColumnName("logo_url")
+      .IsRequired(false);
+
     builder.HasIndex(e => e.Name, "idx_super_market_name").IsUnique();
   }
 }

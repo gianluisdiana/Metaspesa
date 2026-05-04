@@ -9,6 +9,7 @@ using Metaspesa.GrpcApi.Services;
 using NSubstitute;
 using DomainMarket = Metaspesa.Domain.Markets.Market;
 using DomainMarketProduct = Metaspesa.Domain.Markets.MarketProduct;
+using DomainMarketSummary = Metaspesa.Domain.Markets.MarketSummary;
 using DomainPrice = Metaspesa.Domain.Shopping.Price;
 
 namespace Metaspesa.GrpcApi.UnitTests.Markets;
@@ -22,7 +23,8 @@ public static class MarketGrpcServiceTests {
       _useCaseHandler = Substitute.For<ICommandHandler<AddMarketProducts.Command>>();
       _service = new MarketGrpcService(
         _useCaseHandler,
-        Substitute.For<IQueryHandler<GetMarketProducts.Query, PagedResult<DomainMarket>>>());
+        Substitute.For<IQueryHandler<GetMarketProducts.Query, PagedResult<DomainMarket>>>(),
+        Substitute.For<IQueryHandler<GetMarkets.Query, IReadOnlyCollection<DomainMarketSummary>>>());
     }
 
     [Fact(DisplayName = "Throws RpcException if the command handler returns a failure result")]
@@ -121,19 +123,6 @@ public static class MarketGrpcServiceTests {
           cmd.RegisteredAt == DateOnly.FromDateTime(expectedTime)),
         TestContext.Current.CancellationToken);
     }
-
-    private static ServerCallContext CreateServerCallContext() => TestServerCallContext.Create(
-      method: string.Empty,
-      host: string.Empty,
-      deadline: DateTime.UtcNow.AddMinutes(1),
-      requestHeaders: [],
-      cancellationToken: TestContext.Current.CancellationToken,
-      peer: string.Empty,
-      authContext: null!,
-      contextPropagationToken: null!,
-      writeHeadersFunc: _ => Task.CompletedTask,
-      writeOptionsGetter: () => new WriteOptions(),
-      writeOptionsSetter: _ => { });
   }
 
   public class GetMarketProductsRpc {
@@ -144,7 +133,8 @@ public static class MarketGrpcServiceTests {
       _useCaseHandler = Substitute.For<IQueryHandler<GetMarketProducts.Query, PagedResult<DomainMarket>>>();
       _service = new MarketGrpcService(
         Substitute.For<ICommandHandler<AddMarketProducts.Command>>(),
-        _useCaseHandler);
+        _useCaseHandler,
+        Substitute.For<IQueryHandler<GetMarkets.Query, IReadOnlyCollection<DomainMarketSummary>>>());
     }
 
     private static PagedResult<DomainMarket> EmptyPagedResult() => new([], 0);
@@ -347,18 +337,76 @@ public static class MarketGrpcServiceTests {
         Arg.Is<GetMarketProducts.Query>(q => q.Filter.Pagination!.Size == 10),
         TestContext.Current.CancellationToken);
     }
-
-    private static ServerCallContext CreateServerCallContext() => TestServerCallContext.Create(
-      method: string.Empty,
-      host: string.Empty,
-      deadline: DateTime.UtcNow.AddMinutes(1),
-      requestHeaders: [],
-      cancellationToken: TestContext.Current.CancellationToken,
-      peer: string.Empty,
-      authContext: null!,
-      contextPropagationToken: null!,
-      writeHeadersFunc: _ => Task.CompletedTask,
-      writeOptionsGetter: () => new WriteOptions(),
-      writeOptionsSetter: _ => { });
   }
+
+  public class GetMarketsRpc {
+    private readonly IQueryHandler<GetMarkets.Query, IReadOnlyCollection<DomainMarketSummary>> _useCaseHandler;
+    private readonly MarketGrpcService _service;
+
+    public GetMarketsRpc() {
+      _useCaseHandler = Substitute.For<IQueryHandler<GetMarkets.Query, IReadOnlyCollection<DomainMarketSummary>>>();
+      _service = new MarketGrpcService(
+        Substitute.For<ICommandHandler<AddMarketProducts.Command>>(),
+        Substitute.For<IQueryHandler<GetMarketProducts.Query, PagedResult<DomainMarket>>>(),
+        _useCaseHandler);
+    }
+
+    [Fact(DisplayName = "Throws RpcException if the query handler returns a failure result")]
+    public async Task Api_ThrowsRpcException_IfQueryHandlerFails() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<GetMarkets.Query>(), TestContext.Current.CancellationToken)
+        .Returns(new DomainError(string.Empty, string.Empty, ErrorKind.Unexpected));
+
+      // Act
+      async Task action() => await _service.GetMarkets(new Empty(), CreateServerCallContext());
+
+      // Assert
+      await Assert.ThrowsAsync<RpcException>(action);
+    }
+
+    [Fact(DisplayName = "Returns market count from handler result")]
+    public async Task Api_ReturnsMarketCount_FromHandlerResult() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<GetMarkets.Query>(), TestContext.Current.CancellationToken)
+        .Returns(new List<DomainMarketSummary> {
+          new("Mercadona", new Uri("https://example.com/mercadona.png")),
+          new("Alcampo", null),
+        });
+
+      // Act
+      GetMarketsResponse response = await _service.GetMarkets(new Empty(), CreateServerCallContext());
+
+      // Assert
+      Assert.Equal(2, response.Markets.Count);
+    }
+
+    [Fact(DisplayName = "Returns market names from handler result")]
+    public async Task Api_ReturnsMarketNames_FromHandlerResult() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<GetMarkets.Query>(), TestContext.Current.CancellationToken)
+        .Returns(new List<DomainMarketSummary> { new("Mercadona", null) });
+
+      // Act
+      GetMarketsResponse response = await _service.GetMarkets(new Empty(), CreateServerCallContext());
+
+      // Assert
+      Assert.Equal("Mercadona", response.Markets.Single().Name);
+    }
+  }
+
+  private static ServerCallContext CreateServerCallContext() => TestServerCallContext.Create(
+    method: string.Empty,
+    host: string.Empty,
+    deadline: DateTime.UtcNow.AddMinutes(1),
+    requestHeaders: [],
+    cancellationToken: TestContext.Current.CancellationToken,
+    peer: string.Empty,
+    authContext: null!,
+    contextPropagationToken: null!,
+    writeHeadersFunc: _ => Task.CompletedTask,
+    writeOptionsGetter: () => new WriteOptions(),
+    writeOptionsSetter: _ => { });
 }

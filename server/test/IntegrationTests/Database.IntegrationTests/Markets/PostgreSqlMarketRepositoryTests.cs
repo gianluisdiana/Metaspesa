@@ -1242,4 +1242,106 @@ public static class PostgreSqlMarketRepositoryTests {
       Assert.True(otherHistoryExists);
     }
   }
+
+  [Collection("Database")]
+  public class GetMarketSummariesAsync : IAsyncLifetime {
+    private readonly MainContext _context;
+    private readonly PostgreSqlMarketRepository _repository;
+
+    public GetMarketSummariesAsync(DatabaseFixture fixture) {
+      _context = fixture.CreateContext();
+      _repository = new PostgreSqlMarketRepository(
+        _context, NullLogger<PostgreSqlMarketRepository>.Instance);
+    }
+
+    public async ValueTask InitializeAsync() {
+      await _context.SuperMarkets.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+    }
+
+    public async ValueTask DisposeAsync() {
+      await _context.DisposeAsync();
+      GC.SuppressFinalize(this);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns empty list when no markets exist")]
+    public async Task Repository_ReturnsEmptyList_WhenNoMarketsExist() {
+      // Act
+      List<MarketSummary> result =
+        await _repository.GetMarketSummariesAsync(TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Empty(result);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns all markets")]
+    public async Task Repository_ReturnsAllMarkets() {
+      // Arrange
+      _context.SuperMarkets.AddRange(
+        new SuperMarketDbEntity { Name = "Mercadona" },
+        new SuperMarketDbEntity { Name = "Alcampo" });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      List<MarketSummary> result =
+        await _repository.GetMarketSummariesAsync(TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Equal(2, result.Count);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Maps name correctly")]
+    public async Task Repository_MapsName_Correctly() {
+      // Arrange
+      _context.SuperMarkets.Add(new SuperMarketDbEntity { Name = "Lidl" });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      List<MarketSummary> result =
+        await _repository.GetMarketSummariesAsync(TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Equal("Lidl", result.Single().Name);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Maps logo_url when set")]
+    public async Task Repository_MapsLogoUrl_WhenSet() {
+      // Arrange
+      _context.SuperMarkets.Add(new SuperMarketDbEntity {
+        Name = "Carrefour",
+        LogoUrl = "https://example.com/carrefour.png"
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      List<MarketSummary> result =
+        await _repository.GetMarketSummariesAsync(TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Equal(new Uri("https://example.com/carrefour.png"), result.Single().LogoUrl);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Maps null logo_url when not set")]
+    public async Task Repository_MapsNullLogoUrl_WhenNotSet() {
+      // Arrange
+      _context.SuperMarkets.Add(new SuperMarketDbEntity { Name = "Dia" });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      List<MarketSummary> result =
+        await _repository.GetMarketSummariesAsync(TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Null(result.Single().LogoUrl);
+    }
+  }
 }

@@ -48,6 +48,10 @@ public static class ApplicationDependencyInjection {
         IQueryHandler<GetMarketProducts.Query, PagedResult<Market>>,
         GetMarketProducts.Handler>();
 
+      services.AddScoped<
+        IQueryHandler<GetMarkets.Query, IReadOnlyCollection<MarketSummary>>,
+        GetMarkets.Handler>();
+
       return services;
     }
 

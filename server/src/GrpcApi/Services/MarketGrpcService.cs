@@ -4,6 +4,7 @@ using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Markets;
 using Metaspesa.Domain.Users;
+using DomainMarketSummary = Metaspesa.Domain.Markets.MarketSummary;
 using Metaspesa.GrpcApi.Extensions;
 using Metaspesa.GrpcApi.Protos.Markets;
 using Microsoft.AspNetCore.Authorization;
@@ -14,7 +15,8 @@ namespace Metaspesa.GrpcApi.Services;
 [Authorize]
 internal class MarketGrpcService(
   ICommandHandler<AddMarketProducts.Command> addProductsHandler,
-  IQueryHandler<GetMarketProducts.Query, PagedResult<DomainMarket>> getProductsHandler
+  IQueryHandler<GetMarketProducts.Query, PagedResult<DomainMarket>> getProductsHandler,
+  IQueryHandler<GetMarkets.Query, IReadOnlyCollection<DomainMarketSummary>> getMarketsHandler
 ) : MarketService.MarketServiceBase {
   [Authorize(Roles = nameof(Role.ProductManager))]
   public override async Task<Empty> AddProducts(
@@ -58,6 +60,20 @@ internal class MarketGrpcService(
       TotalProducts = result.Value.TotalCount,
     };
     response.Markets.AddRange(result.Value.Values.Select(m => m.ToProto()));
+    return response;
+  }
+
+  [Authorize(Roles = nameof(Role.Shopper))]
+  public override async Task<GetMarketsResponse> GetMarkets(
+    Empty request, ServerCallContext context
+  ) {
+    Result<IReadOnlyCollection<DomainMarketSummary>> result =
+      await getMarketsHandler.Handle(new GetMarkets.Query(), context.CancellationToken);
+
+    result.ThrowRpcExceptionIfFailed();
+
+    var response = new GetMarketsResponse();
+    response.Markets.AddRange(result.Value.Select(m => m.ToProto()));
     return response;
   }
 }

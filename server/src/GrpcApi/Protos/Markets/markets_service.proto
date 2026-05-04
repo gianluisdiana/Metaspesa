@@ -15,6 +15,8 @@ service MarketService {
   rpc AddProducts(AddProductsRequest) returns (google.protobuf.Empty);
   // Returns market products with optional filters.
   rpc GetMarketProducts(GetMarketProductsRequest) returns (GetMarketProductsResponse);
+  // Returns all markets with their basic info.
+  rpc GetMarkets(google.protobuf.Empty) returns (GetMarketsResponse);
 }
 
 // Request message for adding new products.
@@ -36,4 +38,9 @@ message GetMarketProductsRequest {
 message GetMarketProductsResponse {
   repeated Market markets = 1;
   int32 total_products = 2;
+}
+
+// Response message containing all markets.
+message GetMarketsResponse {
+  repeated MarketSummary markets = 1;
 }
