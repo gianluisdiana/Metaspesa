@@ -354,7 +354,7 @@ public static class PostgreSqlMarketRepositoryTests {
         new MarketProduct(
           productName,
           new ProductBrand(BrandName),
-          [new ProductFormat(quantity, new Price(price))])
+          [new ProductFormat(quantity, new Price(price), null)])
       ]);
 
     [Fact(
@@ -492,7 +492,7 @@ public static class PostgreSqlMarketRepositoryTests {
         ..productNames.Select(n => new MarketProduct(
           n,
           new ProductBrand(BrandName),
-          [new ProductFormat("1kg", new Price(1.00f))]
+          [new ProductFormat("1kg", new Price(1.00f), null)]
         ))
       ]);
 
@@ -706,7 +706,7 @@ public static class PostgreSqlMarketRepositoryTests {
         new MarketProduct(
           productName,
           new ProductBrand(BrandName),
-          [new ProductFormat("1kg", new Price(1.00f))]
+          [new ProductFormat("1kg", new Price(1.00f), null)]
         )
       ]);
 
@@ -1148,7 +1148,7 @@ public static class PostgreSqlMarketRepositoryTests {
         new MarketProduct(
           productName,
           new ProductBrand(BrandName),
-          [new ProductFormat("1kg", new Price(1.00f))]
+          [new ProductFormat("1kg", new Price(1.00f), null)]
         )
       ]);
 

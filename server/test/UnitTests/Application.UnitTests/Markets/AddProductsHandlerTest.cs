@@ -69,7 +69,7 @@ public class AddMarketProductsHandlerTest {
   public async Task Handler_CallsRepository_WhenValidationSucceeds() {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike")],
+      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike", null)],
       DateOnly.MinValue);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
@@ -88,7 +88,7 @@ public class AddMarketProductsHandlerTest {
   public async Task Handler_ReturnsSuccess_WhenHandlingSucceeds() {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike")],
+      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike", null)],
       DateOnly.MinValue);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
@@ -106,7 +106,7 @@ public class AddMarketProductsHandlerTest {
     // Arrange
     var registeredAt = new DateOnly(2024, 1, 15);
     var command = new Command(
-      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike")],
+      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike", null)],
       registeredAt);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
@@ -125,7 +125,7 @@ public class AddMarketProductsHandlerTest {
   public async Task Handler_SkipsAddMarketsAsync_WhenMarketAlreadyExists() {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike")],
+      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike", null)],
       DateOnly.MinValue);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
@@ -145,7 +145,7 @@ public class AddMarketProductsHandlerTest {
   public async Task Handler_SkipsAddBrandsAsync_WhenBrandAlreadyExists() {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike")],
+      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike", null)],
       DateOnly.MinValue);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
@@ -165,7 +165,7 @@ public class AddMarketProductsHandlerTest {
   public async Task Handler_DeletesAddedMarkets_IfCancelledGettingBrands() {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike")],
+      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike", null)],
       DateOnly.MinValue);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
@@ -193,7 +193,7 @@ public class AddMarketProductsHandlerTest {
   public async Task Handler_DeletesAddedMarkets_IfCancelledAddingBrands() {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike")],
+      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike", null)],
       DateOnly.MinValue);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
@@ -226,7 +226,7 @@ public class AddMarketProductsHandlerTest {
   public async Task Handler_DeletesAddedMarkets_IfCancelledAddingProducts() {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike")],
+      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike", null)],
       DateOnly.MinValue);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
@@ -260,7 +260,7 @@ public class AddMarketProductsHandlerTest {
   public async Task Handler_DeletesAddedBrands_IfCancelledAddingProducts() {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike")],
+      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike", null)],
       DateOnly.MinValue);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());

@@ -78,11 +78,15 @@ internal partial class PostgreSqlMarketRepository(
           [..g.Select(p => {
             DateTime latest = p.History.Max(h => h.CreatedAt);
             return new MarketProduct(
-              p.Name,
-              new ProductBrand(p.Brand.Name),
-              [..p.History
+              Name: p.Name,
+              Brand: new ProductBrand(p.Brand.Name),
+              Formats: [..p.History
                 .Where(h => h.CreatedAt == latest)
-                .Select(h => new ProductFormat(h.Quantity, new Price(h.Price)))]);
+                .Select(h => new ProductFormat(
+                  Quantity: h.Quantity,
+                  Price: new Price(h.Price),
+                  ImageUrl: h.ImageUrl is null ? null : new Uri(h.ImageUrl, UriKind.Absolute)
+                ))]);
           })]
         ))];
 
@@ -223,6 +227,7 @@ internal partial class PostgreSqlMarketRepository(
           ProductId = existingId,
           Price = f.Price.Value,
           Quantity = f.Quantity,
+          ImageUrl = f.ImageUrl?.ToString(),
           CreatedAt = now
         }));
       } else {
@@ -249,6 +254,7 @@ internal partial class PostgreSqlMarketRepository(
           ProductId = x.Entity.Id,
           Price = f.Price.Value,
           Quantity = f.Quantity,
+          ImageUrl = f.ImageUrl?.ToString(),
           CreatedAt = now
         })));
       }

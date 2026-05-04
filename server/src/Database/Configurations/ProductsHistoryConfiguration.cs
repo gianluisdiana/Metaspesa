@@ -23,6 +23,10 @@ internal class ProductsHistoryConfiguration : IEntityTypeConfiguration<ProductsH
       .HasColumnName("quantity")
       .IsRequired();
 
+    builder.Property(e => e.ImageUrl)
+      .HasColumnName("image_url")
+      .IsRequired(false);
+
     builder.Property(e => e.CreatedAt)
       .HasColumnName("created_at")
       .HasDefaultValueSql("now()")

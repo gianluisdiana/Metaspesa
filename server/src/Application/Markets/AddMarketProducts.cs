@@ -15,7 +15,8 @@ public static class AddMarketProducts {
     float Price,
     string? Quantity,
     string? MarketName,
-    string? BrandName
+    string? BrandName,
+    Uri? ImageUrl
   );
 
   public record Command(
@@ -32,7 +33,7 @@ public static class AddMarketProducts {
                 Name: gg.Key.Name!,
                 Brand: new ProductBrand(gg.Key.BrandName!),
                 Formats: [
-                  ..gg.Select(p => new ProductFormat(p.Quantity!, new Price(p.Price)))
+                  ..gg.Select(p => new ProductFormat(p.Quantity!, new Price(p.Price), p.ImageUrl))
                 ]
               ))
           ]

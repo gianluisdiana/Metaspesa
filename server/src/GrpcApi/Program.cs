@@ -10,7 +10,7 @@ builder.AddServiceDefaults("metaspesa-grpc-server");
 
 builder.Services
   .AddApplication()
-  .AddDatabase()
+  .AddPersistence()
   .AddInfrastructure();
 
 builder.Services.AddGrpc();

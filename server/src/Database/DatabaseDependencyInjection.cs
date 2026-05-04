@@ -19,10 +19,18 @@ public static class DatabaseDependencyInjection {
     services.AddDbContextPool<MainContext>(options =>
       options.UseNpgsql(connectionString));
 
-    services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<MainContext>());
-
     services.AddOpenTelemetry()
       .WithTracing(tracing => tracing.AddNpgsql());
+
+    return services;
+  }
+
+  public static IServiceCollection AddPersistence(
+    this IServiceCollection services
+  ) {
+    services.AddDatabase();
+
+    services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<MainContext>());
 
     services.AddScoped<IUserRepository, PostgreSqlUserRepository>();
     services.AddScoped<IMarketRepository, PostgreSqlMarketRepository>();

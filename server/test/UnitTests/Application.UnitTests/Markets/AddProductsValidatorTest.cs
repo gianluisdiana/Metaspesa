@@ -34,7 +34,7 @@ public class AddProductsValidatorTest {
   [InlineData("   ")]
   public async Task Validator_Fails_WhenAnyProductNameIsEmpty(string? name) {
     // Arrange
-    var command = new Command([new CommandProduct(name, 1.99f, "1L", "Walmart", "Nike")], DateOnly.MinValue);
+    var command = new Command([new CommandProduct(name, 1.99f, "1L", "Walmart", "Nike", null)], DateOnly.MinValue);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -52,7 +52,7 @@ public class AddProductsValidatorTest {
   public async Task Validator_Fails_WhenAnyMarketNameIsEmpty(string? marketName) {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 1.99f, "1L", marketName, "Nike")], DateOnly.MinValue);
+      [new CommandProduct("Milk", 1.99f, "1L", marketName, "Nike", null)], DateOnly.MinValue);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -70,7 +70,7 @@ public class AddProductsValidatorTest {
   public async Task Validator_Fails_WhenAnyBrandNameIsEmpty(string? brandName) {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", brandName)], DateOnly.MinValue);
+      [new CommandProduct("Milk", 1.99f, "1L", "Walmart", brandName, null)], DateOnly.MinValue);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -88,7 +88,7 @@ public class AddProductsValidatorTest {
   public async Task Validator_Fails_WhenQuantityIsEmpty(string? quantity) {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 1.99f, quantity, "Walmart", "Nike")], DateOnly.MinValue);
+      [new CommandProduct("Milk", 1.99f, quantity, "Walmart", "Nike", null)], DateOnly.MinValue);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -103,7 +103,7 @@ public class AddProductsValidatorTest {
   public async Task Validator_Fails_WhenPriceIsNegative() {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", -1f, "1L", "Walmart", "Nike")], DateOnly.MinValue);
+      [new CommandProduct("Milk", -1f, "1L", "Walmart", "Nike", null)], DateOnly.MinValue);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -118,8 +118,8 @@ public class AddProductsValidatorTest {
   public async Task Validator_Fails_WhenDuplicateProductExists() {
     // Arrange
     var command = new Command([
-      new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike"),
-      new CommandProduct("Milk", 2.50f, "1L", "Walmart", "Nike"),
+      new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike", null),
+      new CommandProduct("Milk", 2.50f, "1L", "Walmart", "Nike", null),
     ], DateOnly.MinValue);
 
     // Act
@@ -140,7 +140,7 @@ public class AddProductsValidatorTest {
     // Arrange
     var registeredAt = new DateOnly(year, month, day);
     var command = new Command([
-      new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike"),
+      new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike", null),
     ], registeredAt);
 
     // Act
@@ -156,8 +156,8 @@ public class AddProductsValidatorTest {
   public async Task Validator_Passes_WhenAllProductsAreValid() {
     // Arrange
     var command = new Command([
-      new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike"),
-      new CommandProduct("Bread", 0.99f, "500g", "Carrefour", "Adidas"),
+      new CommandProduct("Milk", 1.99f, "1L", "Walmart", "Nike", null),
+      new CommandProduct("Bread", 0.99f, "500g", "Carrefour", "Adidas", null),
     ], DateOnly.FromDateTime(new DateTime(2024, 6, 15, 12, 0, 0, DateTimeKind.Utc)));
 
     // Act
@@ -172,7 +172,7 @@ public class AddProductsValidatorTest {
   public async Task Validator_Passes_WhenPriceIsZero() {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 0f, "1L", "Walmart", "Nike")], 
+      [new CommandProduct("Milk", 0f, "1L", "Walmart", "Nike", null)], 
       DateOnly.FromDateTime(new DateTime(2024, 6, 15, 12, 0, 0, DateTimeKind.Utc)));
 
     // Act

@@ -11,6 +11,7 @@ message Product {
   string quantity = 3;
   string market_name = 4;
   string brand_name = 5;
+  string image_url = 6;
 }
 
 // A format (size/quantity + price) for a market product.

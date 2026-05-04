@@ -160,8 +160,8 @@ public static class MarketGrpcServiceTests {
       _useCaseHandler
         .Handle(Arg.Any<GetMarketProducts.Query>(), TestContext.Current.CancellationToken)
         .Returns(new PagedResult<DomainMarket>([
-          new DomainMarket("Mercadona", [new DomainMarketProduct("Leche", new ProductBrand("H"), [new ProductFormat("1L", new DomainPrice(0.89f))])]),
-          new DomainMarket("Alcampo", [new DomainMarketProduct("Pan", new ProductBrand("B"), [new ProductFormat("500g", new DomainPrice(1.20f))])]),
+          new DomainMarket("Mercadona", [new DomainMarketProduct("Leche", new ProductBrand("H"), [new ProductFormat("1L", new DomainPrice(0.89f), null)])]),
+          new DomainMarket("Alcampo", [new DomainMarketProduct("Pan", new ProductBrand("B"), [new ProductFormat("500g", new DomainPrice(1.20f), null)])]),
         ], 2));
 
       // Act

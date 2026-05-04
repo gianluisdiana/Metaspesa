@@ -26,7 +26,8 @@ internal class MarketGrpcService(
       request.RegisteredAt.ToDateTime());
     var command = new AddMarketProducts.Command(
       [.. request.Products.Select(p => new AddMarketProducts.CommandProduct(
-        p.Name, p.Price, p.Quantity, p.MarketName, p.BrandName))],
+        p.Name, p.Price, p.Quantity, p.MarketName, p.BrandName,
+        string.IsNullOrEmpty(p.ImageUrl) ? null : new Uri(p.ImageUrl)))],
       registeredAt);
 
     Result result = await addProductsHandler.Handle(command, context.CancellationToken);
