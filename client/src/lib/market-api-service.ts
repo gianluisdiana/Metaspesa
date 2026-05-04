@@ -2,7 +2,7 @@ import { MarketProductsResult, MarketSummaryMessage } from './market-messages';
 
 export interface MarketFilter {
   marketName?: string;
-  brandName?: string;
+  brandNameSegment?: string;
   nameSegment?: string;
 }
 

@@ -50,7 +50,7 @@ export default class GrpcMarketApiService implements MarketApiService {
       return await new Promise<MarketProductsResult>((resolve, reject) => {
         this.client.GetMarketProducts(
           {
-            brandName: filter.brandName,
+            brandNameSegment: filter.brandNameSegment,
             marketName: filter.marketName,
             nameSegment: filter.nameSegment,
           },

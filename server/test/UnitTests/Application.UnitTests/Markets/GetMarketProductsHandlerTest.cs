@@ -24,9 +24,9 @@ public class GetMarketProductsHandlerTest {
   }
 
   private static GetMarketProductsFilter DefaultFilter(
-    string? market = null, string? brand = null, string? segment = null,
+    string? market = null, string? brandSegment = null, string? segment = null,
     Pagination? pagination = null
-  ) => new(market, brand, segment, pagination);
+  ) => new(market, brandSegment, segment, pagination);
 
   [Fact(DisplayName = "Passes filter to the repository")]
   public async Task Handler_PassesFilter_ToRepository() {
@@ -42,7 +42,7 @@ public class GetMarketProductsHandlerTest {
     // Assert
     await _marketRepository.Received(1).GetProductsAsync(
       Arg.Is<GetMarketProductsFilter>(f =>
-        f.MarketName == "Mercadona" && f.BrandName == "Hacendado" && f.NameSegment == "leche"),
+        f.MarketName == "Mercadona" && f.BrandNameSegment == "Hacendado" && f.NameSegment == "leche"),
       TestContext.Current.CancellationToken);
   }
 

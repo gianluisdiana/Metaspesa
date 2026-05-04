@@ -840,14 +840,14 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     private static GetMarketProductsFilter Filter(
-      string? market = null, string? brand = null, string? segment = null,
+      string? market = null, string? brandSegment = null, string? segment = null,
       Pagination? pagination = null
-    ) => new(market, brand, segment, pagination);
+    ) => new(market, brandSegment, segment, pagination);
 
     private static GetMarketProductsFilter FilterWithPage(
-      string? market = null, string? brand = null, string? segment = null,
+      string? market = null, string? brandSegment = null, string? segment = null,
       int page = 1, int pageSize = 100
-    ) => new(market, brand, segment, new Pagination(page, pageSize));
+    ) => new(market, brandSegment, segment, new Pagination(page, pageSize));
 
     [Fact(
       Explicit = true,
@@ -961,16 +961,34 @@ public static class PostgreSqlMarketRepositoryTests {
 
     [Fact(
       Explicit = true,
-      DisplayName = "Filters by brand name (case-insensitive)")]
-    public async Task Repository_FiltersByBrandName_CaseInsensitive() {
+      DisplayName = "Filters by brand name segment (case-insensitive contains)")]
+    public async Task Repository_FiltersByBrandNameSegment_CaseInsensitiveContains() {
+      // Arrange
+      DateTime now = DateTime.UtcNow;
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche", 0.89f, "1L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandB, "Pan", 1.20f, "500g", now);
+
+      // Act — use a segment that partially matches one brand
+      PagedResult<Market> result = await _repository.GetProductsAsync(
+        Filter(brandSegment: "BrandA"), TestContext.Current.CancellationToken);
+
+      // Assert
+      IEnumerable<MarketProduct> products = result.Values.SelectMany(m => m.Products);
+      Assert.Equal(BrandA, products.Single().Brand.Name);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Filters by brand name segment (case-insensitive partial match)")]
+    public async Task Repository_FiltersByBrandNameSegment_CaseInsensitivePartialMatch() {
       // Arrange
       DateTime now = DateTime.UtcNow;
       await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche BrandFilter", 0.89f, "1L", now);
       await SeedProductWithHistoryAsync(MarketA, BrandB, "Pan BrandFilter", 1.20f, "500g", now);
 
-      // Act
+      // Act — use a segment that only matches BrandA
       PagedResult<Market> result = await _repository.GetProductsAsync(
-        Filter(brand: BrandA.ToUpperInvariant()), TestContext.Current.CancellationToken);
+        Filter(brandSegment: BrandA.ToUpperInvariant()), TestContext.Current.CancellationToken);
 
       // Assert
       IEnumerable<MarketProduct> products = result.Values.SelectMany(m => m.Products);

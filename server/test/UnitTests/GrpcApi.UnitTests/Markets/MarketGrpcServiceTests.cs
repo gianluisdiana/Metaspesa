@@ -220,20 +220,20 @@ public static class MarketGrpcServiceTests {
         TestContext.Current.CancellationToken);
     }
 
-    [Fact(DisplayName = "Passes brand_name to filter when set in request")]
-    public async Task Api_PassesBrandName_WhenSetInRequest() {
+    [Fact(DisplayName = "Passes brand_name_segment to filter when set in request")]
+    public async Task Api_PassesBrandNameSegment_WhenSetInRequest() {
       // Arrange
       _useCaseHandler
         .Handle(Arg.Any<GetMarketProducts.Query>(), TestContext.Current.CancellationToken)
         .Returns(EmptyPagedResult());
-      var request = new GetMarketProductsRequest { BrandName = "Hacendado" };
+      var request = new GetMarketProductsRequest { BrandNameSegment = "Hacendado" };
 
       // Act
       await _service.GetMarketProducts(request, CreateServerCallContext());
 
       // Assert
       await _useCaseHandler.Received(1).Handle(
-        Arg.Is<GetMarketProducts.Query>(q => q.Filter.BrandName == "Hacendado"),
+        Arg.Is<GetMarketProducts.Query>(q => q.Filter.BrandNameSegment == "Hacendado"),
         TestContext.Current.CancellationToken);
     }
 

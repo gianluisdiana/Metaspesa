@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { Suspense } from 'react';
 
 import GrpcMarketApiService from '@/infrastructure/grpc-market-api-service';
+import { MarketFilter } from '@/lib/market-api-service';
 
 import FilterHeader from './components/filter-header';
 import ProductGrid from './components/product-grid';
@@ -21,8 +22,8 @@ export default async function MarketsPage({
   const [params, cookieStore] = await Promise.all([searchParams, cookies()]);
   const token = cookieStore.get('auth_token')?.value ?? '';
 
-  const filter = {
-    brandName: stringParam(params, 'brand_name'),
+  const filter: MarketFilter = {
+    brandNameSegment: stringParam(params, 'brand_name'),
     marketName: stringParam(params, 'market_name'),
     nameSegment: stringParam(params, 'name_segment'),
   };

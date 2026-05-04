@@ -4,7 +4,7 @@ namespace Metaspesa.Application.Abstractions.Markets;
 
 public record GetMarketProductsFilter(
   string? MarketName,
-  string? BrandName,
+  string? BrandNameSegment,
   string? NameSegment,
   Pagination? Pagination
 );

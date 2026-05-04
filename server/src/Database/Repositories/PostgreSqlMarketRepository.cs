@@ -49,8 +49,8 @@ internal partial class PostgreSqlMarketRepository(
       if (filter.MarketName is not null) {
         baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.SuperMarket.Name, filter.MarketName));
       }
-      if (filter.BrandName is not null) {
-        baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.Brand.Name, filter.BrandName));
+      if (filter.BrandNameSegment is not null) {
+        baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.Brand.Name, $"%{filter.BrandNameSegment}%"));
       }
       if (filter.NameSegment is not null) {
         baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.Name, $"%{filter.NameSegment}%"));

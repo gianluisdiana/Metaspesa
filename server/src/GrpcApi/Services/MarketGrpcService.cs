@@ -47,7 +47,7 @@ internal class MarketGrpcService(
 
     var filter = new GetMarketProductsFilter(
       request.HasMarketName ? request.MarketName : null,
-      request.HasBrandName ? request.BrandName : null,
+      request.HasBrandNameSegment ? request.BrandNameSegment : null,
       request.HasNameSegment ? request.NameSegment : null,
       pagination);
 

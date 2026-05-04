@@ -2,6 +2,8 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   serverExternalPackages: [
+    '@grpc/grpc-js',
+    '@grpc/proto-loader',
     '@opentelemetry/api',
     '@opentelemetry/api-logs',
     '@opentelemetry/auto-instrumentations-node',

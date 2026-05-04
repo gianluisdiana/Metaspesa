@@ -26,7 +26,7 @@ message AddProductsRequest {
 // Request message for getting market products with optional filters and pagination.
 message GetMarketProductsRequest {
   optional string market_name = 1;
-  optional string brand_name = 2;
+  optional string brand_name_segment = 2;
   optional string name_segment = 3;
   optional int32 page = 4;
   optional int32 page_size = 5;
