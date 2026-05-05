@@ -21,8 +21,8 @@ internal class JwtTokenProvider(IOptions<JwtOptions> options, IClock clock) : IT
     DateTime expiresAt = clock.GetCurrentTime().AddMinutes(jwtOptions.ExpirationMinutes);
 
     Claim[] claims = [
-      new(ClaimTypes.NameIdentifier, user.Uid.ToString()),
-      new(ClaimTypes.Name, user.Username),
+      new(JwtRegisteredClaimNames.Sub, user.Uid.ToString()),
+      new(JwtRegisteredClaimNames.Name, user.Username),
       new(ClaimTypes.Role, user.Role.ToString()),
     ];
 

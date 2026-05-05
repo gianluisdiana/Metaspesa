@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
@@ -1337,7 +1338,7 @@ public static class ShoppingGrpcServiceTests {
 
     var httpContext = new DefaultHttpContext {
       User = new(new ClaimsIdentity([
-        new Claim(ClaimTypes.NameIdentifier, (userId ?? Guid.CreateVersion7()).ToString()),
+        new Claim(JwtRegisteredClaimNames.Sub, (userId ?? Guid.CreateVersion7()).ToString()),
       ]))
     };
     context.UserState["__HttpContext"] = httpContext;

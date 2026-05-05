@@ -1,7 +1,9 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
+
+const FILTER_DEBOUNCE_MS = 350;
 
 interface Props {
   marketNames: string[];
@@ -70,25 +72,62 @@ function BrandFilter({
 }
 
 export default function FilterHeader({ marketNames }: Readonly<Props>) {
+  const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const nameSegment = searchParams.get('name_segment') ?? '';
   const marketName = searchParams.get('market_name') ?? '';
   const brandName = searchParams.get('brand_name') ?? '';
+  const [pendingNameSegment, setPendingNameSegment] = useState(nameSegment);
+  const [pendingBrandName, setPendingBrandName] = useState(brandName);
 
-  const updateParam = useCallback(
-    (key: string, value: string) => {
+  const replaceParams = useCallback(
+    (values: Readonly<Record<string, string>>) => {
       const params = new URLSearchParams(searchParams.toString());
-      if (value) {
-        params.set(key, value);
-      } else {
-        params.delete(key);
-      }
-      router.replace(`?${params.toString()}`);
+      Object.entries(values).forEach(([key, value]) => {
+        if (value) {
+          params.set(key, value);
+        } else {
+          params.delete(key);
+        }
+      });
+      const queryString = params.toString();
+      const nextUrl = queryString ? `${pathname}?${queryString}` : pathname;
+      router.replace(nextUrl);
     },
-    [router, searchParams],
+    [pathname, router, searchParams],
   );
+
+  useEffect(() => {
+    setPendingNameSegment(nameSegment);
+  }, [nameSegment]);
+
+  useEffect(() => {
+    setPendingBrandName(brandName);
+  }, [brandName]);
+
+  useEffect(() => {
+    const timeoutId = globalThis.setTimeout(() => {
+      if (
+        pendingBrandName !== brandName ||
+        pendingNameSegment !== nameSegment
+      ) {
+        replaceParams({
+          brand_name: pendingBrandName,
+          name_segment: pendingNameSegment,
+        });
+      }
+    }, FILTER_DEBOUNCE_MS);
+
+    return () => globalThis.clearTimeout(timeoutId);
+  }, [
+    brandName,
+    nameSegment,
+    pendingBrandName,
+    pendingNameSegment,
+    replaceParams,
+  ]);
 
   return (
     <div className="sticky top-16 z-30 bg-surface/90 backdrop-blur-md border-b border-surface-variant px-container-margin py-stack-md flex flex-col gap-stack-sm shadow-sm shadow-secondary/5">
@@ -99,18 +138,15 @@ export default function FilterHeader({ marketNames }: Readonly<Props>) {
       </div>
       <div className="flex flex-wrap gap-unit mt-unit items-center">
         <SearchBar
-          value={nameSegment}
-          onChange={v => updateParam('name_segment', v)}
+          value={pendingNameSegment}
+          onChange={setPendingNameSegment}
         />
         <MarketSelect
           value={marketName}
           options={marketNames}
-          onChange={v => updateParam('market_name', v)}
+          onChange={v => replaceParams({ market_name: v })}
         />
-        <BrandFilter
-          value={brandName}
-          onChange={v => updateParam('brand_name', v)}
-        />
+        <BrandFilter value={pendingBrandName} onChange={setPendingBrandName} />
       </div>
     </div>
   );

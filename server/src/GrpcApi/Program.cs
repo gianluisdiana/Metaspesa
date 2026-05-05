@@ -1,6 +1,6 @@
 using Metaspesa.Application;
 using Metaspesa.Database;
-using Metaspesa.GrpcApi.Services;
+using Metaspesa.GrpcApi;
 using Metaspesa.Infrastructure;
 using Metaspesa.ServiceDefaults;
 
@@ -11,21 +11,13 @@ builder.AddServiceDefaults("metaspesa-grpc-server");
 builder.Services
   .AddApplication()
   .AddPersistence()
-  .AddInfrastructure();
-
-builder.Services.AddGrpc();
-builder.Services.AddGrpcReflection();
+  .AddInfrastructure()
+  .AddGrpcApi();
 
 WebApplication app = builder.Build();
 
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapGrpcService<AuthGrpcService>();
-app.MapGrpcService<ShoppingGrpcService>();
-app.MapGrpcService<MarketGrpcService>();
-app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
-
+app.AddCustomMiddleware();
+app.MapGrpcServices();
 
 if (app.Environment.IsDevelopment()) {
   app.MapGrpcReflectionService();
