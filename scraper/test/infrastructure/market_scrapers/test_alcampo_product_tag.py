@@ -1,15 +1,17 @@
+import pytest
 from bs4 import BeautifulSoup
 
 from infrastructure.market_scrapers.alcampo_web_scraper import AlcampoProductTag
+from infrastructure.market_scrapers.resilience import MissingProductAttributeError
+
+
+def product_tag(html: str) -> AlcampoProductTag:
+    return AlcampoProductTag(BeautifulSoup(html, "html.parser"))
 
 
 def test_is_skeleton_by_default():
     # Arrange
-    html = """
-    <div></div>
-    """
-
-    tag = AlcampoProductTag(BeautifulSoup(html, "html.parser"))
+    tag = product_tag("<div></div>")
 
     # Act
     is_skeleton = tag.is_skeleton()
@@ -25,8 +27,7 @@ def test_is_not_skeleton_if_name_is_present():
         <h3 data-test="fop-title">Product Name</h3>
     </div>
     """
-
-    tag = AlcampoProductTag(BeautifulSoup(html, "html.parser"))
+    tag = product_tag(html)
 
     # Act
     is_skeleton = tag.is_skeleton()
@@ -37,11 +38,7 @@ def test_is_not_skeleton_if_name_is_present():
 
 def test_is_not_featured_by_default():
     # Arrange
-    html = """
-    <div></div>
-    """
-
-    tag = AlcampoProductTag(BeautifulSoup(html, "html.parser"))
+    tag = product_tag("<div></div>")
 
     # Act
     is_featured = tag.is_featured()
@@ -57,8 +54,7 @@ def test_is_featured_if_contains_featured_flag():
         <span data-test="fop-featured"></span>
     </div>
     """
-
-    tag = AlcampoProductTag(BeautifulSoup(html, "html.parser"))
+    tag = product_tag(html)
 
     # Act
     is_featured = tag.is_featured()
@@ -67,194 +63,196 @@ def test_is_featured_if_contains_featured_flag():
     assert is_featured
 
 
-def test_does_not_return_name_if_not_present():
+def test_raises_if_name_is_missing():
     # Arrange
     html = """
-    <div></div>
-    """
-
-    product_tag = AlcampoProductTag(BeautifulSoup(html, "html.parser"))
-
-    # Act
-    product = product_tag.to_product()
-
-    # Assert
-    assert product.name == ""
-
-
-def test_returns_name_if_present():
-    # Arrange
-    expected_name = "Product Name"
-    html = f"""
     <div>
-        <h3 data-test="fop-title">{expected_name}</h3>
+        <div data-test="fop-size"><span>500g</span></div>
+        <span data-test="fop-price">1.99</span>
+        <img data-test="lazy-load-image" src="https://example.com/product.png" />
     </div>
     """
+    tag = product_tag(html)
 
-    product_tag = AlcampoProductTag(BeautifulSoup(html, "html.parser"))
-
-    # Act
-    product = product_tag.to_product()
-
-    # Assert
-    assert product.name == expected_name
+    # Act / Assert
+    with pytest.raises(MissingProductAttributeError):
+        tag.to_product()
 
 
-def test_removes_whitespaces_from_name():
-    # Arrange
-    expected_name = "Product Name"
-    html = f"""
-    <div>
-        <h3 data-test="fop-title">   {expected_name}   </h3>
-    </div>
-    """
-
-    product_tag = AlcampoProductTag(BeautifulSoup(html, "html.parser"))
-
-    # Act
-    product = product_tag.to_product()
-
-    # Assert
-    assert product.name == expected_name
-
-
-def test_does_not_return_quantity_if_not_present():
+def test_raises_if_quantity_is_missing():
     # Arrange
     html = """
-    <div></div>
-    """
-
-    product_tag = AlcampoProductTag(BeautifulSoup(html, "html.parser"))
-
-    # Act
-    product = product_tag.to_product()
-
-    # Assert
-    assert product.quantity == ""
-
-
-def test_returns_quantity_if_present():
-    # Arrange
-    expected_quantity = "500g"
-    html = f"""
     <div>
-        <div data-test="fop-size">
-            <span>{expected_quantity}</span>
-        </div>
+        <h3 data-test="fop-title">Product Name</h3>
+        <span data-test="fop-price">1.99</span>
+        <img data-test="lazy-load-image" src="https://example.com/product.png" />
     </div>
     """
+    tag = product_tag(html)
 
-    product_tag = AlcampoProductTag(BeautifulSoup(html, "html.parser"))
-
-    # Act
-    product = product_tag.to_product()
-
-    # Assert
-    assert product.quantity == expected_quantity
+    # Act / Assert
+    with pytest.raises(MissingProductAttributeError):
+        tag.to_product()
 
 
-def test_removes_whitespaces_from_quantity():
-    # Arrange
-    expected_quantity = "500g"
-    html = f"""
-    <div>
-        <div data-test="fop-size">
-            <span>   {expected_quantity}   </span>
-        </div>
-    </div>
-    """
-
-    product_tag = AlcampoProductTag(BeautifulSoup(html, "html.parser"))
-
-    # Act
-    product = product_tag.to_product()
-
-    # Assert
-    assert product.quantity == expected_quantity
-
-
-def test_does_not_return_price_if_not_present():
+def test_raises_if_price_is_missing():
     # Arrange
     html = """
-    <div></div>
-    """
-
-    product_tag = AlcampoProductTag(BeautifulSoup(html, "html.parser"))
-
-    # Act
-    product = product_tag.to_product()
-
-    # Assert
-    assert abs(product.price - 0.0) < 0.001
-
-
-def test_returns_price_if_present():
-    # Arrange
-    expected_price = 1.99
-    html = f"""
     <div>
-        <span data-test="fop-price">{expected_price}€</span>
+        <h3 data-test="fop-title">Product Name</h3>
+        <div data-test="fop-size"><span>500g</span></div>
+        <img data-test="lazy-load-image" src="https://example.com/product.png" />
     </div>
     """
+    tag = product_tag(html)
 
-    product_tag = AlcampoProductTag(BeautifulSoup(html, "html.parser"))
-
-    # Act
-    product = product_tag.to_product()
-
-    # Assert
-    assert abs(product.price - expected_price) < 0.001
+    # Act / Assert
+    with pytest.raises(MissingProductAttributeError):
+        tag.to_product()
 
 
-def test_removes_whitespaces_from_price():
+def test_raises_if_image_url_is_missing():
     # Arrange
-    expected_price = 1.99
-    html = f"""
+    html = """
     <div>
-        <span data-test="fop-price">   {expected_price}   </span>
+        <h3 data-test="fop-title">Product Name</h3>
+        <div data-test="fop-size"><span>500g</span></div>
+        <span data-test="fop-price">1.99</span>
     </div>
     """
+    tag = product_tag(html)
 
-    product_tag = AlcampoProductTag(BeautifulSoup(html, "html.parser"))
+    # Act / Assert
+    with pytest.raises(MissingProductAttributeError):
+        tag.to_product()
+
+
+def test_returns_name_if_required_attributes_are_present():
+    # Arrange
+    html = """
+    <div>
+        <h3 data-test="fop-title">  Product Name  </h3>
+        <div data-test="fop-size"><span>500g</span></div>
+        <span data-test="fop-price">1.99</span>
+        <img data-test="lazy-load-image" src="https://example.com/product.png" />
+    </div>
+    """
+    tag = product_tag(html)
 
     # Act
-    product = product_tag.to_product()
+    product = tag.to_product()
 
     # Assert
-    assert abs(product.price - expected_price) < 0.001
+    assert product.name == "Product Name"
+
+
+def test_returns_quantity_if_required_attributes_are_present():
+    # Arrange
+    html = """
+    <div>
+        <h3 data-test="fop-title">Product Name</h3>
+        <div data-test="fop-size"><span>  500g  </span></div>
+        <span data-test="fop-price">1.99</span>
+        <img data-test="lazy-load-image" src="https://example.com/product.png" />
+    </div>
+    """
+    tag = product_tag(html)
+
+    # Act
+    product = tag.to_product()
+
+    # Assert
+    assert product.quantity == "500g"
+
+
+def test_returns_price_if_required_attributes_are_present():
+    # Arrange
+    html = """
+    <div>
+        <h3 data-test="fop-title">Product Name</h3>
+        <div data-test="fop-size"><span>500g</span></div>
+        <span data-test="fop-price">1.99</span>
+        <img data-test="lazy-load-image" src="https://example.com/product.png" />
+    </div>
+    """
+    tag = product_tag(html)
+
+    # Act
+    product = tag.to_product()
+
+    # Assert
+    assert abs(product.price - 1.99) < 0.001
+
+
+def test_returns_image_url_if_required_attributes_are_present():
+    # Arrange
+    html = """
+    <div>
+        <h3 data-test="fop-title">Product Name</h3>
+        <div data-test="fop-size"><span>500g</span></div>
+        <span data-test="fop-price">1.99</span>
+        <img data-test="lazy-load-image" src="https://example.com/product.png" />
+    </div>
+    """
+    tag = product_tag(html)
+
+    # Act
+    product = tag.to_product()
+
+    # Assert
+    assert product.image_url == "https://example.com/product.png"
 
 
 def test_removes_euro_symbol_from_price():
     # Arrange
-    expected_price = 1.99
-    html = f"""
+    html = """
     <div>
-        <span data-test="fop-price">{expected_price}€</span>
+        <h3 data-test="fop-title">Product Name</h3>
+        <div data-test="fop-size"><span>500g</span></div>
+        <span data-test="fop-price">1.99€</span>
+        <img data-test="lazy-load-image" src="https://example.com/product.png" />
     </div>
     """
-
-    product_tag = AlcampoProductTag(BeautifulSoup(html, "html.parser"))
+    tag = product_tag(html)
 
     # Act
-    product = product_tag.to_product()
+    product = tag.to_product()
 
     # Assert
-    assert abs(product.price - expected_price) < 0.001
+    assert abs(product.price - 1.99) < 0.001
 
 
 def test_replaces_comma_with_dot_in_price():
     # Arrange
-    expected_price = 1.99
     html = """
     <div>
+        <h3 data-test="fop-title">Product Name</h3>
+        <div data-test="fop-size"><span>500g</span></div>
         <span data-test="fop-price">1,99</span>
+        <img data-test="lazy-load-image" src="https://example.com/product.png" />
     </div>
     """
-
-    product_tag = AlcampoProductTag(BeautifulSoup(html, "html.parser"))
+    tag = product_tag(html)
 
     # Act
-    product = product_tag.to_product()
+    product = tag.to_product()
 
     # Assert
-    assert abs(product.price - expected_price) < 0.001
+    assert abs(product.price - 1.99) < 0.001
+
+
+def test_raises_if_price_is_invalid():
+    # Arrange
+    html = """
+    <div>
+        <h3 data-test="fop-title">Product Name</h3>
+        <div data-test="fop-size"><span>500g</span></div>
+        <span data-test="fop-price">invalid</span>
+        <img data-test="lazy-load-image" src="https://example.com/product.png" />
+    </div>
+    """
+    tag = product_tag(html)
+
+    # Act / Assert
+    with pytest.raises(MissingProductAttributeError):
+        tag.to_product()

@@ -1,195 +1,224 @@
+import pytest
 from bs4 import BeautifulSoup
 
 from infrastructure.market_scrapers.mercadona_web_scraper import MercadonaProductTag
+from infrastructure.market_scrapers.resilience import MissingProductAttributeError
 
 
-def test_does_not_return_name_if_not_present():
+def product_tag(html: str) -> MercadonaProductTag:
+    return MercadonaProductTag(BeautifulSoup(html, "html.parser"))
+
+
+def test_raises_if_name_is_missing():
     # Arrange
     html = """
-    <div></div>
-    """
-
-    product_tag = MercadonaProductTag(BeautifulSoup(html, "html.parser"))
-
-    # Act
-    product = product_tag.to_product()
-
-    # Assert
-    assert product.name == ""
-
-
-def test_returns_name_if_present():
-    # Arrange
-    expected_name = "Product Name"
-    html = f"""
     <div>
-        <h4 class="product-cell__description-name">{expected_name}</h4>
+        <div class="product-format__size--cell" aria-label="500g"></div>
+        <p class="product-price__unit-price">1.99</p>
+        <div class="product-cell__image-wrapper">
+            <img src="https://example.com/product.png" />
+        </div>
     </div>
     """
+    tag = product_tag(html)
 
-    product_tag = MercadonaProductTag(BeautifulSoup(html, "html.parser"))
-
-    # Act
-    product = product_tag.to_product()
-
-    # Assert
-    assert product.name == expected_name
+    # Act / Assert
+    with pytest.raises(MissingProductAttributeError):
+        tag.to_product()
 
 
-def test_strips_whitespace_from_name():
-    # Arrange
-    expected_name = "Product Name"
-    html = f"""
-    <div>
-        <h4 class="product-cell__description-name">  {expected_name}  </h4>
-    </div>
-    """
-
-    product_tag = MercadonaProductTag(BeautifulSoup(html, "html.parser"))
-
-    # Act
-    product = product_tag.to_product()
-
-    # Assert
-    assert product.name == expected_name
-
-
-def test_does_not_return_price_if_not_present():
+def test_raises_if_quantity_is_missing():
     # Arrange
     html = """
-    <div></div>
-    """
-
-    product_tag = MercadonaProductTag(BeautifulSoup(html, "html.parser"))
-
-    # Act
-    product = product_tag.to_product()
-
-    # Assert
-    assert (product.price - 0.0) < 0.01
-
-
-def test_returns_price_if_present():
-    # Arrange
-    expected_price = 1.99
-    html = f"""
     <div>
-        <p class="product-price__unit-price">{expected_price}</p>
+        <h4 class="product-cell__description-name">Product Name</h4>
+        <p class="product-price__unit-price">1.99</p>
+        <div class="product-cell__image-wrapper">
+            <img src="https://example.com/product.png" />
+        </div>
     </div>
     """
+    tag = product_tag(html)
 
-    product_tag = MercadonaProductTag(BeautifulSoup(html, "html.parser"))
+    # Act / Assert
+    with pytest.raises(MissingProductAttributeError):
+        tag.to_product()
+
+
+def test_raises_if_price_is_missing():
+    # Arrange
+    html = """
+    <div>
+        <h4 class="product-cell__description-name">Product Name</h4>
+        <div class="product-format__size--cell" aria-label="500g"></div>
+        <div class="product-cell__image-wrapper">
+            <img src="https://example.com/product.png" />
+        </div>
+    </div>
+    """
+    tag = product_tag(html)
+
+    # Act / Assert
+    with pytest.raises(MissingProductAttributeError):
+        tag.to_product()
+
+
+def test_raises_if_image_url_is_missing():
+    # Arrange
+    html = """
+    <div>
+        <h4 class="product-cell__description-name">Product Name</h4>
+        <div class="product-format__size--cell" aria-label="500g"></div>
+        <p class="product-price__unit-price">1.99</p>
+    </div>
+    """
+    tag = product_tag(html)
+
+    # Act / Assert
+    with pytest.raises(MissingProductAttributeError):
+        tag.to_product()
+
+
+def test_returns_name_if_required_attributes_are_present():
+    # Arrange
+    html = """
+    <div>
+        <h4 class="product-cell__description-name">  Product Name  </h4>
+        <div class="product-format__size--cell" aria-label="500g"></div>
+        <p class="product-price__unit-price">1.99</p>
+        <div class="product-cell__image-wrapper">
+            <img src="https://example.com/product.png" />
+        </div>
+    </div>
+    """
+    tag = product_tag(html)
 
     # Act
-    product = product_tag.to_product()
+    product = tag.to_product()
 
     # Assert
-    assert (product.price - expected_price) < 0.01
+    assert product.name == "Product Name"
+
+
+def test_returns_quantity_if_required_attributes_are_present():
+    # Arrange
+    html = """
+    <div>
+        <h4 class="product-cell__description-name">Product Name</h4>
+        <div class="product-format__size--cell" aria-label="  500g  "></div>
+        <p class="product-price__unit-price">1.99</p>
+        <div class="product-cell__image-wrapper">
+            <img src="https://example.com/product.png" />
+        </div>
+    </div>
+    """
+    tag = product_tag(html)
+
+    # Act
+    product = tag.to_product()
+
+    # Assert
+    assert product.quantity == "500g"
+
+
+def test_returns_price_if_required_attributes_are_present():
+    # Arrange
+    html = """
+    <div>
+        <h4 class="product-cell__description-name">Product Name</h4>
+        <div class="product-format__size--cell" aria-label="500g"></div>
+        <p class="product-price__unit-price">1.99</p>
+        <div class="product-cell__image-wrapper">
+            <img src="https://example.com/product.png" />
+        </div>
+    </div>
+    """
+    tag = product_tag(html)
+
+    # Act
+    product = tag.to_product()
+
+    # Assert
+    assert abs(product.price - 1.99) < 0.01
+
+
+def test_returns_image_url_if_required_attributes_are_present():
+    # Arrange
+    html = """
+    <div>
+        <h4 class="product-cell__description-name">Product Name</h4>
+        <div class="product-format__size--cell" aria-label="500g"></div>
+        <p class="product-price__unit-price">1.99</p>
+        <div class="product-cell__image-wrapper">
+            <img src="https://example.com/product.png" />
+        </div>
+    </div>
+    """
+    tag = product_tag(html)
+
+    # Act
+    product = tag.to_product()
+
+    # Assert
+    assert product.image_url == "https://example.com/product.png"
 
 
 def test_removes_euro_symbol_from_price():
     # Arrange
-    expected_price = 1.99
-    html = f"""
+    html = """
     <div>
-        <p class="product-price__unit-price">{expected_price}€</p>
+        <h4 class="product-cell__description-name">Product Name</h4>
+        <div class="product-format__size--cell" aria-label="500g"></div>
+        <p class="product-price__unit-price">1.99€</p>
+        <div class="product-cell__image-wrapper">
+            <img src="https://example.com/product.png" />
+        </div>
     </div>
     """
-
-    product_tag = MercadonaProductTag(BeautifulSoup(html, "html.parser"))
+    tag = product_tag(html)
 
     # Act
-    product = product_tag.to_product()
+    product = tag.to_product()
 
     # Assert
-    assert (product.price - expected_price) < 0.01
+    assert abs(product.price - 1.99) < 0.01
 
 
 def test_replaces_comma_with_dot_in_price():
     # Arrange
-    expected_price = 1.99
     html = """
     <div>
+        <h4 class="product-cell__description-name">Product Name</h4>
+        <div class="product-format__size--cell" aria-label="500g"></div>
         <p class="product-price__unit-price">1,99</p>
-    </div>
-    """
-
-    product_tag = MercadonaProductTag(BeautifulSoup(html, "html.parser"))
-
-    # Act
-    product = product_tag.to_product()
-
-    # Assert
-    assert (product.price - expected_price) < 0.01
-
-
-def test_strips_whitespace_from_price():
-    # Arrange
-    expected_price = 1.99
-    html = """
-    <div>
-        <p class="product-price__unit-price">  1.99  </p>
-    </div>
-    """
-
-    product_tag = MercadonaProductTag(BeautifulSoup(html, "html.parser"))
-
-    # Act
-    product = product_tag.to_product()
-
-    # Assert
-    assert (product.price - expected_price) < 0.01
-
-
-def test_does_not_return_quantity_if_not_present():
-    # Arrange
-    html = """
-    <div></div>
-    """
-
-    product_tag = MercadonaProductTag(BeautifulSoup(html, "html.parser"))
-
-    # Act
-    product = product_tag.to_product()
-
-    # Assert
-    assert product.quantity == ""
-
-
-def test_returns_quantity_if_present():
-    # Arrange
-    expected_quantity = "500g"
-    html = f"""
-    <div>
-        <div class="product-format__size--cell" aria-label="{expected_quantity}"></div>
-    </div>
-    """
-
-    product_tag = MercadonaProductTag(BeautifulSoup(html, "html.parser"))
-
-    # Act
-    product = product_tag.to_product()
-
-    # Assert
-    assert product.quantity == expected_quantity
-
-
-def test_removes_whitespace_from_quantity():
-    # Arrange
-    expected_quantity = "500g"
-    html = f"""
-    <div>
-        <div
-            class="product-format__size--cell"
-            aria-label="  {expected_quantity}  ">
+        <div class="product-cell__image-wrapper">
+            <img src="https://example.com/product.png" />
         </div>
     </div>
     """
-
-    product_tag = MercadonaProductTag(BeautifulSoup(html, "html.parser"))
+    tag = product_tag(html)
 
     # Act
-    product = product_tag.to_product()
+    product = tag.to_product()
 
     # Assert
-    assert product.quantity == expected_quantity
+    assert abs(product.price - 1.99) < 0.01
+
+
+def test_raises_if_price_is_invalid():
+    # Arrange
+    html = """
+    <div>
+        <h4 class="product-cell__description-name">Product Name</h4>
+        <div class="product-format__size--cell" aria-label="500g"></div>
+        <p class="product-price__unit-price">invalid</p>
+        <div class="product-cell__image-wrapper">
+            <img src="https://example.com/product.png" />
+        </div>
+    </div>
+    """
+    tag = product_tag(html)
+
+    # Act / Assert
+    with pytest.raises(MissingProductAttributeError):
+        tag.to_product()

@@ -37,7 +37,14 @@ async def test_does_nothing_if_no_markets_and_dates():
 async def test_saves_products_to_main_repository():
     # Arrange
     today = date.today()
-    products = [Product(name="product1", price=1.0, quantity="1 unit")]
+    products = [
+        Product(
+            name="product1",
+            price=1.0,
+            quantity="1 unit",
+            image_url="https://example.com/product.png",
+        )
+    ]
     fallback = SpyFallbackRepository(
         markets_and_dates=[("Market", today)], products=products
     )

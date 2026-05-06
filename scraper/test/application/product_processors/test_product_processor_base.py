@@ -15,7 +15,12 @@ class SpyProcessor(ProductProcessor):
 def test_processor_processes_product():
     # Arrange
     processor = SpyProcessor()
-    product = Product(name="apple", price=1.0, quantity="1 kg")
+    product = Product(
+        name="apple",
+        price=1.0,
+        quantity="1 kg",
+        image_url="https://example.com/product.png",
+    )
 
     # Act
     processor.process(product)
@@ -30,7 +35,12 @@ def test_chain_of_responsibility_processes_in_sequence():
     p2 = SpyProcessor()
     p1.next(p2)
 
-    product = Product(name="apple", price=1.0, quantity="1 kg")
+    product = Product(
+        name="apple",
+        price=1.0,
+        quantity="1 kg",
+        image_url="https://example.com/product.png",
+    )
 
     # Act
     p1.process(product)
@@ -47,13 +57,19 @@ def test_chain_of_responsibility_returns_final_product():
                 name=product.name + " modified",
                 price=product.price,
                 quantity=product.quantity,
+                image_url=product.image_url,
             )
 
     p1 = ModifyingProcessor()
     p2 = SpyProcessor()
     p1.next(p2)
 
-    product = Product(name="apple", price=1.0, quantity="1 kg")
+    product = Product(
+        name="apple",
+        price=1.0,
+        quantity="1 kg",
+        image_url="https://example.com/product.png",
+    )
     modified_product = p1.process(p2.process(product))
 
     # Act

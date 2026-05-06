@@ -126,7 +126,7 @@ async def test_does_not_get_subcategories_if_no_categories_found():
     assert not scraper.had_gotten_subcategories
 
 
-async def test_gets_subcategories_for_first_category_only():
+async def test_gets_subcategories_for_all_categories():
     # Arrange
     scraper = SpyMarketWebScraper(categories=["category1", "category2"])
     handler = make_handler(market_web_scrapers={"Market": scraper})
@@ -135,7 +135,7 @@ async def test_gets_subcategories_for_first_category_only():
     await handler.handle("12345")
 
     # Assert
-    assert scraper.get_subcategories_called_with == ["category1"]
+    assert scraper.get_subcategories_called_with == ["category1", "category2"]
 
 
 async def test_does_not_scrape_subcategory_if_no_subcategories_found():
@@ -152,7 +152,14 @@ async def test_does_not_scrape_subcategory_if_no_subcategories_found():
 
 async def test_scrapes_subcategories_if_found():
     # Arrange
-    products = [Product(name="product1", price=1.0, quantity="1 unit")]
+    products = [
+        Product(
+            name="product1",
+            price=1.0,
+            quantity="1 unit",
+            image_url="https://example.com/product.png",
+        )
+    ]
     scraper = FakeMarketWebScraper(products)
     handler = make_handler(market_web_scrapers={"Market": scraper})
 
@@ -166,8 +173,18 @@ async def test_scrapes_subcategories_if_found():
 async def test_saves_scrapped_products_to_main_repository():
     # Arrange
     products = [
-        Product(name="product1", price=1.0, quantity="1 unit"),
-        Product(name="product2", price=2.0, quantity="1 unit"),
+        Product(
+            name="product1",
+            price=1.0,
+            quantity="1 unit",
+            image_url="https://example.com/product.png",
+        ),
+        Product(
+            name="product2",
+            price=2.0,
+            quantity="1 unit",
+            image_url="https://example.com/product.png",
+        ),
     ]
     scraper = FakeMarketWebScraper(products)
     repository = SpyProductRepository()
@@ -185,7 +202,14 @@ async def test_saves_scrapped_products_to_main_repository():
 
 async def test_saves_to_fallback_if_main_raises():
     # Arrange
-    products = [Product(name="product1", price=1.0, quantity="1 unit")]
+    products = [
+        Product(
+            name="product1",
+            price=1.0,
+            quantity="1 unit",
+            image_url="https://example.com/product.png",
+        )
+    ]
     scraper = FakeMarketWebScraper(products)
     fallback = SpyFallbackRepository()
     handler = make_handler(

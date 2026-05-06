@@ -7,6 +7,11 @@ from bs4 import BeautifulSoup, Tag
 from application.abstractions import MarketWebScraper
 from config import ScraperSettings
 from domain import Product, Subcategory
+from infrastructure.market_scrapers.resilience import (
+    SCRAPER_RECOVERABLE_ERRORS,
+    MissingProductAttributeError,
+    RetryPolicy,
+)
 from infrastructure.web_driver import WebDriver
 
 
@@ -17,6 +22,7 @@ class AlcampoWebScraper(MarketWebScraper):
         self.__skipped_categories: set[str] = set(settings.skipped_categories)
         self.__category_urls: dict[str, str] = {}
         self.__logger = logging.getLogger(self.__class__.__name__)
+        self.__retry_policy = RetryPolicy()
         self.__url = "https://www.compraonline.alcampo.es"
 
     @override
@@ -28,7 +34,7 @@ class AlcampoWebScraper(MarketWebScraper):
             await self.__driver.wait_for_invisibility_css(
                 "#onetrust-reject-all-handler"
             )
-        except Exception:
+        except SCRAPER_RECOVERABLE_ERRORS:
             pass
 
         await self.__driver.wait_and_click_xpath(
@@ -47,7 +53,9 @@ class AlcampoWebScraper(MarketWebScraper):
         await self.__driver.wait_and_click_xpath(
             f'//span[contains(text(), "{postal_code}")]'
         )
-        await self.__driver.wait_and_click_xpath('//span[text()="Confirmar ubicación"]')
+        await self.__driver.wait_and_click_xpath(
+            '//span[contains(text(), "Confirmar ubicaci")]'
+        )
         await self.__driver.wait_and_click_xpath(
             '//button[@data-test="choose-delivery-method-submit"]'
         )
@@ -57,13 +65,23 @@ class AlcampoWebScraper(MarketWebScraper):
 
     @override
     async def get_categories(self) -> list[str]:
+        categories = await self.__retry_policy.run(
+            self.__get_categories,
+            description="Alcampo category discovery",
+            logger=self.__logger,
+        )
+        return categories or []
+
+    async def __get_categories(self) -> list[str]:
         await self.__driver.wait_and_click_css(".dropdown-item-button")
-        await self.__driver.wait_and_click_xpath("//span[text()='Todo el catálogo']")
+        await self.__driver.wait_and_click_xpath(
+            "//span[contains(text(), 'Todo el cat')]"
+        )
         self.__logger.info("Navigated to categories")
 
         await self.__driver.wait_for_presence_css(".salt-m-t--0")
-
         soup = BeautifulSoup(await self.__driver.page_source(), "html.parser")
+
         category_tags = soup.select(".salt-m-t--0 li a")
         for tag in category_tags:
             name = tag.text
@@ -78,11 +96,23 @@ class AlcampoWebScraper(MarketWebScraper):
 
     @override
     async def get_subcategories(self, category: str) -> list[Subcategory]:
-        category_url = self.__category_urls[category]
+        subcategories = await self.__retry_policy.run(
+            lambda: self.__get_subcategories(category),
+            description=f"Alcampo category '{category}'",
+            logger=self.__logger,
+        )
+        return subcategories or []
+
+    async def __get_subcategories(self, category: str) -> list[Subcategory]:
+        category_url = self.__category_urls.get(category)
+        if not category_url:
+            self.__logger.warning("Skipping unknown category '%s'", category)
+            return []
+
         await self.__driver.get(category_url)
         await self.__driver.wait_for_presence_css(".salt-m-t--0")
-
         soup = BeautifulSoup(await self.__driver.page_source(), "html.parser")
+
         subcategory_tags = soup.select(".salt-m-t--0 li a")
         subcategories = [
             Subcategory(
@@ -91,6 +121,7 @@ class AlcampoWebScraper(MarketWebScraper):
             )
             for tag in subcategory_tags
         ]
+
         self.__logger.info(
             "Found %d subcategories in category '%s'",
             len(subcategories),
@@ -100,8 +131,19 @@ class AlcampoWebScraper(MarketWebScraper):
 
     @override
     async def scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
+        await self.__driver.get(subcategory.url)
+
+        products = await self.__retry_policy.run(
+            lambda: self.__scrape_subcategory(subcategory),
+            description=f"Alcampo subcategory '{subcategory.name}'",
+            logger=self.__logger,
+            recover=lambda: self.__driver.get(subcategory.url),
+        )
+        return products or []
+
+    async def __scrape_subcategory(self, subcategory: Subcategory) -> list[Product]:
         await self.__try_close_popups()
-        products = await self.__get_products(subcategory)
+        products = await self.__get_products()
         self.__logger.info(
             "Scraped subcategory '%s' with %d products",
             subcategory.name,
@@ -109,42 +151,50 @@ class AlcampoWebScraper(MarketWebScraper):
         )
         return products
 
-    async def __get_products(self, subcategory: Subcategory) -> list[Product]:
-        await self.__driver.get(subcategory.url)
-
+    async def __get_products(self) -> list[Product]:
         await self.__driver.wait_for_presence_xpath("//h3[@data-test='fop-title']")
 
         products: list[Product] = []
         while True:
-            soup = BeautifulSoup(await self.__driver.page_source(), "html.parser")
-
-            product_tags = list(
-                filter(
-                    lambda tag: not tag.is_featured(),
-                    map(AlcampoProductTag, soup.select("div.product-card-container")),
-                )
-            )
-            last_added_product = products[-1] if products else None
-            products += self.__get_new_products(product_tags, last_added_product)
+            products, product_tags = await self.__retry_policy.run(
+                lambda ps=products: self.__get_products_from_current_window(ps),
+                description="Extracting products from page",
+                logger=self.__logger,
+                recover=lambda: self.__driver.execute_script(
+                    "setTimeout(() => {}, 1000);"
+                ),
+            ) or ([], [])
 
             if len(products) >= len(product_tags):
                 break
+
             try:
                 await self.__driver.execute_script(
                     "window.scrollBy(0, window.innerHeight);"
                 )
-            except Exception:
+            except SCRAPER_RECOVERABLE_ERRORS:
                 break
 
         return products
 
+    async def __get_products_from_current_window(
+        self, products: list[Product]
+    ) -> tuple[list[Product], list[AlcampoProductTag]]:
+        soup = BeautifulSoup(await self.__driver.page_source(), "html.parser")
+        product_tags = list(
+            filter(
+                lambda tag: not tag.is_featured(),
+                map(AlcampoProductTag, soup.select("div.product-card-container")),
+            )
+        )
+        last_added_product = products[-1] if products else None
+        products += self.__get_new_products(product_tags, last_added_product)
+        return products, product_tags
+
     def __get_new_products(
         self, product_tags: list[AlcampoProductTag], last_added_product: Product | None
     ) -> list[Product]:
-        visible_products = [
-            tag.to_product() for tag in product_tags if not tag.is_skeleton()
-        ]
-
+        visible_products = [tag.to_product() for tag in product_tags if tag.is_ready()]
         index_of_last_added_product = (
             visible_products.index(last_added_product)
             if last_added_product is not None and last_added_product in visible_products
@@ -157,7 +207,7 @@ class AlcampoWebScraper(MarketWebScraper):
             await self.__driver.wait_and_click_xpath(
                 '//button[@data-test="popup-banner-close-button"]', timeout=1
             )
-        except Exception:
+        except SCRAPER_RECOVERABLE_ERRORS:
             pass
 
 
@@ -174,36 +224,48 @@ class AlcampoProductTag:
         )
 
     def is_skeleton(self) -> bool:
-        return self.__name == ""
+        return self.__text('h3[data-test="fop-title"]') == ""
+
+    def is_ready(self) -> bool:
+        return not self.is_skeleton()
 
     def is_featured(self) -> bool:
         return bool(self.__tag.select('span[data-test="fop-featured"]'))
 
     @property
     def __name(self) -> str:
-        name_tag = self.__tag.select_one('h3[data-test="fop-title"]')
-        return str(name_tag.text).strip() if name_tag else ""
+        return self.__required_text('h3[data-test="fop-title"]', "name")
 
     @property
     def __quantity(self) -> str:
-        quantity_tag = self.__tag.select_one('div[data-test="fop-size"] span')
-        return str(quantity_tag.text).strip() if quantity_tag else ""
+        return self.__required_text('div[data-test="fop-size"] span', "quantity")
 
     @property
     def __price(self) -> float:
-        price_tag = self.__tag.select_one('span[data-test="fop-price"]')
-        if not price_tag:
-            return 0.0
+        price = self.__required_text('span[data-test="fop-price"]', "price")
+        price = re.sub(r"\s+|€", "", price.replace(",", "."))
+        if price == "":
+            raise MissingProductAttributeError("price")
 
-        return float(
-            re.sub(
-                r"\s+|€",
-                "",
-                str(price_tag.text).replace(",", "."),
-            )
-        )
+        try:
+            return float(price)
+        except ValueError as ex:
+            raise MissingProductAttributeError("price") from ex
 
     @property
     def __image_url(self) -> str:
         image_tag = self.__tag.select_one('img[data-test="lazy-load-image"]')
-        return str(image_tag.get("src", "")).strip() if image_tag else ""
+        image_url = str(image_tag.get("src", "")).strip() if image_tag else ""
+        if image_url == "":
+            raise MissingProductAttributeError("image_url")
+        return image_url
+
+    def __required_text(self, selector: str, attribute: str) -> str:
+        text = self.__text(selector)
+        if text == "":
+            raise MissingProductAttributeError(attribute)
+        return text
+
+    def __text(self, selector: str) -> str:
+        tag = self.__tag.select_one(selector)
+        return str(tag.text).strip() if tag else ""

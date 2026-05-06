@@ -7,7 +7,12 @@ from domain import Product
 def test_processor_does_not_remove_quantity_if_does_not_have_it_on_name():
     # Arrange
     remover = QuantityRedundancyRemover()
-    product = Product(name="Arándanos", price=1.2, quantity="1 ud")
+    product = Product(
+        name="Arándanos",
+        price=1.2,
+        quantity="1 ud",
+        image_url="https://example.com/product.png",
+    )
 
     # Act
     result = remover.process(product)
@@ -19,7 +24,12 @@ def test_processor_does_not_remove_quantity_if_does_not_have_it_on_name():
 def test_processor_removes_quantity_from_name():
     # Arrange
     remover = QuantityRedundancyRemover()
-    product = Product(name="Arándanos 125 g", price=1.2, quantity="125g")
+    product = Product(
+        name="Arándanos 125 g",
+        price=1.2,
+        quantity="125g",
+        image_url="https://example.com/product.png",
+    )
 
     # Act
     result = remover.process(product)
@@ -126,7 +136,12 @@ def test_processor_removes_quantity_with_extras_from_name(
 ):
     # Arrange
     remover = QuantityRedundancyRemover()
-    product = Product(name=original, price=1.2, quantity="1g")
+    product = Product(
+        name=original,
+        price=1.2,
+        quantity="1g",
+        image_url="https://example.com/product.png",
+    )
 
     # Act
     result = remover.process(product)

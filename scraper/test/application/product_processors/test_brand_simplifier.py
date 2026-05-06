@@ -6,7 +6,12 @@ def test_brand_simplifier_does_not_modify_name_if_no_replacements():
     # Arrange
     simplifier = BrandSimplifier({})
     original_name = "ALCAMPO CULTIVAMOS LO BUENO Compota de manzana"
-    product = Product(name=original_name, price=0.5, quantity="1 ud")
+    product = Product(
+        name=original_name,
+        price=0.5,
+        quantity="1 ud",
+        image_url="https://example.com/product.png",
+    )
 
     # Act
     result = simplifier.process(product)
@@ -22,6 +27,7 @@ def test_brand_simplifier_replaces_brand_with_standard_brand():
         name="ALCAMPO CULTIVAMOS LO BUENO Compota de manzana",
         price=0.5,
         quantity="1 ud",
+        image_url="https://example.com/product.png",
     )
 
     # Act
@@ -38,6 +44,7 @@ def test_brand_simplifier_replaces_multiple_variants():
         name="AUCHAN Compota de manzana",
         price=0.5,
         quantity="1 ud",
+        image_url="https://example.com/product.png",
     )
 
     # Act
@@ -54,6 +61,7 @@ def test_brand_simplifier_is_case_insensitive():
         name="alcampo cultivamos lo bueno Compota de manzana",
         price=0.5,
         quantity="1 ud",
+        image_url="https://example.com/product.png",
     )
 
     # Act
@@ -67,7 +75,11 @@ def test_brand_simplifier_does_not_modify_if_already_has_brand():
     # Arrange
     simplifier = BrandSimplifier({"ALCAMPO": ["Auchan"]})
     product = Product(
-        name="Auchan Compota de manzana", price=0.5, quantity="1 ud", brand="ALCAMPO"
+        name="Auchan Compota de manzana",
+        price=0.5,
+        quantity="1 ud",
+        image_url="https://example.com/product.png",
+        brand="ALCAMPO",
     )
 
     # Act
@@ -81,7 +93,11 @@ def test_brand_simplifier_does_not_add_brand():
     # Arrange
     simplifier = BrandSimplifier({"ALCAMPO": ["Auchan"]})
     product = Product(
-        name="Auchan Compota de manzana", price=0.5, quantity="1 ud", brand=None
+        name="Auchan Compota de manzana",
+        price=0.5,
+        quantity="1 ud",
+        image_url="https://example.com/product.png",
+        brand=None,
     )
 
     # Act
@@ -98,6 +114,7 @@ def test_brand_simplifier_replaces_repeated_variant():
         name="ALCAMPO CULTIVAMOS Compota de manzana ALCAMPO CULTIVAMOS",
         price=0.5,
         quantity="1 ud",
+        image_url="https://example.com/product.png",
     )
 
     # Act
@@ -114,6 +131,7 @@ def test_brand_simplifier_replaces_all_variants():
         name="AUCHAN Compota de manzana ALCAMPO CULTIVAMOS LO BUENO",
         price=0.5,
         quantity="1 ud",
+        image_url="https://example.com/product.png",
     )
 
     # Act

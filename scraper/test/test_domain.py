@@ -19,7 +19,12 @@ from domain import Product
 )
 def test_is_not_equal_to_non_product(non_product: Any):
     # Arrange
-    product = Product(name="Product", price=1.0, quantity="1 unit")
+    product = Product(
+        name="Product",
+        price=1.0,
+        quantity="1 unit",
+        image_url="https://example.com/product.png",
+    )
 
     # Act
     are_not_equal = product != non_product
@@ -30,8 +35,20 @@ def test_is_not_equal_to_non_product(non_product: Any):
 
 def test_is_equal_to_product_with_same_attributes():
     # Arrange
-    product1 = Product(name="Product", price=1.0, quantity="1 unit", brand="Brand")
-    product2 = Product(name="Product", price=1.0, quantity="1 unit", brand="Brand")
+    product1 = Product(
+        name="Product",
+        price=1.0,
+        quantity="1 unit",
+        image_url="https://example.com/product.png",
+        brand="Brand",
+    )
+    product2 = Product(
+        name="Product",
+        price=1.0,
+        quantity="1 unit",
+        image_url="https://example.com/product.png",
+        brand="Brand",
+    )
 
     # Act
     are_equal = product1 == product2
@@ -42,8 +59,20 @@ def test_is_equal_to_product_with_same_attributes():
 
 def test_is_not_equal_to_product_with_different_name():
     # Arrange
-    product1 = Product(name="Product 1", price=1.0, quantity="1 unit", brand="Brand")
-    product2 = Product(name="Product 2", price=1.0, quantity="1 unit", brand="Brand")
+    product1 = Product(
+        name="Product 1",
+        price=1.0,
+        quantity="1 unit",
+        image_url="https://example.com/product.png",
+        brand="Brand",
+    )
+    product2 = Product(
+        name="Product 2",
+        price=1.0,
+        quantity="1 unit",
+        image_url="https://example.com/product.png",
+        brand="Brand",
+    )
 
     # Act
     are_not_equal = product1 != product2
@@ -54,8 +83,20 @@ def test_is_not_equal_to_product_with_different_name():
 
 def test_is_not_equal_to_product_with_different_price():
     # Arrange
-    product1 = Product(name="Product", price=1.0, quantity="1 unit", brand="Brand")
-    product2 = Product(name="Product", price=2.0, quantity="1 unit", brand="Brand")
+    product1 = Product(
+        name="Product",
+        price=1.0,
+        quantity="1 unit",
+        image_url="https://example.com/product.png",
+        brand="Brand",
+    )
+    product2 = Product(
+        name="Product",
+        price=2.0,
+        quantity="1 unit",
+        image_url="https://example.com/product.png",
+        brand="Brand",
+    )
 
     # Act
     are_not_equal = product1 != product2
@@ -66,8 +107,20 @@ def test_is_not_equal_to_product_with_different_price():
 
 def test_is_equal_to_product_with_close_enough_prices():
     # Arrange
-    product1 = Product(name="Product", price=1.0, quantity="1 unit", brand="Brand")
-    product2 = Product(name="Product", price=1.0001, quantity="1 unit", brand="Brand")
+    product1 = Product(
+        name="Product",
+        price=1.0,
+        quantity="1 unit",
+        image_url="https://example.com/product.png",
+        brand="Brand",
+    )
+    product2 = Product(
+        name="Product",
+        price=1.0001,
+        quantity="1 unit",
+        image_url="https://example.com/product.png",
+        brand="Brand",
+    )
 
     # Act
     are_equal = product1 == product2
@@ -78,8 +131,20 @@ def test_is_equal_to_product_with_close_enough_prices():
 
 def test_is_not_equal_to_product_with_different_quantity():
     # Arrange
-    product1 = Product(name="Product", price=1.0, quantity="1 unit", brand="Brand")
-    product2 = Product(name="Product", price=1.0, quantity="2 units", brand="Brand")
+    product1 = Product(
+        name="Product",
+        price=1.0,
+        quantity="1 unit",
+        image_url="https://example.com/product.png",
+        brand="Brand",
+    )
+    product2 = Product(
+        name="Product",
+        price=1.0,
+        quantity="2 units",
+        image_url="https://example.com/product.png",
+        brand="Brand",
+    )
 
     # Act
     are_not_equal = product1 != product2
@@ -90,8 +155,20 @@ def test_is_not_equal_to_product_with_different_quantity():
 
 def test_is_not_equal_to_product_with_different_brand():
     # Arrange
-    product1 = Product(name="Product", price=1.0, quantity="1 unit", brand="Brand 1")
-    product2 = Product(name="Product", price=1.0, quantity="1 unit", brand="Brand 2")
+    product1 = Product(
+        name="Product",
+        price=1.0,
+        quantity="1 unit",
+        image_url="https://example.com/product.png",
+        brand="Brand 1",
+    )
+    product2 = Product(
+        name="Product",
+        price=1.0,
+        quantity="1 unit",
+        image_url="https://example.com/product.png",
+        brand="Brand 2",
+    )
 
     # Act
     are_not_equal = product1 != product2
@@ -102,8 +179,20 @@ def test_is_not_equal_to_product_with_different_brand():
 
 def test_hash_of_equal_products_is_the_same():
     # Arrange
-    product1 = Product(name="Product", price=1.0, quantity="1 unit", brand="Brand")
-    product2 = Product(name="Product", price=1.0, quantity="1 unit", brand="Brand")
+    product1 = Product(
+        name="Product",
+        price=1.0,
+        quantity="1 unit",
+        image_url="https://example.com/product.png",
+        brand="Brand",
+    )
+    product2 = Product(
+        name="Product",
+        price=1.0,
+        quantity="1 unit",
+        image_url="https://example.com/product.png",
+        brand="Brand",
+    )
 
     # Act
     hash1 = hash(product1)

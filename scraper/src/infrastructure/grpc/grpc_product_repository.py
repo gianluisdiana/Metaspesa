@@ -82,18 +82,27 @@ class GrpcProductRepository(ProductRepository):
         return request  # type: ignore
 
     async def __ensure_authenticated(self) -> None:
-        if self.__token is None or self.__token.expires_at <= datetime.now(UTC):
-            response = await self.__auth_stub.Login(  # type: ignore
-                auth_service_pb2.LoginRequest(  # type: ignore
-                    username=self.__username,
-                    password=self.__password,
+        try:
+            if self.__token is None or self.__token.expires_at <= datetime.now(UTC):
+                response = await self.__auth_stub.Login(  # type: ignore
+                    auth_service_pb2.LoginRequest(  # type: ignore
+                        username=self.__username,
+                        password=self.__password,
+                    )
                 )
-            )
 
-            self.__token = Token(
-                value=response.token,  # type: ignore
-                expires_at=datetime.fromisoformat(response.expiration_in_utc),  # type: ignore
+                self.__token = Token(
+                    value=response.token,  # type: ignore
+                    expires_at=datetime.fromisoformat(response.expiration_in_utc),  # type: ignore
+                )
+        except grpc.aio.AioRpcError as e:
+            self.__logger.exception(
+                "Authentication failed for user '%s'",
+                self.__username,
+                exc_info=e,
+                extra={"trailing_metadata": e.trailing_metadata()},
             )
+            raise RepositorySaveException from e
 
 
 @dataclass
