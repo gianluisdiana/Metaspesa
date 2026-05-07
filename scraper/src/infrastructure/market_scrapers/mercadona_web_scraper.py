@@ -6,8 +6,10 @@ from bs4 import BeautifulSoup, Tag
 
 from application.abstractions import MarketWebScraper
 from domain import Product, Subcategory
+from infrastructure.market_scrapers.product_scroll import (
+    ProductScrollScraper,
+)
 from infrastructure.market_scrapers.resilience import (
-    SCRAPER_RECOVERABLE_ERRORS,
     MissingProductAttributeError,
     RetryPolicy,
 )
@@ -20,6 +22,9 @@ class MercadonaWebScraper(MarketWebScraper):
         self.__driver = driver
         self.__logger = logging.getLogger(self.__class__.__name__)
         self.__retry_policy = RetryPolicy()
+        self.__product_scroll_scraper = ProductScrollScraper(
+            self.__retry_policy, self.__logger
+        )
         self.__url = "https://tienda.mercadona.es"
 
     @override
@@ -126,28 +131,15 @@ class MercadonaWebScraper(MarketWebScraper):
     async def __get_products(self) -> list[Product]:
         await self.__driver.wait_for_presence_css("h1.category-detail__title")
 
-        products: list[Product] = []
-        while True:
-            products, product_tags = await self.__retry_policy.run(
-                lambda ps=products: self.__get_products_from_current_window(ps),
-                description="Extracting products from page",
-                logger=self.__logger,
-                recover=lambda: self.__driver.execute_script(
-                    "setTimeout(() => {}, 1000);"
-                ),
-            ) or ([], [])
-
-            if len(products) >= len(product_tags):
-                break
-
-            try:
-                await self.__driver.execute_script(
-                    "window.scrollBy(0, window.innerHeight);"
-                )
-            except SCRAPER_RECOVERABLE_ERRORS:
-                break
-
-        return products
+        return await self.__product_scroll_scraper.scrape(
+            get_products_from_current_window=self.__get_products_from_current_window,
+            scroll=lambda: self.__driver.execute_script(
+                "window.scrollBy(0, window.innerHeight);"
+            ),
+            recover_after_failed_extraction=lambda: self.__driver.execute_script(
+                "setTimeout(() => {}, 1000);"
+            ),
+        )
 
     async def __get_products_from_current_window(
         self, products: list[Product]

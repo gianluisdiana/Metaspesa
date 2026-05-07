@@ -38,7 +38,7 @@ class RetryPolicy:
                 return await operation()
             except SCRAPER_RECOVERABLE_ERRORS as ex:
                 if attempt == self.attempts:
-                    logger.warning(
+                    logger.error(
                         "Skipping %s after %d failed attempts",
                         description,
                         self.attempts,
@@ -46,12 +46,11 @@ class RetryPolicy:
                     )
                     return None
 
-                logger.warning(
-                    "Retrying %s after attempt %d/%d failed",
+                logger.debug(
+                    "Retrying %s after attempt %d / %d failed",
                     description,
                     attempt,
                     self.attempts,
-                    exc_info=ex,
                 )
                 if recover is not None:
                     await self.__recover(
@@ -70,7 +69,7 @@ class RetryPolicy:
         try:
             await recover()
         except SCRAPER_RECOVERABLE_ERRORS as ex:
-            logger.warning(
+            logger.error(
                 "Recovery failed before retrying %s",
                 description,
                 exc_info=ex,
