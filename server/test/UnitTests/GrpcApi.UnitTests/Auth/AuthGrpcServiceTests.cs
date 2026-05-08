@@ -92,6 +92,24 @@ public static class AuthGrpcServiceTests {
         TestContext.Current.CancellationToken);
     }
 
+    [Fact(DisplayName = "Sanitizes non-ASCII username before creating command")]
+    public async Task Api_SanitizesNonAsciiUsername_BeforeCreatingCommand() {
+      // Arrange
+      _registerHandler
+        .Handle(Arg.Any<RegisterUser.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new RegisterRequest { Username = "Est\u00e9la \u2713", Password = "SecurePass1!" };
+
+      // Act
+      await _service.Register(request, CreateServerCallContext());
+
+      // Assert
+      await _registerHandler.Received(1).Handle(
+        Arg.Is<RegisterUser.Command>(cmd => cmd.Username == "Estela "),
+        TestContext.Current.CancellationToken);
+    }
+
     private static ServerCallContext CreateServerCallContext() => TestServerCallContext.Create(
     method: string.Empty,
     host: string.Empty,
@@ -204,6 +222,24 @@ public static class AuthGrpcServiceTests {
       // Assert
       await _loginHandler.Received(1).Handle(
         Arg.Is<LoginUser.Query>(q => q.Password == Password),
+        TestContext.Current.CancellationToken);
+    }
+
+    [Fact(DisplayName = "Sanitizes non-ASCII username before creating query")]
+    public async Task Api_SanitizesNonAsciiUsername_BeforeCreatingQuery() {
+      // Arrange
+      _loginHandler
+        .Handle(Arg.Any<LoginUser.Query>(), TestContext.Current.CancellationToken)
+        .Returns(new Token("token", DateTime.UtcNow.AddHours(1)));
+
+      var request = new LoginRequest { Username = "Est\u00e9la \u2713", Password = "SecurePass1!" };
+
+      // Act
+      await _service.Login(request, CreateServerCallContext());
+
+      // Assert
+      await _loginHandler.Received(1).Handle(
+        Arg.Is<LoginUser.Query>(q => q.Username == "Estela "),
         TestContext.Current.CancellationToken);
     }
 

@@ -60,8 +60,8 @@ internal static class ProtosExtensions {
   public static RecordShoppingList.CommandItem ToCommand(
     this Protos.Shopping.ShoppingItem protoProduct
   ) => new(
-    protoProduct.Name,
-    protoProduct.HasQuantity ? protoProduct.Quantity : null,
+    GrpcTextSanitizer.SanitizeAscii(protoProduct.Name),
+    protoProduct.HasQuantity ? GrpcTextSanitizer.SanitizeAscii(protoProduct.Quantity) : null,
     protoProduct.HasPrice ? protoProduct.Price : 0f,
     protoProduct.Checked
   );
@@ -69,8 +69,8 @@ internal static class ProtosExtensions {
   public static AddItemsToList.CommandItem ToAddItemsCommand(
     this Protos.Shopping.ShoppingItem protoItem
   ) => new(
-    protoItem.Name,
-    protoItem.HasQuantity ? protoItem.Quantity : null,
+    GrpcTextSanitizer.SanitizeAscii(protoItem.Name),
+    protoItem.HasQuantity ? GrpcTextSanitizer.SanitizeAscii(protoItem.Quantity) : null,
     protoItem.HasPrice ? protoItem.Price : 0f,
     protoItem.Checked
   );

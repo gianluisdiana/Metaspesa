@@ -66,7 +66,7 @@ internal class ShoppingGrpcService(
   ) {
     var command = new CreateShoppingList.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
-      ShoppingListName: request.HasName ? request.Name : null);
+      ShoppingListName: request.HasName ? GrpcTextSanitizer.SanitizeAscii(request.Name) : null);
 
     Result result = await createShoppingListHandler.Handle(
       command, context.CancellationToken);
@@ -85,7 +85,9 @@ internal class ShoppingGrpcService(
   ) {
     var command = new AddItemsToList.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
-      ShoppingListName: request.HasShoppingListName ? request.ShoppingListName : null,
+      ShoppingListName: request.HasShoppingListName
+        ? GrpcTextSanitizer.SanitizeAscii(request.ShoppingListName)
+        : null,
       Items: [.. request.Items.Select(i => i.ToAddItemsCommand())]);
 
     Result result = await addItemsToListHandler.Handle(
@@ -101,10 +103,10 @@ internal class ShoppingGrpcService(
   ) {
     var command = new UpdateItem.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
-      ShoppingListName: request.ShoppingListName,
-      OriginalItemName: request.OriginalItemName,
-      NewName: request.HasItemName ? request.ItemName : null,
-      Quantity: request.HasItemQuantity ? request.ItemQuantity : null,
+      ShoppingListName: GrpcTextSanitizer.SanitizeAscii(request.ShoppingListName),
+      OriginalItemName: GrpcTextSanitizer.SanitizeAscii(request.OriginalItemName),
+      NewName: request.HasItemName ? GrpcTextSanitizer.SanitizeAscii(request.ItemName) : null,
+      Quantity: request.HasItemQuantity ? GrpcTextSanitizer.SanitizeAscii(request.ItemQuantity) : null,
       Price: request.HasItemPrice ? request.ItemPrice : null,
       IsChecked: request.HasChecked ? request.Checked : null);
 
@@ -120,8 +122,8 @@ internal class ShoppingGrpcService(
   ) {
     var command = new RemoveItem.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
-      ShoppingListName: request.ShoppingListName,
-      ItemName: request.ItemName);
+      ShoppingListName: GrpcTextSanitizer.SanitizeAscii(request.ShoppingListName),
+      ItemName: GrpcTextSanitizer.SanitizeAscii(request.ItemName));
 
     Result result = await removeItemHandler.Handle(command, context.CancellationToken);
 
@@ -135,7 +137,7 @@ internal class ShoppingGrpcService(
   ) {
     var command = new RecordShoppingList.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
-      ShoppingListName: request.ShoppingList.Name,
+      ShoppingListName: GrpcTextSanitizer.SanitizeAscii(request.ShoppingList.Name),
       ShoppingListItems: [.. request.ShoppingList.Items.Select(p => p.ToCommand())]);
 
     Result result = await recordShoppingListHandler.Handle(

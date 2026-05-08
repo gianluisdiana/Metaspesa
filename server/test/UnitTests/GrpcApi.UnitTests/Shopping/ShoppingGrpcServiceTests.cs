@@ -960,6 +960,36 @@ public static class ShoppingGrpcServiceTests {
       }
     }
 
+    [Fact(DisplayName = "Sanitizes non-ASCII item text before creating command")]
+    public async Task Api_SanitizesNonAsciiItemText_BeforeCreatingCommand() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<AddItemsToList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new AddItemsToListRequest {
+        ShoppingListName = "Semanal \u2713",
+        Items = {
+          new Protos.Shopping.ShoppingItem {
+            Name = "Caf\u00e9 \u2615",
+            Quantity = "500 g \u2713",
+            Price = 2f,
+          },
+        }
+      };
+
+      // Act
+      await service.AddItemsToList(request, CreateServerCallContext());
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<AddItemsToList.Command>(cmd =>
+          cmd.ShoppingListName == "Semanal " &&
+          cmd.Items.Single().Name == "Cafe " &&
+          cmd.Items.Single().Quantity == "500 g "),
+        TestContext.Current.CancellationToken);
+    }
+
     [Fact(DisplayName = "Passes user UID from JWT claim to command")]
     public async Task Api_PassesUserUidFromClaim_ToCommand() {
       // Arrange

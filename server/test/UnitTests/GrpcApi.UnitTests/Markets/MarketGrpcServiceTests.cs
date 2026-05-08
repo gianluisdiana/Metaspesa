@@ -99,6 +99,39 @@ public static class MarketGrpcServiceTests {
         TestContext.Current.CancellationToken);
     }
 
+    [Fact(DisplayName = "Sanitizes non-ASCII product text before creating command")]
+    public async Task Api_SanitizesNonAsciiProductText_BeforeCreatingCommand() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<AddMarketProducts.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new AddProductsRequest {
+        Products = {
+          new Product {
+            Name = "Caf\u00e9 \u2615",
+            Price = 1.99f,
+            Quantity = "500 g \u2713",
+            MarketName = "Mercad\u00f3na",
+            BrandName = "Ni\u00f1o",
+          }
+        },
+        RegisteredAt = Timestamp.FromDateTime(DateTime.UtcNow),
+      };
+
+      // Act
+      await _service.AddProducts(request, CreateServerCallContext());
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<AddMarketProducts.Command>(cmd =>
+          cmd.Products.Single().Name == "Cafe " &&
+          cmd.Products.Single().Quantity == "500 g " &&
+          cmd.Products.Single().MarketName == "Mercadona" &&
+          cmd.Products.Single().BrandName == "Nino"),
+        TestContext.Current.CancellationToken);
+    }
+
     [Fact(DisplayName = "Maps registered_at from request when provided")]
     public async Task Api_MapsRegisteredAt_WhenProvided() {
       // Arrange

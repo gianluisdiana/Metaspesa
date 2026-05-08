@@ -26,7 +26,11 @@ internal class MarketGrpcService(
       request.RegisteredAt.ToDateTime());
     var command = new AddMarketProducts.Command(
       [.. request.Products.Select(p => new AddMarketProducts.CommandProduct(
-        p.Name, p.Price, p.Quantity, p.MarketName, p.BrandName,
+        GrpcTextSanitizer.SanitizeAscii(p.Name),
+        p.Price,
+        GrpcTextSanitizer.SanitizeAscii(p.Quantity),
+        GrpcTextSanitizer.SanitizeAscii(p.MarketName),
+        GrpcTextSanitizer.SanitizeAscii(p.BrandName),
         string.IsNullOrEmpty(p.ImageUrl) ? null : new Uri(p.ImageUrl)))],
       registeredAt);
 

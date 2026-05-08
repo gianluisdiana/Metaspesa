@@ -16,7 +16,9 @@ internal class AuthGrpcService(
     RegisterRequest request, ServerCallContext context
   ) {
     Result result = await registerHandler.Handle(
-      new RegisterUser.Command(request.Username, request.Password),
+      new RegisterUser.Command(
+        GrpcTextSanitizer.SanitizeAscii(request.Username),
+        request.Password),
       context.CancellationToken
     );
 
@@ -29,7 +31,9 @@ internal class AuthGrpcService(
     LoginRequest request, ServerCallContext context
   ) {
     Result<Token> result = await loginHandler.Handle(
-      new LoginUser.Query(request.Username, request.Password),
+      new LoginUser.Query(
+        GrpcTextSanitizer.SanitizeAscii(request.Username),
+        request.Password),
       context.CancellationToken
     );
 
