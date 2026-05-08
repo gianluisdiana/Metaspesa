@@ -117,6 +117,7 @@ public class UpdateItemValidatorTest {
 
     // Assert
     result.ShouldHaveValidationErrorFor(x => x.Price)
+      .WithErrorMessage("Item 'Milk' price '-1' must be greater than or equal to 0.")
       .WithErrorCode("ShoppingList.Items.Price.Negative");
   }
 
@@ -138,6 +139,7 @@ public class UpdateItemValidatorTest {
 
     // Assert
     result.ShouldHaveValidationErrorFor(x => x.Quantity)
+      .WithErrorMessage("Item 'Milk' quantity length 51 must not exceed 50 characters.")
       .WithErrorCode("ShoppingList.Items.Quantity.TooLong");
   }
 

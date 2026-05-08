@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using FluentValidation;
 using FluentValidation.Results;
 using Metaspesa.Application.Abstractions.Core;
@@ -80,7 +81,7 @@ public static class RecordShoppingList {
     public Validator(IShoppingRepository shoppingRepository) {
       RuleFor(x => x.ShoppingListItems)
         .Must(x => x.Any(i => i.IsChecked))
-        .WithMessage("Shopping list must contain at least one checked item.")
+        .WithMessage(command => DescribeMissingCheckedItems(command.ShoppingListItems))
         .WithErrorCode("ShoppingList.MissingCheckedItems");
 
       RuleFor(x => x)
@@ -102,14 +103,35 @@ public static class RecordShoppingList {
 
           item.RuleFor(x => x.Price)
             .Must(PricePolicy.IsValidPrice)
-            .WithMessage("Item price must be greater than or equal to 0.")
+            .WithMessage((_, price) =>
+              $"Item price '{price.ToString(CultureInfo.InvariantCulture)}' must be greater than or equal to 0.")
             .WithErrorCode("ShoppingList.Items.Price.Negative");
 
           item.RuleFor(x => x.Quantity)
             .MaximumLength(50)
-            .WithMessage("Item quantity must not exceed 50 characters.")
+            .WithMessage(DescribeTooLongQuantity)
             .WithErrorCode("ShoppingList.Items.Quantity.TooLong");
         });
+    }
+
+    private static string DescribeMissingCheckedItems(
+      IReadOnlyCollection<CommandItem> items
+    ) {
+      CommandItem? firstNamedItem = items.FirstOrDefault(i =>
+        !string.IsNullOrWhiteSpace(i.Name));
+
+      return firstNamedItem is null
+        ? "Shopping list must contain at least one checked item."
+        : "Shopping list must contain at least one checked item. " +
+          $"First unchecked item: '{firstNamedItem.Name}'.";
+    }
+
+    private static string DescribeTooLongQuantity(CommandItem item) {
+      string prefix = string.IsNullOrWhiteSpace(item.Name)
+        ? "Item quantity"
+        : $"Item '{item.Name}' quantity";
+
+      return $"{prefix} length {item.Quantity!.Length} must not exceed 50 characters.";
     }
   }
 }

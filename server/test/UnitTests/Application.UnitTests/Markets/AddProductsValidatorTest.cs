@@ -111,6 +111,7 @@ public class AddProductsValidatorTest {
 
     // Assert
     result.ShouldHaveValidationErrorFor("Products[0].Price")
+      .WithErrorMessage("Product price '-1' must be greater than or equal to 0.")
       .WithErrorCode("Market.Product.Price.Negative");
   }
 
@@ -128,6 +129,9 @@ public class AddProductsValidatorTest {
 
     // Assert
     result.ShouldHaveValidationErrorFor("Products[0]")
+      .WithErrorMessage(
+        "Each product must be unique in name, market, brand and quantity combination. " +
+        "Repeated product: name 'Milk', market 'Walmart', brand 'Nike', quantity '1L'.")
       .WithErrorCode("Market.Product.Duplicate");
   }
 
@@ -149,6 +153,8 @@ public class AddProductsValidatorTest {
 
     // Assert
     result.ShouldHaveValidationErrorFor(x => x.RegisteredAt)
+      .WithErrorMessage(
+        $"RegisteredAt '{registeredAt:yyyy-MM-dd}' must be on or after January 1, 2023.")
       .WithErrorCode("Market.RegisteredAt.TooOld");
   }
 

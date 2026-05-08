@@ -1,3 +1,4 @@
+using System.Globalization;
 using FluentValidation;
 using FluentValidation.Results;
 using Metaspesa.Application.Abstractions.Core;
@@ -147,7 +148,8 @@ public static class AddMarketProducts {
       RuleFor(x => x.RegisteredAt)
         .Must(registeredAt => registeredAt >= DateOnly.FromDateTime(
           new DateTime(2023, 1, 1, 0, 0, 0, DateTimeKind.Utc)))
-        .WithMessage("RegisteredAt must be on or after January 1, 2023.")
+        .WithMessage(command =>
+          $"RegisteredAt '{command.RegisteredAt:yyyy-MM-dd}' must be on or after January 1, 2023.")
         .WithErrorCode("Market.RegisteredAt.TooOld");
 
       RuleForEach(x => x.Products)
@@ -174,20 +176,35 @@ public static class AddMarketProducts {
 
           product.RuleFor(x => x.Price)
             .Must(PricePolicy.IsValidPrice)
-            .WithMessage("Product price must be greater than or equal to 0.")
+            .WithMessage((_, price) =>
+              $"Product price '{price.ToString(CultureInfo.InvariantCulture)}' must be greater than or equal to 0.")
             .WithErrorCode("Market.Product.Price.Negative");
         });
 
       RuleForEach(x => x.Products)
+        .Where(HasProductIdentity)
         .Must((command, product) => !command.Products.Any(p =>
           p != product &&
+          HasProductIdentity(p) &&
           p.Name == product.Name &&
           p.MarketName == product.MarketName &&
           p.BrandName == product.BrandName &&
           p.Quantity == product.Quantity
         ))
-        .WithMessage("Each product must be unique in name, market, brand and quantity combination.")
+        .WithMessage((_, product) =>
+          "Each product must be unique in name, market, brand and quantity combination. " +
+          $"Repeated product: {DescribeProduct(product)}.")
         .WithErrorCode("Market.Product.Duplicate");
     }
+
+    private static bool HasProductIdentity(CommandProduct product) =>
+      !string.IsNullOrWhiteSpace(product.Name) &&
+      !string.IsNullOrWhiteSpace(product.MarketName) &&
+      !string.IsNullOrWhiteSpace(product.BrandName) &&
+      !string.IsNullOrWhiteSpace(product.Quantity);
+
+    private static string DescribeProduct(CommandProduct product) =>
+      $"name '{product.Name}', market '{product.MarketName}', " +
+      $"brand '{product.BrandName}', quantity '{product.Quantity}'";
   }
 }

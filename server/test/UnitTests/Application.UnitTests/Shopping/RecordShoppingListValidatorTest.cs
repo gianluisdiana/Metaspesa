@@ -31,7 +31,8 @@ public class RecordShoppingListValidatorTest {
 
     // Assert
     result.ShouldHaveValidationErrorFor(x => x.ShoppingListItems)
-      .WithErrorMessage("Shopping list must contain at least one checked item.")
+      .WithErrorMessage(
+        "Shopping list must contain at least one checked item. First unchecked item: 'Milk'.")
       .WithErrorCode("ShoppingList.MissingCheckedItems");
   }
 
@@ -96,7 +97,7 @@ public class RecordShoppingListValidatorTest {
 
     // Assert
     result.ShouldHaveValidationErrorFor("ShoppingListItems[0].Price")
-      .WithErrorMessage("Item price must be greater than or equal to 0.")
+      .WithErrorMessage("Item price '-1' must be greater than or equal to 0.")
       .WithErrorCode("ShoppingList.Items.Price.Negative");
   }
 
@@ -115,7 +116,7 @@ public class RecordShoppingListValidatorTest {
 
     // Assert
     result.ShouldHaveValidationErrorFor("ShoppingListItems[0].Quantity")
-      .WithErrorMessage("Item quantity must not exceed 50 characters.")
+      .WithErrorMessage("Item 'Milk' quantity length 51 must not exceed 50 characters.")
       .WithErrorCode("ShoppingList.Items.Quantity.TooLong");
   }
 

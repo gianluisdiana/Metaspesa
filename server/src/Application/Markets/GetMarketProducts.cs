@@ -36,12 +36,14 @@ public static class GetMarketProducts {
       When(q => q.Filter.Pagination is not null && !q.Filter.Pagination.IsInfinite, () => {
         RuleFor(q => q.Filter.Pagination!.Index)
           .GreaterThan(0)
-          .WithMessage("Page index must be greater than 0.")
+          .WithMessage(query =>
+            $"Page index '{query.Filter.Pagination!.Index}' must be greater than 0.")
           .WithErrorCode("Market.Pagination.Index.Invalid");
 
         RuleFor(q => q.Filter.Pagination!.Size)
           .GreaterThan(0)
-          .WithMessage("Page size must be greater than 0.")
+          .WithMessage(query =>
+            $"Page size '{query.Filter.Pagination!.Size}' must be greater than 0.")
           .WithErrorCode("Market.Pagination.Size.Invalid");
       });
     }

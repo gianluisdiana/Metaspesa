@@ -1,3 +1,4 @@
+using System.Globalization;
 using FluentValidation;
 using FluentValidation.Results;
 using Metaspesa.Application.Abstractions.Core;
@@ -95,13 +96,13 @@ public static class UpdateItem {
       RuleFor(x => x.Price)
         .Must(price => PricePolicy.IsValidPrice(price!.Value))
         .When(x => x.Price.HasValue)
-        .WithMessage("Item price must be greater than or equal to 0.")
+        .WithMessage(DescribeInvalidPrice)
         .WithErrorCode("ShoppingList.Items.Price.Negative");
 
       RuleFor(x => x.Quantity)
         .MaximumLength(50)
         .When(x => x.Quantity != null)
-        .WithMessage("Item quantity must not exceed 50 characters.")
+        .WithMessage(DescribeTooLongQuantity)
         .WithErrorCode("ShoppingList.Items.Quantity.TooLong");
 
       RuleFor(x => x)
@@ -112,6 +113,22 @@ public static class UpdateItem {
           command.IsChecked.HasValue)
         .WithMessage("At least one field must be provided to update the item.")
         .WithErrorCode("ShoppingList.Item.NoFieldsToUpdate");
+    }
+
+    private static string DescribeInvalidPrice(Command command) {
+      string prefix = string.IsNullOrWhiteSpace(command.OriginalItemName)
+        ? "Item price"
+        : $"Item '{command.OriginalItemName}' price";
+
+      return $"{prefix} '{command.Price!.Value.ToString(CultureInfo.InvariantCulture)}' must be greater than or equal to 0.";
+    }
+
+    private static string DescribeTooLongQuantity(Command command) {
+      string prefix = string.IsNullOrWhiteSpace(command.OriginalItemName)
+        ? "Item quantity"
+        : $"Item '{command.OriginalItemName}' quantity";
+
+      return $"{prefix} length {command.Quantity!.Length} must not exceed 50 characters.";
     }
   }
 }

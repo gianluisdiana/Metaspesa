@@ -17,6 +17,9 @@ public class GetMarketProductsValidatorTest {
       QueryWith(new Pagination(0, 20)), TestContext.Current.CancellationToken);
 
     Assert.False(result.IsValid);
+    Assert.Contains(result.Errors, e =>
+      e.ErrorCode == "Market.Pagination.Index.Invalid" &&
+      e.ErrorMessage == "Page index '0' must be greater than 0.");
   }
 
   [Fact(DisplayName = "Returns error when page index is negative")]
@@ -25,6 +28,9 @@ public class GetMarketProductsValidatorTest {
       QueryWith(new Pagination(-1, 20)), TestContext.Current.CancellationToken);
 
     Assert.False(result.IsValid);
+    Assert.Contains(result.Errors, e =>
+      e.ErrorCode == "Market.Pagination.Index.Invalid" &&
+      e.ErrorMessage == "Page index '-1' must be greater than 0.");
   }
 
   [Fact(DisplayName = "Returns error when page size is zero")]
@@ -33,6 +39,9 @@ public class GetMarketProductsValidatorTest {
       QueryWith(new Pagination(1, 0)), TestContext.Current.CancellationToken);
 
     Assert.False(result.IsValid);
+    Assert.Contains(result.Errors, e =>
+      e.ErrorCode == "Market.Pagination.Size.Invalid" &&
+      e.ErrorMessage == "Page size '0' must be greater than 0.");
   }
 
   [Fact(DisplayName = "Returns error when page size is negative")]
@@ -41,6 +50,9 @@ public class GetMarketProductsValidatorTest {
       QueryWith(new Pagination(1, -5)), TestContext.Current.CancellationToken);
 
     Assert.False(result.IsValid);
+    Assert.Contains(result.Errors, e =>
+      e.ErrorCode == "Market.Pagination.Size.Invalid" &&
+      e.ErrorMessage == "Page size '-5' must be greater than 0.");
   }
 
   [Fact(DisplayName = "Is valid when pagination is null")]
