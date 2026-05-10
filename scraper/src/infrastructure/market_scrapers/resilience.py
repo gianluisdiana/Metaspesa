@@ -43,6 +43,7 @@ class RetryPolicy:
                         description,
                         self.attempts,
                         exc_info=ex,
+                        extra={"attempt_count": attempt, "max_attempts": self.attempts},
                     )
                     return None
 
@@ -51,6 +52,7 @@ class RetryPolicy:
                     description,
                     attempt,
                     self.attempts,
+                    extra={"attempt_count": attempt, "max_attempts": self.attempts},
                 )
                 if recover is not None:
                     await self.__recover(

@@ -52,7 +52,10 @@ class GrpcProductRepository(ProductRepository):
                 "Failed to save products for market '%s'",
                 market_name,
                 exc_info=e,
-                extra={"trailing_metadata": e.trailing_metadata()},
+                extra={
+                    "market_name": market_name,
+                    "trailing_metadata": e.trailing_metadata(),
+                },
             )
             raise RepositorySaveException from e
 
@@ -100,7 +103,10 @@ class GrpcProductRepository(ProductRepository):
                 "Authentication failed for user '%s'",
                 self.__username,
                 exc_info=e,
-                extra={"trailing_metadata": e.trailing_metadata()},
+                extra={
+                    "username": self.__username,
+                    "trailing_metadata": e.trailing_metadata(),
+                },
             )
             raise RepositorySaveException from e
 

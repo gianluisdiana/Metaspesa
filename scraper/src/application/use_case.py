@@ -40,12 +40,14 @@ class RetryFailedSavesCommandHandler:
                 "Successfully retried saving products for market %s registered at %s",
                 market_name,
                 date.isoformat(),
+                extra={"market_name": market_name, "date": date.isoformat()},
             )
         except RepositorySaveException as ex:
             self.__logger.exception(
                 "Failed to save products for market %s registered at %s",
                 market_name,
                 date.isoformat(),
+                extra={"market_name": market_name, "date": date.isoformat()},
                 exc_info=ex,
             )
 

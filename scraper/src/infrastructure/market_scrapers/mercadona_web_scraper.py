@@ -58,7 +58,11 @@ class MercadonaWebScraper(MarketWebScraper):
         )
 
         await self.__driver.wait_and_click(self.__selectors["confirm_location_button"])
-        self.__logger.info("Location set to postal code %s", postal_code)
+        self.__logger.info(
+            "Location set to postal code %s",
+            postal_code,
+            extra={"postal_code": postal_code},
+        )
 
     @override
     async def get_categories(self) -> list[str]:
@@ -82,7 +86,11 @@ class MercadonaWebScraper(MarketWebScraper):
             for product_category_tag in product_category_tags
         ]
 
-        self.__logger.info("Found %d categories", len(categories))
+        self.__logger.info(
+            "Found %d categories",
+            len(categories),
+            extra={"category_count": len(categories)},
+        )
         return categories
 
     @override
@@ -116,6 +124,7 @@ class MercadonaWebScraper(MarketWebScraper):
             "Found %d subcategories in category '%s'",
             len(subcategories),
             category,
+            extra={"subcategory_count": len(subcategories), "category_name": category},
         )
         return subcategories
 
@@ -137,6 +146,10 @@ class MercadonaWebScraper(MarketWebScraper):
             "Scraped subcategory '%s' with %d products",
             subcategory.name,
             len(products),
+            extra={
+                "subcategory_name": subcategory.name,
+                "product_count": len(products),
+            },
         )
         return products
 

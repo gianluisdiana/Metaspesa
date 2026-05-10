@@ -92,7 +92,11 @@ class AlcampoWebScraper(MarketWebScraper):
         )
 
         await self.__driver.refresh()
-        self.__logger.info("Location set to postal code %s", postal_code)
+        self.__logger.info(
+            "Location set to postal code %s",
+            postal_code,
+            extra={"postal_code": postal_code},
+        )
 
     @override
     async def get_categories(self) -> list[str]:
@@ -120,7 +124,11 @@ class AlcampoWebScraper(MarketWebScraper):
             self.__category_urls[name] = f"{self.__url}/{href}"
 
         categories = list(self.__category_urls.keys())
-        self.__logger.info("Found %d categories", len(categories))
+        self.__logger.info(
+            "Found %d categories",
+            len(categories),
+            extra={"category_count": len(categories)},
+        )
         return categories
 
     @override
@@ -135,7 +143,11 @@ class AlcampoWebScraper(MarketWebScraper):
     async def __get_subcategories(self, category: str) -> list[Subcategory]:
         category_url = self.__category_urls.get(category)
         if not category_url:
-            self.__logger.warning("Skipping unknown category '%s'", category)
+            self.__logger.warning(
+                "Skipping unknown category '%s'",
+                category,
+                extra={"category_name": category},
+            )
             return []
 
         await self.__driver.get(category_url)
@@ -157,6 +169,7 @@ class AlcampoWebScraper(MarketWebScraper):
             "Found %d subcategories in category '%s'",
             len(subcategories),
             category,
+            extra={"subcategory_count": len(subcategories), "category_name": category},
         )
         return subcategories
 
@@ -179,6 +192,10 @@ class AlcampoWebScraper(MarketWebScraper):
             "Scraped subcategory '%s' with %d products",
             subcategory.name,
             len(products),
+            extra={
+                "subcategory_name": subcategory.name,
+                "product_count": len(products),
+            },
         )
         return products
 

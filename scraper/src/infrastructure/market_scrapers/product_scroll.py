@@ -73,6 +73,7 @@ class ProductScrollScraper:
             product_count,
             product_tag_count,
             self.__progress_bar(product_count, product_tag_count),
+            extra={"loaded_percentage": int(product_count / product_tag_count * 100)},
         )
 
     def __progress_bar(self, product_count: int, product_tag_count: int) -> str:
@@ -92,4 +93,7 @@ class ProductScrollScraper:
             "without new products",
             missing_products,
             self.__max_scrolls_without_new_products,
+            extra={
+                "loaded_percentage": int(product_count / product_tag_count * 100),
+            },
         )
