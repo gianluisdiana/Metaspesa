@@ -1,4 +1,12 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Literal
+
+
+@dataclass
+class Selector:
+    target: str
+    type: Literal["css", "xpath"] = "css"
 
 
 class WebDriver(ABC):
@@ -19,18 +27,12 @@ class WebDriver(ABC):
     async def execute_script(self, script: str): ...
 
     @abstractmethod
-    async def wait_and_click_css(self, selector: str, timeout: float = 5) -> None: ...
+    async def wait_and_click(self, selector: Selector, timeout: float = 5) -> None: ...
 
     @abstractmethod
-    async def wait_and_click_xpath(self, xpath: str, timeout: float = 5) -> None: ...
-
-    @abstractmethod
-    async def wait_for_presence_css(
-        self, selector: str, timeout: float = 5
+    async def wait_for_presence(
+        self, selector: Selector, timeout: float = 5
     ) -> None: ...
-
-    @abstractmethod
-    async def wait_for_presence_xpath(self, xpath: str, timeout: float = 5) -> None: ...
 
     @abstractmethod
     async def wait_for_invisibility_css(
@@ -38,13 +40,8 @@ class WebDriver(ABC):
     ) -> None: ...
 
     @abstractmethod
-    async def wait_and_send_keys_xpath(
-        self, xpath: str, text: str, timeout: float = 5
-    ) -> None: ...
-
-    @abstractmethod
-    async def wait_and_send_keys_css(
-        self, selector: str, text: str, timeout: float = 5
+    async def wait_and_send_keys(
+        self, selector: Selector, text: str, timeout: float = 5
     ) -> None: ...
 
     @abstractmethod

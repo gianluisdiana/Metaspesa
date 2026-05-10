@@ -1,6 +1,8 @@
+from typing import override
+
 from opentelemetry import trace
 
-from infrastructure.web_driver import WebDriver
+from infrastructure.web_driver import Selector, WebDriver
 
 
 class InstrumentedPlaywrightDriver(WebDriver):
@@ -8,12 +10,14 @@ class InstrumentedPlaywrightDriver(WebDriver):
         self.__driver = driver
         self.__tracer = trace.get_tracer("playwright")
 
+    @override
     async def get(self, url: str) -> None:
         with self.__tracer.start_as_current_span(
             "playwright.get", attributes={"url": url}
         ):
             await self.__driver.get(url)
 
+    @override
     async def refresh(self) -> None:
         with self.__tracer.start_as_current_span("playwright.refresh"):
             await self.__driver.refresh()
@@ -22,38 +26,33 @@ class InstrumentedPlaywrightDriver(WebDriver):
     def current_url(self) -> str:
         return self.__driver.current_url
 
+    @override
     async def page_source(self) -> str:
         with self.__tracer.start_as_current_span("playwright.page_source"):
             return await self.__driver.page_source()
 
+    @override
     async def execute_script(self, script: str):
         with self.__tracer.start_as_current_span("playwright.execute_script"):
             return await self.__driver.execute_script(script)
 
-    async def wait_and_click_css(self, selector: str, timeout: float = 5) -> None:
+    @override
+    async def wait_and_click(self, selector: Selector, timeout: float = 5) -> None:
         with self.__tracer.start_as_current_span(
-            "playwright.wait_and_click_css", attributes={"selector": selector}
+            "playwright.wait_and_click",
+            attributes={"selector": selector.target, "selector_type": selector.type},
         ):
-            await self.__driver.wait_and_click_css(selector, timeout)
+            await self.__driver.wait_and_click(selector, timeout)
 
-    async def wait_and_click_xpath(self, xpath: str, timeout: float = 5) -> None:
+    @override
+    async def wait_for_presence(self, selector: Selector, timeout: float = 5) -> None:
         with self.__tracer.start_as_current_span(
-            "playwright.wait_and_click_xpath", attributes={"xpath": xpath}
+            "playwright.wait_for_presence",
+            attributes={"selector": selector.target, "selector_type": selector.type},
         ):
-            await self.__driver.wait_and_click_xpath(xpath, timeout)
+            await self.__driver.wait_for_presence(selector, timeout)
 
-    async def wait_for_presence_css(self, selector: str, timeout: float = 5) -> None:
-        with self.__tracer.start_as_current_span(
-            "playwright.wait_for_presence_css", attributes={"selector": selector}
-        ):
-            await self.__driver.wait_for_presence_css(selector, timeout)
-
-    async def wait_for_presence_xpath(self, xpath: str, timeout: float = 5) -> None:
-        with self.__tracer.start_as_current_span(
-            "playwright.wait_for_presence_xpath", attributes={"xpath": xpath}
-        ):
-            await self.__driver.wait_for_presence_xpath(xpath, timeout)
-
+    @override
     async def wait_for_invisibility_css(
         self, selector: str, timeout: float = 5
     ) -> None:
@@ -62,26 +61,22 @@ class InstrumentedPlaywrightDriver(WebDriver):
         ):
             await self.__driver.wait_for_invisibility_css(selector, timeout)
 
-    async def wait_and_send_keys_xpath(
-        self, xpath: str, text: str, timeout: float = 5
+    @override
+    async def wait_and_send_keys(
+        self, selector: Selector, text: str, timeout: float = 5
     ) -> None:
         with self.__tracer.start_as_current_span(
-            "playwright.wait_and_send_keys_xpath", attributes={"xpath": xpath}
+            "playwright.wait_and_send_keys",
+            attributes={"selector": selector.target, "selector_type": selector.type},
         ):
-            await self.__driver.wait_and_send_keys_xpath(xpath, text, timeout)
+            await self.__driver.wait_and_send_keys(selector, text, timeout)
 
-    async def wait_and_send_keys_css(
-        self, selector: str, text: str, timeout: float = 5
-    ) -> None:
-        with self.__tracer.start_as_current_span(
-            "playwright.wait_and_send_keys_css", attributes={"selector": selector}
-        ):
-            await self.__driver.wait_and_send_keys_css(selector, text, timeout)
-
+    @override
     async def close(self) -> None:
         with self.__tracer.start_as_current_span("playwright.close"):
             await self.__driver.close()
 
+    @override
     async def quit(self) -> None:
         with self.__tracer.start_as_current_span("playwright.quit"):
             await self.__driver.quit()

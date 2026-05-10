@@ -15,10 +15,41 @@ from infrastructure.market_scrapers.resilience import (
     MissingProductAttributeError,
     RetryPolicy,
 )
-from infrastructure.web_driver import WebDriver
+from infrastructure.web_driver import Selector, WebDriver
 
 
 class AlcampoWebScraper(MarketWebScraper):
+    __selectors = {
+        "reject_cookies_button": Selector(target="#onetrust-reject-all-handler"),
+        "close_offer_popup_button": Selector(
+            target="button[data-test='popup-banner-close-button']"
+        ),
+        "location_menu_button": Selector(
+            target="button[data-test='delivery-destination-selector-button']"
+        ),
+        "change_location_button": Selector(
+            target="button[data-test='delivery-method-change-address-button']"
+        ),
+        "location_search_input": Selector(target="input[data-test='search-input']"),
+        "dropdown_location": Selector(
+            target="div[data-test='address-search-item-dropdown']"
+        ),
+        "confirm_location_button": Selector(
+            target='//span[contains(text(), "Confirmar ubicaci")]',
+            type="xpath",
+        ),
+        "confirm_delivery_method_button": Selector(
+            target="button[data-test='choose-delivery-method-submit']"
+        ),
+        "menu_button": Selector(target=".dropdown-item-button"),
+        "catalog_menu_button": Selector(
+            target='//span[contains(text(), "Todo el cat")]',
+            type="xpath",
+        ),
+        "categories_container": Selector(target=".salt-m-t--0"),
+        "product_header": Selector(target="h3[data-test='fop-title']"),
+    }
+
     def __init__(self, driver: WebDriver, settings: ScraperSettings) -> None:
         super().__init__()
         self.__driver = driver
@@ -35,35 +66,29 @@ class AlcampoWebScraper(MarketWebScraper):
     async def set_location(self, postal_code: str) -> None:
         await self.__driver.get(self.__url)
 
-        await self.__driver.wait_and_click_css("#onetrust-reject-all-handler")
+        await self.__driver.wait_and_click(self.__selectors["reject_cookies_button"])
         try:
             await self.__driver.wait_for_invisibility_css(
-                "#onetrust-reject-all-handler"
+                self.__selectors["reject_cookies_button"].target
             )
         except SCRAPER_RECOVERABLE_ERRORS:
             pass
 
-        await self.__driver.wait_and_click_xpath(
-            '//button[@data-test="popup-banner-close-button"]', timeout=10
+        await self.__driver.wait_and_click(
+            self.__selectors["close_offer_popup_button"], timeout=10
         )
-        await self.__driver.wait_and_click_css("._button--fill_ftyis_140")
-        await self.__driver.wait_and_click_css("._button--primary_ftyis_42 > span")
+        await self.__driver.wait_and_click(self.__selectors["location_menu_button"])
+        await self.__driver.wait_and_click(self.__selectors["change_location_button"])
 
-        await self.__driver.wait_for_presence_xpath(
-            '//input[@data-test="search-input"]'
-        )
-        await self.__driver.wait_and_send_keys_xpath(
-            '//input[@data-test="search-input"]', postal_code
+        await self.__driver.wait_for_presence(self.__selectors["location_search_input"])
+        await self.__driver.wait_and_send_keys(
+            self.__selectors["location_search_input"], postal_code
         )
 
-        await self.__driver.wait_and_click_xpath(
-            f'//span[contains(text(), "{postal_code}")]'
-        )
-        await self.__driver.wait_and_click_xpath(
-            '//span[contains(text(), "Confirmar ubicaci")]'
-        )
-        await self.__driver.wait_and_click_xpath(
-            '//button[@data-test="choose-delivery-method-submit"]'
+        await self.__driver.wait_and_click(self.__selectors["dropdown_location"])
+        await self.__driver.wait_and_click(self.__selectors["confirm_location_button"])
+        await self.__driver.wait_and_click(
+            self.__selectors["confirm_delivery_method_button"]
         )
 
         await self.__driver.refresh()
@@ -79,13 +104,11 @@ class AlcampoWebScraper(MarketWebScraper):
         return categories or []
 
     async def __get_categories(self) -> list[str]:
-        await self.__driver.wait_and_click_css(".dropdown-item-button")
-        await self.__driver.wait_and_click_xpath(
-            "//span[contains(text(), 'Todo el cat')]"
-        )
+        await self.__driver.wait_and_click(self.__selectors["menu_button"])
+        await self.__driver.wait_and_click(self.__selectors["catalog_menu_button"])
         self.__logger.info("Navigated to categories")
 
-        await self.__driver.wait_for_presence_css(".salt-m-t--0")
+        await self.__driver.wait_for_presence(self.__selectors["categories_container"])
         soup = BeautifulSoup(await self.__driver.page_source(), "html.parser")
 
         category_tags = soup.select(".salt-m-t--0 li a")
@@ -116,10 +139,12 @@ class AlcampoWebScraper(MarketWebScraper):
             return []
 
         await self.__driver.get(category_url)
-        await self.__driver.wait_for_presence_css(".salt-m-t--0")
+        await self.__driver.wait_for_presence(self.__selectors["categories_container"])
         soup = BeautifulSoup(await self.__driver.page_source(), "html.parser")
 
-        subcategory_tags = soup.select(".salt-m-t--0 li a")
+        subcategory_tags = soup.select(
+            f"{self.__selectors['categories_container'].target} li a"
+        )
         subcategories = [
             Subcategory(
                 name=tag.text,
@@ -158,7 +183,7 @@ class AlcampoWebScraper(MarketWebScraper):
         return products
 
     async def __get_products(self) -> list[Product]:
-        await self.__driver.wait_for_presence_xpath("//h3[@data-test='fop-title']")
+        await self.__driver.wait_for_presence(self.__selectors["product_header"])
 
         return await self.__product_scroll_scraper.scrape(
             get_products_from_current_window=self.__get_products_from_current_window,
@@ -197,8 +222,8 @@ class AlcampoWebScraper(MarketWebScraper):
 
     async def __try_close_popups(self) -> None:
         try:
-            await self.__driver.wait_and_click_xpath(
-                '//button[@data-test="popup-banner-close-button"]', timeout=1
+            await self.__driver.wait_and_click(
+                self.__selectors["close_offer_popup_button"], timeout=1
             )
         except SCRAPER_RECOVERABLE_ERRORS:
             pass
