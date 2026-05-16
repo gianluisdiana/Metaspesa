@@ -33,21 +33,22 @@ class RetryFailedSavesCommandHandler:
         products = await self.__fallback_repository.get_products_by_market_and_date(
             market_name, date
         )
+        formatted_date = date.isoformat()
         try:
             await self.__main_repository.save(market_name, date, products)
             await self.__fallback_repository.remove_old_products(market_name, date)
             self.__logger.info(
                 "Successfully retried saving products for market %s registered at %s",
                 market_name,
-                date.isoformat(),
-                extra={"market_name": market_name, "date": date.isoformat()},
+                formatted_date,
+                extra={"market_name": market_name, "date": formatted_date},
             )
         except RepositorySaveException as ex:
             self.__logger.exception(
                 "Failed to save products for market %s registered at %s",
                 market_name,
-                date.isoformat(),
-                extra={"market_name": market_name, "date": date.isoformat()},
+                formatted_date,
+                extra={"market_name": market_name, "date": formatted_date},
                 exc_info=ex,
             )
 
@@ -64,6 +65,7 @@ class ScrapeMarketsCommandHandler:
         self.__fallback_repository = fallback_repository
         self.__market_web_scrapers = market_web_scrapers
         self.__product_processor = product_processor
+        self.__logger = logging.getLogger(self.__class__.__name__)
 
     async def handle(self, postal_code: str) -> None:
         assert len(self.__market_web_scrapers) > 0
@@ -83,10 +85,29 @@ class ScrapeMarketsCommandHandler:
     async def __save_products(
         self, market_name: str, date: date, products: list[Product]
     ) -> None:
+        unique_products = self.__remove_repeated_products(market_name, products)
         try:
-            await self.__main_repository.save(market_name, date, products)
+            await self.__main_repository.save(market_name, date, unique_products)
         except RepositorySaveException:
-            await self.__fallback_repository.save(market_name, date, products)
+            await self.__fallback_repository.save(market_name, date, unique_products)
+
+    def __remove_repeated_products(
+        self, market_name: str, products: list[Product]
+    ) -> list[Product]:
+        unique_products: list[Product] = []
+        for product in products:
+            if product in unique_products:
+                self.__logger.warning(
+                    "Skipping repeated product for market %s: %s",
+                    market_name,
+                    product.name,
+                    extra={"market_name": market_name, "product": product.name},
+                )
+                continue
+
+            unique_products.append(product)
+
+        return unique_products
 
     async def __scrape(
         self, scraper: MarketWebScraper, postal_code: str
