@@ -13,8 +13,8 @@ service ShoppingService {
   // Gets the registered items.
   rpc GetRegisteredItems(google.protobuf.Empty) returns (RegisteredItemsResponse);
 
-  // Gets the current shopping list.
-  rpc GetCurrentShoppingList(google.protobuf.Empty) returns (CurrentShoppingList);
+  // Gets a shopping list by name. Missing name means the temporary list.
+  rpc GetShoppingList(GetShoppingListRequest) returns (ShoppingListResponse);
 
   // Creates a shopping list, returns the name.
   rpc CreateShoppingList(CreateShoppingListRequest) returns (CreateShoppingListResponse);
@@ -74,8 +74,14 @@ message RegisteredItemsResponse {
   repeated ShoppingItem items = 1;
 }
 
-// Request message for getting the current shopping list.
-message CurrentShoppingList {
+// Request message for getting a shopping list.
+message GetShoppingListRequest {
+  // Missing name indicates the temporary shopping list.
+  optional string shopping_list_name = 1;
+}
+
+// Response message for getting a shopping list.
+message ShoppingListResponse {
   ShoppingList shopping_list = 1;
 }
 

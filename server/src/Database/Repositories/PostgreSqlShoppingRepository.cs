@@ -14,12 +14,17 @@ internal partial class PostgreSqlShoppingRepository(
   IClock clock,
   ILogger<PostgreSqlShoppingRepository> logger
 ) : IShoppingRepository {
-  public async Task<ShoppingList?> GetCurrentShoppingListAsync(
-    Guid userUid, CancellationToken cancellationToken
+  public async Task<ShoppingList?> GetShoppingListAsync(
+    Guid userUid, string? shoppingListName, CancellationToken cancellationToken
   ) {
     try {
       return await context.ShoppingListOwnerships
-        .Where(sl => sl.UserUid == userUid)
+        .Where(sl => sl.UserUid == userUid && (
+          sl.ShoppingList.Name == null && shoppingListName == null ||
+          sl.ShoppingList.Name != null &&
+          shoppingListName != null &&
+          EF.Functions.ILike(sl.ShoppingList.Name, shoppingListName)
+        ))
         .Select(sl => new ShoppingList(
           Name: sl.ShoppingList.Name,
           Items: sl.ShoppingList.Items
@@ -36,15 +41,15 @@ internal partial class PostgreSqlShoppingRepository(
         ex is NpgsqlException or OperationCanceledException ||
         ex.InnerException is NpgsqlException
       ) {
-      LogErrorGettingCurrentShoppingList(userUid, ex);
+      LogErrorGettingShoppingList(userUid, ex);
       return null;
     }
   }
 
   [LoggerMessage(
     LogLevel.Error,
-    "Couldn't get current shopping list for user {UserUid}")]
-  partial void LogErrorGettingCurrentShoppingList(Guid userUid, Exception ex);
+    "Couldn't get shopping list for user {UserUid}")]
+  partial void LogErrorGettingShoppingList(Guid userUid, Exception ex);
 
   public async Task<bool> CheckShoppingListExistAsync(
     Guid userUid, string? shoppingListName, CancellationToken cancellationToken

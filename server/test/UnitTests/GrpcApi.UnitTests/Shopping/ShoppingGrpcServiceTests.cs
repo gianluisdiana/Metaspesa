@@ -24,7 +24,7 @@ public static class ShoppingGrpcServiceTests {
       IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>();
       service = new ShoppingGrpcService(
         _useCaseHandler,
-        Substitute.For<IQueryHandler<GetCurrentShoppingList.Query, Domain.Shopping.ShoppingList>>(),
+        Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
         Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
@@ -211,13 +211,13 @@ public static class ShoppingGrpcServiceTests {
     }
   }
 
-  public class GetCurrentShoppingListRpc {
-    private readonly IQueryHandler<GetCurrentShoppingList.Query, Domain.Shopping.ShoppingList> _useCaseHandler;
+  public class GetShoppingListRpc {
+    private readonly IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList> _useCaseHandler;
     private readonly ShoppingGrpcService service;
 
-    public GetCurrentShoppingListRpc() {
+    public GetShoppingListRpc() {
       _useCaseHandler = Substitute.For<
-      IQueryHandler<GetCurrentShoppingList.Query, Domain.Shopping.ShoppingList>>();
+      IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>();
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
         _useCaseHandler,
@@ -233,19 +233,19 @@ public static class ShoppingGrpcServiceTests {
     public async Task Api_ThrowsRpcException_IfQueryHandlerFails() {
       // Arrange
       _useCaseHandler
-        .Handle(Arg.Any<GetCurrentShoppingList.Query>(), TestContext.Current.CancellationToken)
+        .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
         .Returns(new DomainError(string.Empty, string.Empty, ErrorKind.Unexpected));
 
       // Act
-      async Task action() => await service.GetCurrentShoppingList(
-        new Empty(), CreateServerCallContext());
+      async Task action() => await service.GetShoppingList(
+        new GetShoppingListRequest(), CreateServerCallContext());
 
       // Assert
       await Assert.ThrowsAsync<RpcException>(action);
     }
 
-    [Fact(DisplayName = "Returns the current shopping list if the query handler returns a success result")]
-    public async Task Api_ReturnsCurrentShoppingList_IfQueryHandlerSucceeds() {
+    [Fact(DisplayName = "Returns the shopping list if the query handler returns a success result")]
+    public async Task Api_ReturnsShoppingList_IfQueryHandlerSucceeds() {
       // Arrange
       var shoppingList = new Domain.Shopping.ShoppingList(
         "Weekly Groceries", [
@@ -254,12 +254,12 @@ public static class ShoppingGrpcServiceTests {
         ]);
 
       _useCaseHandler
-        .Handle(Arg.Any<GetCurrentShoppingList.Query>(), TestContext.Current.CancellationToken)
+        .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
         .Returns(shoppingList);
 
       // Act
-      CurrentShoppingList response = await service.GetCurrentShoppingList(
-        new Empty(), CreateServerCallContext());
+      ShoppingListResponse response = await service.GetShoppingList(
+        new GetShoppingListRequest(), CreateServerCallContext());
 
       // Assert
       Assert.Equal(shoppingList.Name, response.ShoppingList.Name);
@@ -274,12 +274,12 @@ public static class ShoppingGrpcServiceTests {
           new("Product 2", null, Price.Empty, false),
         ]);
       _useCaseHandler
-        .Handle(Arg.Any<GetCurrentShoppingList.Query>(), TestContext.Current.CancellationToken)
+        .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
         .Returns(shoppingList);
 
       // Act
-      CurrentShoppingList response = await service.GetCurrentShoppingList(
-        new Empty(), CreateServerCallContext());
+      ShoppingListResponse response = await service.GetShoppingList(
+        new GetShoppingListRequest(), CreateServerCallContext());
 
       // Assert
       Assert.Equal(shoppingList.Items.Count, response.ShoppingList.Items.Count);
@@ -295,12 +295,12 @@ public static class ShoppingGrpcServiceTests {
         ]);
 
       _useCaseHandler
-        .Handle(Arg.Any<GetCurrentShoppingList.Query>(), TestContext.Current.CancellationToken)
+        .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
         .Returns(shoppingList);
 
       // Act
-      CurrentShoppingList response = await service.GetCurrentShoppingList(
-        new Empty(), CreateServerCallContext());
+      ShoppingListResponse response = await service.GetShoppingList(
+        new GetShoppingListRequest(), CreateServerCallContext());
 
       // Assert
       for (int i = 0; i < shoppingList.Items.Count; i++) {
@@ -320,12 +320,12 @@ public static class ShoppingGrpcServiceTests {
         ]);
 
       _useCaseHandler
-        .Handle(Arg.Any<GetCurrentShoppingList.Query>(), TestContext.Current.CancellationToken)
+        .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
         .Returns(shoppingList);
 
       // Act
-      CurrentShoppingList response = await service.GetCurrentShoppingList(
-        new Empty(), CreateServerCallContext());
+      ShoppingListResponse response = await service.GetShoppingList(
+        new GetShoppingListRequest(), CreateServerCallContext());
 
       // Assert
       for (int i = 0; i < shoppingList.Items.Count; i++) {
@@ -345,12 +345,12 @@ public static class ShoppingGrpcServiceTests {
         ]);
 
       _useCaseHandler
-        .Handle(Arg.Any<GetCurrentShoppingList.Query>(), TestContext.Current.CancellationToken)
+        .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
         .Returns(shoppingList);
 
       // Act
-      CurrentShoppingList response = await service.GetCurrentShoppingList(
-        new Empty(), CreateServerCallContext());
+      ShoppingListResponse response = await service.GetShoppingList(
+        new GetShoppingListRequest(), CreateServerCallContext());
 
       // Assert
       for (int i = 0; i < shoppingList.Items.Count; i++) {
@@ -368,12 +368,12 @@ public static class ShoppingGrpcServiceTests {
         ]);
 
       _useCaseHandler
-        .Handle(Arg.Any<GetCurrentShoppingList.Query>(), TestContext.Current.CancellationToken)
+        .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
         .Returns(shoppingList);
 
       // Act
-      CurrentShoppingList response = await service.GetCurrentShoppingList(
-        new Empty(), CreateServerCallContext());
+      ShoppingListResponse response = await service.GetShoppingList(
+        new GetShoppingListRequest(), CreateServerCallContext());
 
       // Assert
       for (int i = 0; i < shoppingList.Items.Count; i++) {
@@ -393,12 +393,12 @@ public static class ShoppingGrpcServiceTests {
         ]);
 
       _useCaseHandler
-        .Handle(Arg.Any<GetCurrentShoppingList.Query>(), TestContext.Current.CancellationToken)
+        .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
         .Returns(shoppingList);
 
       // Act
-      CurrentShoppingList response = await service.GetCurrentShoppingList(
-        new Empty(), CreateServerCallContext());
+      ShoppingListResponse response = await service.GetShoppingList(
+        new GetShoppingListRequest(), CreateServerCallContext());
 
       // Assert
       for (int i = 0; i < shoppingList.Items.Count; i++) {
@@ -416,12 +416,12 @@ public static class ShoppingGrpcServiceTests {
         ]);
 
       _useCaseHandler
-        .Handle(Arg.Any<GetCurrentShoppingList.Query>(), TestContext.Current.CancellationToken)
+        .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
         .Returns(shoppingList);
 
       // Act
-      CurrentShoppingList response = await service.GetCurrentShoppingList(
-        new Empty(), CreateServerCallContext());
+      ShoppingListResponse response = await service.GetShoppingList(
+        new GetShoppingListRequest(), CreateServerCallContext());
 
       // Assert
       for (int i = 0; i < shoppingList.Items.Count; i++) {
@@ -436,15 +436,50 @@ public static class ShoppingGrpcServiceTests {
       // Arrange
       var expectedUid = Guid.CreateVersion7();
       _useCaseHandler
-        .Handle(Arg.Any<GetCurrentShoppingList.Query>(), TestContext.Current.CancellationToken)
+        .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
         .Returns(new Domain.Shopping.ShoppingList("test", []));
 
       // Act
-      await service.GetCurrentShoppingList(new Empty(), CreateServerCallContext(expectedUid));
+      await service.GetShoppingList(new GetShoppingListRequest(), CreateServerCallContext(expectedUid));
 
       // Assert
       await _useCaseHandler.Received(1).Handle(
-        Arg.Is<GetCurrentShoppingList.Query>(q => q.UserUid == expectedUid),
+        Arg.Is<GetShoppingList.Query>(q => q.UserUid == expectedUid),
+        TestContext.Current.CancellationToken);
+    }
+
+    [Fact(DisplayName = "Maps shopping list name from request to query")]
+    public async Task Api_MapsShoppingListName_FromRequestToQuery() {
+      // Arrange
+      const string ListName = "Weekly";
+      _useCaseHandler
+        .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
+        .Returns(new Domain.Shopping.ShoppingList(ListName, []));
+
+      // Act
+      await service.GetShoppingList(
+        new GetShoppingListRequest { ShoppingListName = ListName },
+        CreateServerCallContext());
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<GetShoppingList.Query>(q => q.ShoppingListName == ListName),
+        TestContext.Current.CancellationToken);
+    }
+
+    [Fact(DisplayName = "Maps missing shopping list name to null in query")]
+    public async Task Api_MapsMissingShoppingListName_ToNullInQuery() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
+        .Returns(new Domain.Shopping.ShoppingList(null, []));
+
+      // Act
+      await service.GetShoppingList(new GetShoppingListRequest(), CreateServerCallContext());
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<GetShoppingList.Query>(q => q.ShoppingListName == null),
         TestContext.Current.CancellationToken);
     }
   }
@@ -457,7 +492,7 @@ public static class ShoppingGrpcServiceTests {
       _useCaseHandler = Substitute.For<ICommandHandler<RecordShoppingList.Command>>();
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
-        Substitute.For<IQueryHandler<GetCurrentShoppingList.Query, Domain.Shopping.ShoppingList>>(),
+        Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         _useCaseHandler,
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
         Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
@@ -728,7 +763,7 @@ public static class ShoppingGrpcServiceTests {
       _useCaseHandler = Substitute.For<ICommandHandler<CreateShoppingList.Command>>();
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
-        Substitute.For<IQueryHandler<GetCurrentShoppingList.Query, Domain.Shopping.ShoppingList>>(),
+        Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         _useCaseHandler,
         Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
@@ -863,7 +898,7 @@ public static class ShoppingGrpcServiceTests {
       _useCaseHandler = Substitute.For<ICommandHandler<AddItemsToList.Command>>();
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
-        Substitute.For<IQueryHandler<GetCurrentShoppingList.Query, Domain.Shopping.ShoppingList>>(),
+        Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
         _useCaseHandler,
@@ -1039,7 +1074,7 @@ public static class ShoppingGrpcServiceTests {
       _useCaseHandler = Substitute.For<ICommandHandler<UpdateItem.Command>>();
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
-        Substitute.For<IQueryHandler<GetCurrentShoppingList.Query, Domain.Shopping.ShoppingList>>(),
+        Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
         Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
@@ -1291,7 +1326,7 @@ public static class ShoppingGrpcServiceTests {
       _useCaseHandler = Substitute.For<ICommandHandler<RemoveItem.Command>>();
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
-        Substitute.For<IQueryHandler<GetCurrentShoppingList.Query, Domain.Shopping.ShoppingList>>(),
+        Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
         Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
@@ -1398,3 +1433,5 @@ public static class ShoppingGrpcServiceTests {
     return context;
   }
 }
+
+

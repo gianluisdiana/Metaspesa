@@ -4,8 +4,8 @@ using Metaspesa.Domain.Shopping;
 
 namespace Metaspesa.Application.Shopping;
 
-public static class GetCurrentShoppingList {
-  public record Query(Guid UserUid) : IQuery<ShoppingList>;
+public static class GetShoppingList {
+  public record Query(Guid UserUid, string? ShoppingListName) : IQuery<ShoppingList>;
 
   internal class Handler(
     IShoppingRepository shoppingRepository
@@ -13,10 +13,10 @@ public static class GetCurrentShoppingList {
     public async Task<Result<ShoppingList>> Handle(
       Query query, CancellationToken cancellationToken = default
     ) {
-      ShoppingList? shoppingList = await shoppingRepository.GetCurrentShoppingListAsync(
-        query.UserUid, cancellationToken);
+      ShoppingList? shoppingList = await shoppingRepository.GetShoppingListAsync(
+        query.UserUid, query.ShoppingListName, cancellationToken);
 
-      return shoppingList ?? new ShoppingList(string.Empty, []);
+      return shoppingList ?? new ShoppingList(null, []);
     }
   }
 }

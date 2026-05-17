@@ -14,7 +14,7 @@ namespace Metaspesa.GrpcApi.Services;
 [Authorize(Roles = nameof(Role.Shopper))]
 internal class ShoppingGrpcService(
   IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>> getRegisteredItemsHandler,
-  IQueryHandler<GetCurrentShoppingList.Query, ShoppingList> getCurrentShoppingListHandler,
+  IQueryHandler<GetShoppingList.Query, ShoppingList> getShoppingListHandler,
   ICommandHandler<RecordShoppingList.Command> recordShoppingListHandler,
   ICommandHandler<CreateShoppingList.Command> createShoppingListHandler,
   ICommandHandler<AddItemsToList.Command> addItemsToListHandler,
@@ -41,20 +41,23 @@ internal class ShoppingGrpcService(
     return response;
   }
 
-  public override async Task<CurrentShoppingList> GetCurrentShoppingList(
-    Empty request, ServerCallContext context
+  public override async Task<ShoppingListResponse> GetShoppingList(
+    GetShoppingListRequest request, ServerCallContext context
   ) {
-    var query = new GetCurrentShoppingList.Query(
-      UserUid: context.GetHttpContext().GetUserUid());
+    var query = new GetShoppingList.Query(
+      UserUid: context.GetHttpContext().GetUserUid(),
+      ShoppingListName: request.HasShoppingListName
+        ? GrpcTextSanitizer.SanitizeAscii(request.ShoppingListName)
+        : null);
 
-    Result<ShoppingList> result = await getCurrentShoppingListHandler
+    Result<ShoppingList> result = await getShoppingListHandler
       .Handle(query, context.CancellationToken);
 
     result.ThrowRpcExceptionIfFailed();
 
     ShoppingList shoppingList = result.Value;
 
-    var response = new CurrentShoppingList {
+    var response = new ShoppingListResponse {
       ShoppingList = shoppingList.ToProto(),
     };
 

@@ -54,8 +54,8 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      ShoppingList? result = await _repository.GetCurrentShoppingListAsync(
-        userUid, TestContext.Current.CancellationToken);
+      ShoppingList? result = await _repository.GetShoppingListAsync(
+        userUid, null, TestContext.Current.CancellationToken);
 
       // Assert
       Assert.Null(result);
@@ -75,8 +75,8 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      ShoppingList? result = await _repository.GetCurrentShoppingListAsync(
-        userUid, TestContext.Current.CancellationToken);
+      ShoppingList? result = await _repository.GetShoppingListAsync(
+        userUid, "Groceries", TestContext.Current.CancellationToken);
 
       // Assert
       Assert.Equal("Groceries", result!.Name);
@@ -96,8 +96,8 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      ShoppingList? result = await _repository.GetCurrentShoppingListAsync(
-        userUid, TestContext.Current.CancellationToken);
+      ShoppingList? result = await _repository.GetShoppingListAsync(
+        userUid, null, TestContext.Current.CancellationToken);
 
       // Assert
       Assert.Null(result!.Name);
@@ -117,8 +117,8 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      ShoppingList? result = await _repository.GetCurrentShoppingListAsync(
-        userUid, TestContext.Current.CancellationToken);
+      ShoppingList? result = await _repository.GetShoppingListAsync(
+        userUid, "Groceries", TestContext.Current.CancellationToken);
 
       // Assert
       Assert.Empty(result!.Items);
@@ -145,8 +145,8 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      ShoppingList? result = await _repository.GetCurrentShoppingListAsync(
-        userUid, TestContext.Current.CancellationToken);
+      ShoppingList? result = await _repository.GetShoppingListAsync(
+        userUid, "Groceries", TestContext.Current.CancellationToken);
 
       // Assert
       Assert.Equal("Bread", result!.Items.Single().Name);
@@ -170,8 +170,8 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      ShoppingList? result = await _repository.GetCurrentShoppingListAsync(
-        userUid, TestContext.Current.CancellationToken);
+      ShoppingList? result = await _repository.GetShoppingListAsync(
+        userUid, "Other List", TestContext.Current.CancellationToken);
 
       // Assert
       Assert.Null(result);
@@ -419,8 +419,8 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
-      ShoppingList? list = await _repository.GetCurrentShoppingListAsync(
-        userUid, TestContext.Current.CancellationToken);
+      ShoppingList? list = await _repository.GetShoppingListAsync(
+        userUid, "Weekly", TestContext.Current.CancellationToken);
       Assert.Equal(2, list!.Items.Count);
     }
 
@@ -443,8 +443,8 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
-      ShoppingList? list = await _repository.GetCurrentShoppingListAsync(
-        userUid, TestContext.Current.CancellationToken);
+      ShoppingList? list = await _repository.GetShoppingListAsync(
+        userUid, null, TestContext.Current.CancellationToken);
       Assert.Equal("Butter", list!.Items.Single().Name);
     }
 
@@ -938,8 +938,8 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
-      ShoppingList? list = await _repository.GetCurrentShoppingListAsync(
-        userUid, TestContext.Current.CancellationToken);
+      ShoppingList? list = await _repository.GetShoppingListAsync(
+        userUid, "Weekly", TestContext.Current.CancellationToken);
       Assert.NotNull(list);
       Assert.Empty(list.Items);
     }
