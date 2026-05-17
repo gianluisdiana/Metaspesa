@@ -12,6 +12,7 @@ import {
   ShoppingListViewModel,
 } from '@/lib/shopping-list-view-model';
 
+import { useToast } from '../../components/toast-provider';
 import ListTabs, { ListPageHeader } from './list-header';
 import ItemsContainer, { ProgressTracker } from './list-items';
 import SummaryFooter from './summary-footer';
@@ -79,7 +80,7 @@ export default function ShoppingListContainer({
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState<string>();
+  const { showToast } = useToast();
   const viewModel = new ShoppingListViewModel(shoppingList);
   const tabsViewModel = new ShoppingListTabsViewModel(
     shoppingListSummaries,
@@ -90,18 +91,19 @@ export default function ShoppingListContainer({
   async function handleSelectList(name?: string) {
     setSelectedListName(name);
     setIsLoading(true);
-    setError(undefined);
     try {
       setShoppingList(await fetchShoppingList(name));
       router.push(
         name ? `/shopping?name=${encodeURIComponent(name)}` : '/shopping?name=',
       );
     } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Could not load the selected shopping list.',
-      );
+      showToast({
+        message:
+          requestError instanceof Error
+            ? requestError.message
+            : 'Could not load the selected shopping list.',
+        tone: 'error',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -109,19 +111,24 @@ export default function ShoppingListContainer({
 
   async function handleCreateList() {
     setIsCreating(true);
-    setError(undefined);
     try {
       const result = await createTemporaryList();
       setShoppingList(result.shoppingList);
       setShoppingListSummaries(result.shoppingListSummaries);
       setSelectedListName(undefined);
+      showToast({
+        message: result.message ?? 'Shopping list created.',
+        tone: 'success',
+      });
       router.push('/shopping');
     } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Could not create a temporary list.',
-      );
+      showToast({
+        message:
+          requestError instanceof Error
+            ? requestError.message
+            : 'Could not create a temporary list.',
+        tone: 'error',
+      });
       setIsLoading(true);
       try {
         setShoppingList(await fetchShoppingList(selectedListName));
@@ -150,11 +157,6 @@ export default function ShoppingListContainer({
       </div>
       <div className="p-container-margin pb-36">
         <ProgressTracker progress={viewModel.progress} />
-        {error && (
-          <p className="font-label-md text-label-md text-error mt-stack-sm">
-            {error}
-          </p>
-        )}
         {isLoading ? (
           <div className="bg-surface-container-lowest border border-surface-container-highest rounded-2xl p-stack-lg text-center mt-stack-md">
             <p className="font-body-md text-body-md text-on-surface-variant">
