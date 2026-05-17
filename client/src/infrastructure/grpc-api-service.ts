@@ -6,9 +6,14 @@ import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 
 import ApiService from '@/lib/api-service';
-import { ProductMessage, ShoppingListMessage } from '@/lib/messages';
+import {
+  ProductMessage,
+  ShoppingListMessage,
+  ShoppingListSummaryMessage,
+} from '@/lib/messages';
 
 import { ShoppingList__Output } from '@/protos/shopping/ShoppingList';
+import { ShoppingListSummary__Output } from '@/protos/shopping/ShoppingListSummary';
 import { ShoppingServiceClient } from '@/protos/shopping/ShoppingService';
 import { ProtoGrpcType } from '@/protos/shopping_service';
 
@@ -87,6 +92,33 @@ export default class GrpcApiService implements ApiService {
     }
   }
 
+  async getShoppingListSummaries(): Promise<ShoppingListSummaryMessage[]> {
+    try {
+      return await new Promise<ShoppingListSummaryMessage[]>(
+        (resolve, reject) => {
+          this.client.GetShoppingListSummaries(
+            {},
+            this.metadata,
+            (err, response) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+
+              resolve(
+                response!.shoppingLists?.map(summary =>
+                  this.mapShoppingListSummary(summary),
+                ) ?? [],
+              );
+            },
+          );
+        },
+      );
+    } catch {
+      return [];
+    }
+  }
+
   async getRegisteredProducts(): Promise<ProductMessage[]> {
     try {
       return await new Promise<ProductMessage[]>((resolve, reject) => {
@@ -133,5 +165,11 @@ export default class GrpcApiService implements ApiService {
       name: proto.name,
       products,
     };
+  }
+
+  private mapShoppingListSummary(
+    proto: ShoppingListSummary__Output,
+  ): ShoppingListSummaryMessage {
+    return { name: proto.name };
   }
 }

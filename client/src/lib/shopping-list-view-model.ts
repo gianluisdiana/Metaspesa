@@ -1,4 +1,8 @@
-import { ProductMessage, ShoppingListMessage } from './messages';
+import {
+  ProductMessage,
+  ShoppingListMessage,
+  ShoppingListSummaryMessage,
+} from './messages';
 
 const PERCENTAGE_FACTOR = 100;
 const ROUND_FACTOR = 100;
@@ -77,6 +81,56 @@ export class ShoppingItemSectionViewModel {
     public readonly label: string,
     public readonly items: UncheckedShoppingItemViewModel[],
   ) {}
+}
+
+export class ShoppingListTabViewModel {
+  public constructor(
+    private readonly summary: ShoppingListSummaryMessage,
+    private readonly selectedListName?: string,
+  ) {}
+
+  public get active(): boolean {
+    return this.name === this.selectedListName;
+  }
+
+  public get label(): string {
+    return this.name && this.name.length > 0 ? this.name : 'Temporary List';
+  }
+
+  public get name(): string | undefined {
+    return this.summary.name && this.summary.name.length > 0
+      ? this.summary.name
+      : undefined;
+  }
+}
+
+export class ShoppingListTabsViewModel {
+  public constructor(
+    private readonly summaries: ShoppingListSummaryMessage[],
+    private readonly selectedListName?: string,
+    private readonly fallbackList?: ShoppingListMessage,
+  ) {}
+
+  public get tabs(): ShoppingListTabViewModel[] {
+    return this.normalizedSummaries
+      .sort((a, b) => {
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+        if (!a.name) return -1;
+        if (!b.name) return 1;
+        return a.name.localeCompare(b.name);
+      })
+      .map(
+        summary => new ShoppingListTabViewModel(summary, this.selectedListName),
+      );
+  }
+
+  private get normalizedSummaries(): ShoppingListSummaryMessage[] {
+    if (this.summaries.length > 0) {
+      return this.summaries;
+    }
+
+    return [{ name: this.fallbackList?.name }];
+  }
 }
 
 export class ShoppingProgressViewModel {

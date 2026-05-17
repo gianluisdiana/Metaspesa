@@ -1,9 +1,9 @@
+import { ShoppingListTabViewModel } from '@/lib/shopping-list-view-model';
+
 type ListPageHeaderProps = {
   itemCountLabel: string;
   listName: string;
 };
-
-const TABS = ['Temporary List', 'Weekly Grocery', 'Office Supplies'];
 
 export function ListPageHeader({
   itemCountLabel,
@@ -37,18 +37,23 @@ export function ListPageHeader({
   );
 }
 
-type ListTabProps = { active?: boolean; label: string };
+type ListTabProps = {
+  tab: ShoppingListTabViewModel;
+  onSelectList: (name?: string) => void;
+};
 
-function ListTab({ active = false, label }: Readonly<ListTabProps>) {
+function ListTab({ onSelectList, tab }: Readonly<ListTabProps>) {
   const activeClass =
     'bg-primary text-on-primary shadow-[0_2px_8px_rgba(135,82,0,0.2)] border border-transparent';
   const inactiveClass =
     'bg-surface-container-lowest text-on-surface-variant border border-outline-variant hover:bg-surface-container transition-colors';
   return (
     <button
-      className={`whitespace-nowrap px-5 py-2 rounded-full font-label-md text-label-md ${active ? activeClass : inactiveClass}`}
+      className={`whitespace-nowrap px-5 py-2 rounded-full font-label-md text-label-md ${tab.active ? activeClass : inactiveClass}`}
+      onClick={() => onSelectList(tab.name)}
+      type="button"
     >
-      {label}
+      {tab.label}
     </button>
   );
 }
@@ -56,11 +61,22 @@ function ListTab({ active = false, label }: Readonly<ListTabProps>) {
 export default function ListTabs({
   isCreating,
   onCreateList,
-}: Readonly<{ isCreating: boolean; onCreateList: () => void }>) {
+  onSelectList,
+  tabs,
+}: Readonly<{
+  isCreating: boolean;
+  onCreateList: () => void;
+  onSelectList: (name?: string) => void;
+  tabs: ShoppingListTabViewModel[];
+}>) {
   return (
     <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
-      {TABS.map((tab, i) => (
-        <ListTab key={tab} active={i === 0} label={tab} />
+      {tabs.map(tab => (
+        <ListTab
+          key={tab.name ?? 'temporary'}
+          onSelectList={onSelectList}
+          tab={tab}
+        />
       ))}
       <button
         aria-label="Placeholder for creating another shopping list"

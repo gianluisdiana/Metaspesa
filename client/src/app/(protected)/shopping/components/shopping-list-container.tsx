@@ -1,9 +1,16 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-import { ShoppingListMessage } from '@/lib/messages';
-import { ShoppingListViewModel } from '@/lib/shopping-list-view-model';
+import {
+  ShoppingListMessage,
+  ShoppingListSummaryMessage,
+} from '@/lib/messages';
+import {
+  ShoppingListTabsViewModel,
+  ShoppingListViewModel,
+} from '@/lib/shopping-list-view-model';
 
 import ListTabs, { ListPageHeader } from './list-header';
 import ItemsContainer, { ProgressTracker } from './list-items';
@@ -12,15 +19,13 @@ import SummaryFooter from './summary-footer';
 type CreateListResponse = {
   message?: string;
   shoppingList: ShoppingListMessage;
+  shoppingListSummaries: ShoppingListSummaryMessage[];
 };
 
 async function fetchShoppingList(name?: string): Promise<ShoppingListMessage> {
   const params = new URLSearchParams();
-  if (name) {
-    params.set('name', name);
-  }
-  const query = params.size > 0 ? `?${params}` : '';
-  const response = await fetch(`/api/shopping/lists${query}`, {
+  params.set('name', name ?? '');
+  const response = await fetch(`/api/shopping/lists?${params}`, {
     cache: 'no-store',
   });
   if (!response.ok) {
@@ -42,19 +47,65 @@ async function createTemporaryList(): Promise<CreateListResponse> {
   return body;
 }
 
+async function fetchShoppingListSummaries(): Promise<
+  ShoppingListSummaryMessage[]
+> {
+  const response = await fetch('/api/shopping/lists', {
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw new Error('Could not load shopping lists.');
+  }
+
+  return (await response.json()) as ShoppingListSummaryMessage[];
+}
+
 export default function ShoppingListContainer({
   initialSelectedListName,
   initialShoppingList,
+  initialShoppingListSummaries,
 }: Readonly<{
   initialSelectedListName?: string;
   initialShoppingList: ShoppingListMessage;
+  initialShoppingListSummaries: ShoppingListSummaryMessage[];
 }>) {
+  const router = useRouter();
   const [shoppingList, setShoppingList] = useState(initialShoppingList);
-  const [selectedListName] = useState(initialSelectedListName);
+  const [shoppingListSummaries, setShoppingListSummaries] = useState(
+    initialShoppingListSummaries,
+  );
+  const [selectedListName, setSelectedListName] = useState(
+    initialSelectedListName,
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string>();
   const viewModel = new ShoppingListViewModel(shoppingList);
+  const tabsViewModel = new ShoppingListTabsViewModel(
+    shoppingListSummaries,
+    selectedListName,
+    shoppingList,
+  );
+
+  async function handleSelectList(name?: string) {
+    setSelectedListName(name);
+    setIsLoading(true);
+    setError(undefined);
+    try {
+      setShoppingList(await fetchShoppingList(name));
+      router.push(
+        name ? `/shopping?name=${encodeURIComponent(name)}` : '/shopping?name=',
+      );
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Could not load the selected shopping list.',
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   async function handleCreateList() {
     setIsCreating(true);
@@ -62,6 +113,9 @@ export default function ShoppingListContainer({
     try {
       const result = await createTemporaryList();
       setShoppingList(result.shoppingList);
+      setShoppingListSummaries(result.shoppingListSummaries);
+      setSelectedListName(undefined);
+      router.push('/shopping');
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -71,6 +125,7 @@ export default function ShoppingListContainer({
       setIsLoading(true);
       try {
         setShoppingList(await fetchShoppingList(selectedListName));
+        setShoppingListSummaries(await fetchShoppingListSummaries());
       } finally {
         setIsLoading(false);
       }
@@ -86,7 +141,12 @@ export default function ShoppingListContainer({
           itemCountLabel={viewModel.itemCountLabel}
           listName={viewModel.listName}
         />
-        <ListTabs isCreating={isCreating} onCreateList={handleCreateList} />
+        <ListTabs
+          isCreating={isCreating}
+          onCreateList={handleCreateList}
+          onSelectList={handleSelectList}
+          tabs={tabsViewModel.tabs}
+        />
       </div>
       <div className="p-container-margin pb-36">
         <ProgressTracker progress={viewModel.progress} />

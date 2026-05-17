@@ -9,3 +9,7 @@ export interface ShoppingListMessage {
   products: ProductMessage[];
   name?: string;
 }
+
+export interface ShoppingListSummaryMessage {
+  name?: string;
+}

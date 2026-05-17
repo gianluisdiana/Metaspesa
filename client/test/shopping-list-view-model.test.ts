@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  ShoppingListTabsViewModel,
   ShoppingListViewModel,
   ShoppingPriceViewModel,
 } from '@/lib/shopping-list-view-model';
@@ -84,5 +85,64 @@ describe('ShoppingListViewModel', () => {
     });
 
     expect(viewModel.itemCountLabel).toBe('1 item');
+  });
+});
+
+describe('ShoppingListTabsViewModel', () => {
+  it('creates one tab per shopping list summary', () => {
+    const viewModel = new ShoppingListTabsViewModel([
+      {},
+      { name: 'Groceries' },
+    ]);
+
+    expect(viewModel.tabs).toHaveLength(2);
+  });
+
+  it('formats the temporary list tab label', () => {
+    const viewModel = new ShoppingListTabsViewModel([{}]);
+
+    expect(viewModel.tabs[0].label).toBe('Temporary List');
+  });
+
+  it('formats named list tab label', () => {
+    const viewModel = new ShoppingListTabsViewModel([{ name: 'Groceries' }]);
+
+    expect(viewModel.tabs[0].label).toBe('Groceries');
+  });
+
+  it('marks the selected named tab active', () => {
+    const viewModel = new ShoppingListTabsViewModel(
+      [{ name: 'Groceries' }],
+      'Groceries',
+    );
+
+    expect(viewModel.tabs[0].active).toBe(true);
+  });
+
+  it('marks the temporary tab active when no list name is selected', () => {
+    const viewModel = new ShoppingListTabsViewModel([{}]);
+
+    expect(viewModel.tabs[0].active).toBe(true);
+  });
+
+  it('uses the current shopping list as a fallback tab', () => {
+    const viewModel = new ShoppingListTabsViewModel([], undefined, {
+      products: [],
+    });
+
+    expect(viewModel.tabs[0].label).toBe('Temporary List');
+  });
+
+  it('sorts tabs with temporary list first and then alphabetically', () => {
+    const viewModel = new ShoppingListTabsViewModel(
+      [{ name: 'Vegetables' }, {}, { name: 'Fruits' }, { name: 'Dairy' }],
+      'Fruits',
+    );
+
+    expect(viewModel.tabs).toHaveLength(4);
+    expect(viewModel.tabs[0].label).toBe('Temporary List');
+    expect(viewModel.tabs[1].label).toBe('Dairy');
+    expect(viewModel.tabs[2].label).toBe('Fruits');
+    expect(viewModel.tabs[3].label).toBe('Vegetables');
   });
 });

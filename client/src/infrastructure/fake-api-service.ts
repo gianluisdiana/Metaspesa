@@ -29,6 +29,10 @@ export default class FakeApiService implements ApiService {
     );
   }
 
+  getShoppingListSummaries(): Promise<{ name?: string }[]> {
+    return Promise.resolve([{ name: undefined }, { name: 'Groceries' }]);
+  }
+
   getRegisteredProducts(): Promise<Product[]> {
     return Promise.resolve([
       new Product('Manzanas', '1 paquete', 2),

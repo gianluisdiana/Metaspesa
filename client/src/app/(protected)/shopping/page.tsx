@@ -20,12 +20,16 @@ export default async function ShoppingPage({
   const token = cookieStore.get('auth_token')?.value ?? '';
   const selectedListName = stringParam(params, 'name');
   const service = new GrpcApiService(token);
-  const shoppingList = await service.getShoppingList(selectedListName);
+  const [shoppingList, shoppingListSummaries] = await Promise.all([
+    service.getShoppingList(selectedListName),
+    service.getShoppingListSummaries(),
+  ]);
 
   return (
     <ShoppingListContainer
       initialSelectedListName={selectedListName}
       initialShoppingList={shoppingList}
+      initialShoppingListSummaries={shoppingListSummaries}
     />
   );
 }
