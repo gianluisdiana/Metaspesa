@@ -28,7 +28,7 @@ internal partial class PostgreSqlShoppingRepository(
               Name: i.Name,
               Quantity: i.Quantity,
               Price: new Price(i.Price),
-              IsChecked: false
+              IsChecked: i.IsChecked
             )).ToList()
         ))
         .FirstOrDefaultAsync(cancellationToken);

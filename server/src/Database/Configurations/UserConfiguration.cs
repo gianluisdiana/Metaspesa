@@ -15,7 +15,7 @@ internal class UserConfiguration : IEntityTypeConfiguration<UserDbEntity> {
 
     builder.Property(e => e.Uid)
       .HasColumnName("id")
-      .ValueGeneratedOnAdd();
+      .ValueGeneratedNever();
 
     builder.Property(e => e.Username)
       .HasColumnName("username")

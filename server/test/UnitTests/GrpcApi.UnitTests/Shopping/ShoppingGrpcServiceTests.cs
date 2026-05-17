@@ -834,6 +834,25 @@ public static class ShoppingGrpcServiceTests {
         Arg.Is<CreateShoppingList.Command>(cmd => cmd.UserUid == expectedUid),
         TestContext.Current.CancellationToken);
     }
+
+    [Fact(DisplayName = "Passes user UID from mapped name identifier claim to command")]
+    public async Task Api_PassesUserUidFromMappedClaim_ToCommand() {
+      // Arrange
+      var expectedUid = Guid.CreateVersion7();
+      _useCaseHandler
+        .Handle(Arg.Any<CreateShoppingList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      // Act
+      await service.CreateShoppingList(
+        new CreateShoppingListRequest(),
+        CreateServerCallContext(expectedUid, ClaimTypes.NameIdentifier));
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<CreateShoppingList.Command>(cmd => cmd.UserUid == expectedUid),
+        TestContext.Current.CancellationToken);
+    }
   }
 
   public class AddItemsToListRpc {
@@ -1352,7 +1371,10 @@ public static class ShoppingGrpcServiceTests {
     }
   }
 
-  private static ServerCallContext CreateServerCallContext(Guid? userId = null) {
+  private static ServerCallContext CreateServerCallContext(
+    Guid? userId = null,
+    string claimType = JwtRegisteredClaimNames.Sub
+  ) {
     ServerCallContext context = TestServerCallContext.Create(
       method: string.Empty,
       host: string.Empty,
@@ -1368,7 +1390,7 @@ public static class ShoppingGrpcServiceTests {
 
     var httpContext = new DefaultHttpContext {
       User = new(new ClaimsIdentity([
-        new Claim(JwtRegisteredClaimNames.Sub, (userId ?? Guid.CreateVersion7()).ToString()),
+        new Claim(claimType, (userId ?? Guid.CreateVersion7()).ToString()),
       ]))
     };
     context.UserState["__HttpContext"] = httpContext;

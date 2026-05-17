@@ -52,7 +52,7 @@ public static class JwtTokenProviderTests {
       Assert.NotEmpty(token.Value);
     }
 
-    [Fact(DisplayName = "Includes NameIdentifier claim with user UID")]
+    [Fact(DisplayName = "Includes Sub claim with user UID")]
     public void GenerateToken_IncludesNameIdentifierClaim_WithUserUid() {
       // Arrange
       User user = TestUser();
@@ -62,7 +62,7 @@ public static class JwtTokenProviderTests {
       JwtSecurityToken jwt = ParseToken(token.Value);
 
       // Assert
-      string? uid = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+      string? uid = jwt.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)?.Value;
       Assert.Equal(user.Uid.ToString(), uid);
     }
 
@@ -76,7 +76,7 @@ public static class JwtTokenProviderTests {
       JwtSecurityToken jwt = ParseToken(token.Value);
 
       // Assert
-      string? name = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+      string? name = jwt.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Name)?.Value;
       Assert.Equal(user.Username, name);
     }
 
