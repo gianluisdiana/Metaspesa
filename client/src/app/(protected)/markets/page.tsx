@@ -8,6 +8,7 @@ import FilterHeader from './components/filter-header';
 import ProductGrid from './components/product-grid';
 
 type SearchParams = { [key: string]: string | string[] | undefined };
+const PRODUCTS_PAGE_SIZE = 20;
 
 function stringParam(params: SearchParams, key: string): string | undefined {
   const value = params[key];
@@ -26,6 +27,8 @@ export default async function MarketsPage({
     brandNameSegment: stringParam(params, 'brand_name'),
     marketName: stringParam(params, 'market_name'),
     nameSegment: stringParam(params, 'name_segment'),
+    page: 1,
+    pageSize: PRODUCTS_PAGE_SIZE,
   };
 
   const service = new GrpcMarketApiService(token);
@@ -39,7 +42,11 @@ export default async function MarketsPage({
       <Suspense>
         <FilterHeader marketNames={markets.map(m => m.name)} />
       </Suspense>
-      <ProductGrid markets={result.markets} />
+      <ProductGrid
+        filter={filter}
+        initialMarkets={result.markets}
+        initialTotalProducts={result.totalProducts}
+      />
     </>
   );
 }

@@ -53,6 +53,8 @@ export default class GrpcMarketApiService implements MarketApiService {
             brandNameSegment: filter.brandNameSegment,
             marketName: filter.marketName,
             nameSegment: filter.nameSegment,
+            page: filter.page,
+            pageSize: filter.pageSize,
           },
           this.metadata,
           (err, response) => {

@@ -4,6 +4,8 @@ export interface MarketFilter {
   marketName?: string;
   brandNameSegment?: string;
   nameSegment?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 export default interface MarketApiService {
