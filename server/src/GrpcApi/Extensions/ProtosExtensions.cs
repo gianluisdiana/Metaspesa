@@ -17,6 +17,16 @@ internal static class ProtosExtensions {
     return protoShoppingList;
   }
 
+  public static Protos.Shopping.ShoppingListSummary ToSummaryProto(
+    this ShoppingList summary
+  ) {
+    var protoSummary = new Protos.Shopping.ShoppingListSummary();
+    if (!string.IsNullOrWhiteSpace(summary.Name)) {
+      protoSummary.Name = summary.Name;
+    }
+    return protoSummary;
+  }
+
   private static Protos.Shopping.ShoppingItem ToProto(this ShoppingItem item) {
     Protos.Shopping.ShoppingItem product = ((Product)item).ToProto();
     product.Checked = item.IsChecked;

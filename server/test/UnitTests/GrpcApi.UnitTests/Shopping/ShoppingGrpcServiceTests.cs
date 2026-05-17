@@ -10,6 +10,7 @@ using Metaspesa.GrpcApi.Protos.Shopping;
 using Metaspesa.GrpcApi.Services;
 using Microsoft.AspNetCore.Http;
 using NSubstitute;
+using DomainShoppingList = Metaspesa.Domain.Shopping.ShoppingList;
 using Product = Metaspesa.Domain.Shopping.Product;
 
 namespace Metaspesa.GrpcApi.UnitTests.Shopping;
@@ -24,6 +25,7 @@ public static class ShoppingGrpcServiceTests {
       IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>();
       service = new ShoppingGrpcService(
         _useCaseHandler,
+        Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
         Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
@@ -220,6 +222,7 @@ public static class ShoppingGrpcServiceTests {
       IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>();
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
+        Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
         _useCaseHandler,
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
@@ -484,6 +487,117 @@ public static class ShoppingGrpcServiceTests {
     }
   }
 
+  public class GetShoppingListSummariesRpc {
+    private readonly IQueryHandler<
+      GetShoppingListSummaries.Query,
+      List<DomainShoppingList>> _useCaseHandler;
+    private readonly ShoppingGrpcService service;
+
+    public GetShoppingListSummariesRpc() {
+      _useCaseHandler = Substitute.For<
+        IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>();
+      service = new ShoppingGrpcService(
+        Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
+        _useCaseHandler,
+        Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
+        Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
+        Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
+        Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
+        Substitute.For<ICommandHandler<UpdateItem.Command>>(),
+        Substitute.For<ICommandHandler<RemoveItem.Command>>()
+      );
+    }
+
+    [Fact(DisplayName = "Throws RpcException if the query handler returns a failure result")]
+    public async Task Api_ThrowsRpcException_IfQueryHandlerFails() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<GetShoppingListSummaries.Query>(), TestContext.Current.CancellationToken)
+        .Returns(new DomainError(string.Empty, string.Empty, ErrorKind.Unexpected));
+
+      // Act
+      async Task action() => await service.GetShoppingListSummaries(
+        new Empty(), CreateServerCallContext());
+
+      // Assert
+      await Assert.ThrowsAsync<RpcException>(action);
+    }
+
+    [Fact(DisplayName = "Returns shopping list summary count if the query handler succeeds")]
+    public async Task Api_ReturnsShoppingListSummaryCount_IfQueryHandlerSucceeds() {
+      // Arrange
+      List<DomainShoppingList> summaries = [
+        new DomainShoppingList("Groceries", []),
+        new DomainShoppingList(null, []),
+      ];
+      _useCaseHandler
+        .Handle(Arg.Any<GetShoppingListSummaries.Query>(), TestContext.Current.CancellationToken)
+        .Returns(summaries);
+
+      // Act
+      ShoppingListSummariesResponse response = await service.GetShoppingListSummaries(
+        new Empty(), CreateServerCallContext());
+
+      // Assert
+      Assert.Equal(summaries.Count, response.ShoppingLists.Count);
+    }
+
+    [Fact(DisplayName = "Maps named shopping list summary name")]
+    public async Task Api_MapsNamedShoppingListSummaryName() {
+      // Arrange
+      List<DomainShoppingList> summaries = [
+        new DomainShoppingList("Groceries", []),
+        new DomainShoppingList(null, []),
+      ];
+      _useCaseHandler
+        .Handle(Arg.Any<GetShoppingListSummaries.Query>(), TestContext.Current.CancellationToken)
+        .Returns(summaries);
+
+      // Act
+      ShoppingListSummariesResponse response = await service.GetShoppingListSummaries(
+        new Empty(), CreateServerCallContext());
+
+      // Assert
+      Assert.Equal("Groceries", response.ShoppingLists[0].Name);
+    }
+
+    [Fact(DisplayName = "Maps temporary shopping list summary with missing name")]
+    public async Task Api_MapsTemporaryShoppingListSummaryWithMissingName() {
+      // Arrange
+      List<DomainShoppingList> summaries = [
+        new DomainShoppingList("Groceries", []),
+        new DomainShoppingList(null, []),
+      ];
+      _useCaseHandler
+        .Handle(Arg.Any<GetShoppingListSummaries.Query>(), TestContext.Current.CancellationToken)
+        .Returns(summaries);
+
+      // Act
+      ShoppingListSummariesResponse response = await service.GetShoppingListSummaries(
+        new Empty(), CreateServerCallContext());
+
+      // Assert
+      Assert.False(response.ShoppingLists[1].HasName);
+    }
+
+    [Fact(DisplayName = "Passes user UID from JWT claim to query")]
+    public async Task Api_PassesUserUidFromClaim_ToQuery() {
+      // Arrange
+      var expectedUid = Guid.CreateVersion7();
+      _useCaseHandler
+        .Handle(Arg.Any<GetShoppingListSummaries.Query>(), TestContext.Current.CancellationToken)
+        .Returns(new List<DomainShoppingList>());
+
+      // Act
+      await service.GetShoppingListSummaries(new Empty(), CreateServerCallContext(expectedUid));
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<GetShoppingListSummaries.Query>(q => q.UserUid == expectedUid),
+        TestContext.Current.CancellationToken);
+    }
+  }
+
   public class RecordShoppingListRpc {
     private readonly ICommandHandler<RecordShoppingList.Command> _useCaseHandler;
     private readonly ShoppingGrpcService service;
@@ -492,6 +606,7 @@ public static class ShoppingGrpcServiceTests {
       _useCaseHandler = Substitute.For<ICommandHandler<RecordShoppingList.Command>>();
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
+        Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
         Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         _useCaseHandler,
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
@@ -763,6 +878,7 @@ public static class ShoppingGrpcServiceTests {
       _useCaseHandler = Substitute.For<ICommandHandler<CreateShoppingList.Command>>();
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
+        Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
         Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         _useCaseHandler,
@@ -898,6 +1014,7 @@ public static class ShoppingGrpcServiceTests {
       _useCaseHandler = Substitute.For<ICommandHandler<AddItemsToList.Command>>();
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
+        Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
         Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
@@ -1074,6 +1191,7 @@ public static class ShoppingGrpcServiceTests {
       _useCaseHandler = Substitute.For<ICommandHandler<UpdateItem.Command>>();
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
+        Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
         Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
@@ -1326,6 +1444,7 @@ public static class ShoppingGrpcServiceTests {
       _useCaseHandler = Substitute.For<ICommandHandler<RemoveItem.Command>>();
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
+        Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
         Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
@@ -1433,5 +1552,3 @@ public static class ShoppingGrpcServiceTests {
     return context;
   }
 }
-
-

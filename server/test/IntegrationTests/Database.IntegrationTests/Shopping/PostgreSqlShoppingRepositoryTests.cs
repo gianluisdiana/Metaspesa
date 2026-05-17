@@ -20,6 +20,246 @@ public static class PostgreSqlShoppingRepositoryTests {
   }
 
   [Collection("Database")]
+  public class GetShoppingListSummariesAsync : IAsyncLifetime {
+    private readonly MainContext _context;
+    private readonly PostgreSqlShoppingRepository _repository;
+
+    public GetShoppingListSummariesAsync(DatabaseFixture fixture) {
+      _context = fixture.CreateContext();
+      IClock _clock = Substitute.For<IClock>();
+      _repository = new PostgreSqlShoppingRepository(
+        _context,
+        _clock,
+        NullLogger<PostgreSqlShoppingRepository>.Instance);
+      _clock.GetCurrentTime().Returns(DateTime.UtcNow);
+    }
+
+    public ValueTask InitializeAsync() =>
+      EnsureShopperRoleAsync(_context, TestContext.Current.CancellationToken);
+
+    public async ValueTask DisposeAsync() {
+      await _context.DisposeAsync();
+      GC.SuppressFinalize(this);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns empty summaries when user has no lists")]
+    public async Task GetShoppingListSummariesAsync_ReturnsEmpty_WhenUserHasNoLists() {
+      // Arrange
+      var userUid = Guid.CreateVersion7();
+      _context.Users.Add(new UserDbEntity {
+        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      List<ShoppingList> result =
+        await _repository.GetShoppingListSummariesAsync(
+          userUid, TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Empty(result);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns two summaries when user owns named and temporary lists")]
+    public async Task GetShoppingListSummariesAsync_ReturnsTwoSummaries_WhenUserOwnsNamedAndTemporaryLists() {
+      // Arrange
+      var userUid = Guid.CreateVersion7();
+      _context.Users.Add(new UserDbEntity {
+        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      _repository.CreateShoppingList(userUid, "Groceries");
+      _repository.CreateShoppingList(userUid, null);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      List<ShoppingList> result =
+        await _repository.GetShoppingListSummariesAsync(
+          userUid, TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Equal(2, result.Count);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns named list summary before temporary list summary")]
+    public async Task GetShoppingListSummariesAsync_ReturnsNamedListSummaryBeforeTemporaryListSummary() {
+      // Arrange
+      var userUid = Guid.CreateVersion7();
+      _context.Users.Add(new UserDbEntity {
+        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      _repository.CreateShoppingList(userUid, "Groceries");
+      _repository.CreateShoppingList(userUid, null);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      List<ShoppingList> result =
+        await _repository.GetShoppingListSummariesAsync(
+          userUid, TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Equal("Groceries", result[0].Name);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns temporary list summary with null name")]
+    public async Task GetShoppingListSummariesAsync_ReturnsTemporaryListSummaryWithNullName() {
+      // Arrange
+      var userUid = Guid.CreateVersion7();
+      _context.Users.Add(new UserDbEntity {
+        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      _repository.CreateShoppingList(userUid, "Groceries");
+      _repository.CreateShoppingList(userUid, null);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      List<ShoppingList> result =
+        await _repository.GetShoppingListSummariesAsync(
+          userUid, TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Null(result[1].Name);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns named list summary without items")]
+    public async Task GetShoppingListSummariesAsync_ReturnsNamedListSummaryWithoutItems() {
+      // Arrange
+      var userUid = Guid.CreateVersion7();
+      _context.Users.Add(new UserDbEntity {
+        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      _repository.CreateShoppingList(userUid, "Groceries");
+      _repository.CreateShoppingList(userUid, null);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      List<ShoppingList> result =
+        await _repository.GetShoppingListSummariesAsync(
+          userUid, TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Empty(result[0].Items);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns temporary list summary without items")]
+    public async Task GetShoppingListSummariesAsync_ReturnsTemporaryListSummaryWithoutItems() {
+      // Arrange
+      var userUid = Guid.CreateVersion7();
+      _context.Users.Add(new UserDbEntity {
+        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      _repository.CreateShoppingList(userUid, "Groceries");
+      _repository.CreateShoppingList(userUid, null);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      List<ShoppingList> result =
+        await _repository.GetShoppingListSummariesAsync(
+          userUid, TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Empty(result[1].Items);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Does not return summaries owned by another user")]
+    public async Task GetShoppingListSummariesAsync_DoesNotReturnOtherUserLists() {
+      // Arrange
+      var userUid = Guid.CreateVersion7();
+      var otherUid = Guid.CreateVersion7();
+      _context.Users.Add(new UserDbEntity {
+        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
+      });
+      _context.Users.Add(new UserDbEntity {
+        Uid = otherUid, Username = otherUid.ToString(), EncryptedPassword = "x", RoleId = 1
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      _repository.CreateShoppingList(userUid, "Groceries");
+      _repository.CreateShoppingList(otherUid, "Other List");
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      List<ShoppingList> result =
+        await _repository.GetShoppingListSummariesAsync(
+          userUid, TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Single(result);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns owned list summary name when another user owns a list")]
+    public async Task GetShoppingListSummariesAsync_ReturnsOwnedListSummaryName_WhenAnotherUserOwnsAList() {
+      // Arrange
+      var userUid = Guid.CreateVersion7();
+      var otherUid = Guid.CreateVersion7();
+      _context.Users.Add(new UserDbEntity {
+        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
+      });
+      _context.Users.Add(new UserDbEntity {
+        Uid = otherUid, Username = otherUid.ToString(), EncryptedPassword = "x", RoleId = 1
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      _repository.CreateShoppingList(userUid, "Groceries");
+      _repository.CreateShoppingList(otherUid, "Other List");
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      List<ShoppingList> result =
+        await _repository.GetShoppingListSummariesAsync(
+          userUid, TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Equal("Groceries", result.Single().Name);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns owned list summary without items when another user owns a list")]
+    public async Task GetShoppingListSummariesAsync_ReturnsOwnedListSummaryWithoutItems_WhenAnotherUserOwnsAList() {
+      // Arrange
+      var userUid = Guid.CreateVersion7();
+      var otherUid = Guid.CreateVersion7();
+      _context.Users.Add(new UserDbEntity {
+        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
+      });
+      _context.Users.Add(new UserDbEntity {
+        Uid = otherUid, Username = otherUid.ToString(), EncryptedPassword = "x", RoleId = 1
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      _repository.CreateShoppingList(userUid, "Groceries");
+      _repository.CreateShoppingList(otherUid, "Other List");
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      List<ShoppingList> result =
+        await _repository.GetShoppingListSummariesAsync(
+          userUid, TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.Empty(result.Single().Items);
+    }
+  }
+
+  [Collection("Database")]
   public class GetCurrentShoppingListAsync : IAsyncLifetime {
     private readonly MainContext _context;
     private readonly PostgreSqlShoppingRepository _repository;

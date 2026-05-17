@@ -14,6 +14,32 @@ internal partial class PostgreSqlShoppingRepository(
   IClock clock,
   ILogger<PostgreSqlShoppingRepository> logger
 ) : IShoppingRepository {
+  public async Task<List<ShoppingList>> GetShoppingListSummariesAsync(
+    Guid userUid, CancellationToken cancellationToken
+  ) {
+    try {
+      List<string?> listNames = await context.ShoppingListOwnerships
+        .Where(o => o.UserUid == userUid)
+        .OrderBy(o => o.ShoppingList.Name == null)
+        .ThenBy(o => o.ShoppingList.Name)
+        .Select(o => o.ShoppingList.Name)
+        .ToListAsync(cancellationToken);
+
+      return [.. listNames.Select(name => new ShoppingList(name, []))];
+    } catch (Exception ex) when (
+        ex is NpgsqlException or OperationCanceledException ||
+        ex.InnerException is NpgsqlException
+      ) {
+      LogErrorGettingShoppingListSummaries(userUid, ex);
+      return [];
+    }
+  }
+
+  [LoggerMessage(
+    LogLevel.Error,
+    "Couldn't get shopping list summaries for user {UserUid}")]
+  partial void LogErrorGettingShoppingListSummaries(Guid userUid, Exception ex);
+
   public async Task<ShoppingList?> GetShoppingListAsync(
     Guid userUid, string? shoppingListName, CancellationToken cancellationToken
   ) {
