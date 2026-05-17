@@ -9,7 +9,7 @@ datasources:
       tracesToLogsV2:
         datasourceUid: loki
         filterByTraceID: true
-        filterBySpanID: false
+        filterBySpanID: true
         tags:
           - key: service.name
             value: service_name

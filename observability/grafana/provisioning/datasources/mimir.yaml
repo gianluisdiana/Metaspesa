@@ -3,4 +3,9 @@ apiVersion: 1
 datasources:
   - name: Mimir
     type: prometheus
+    uid: mimir
     url: http://mimir:8080/prometheus
+    jsonData:
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: tempo
