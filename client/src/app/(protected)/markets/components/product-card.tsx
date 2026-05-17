@@ -90,11 +90,13 @@ export function CartButton() {
   );
 }
 
-export function AddButton() {
+export function AddButton({ onClick }: Readonly<{ onClick: () => void }>) {
   return (
     <button
       className="rounded-full btn-gradient flex items-center justify-center text-on-primary-fixed-variant hover:opacity-90 transition-opacity px-4 py-2 gap-2"
       title="Add to List"
+      type="button"
+      onClick={onClick}
     >
       <span className="material-symbols-outlined icon-fill text-[18px]">
         add
@@ -104,7 +106,10 @@ export function AddButton() {
   );
 }
 
-export function ProductActions({ product }: Readonly<{ product: Product }>) {
+export function ProductActions({
+  onAdd,
+  product,
+}: Readonly<{ onAdd: () => void; product: Product }>) {
   if (product.hasQuantityControl) {
     return (
       <div className="flex items-center gap-2">
@@ -115,14 +120,15 @@ export function ProductActions({ product }: Readonly<{ product: Product }>) {
   }
   return (
     <div className="flex items-center gap-2">
-      <AddButton />
+      <AddButton onClick={onAdd} />
     </div>
   );
 }
 
 export default function ProductCard({
+  onAdd,
   product,
-}: Readonly<{ product: Product }>) {
+}: Readonly<{ onAdd: () => void; product: Product }>) {
   return (
     <div className="bg-surface-container-lowest rounded-xl p-3 flex flex-col gap-3 shadow-[0_4px_16px_rgba(97,88,136,0.08)] hover:shadow-[0_8px_24px_rgba(97,88,136,0.12)] transition-shadow duration-300 relative group overflow-hidden">
       <ProductImage product={product} />
@@ -135,7 +141,7 @@ export default function ProductCard({
         </h3>
         <div className="flex items-end justify-between mt-auto pt-2">
           <PriceDisplay product={product} />
-          <ProductActions product={product} />
+          <ProductActions product={product} onAdd={onAdd} />
         </div>
       </div>
     </div>

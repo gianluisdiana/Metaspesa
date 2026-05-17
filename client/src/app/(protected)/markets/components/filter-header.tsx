@@ -133,7 +133,7 @@ export default function FilterHeader({ marketNames }: Readonly<Props>) {
     <div className="sticky top-16 z-30 bg-surface/90 backdrop-blur-md border-b border-surface-variant px-container-margin py-stack-md flex flex-col gap-stack-sm shadow-sm shadow-secondary/5">
       <div className="flex items-center justify-between">
         <h1 className="font-headline-lg text-headline-lg text-on-surface">
-          {marketName || 'All Markets'}
+          {marketName || 'All markets'}
         </h1>
       </div>
       <div className="flex flex-wrap gap-unit mt-unit items-center">

@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { Suspense } from 'react';
 
+import GrpcApiService from '@/infrastructure/grpc-api-service';
 import GrpcMarketApiService from '@/infrastructure/grpc-market-api-service';
 import { MarketFilter } from '@/lib/market-api-service';
 
@@ -31,10 +32,12 @@ export default async function MarketsPage({
     pageSize: PRODUCTS_PAGE_SIZE,
   };
 
-  const service = new GrpcMarketApiService(token);
-  const [result, markets] = await Promise.all([
-    service.getMarketProducts(filter),
-    service.getMarkets(),
+  const marketService = new GrpcMarketApiService(token);
+  const shoppingService = new GrpcApiService(token);
+  const [result, markets, shoppingListSummaries] = await Promise.all([
+    marketService.getMarketProducts(filter),
+    marketService.getMarkets(),
+    shoppingService.getShoppingListSummaries(),
   ]);
 
   return (
@@ -46,6 +49,7 @@ export default async function MarketsPage({
         filter={filter}
         initialMarkets={result.markets}
         initialTotalProducts={result.totalProducts}
+        shoppingListSummaries={shoppingListSummaries}
       />
     </>
   );

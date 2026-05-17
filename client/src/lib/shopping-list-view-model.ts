@@ -113,7 +113,7 @@ export class ShoppingListTabsViewModel {
 
   public get tabs(): ShoppingListTabViewModel[] {
     return this.normalizedSummaries
-      .sort((a, b) => {
+      .toSorted((a, b) => {
         // eslint-disable-next-line @typescript-eslint/no-magic-numbers
         if (!a.name) return -1;
         if (!b.name) return 1;
