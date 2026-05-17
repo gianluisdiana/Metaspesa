@@ -23,7 +23,9 @@ export default class GrpcApiService implements ApiService {
       process.cwd(),
       'src/infrastructure/protos/Shopping/shopping_service.proto',
     );
-    const packageDefinition = protoLoader.loadSync(protoPath);
+    const packageDefinition = protoLoader.loadSync(protoPath, {
+      defaults: true,
+    });
     const { ShoppingService } = (
       grpc.loadPackageDefinition(packageDefinition) as unknown as ProtoGrpcType
     ).Metaspesa.Protos.Shopping;
@@ -57,12 +59,12 @@ export default class GrpcApiService implements ApiService {
     });
   }
 
-  async getCurrentShoppingList(): Promise<ShoppingListMessage> {
+  async getShoppingList(name?: string): Promise<ShoppingListMessage> {
     try {
       const shoppingList = await new Promise<ShoppingListMessage>(
         (resolve, reject) => {
-          this.client.GetCurrentShoppingList(
-            {},
+          this.client.GetShoppingList(
+            name ? { shoppingListName: name } : {},
             this.metadata,
             (err, response) => {
               if (err) {
@@ -96,7 +98,7 @@ export default class GrpcApiService implements ApiService {
 
           resolve(
             response!.items?.map(item => ({
-              checked: item.checked,
+              checked: item.checked ?? false,
               name: item.name,
               price: item.price,
               quantity: item.quantity,
@@ -119,7 +121,7 @@ export default class GrpcApiService implements ApiService {
     const factor = 100;
     const products: ProductMessage[] =
       proto.items?.map(itemProto => ({
-        checked: itemProto.checked,
+        checked: itemProto.checked ?? false,
         name: itemProto.name,
         price:
           itemProto.price === undefined

@@ -14,8 +14,13 @@ type CreateListResponse = {
   shoppingList: ShoppingListMessage;
 };
 
-async function fetchCurrentList(): Promise<ShoppingListMessage> {
-  const response = await fetch('/api/shopping/current-list', {
+async function fetchShoppingList(name?: string): Promise<ShoppingListMessage> {
+  const params = new URLSearchParams();
+  if (name) {
+    params.set('name', name);
+  }
+  const query = params.size > 0 ? `?${params}` : '';
+  const response = await fetch(`/api/shopping/lists${query}`, {
     cache: 'no-store',
   });
   if (!response.ok) {
@@ -38,9 +43,14 @@ async function createTemporaryList(): Promise<CreateListResponse> {
 }
 
 export default function ShoppingListContainer({
+  initialSelectedListName,
   initialShoppingList,
-}: Readonly<{ initialShoppingList: ShoppingListMessage }>) {
+}: Readonly<{
+  initialSelectedListName?: string;
+  initialShoppingList: ShoppingListMessage;
+}>) {
   const [shoppingList, setShoppingList] = useState(initialShoppingList);
+  const [selectedListName] = useState(initialSelectedListName);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string>();
@@ -60,7 +70,7 @@ export default function ShoppingListContainer({
       );
       setIsLoading(true);
       try {
-        setShoppingList(await fetchCurrentList());
+        setShoppingList(await fetchShoppingList(selectedListName));
       } finally {
         setIsLoading(false);
       }

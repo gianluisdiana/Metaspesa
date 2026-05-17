@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 import GrpcApiService from '@/infrastructure/grpc-api-service';
 
@@ -13,6 +13,19 @@ function getErrorCode(error: unknown): number | undefined {
   return Number(error.code);
 }
 
+function getListName(request: NextRequest): string | undefined {
+  const name = request.nextUrl.searchParams.get('name');
+  return name && name.length > 0 ? name : undefined;
+}
+
+export async function GET(request: NextRequest) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('auth_token')?.value ?? '';
+  const service = new GrpcApiService(token);
+
+  return NextResponse.json(await service.getShoppingList(getListName(request)));
+}
+
 export async function POST() {
   const cookieStore = await cookies();
   const token = cookieStore.get('auth_token')?.value ?? '';
@@ -22,10 +35,10 @@ export async function POST() {
     await service.createShoppingList();
     return NextResponse.json({
       message: 'Temporary list created.',
-      shoppingList: await service.getCurrentShoppingList(),
+      shoppingList: await service.getShoppingList(),
     });
   } catch (error) {
-    const shoppingList = await service.getCurrentShoppingList();
+    const shoppingList = await service.getShoppingList();
     if (getErrorCode(error) === ALREADY_EXISTS) {
       return NextResponse.json({
         message: 'Temporary list already exists.',

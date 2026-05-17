@@ -15,7 +15,7 @@ export default class FakeApiService implements ApiService {
     );
   }
 
-  getCurrentShoppingList(): Promise<ShoppingList> {
+  getShoppingList(name?: string): Promise<ShoppingList> {
     return Promise.resolve(
       new ShoppingList(
         [
@@ -24,7 +24,7 @@ export default class FakeApiService implements ApiService {
           new Product('Pan dulce', undefined, 1.5, true),
           new Product('Leche entera', '1 litro'),
         ],
-        undefined,
+        name,
       ),
     );
   }
