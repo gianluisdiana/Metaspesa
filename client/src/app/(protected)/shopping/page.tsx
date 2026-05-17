@@ -1,19 +1,14 @@
-import ListTabs, { ListPageHeader } from './components/list-header';
-import ItemsContainer, { ProgressTracker } from './components/list-items';
-import SummaryFooter from './components/summary-footer';
+import { cookies } from 'next/headers';
 
-export default function ShoppingPage() {
-  return (
-    <>
-      <div className="top-16 z-30 bg-surface/90 backdrop-blur-md border-b border-surface-variant px-container-margin py-stack-md flex flex-col gap-stack-sm shadow-sm shadow-secondary/5">
-        <ListPageHeader />
-        <ListTabs />
-      </div>
-      <div className="p-container-margin">
-        <ProgressTracker />
-        <ItemsContainer />
-      </div>
-      <SummaryFooter />
-    </>
-  );
+import GrpcApiService from '@/infrastructure/grpc-api-service';
+
+import ShoppingListContainer from './components/shopping-list-container';
+
+export default async function ShoppingPage() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('auth_token')?.value ?? '';
+  const service = new GrpcApiService(token);
+  const shoppingList = await service.getCurrentShoppingList();
+
+  return <ShoppingListContainer initialShoppingList={shoppingList} />;
 }

@@ -16,8 +16,9 @@ import { createTracingMetadata } from './grpc-metadata';
 
 export default class GrpcApiService implements ApiService {
   private readonly client: ShoppingServiceClient;
+  private readonly metadata: grpc.Metadata;
 
-  constructor() {
+  constructor(token: string) {
     const protoPath = path.resolve(
       process.cwd(),
       'src/infrastructure/protos/Shopping/shopping_service.proto',
@@ -35,6 +36,25 @@ export default class GrpcApiService implements ApiService {
       process.env.GRPC_SERVER_URL as string,
       credentials,
     );
+    this.metadata = createTracingMetadata();
+    this.metadata.set('Authorization', `Bearer ${token}`);
+  }
+
+  async createShoppingList(name?: string): Promise<void> {
+    await new Promise<void>((resolve, reject) => {
+      this.client.CreateShoppingList(
+        name ? { name } : {},
+        this.metadata,
+        err => {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          resolve();
+        },
+      );
+    });
   }
 
   async getCurrentShoppingList(): Promise<ShoppingListMessage> {
@@ -43,7 +63,7 @@ export default class GrpcApiService implements ApiService {
         (resolve, reject) => {
           this.client.GetCurrentShoppingList(
             {},
-            createTracingMetadata(),
+            this.metadata,
             (err, response) => {
               if (err) {
                 reject(err);
@@ -65,8 +85,28 @@ export default class GrpcApiService implements ApiService {
     }
   }
 
-  getRegisteredProducts(): Promise<ProductMessage[]> {
-    throw new Error('Method not implemented.');
+  async getRegisteredProducts(): Promise<ProductMessage[]> {
+    try {
+      return await new Promise<ProductMessage[]>((resolve, reject) => {
+        this.client.GetRegisteredItems({}, this.metadata, (err, response) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          resolve(
+            response!.items?.map(item => ({
+              checked: item.checked,
+              name: item.name,
+              price: item.price,
+              quantity: item.quantity,
+            })) ?? [],
+          );
+        });
+      });
+    } catch {
+      return [];
+    }
   }
 
   recordShoppingList(shoppingList: ShoppingListMessage): Promise<void> {
@@ -78,11 +118,14 @@ export default class GrpcApiService implements ApiService {
   private mapShoppingList(proto: ShoppingList__Output): ShoppingListMessage {
     const factor = 100;
     const products: ProductMessage[] =
-      proto.products?.map(productProto => ({
-        checked: productProto.checked,
-        name: productProto.name,
-        price: Math.round(productProto.price! * factor) / factor,
-        quantity: productProto.quantity,
+      proto.items?.map(itemProto => ({
+        checked: itemProto.checked,
+        name: itemProto.name,
+        price:
+          itemProto.price === undefined
+            ? undefined
+            : Math.round(itemProto.price * factor) / factor,
+        quantity: itemProto.quantity,
       })) ?? [];
     return {
       name: proto.name,

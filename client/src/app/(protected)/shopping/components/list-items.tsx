@@ -1,58 +1,11 @@
 import { Fragment } from 'react';
 
-export type CheckedItemData = { id: string; name: string; price: string };
-
-export type UncheckedItemData = {
-  badge: { colorClass: string; label: string };
-  categorySection: string;
-  id: string;
-  lowStock?: boolean;
-  name: string;
-  price: string;
-  qty: string;
-};
-
-const UNCHECKED_ITEMS: UncheckedItemData[] = [
-  {
-    badge: {
-      colorClass: 'bg-tertiary-container/30 text-on-tertiary-container',
-      label: 'Produce',
-    },
-    categorySection: 'Produce',
-    id: '1',
-    name: 'Organic Avocados',
-    price: '$4.99',
-    qty: '2',
-  },
-  {
-    badge: {
-      colorClass: 'bg-tertiary-container/30 text-on-tertiary-container',
-      label: 'Produce',
-    },
-    categorySection: 'Produce',
-    id: '2',
-    lowStock: true,
-    name: 'Heirloom Tomatoes',
-    price: '$5.50',
-    qty: '1 lb',
-  },
-  {
-    badge: {
-      colorClass: 'bg-secondary-container/30 text-on-secondary-container',
-      label: 'Dairy',
-    },
-    categorySection: 'Dairy & Alternatives',
-    id: '3',
-    name: 'Oat Milk (Barista Blend)',
-    price: '$6.49',
-    qty: '1',
-  },
-];
-
-const CHECKED_ITEMS: CheckedItemData[] = [
-  { id: '1', name: 'Free Range Eggs', price: '$7.99' },
-  { id: '2', name: 'Sourdough Loaf', price: '$5.50' },
-];
+import {
+  CheckedShoppingItemViewModel,
+  ShoppingItemSectionViewModel,
+  ShoppingProgressViewModel,
+  UncheckedShoppingItemViewModel,
+} from '@/lib/shopping-list-view-model';
 
 function ItemBadge({
   colorClass,
@@ -88,19 +41,21 @@ function CategoryHeader({
   );
 }
 
-function CompletedDivider() {
+function CompletedDivider({ count }: Readonly<{ count: number }>) {
   return (
     <div className="flex items-center gap-4 mt-6 mb-2 opacity-60">
       <div className="h-px bg-outline-variant flex-1" />
       <span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">
-        Completed
+        Completed ({count})
       </span>
       <div className="h-px bg-outline-variant flex-1" />
     </div>
   );
 }
 
-function UncheckedItem({ item }: Readonly<{ item: UncheckedItemData }>) {
+function UncheckedItem({
+  item,
+}: Readonly<{ item: UncheckedShoppingItemViewModel }>) {
   return (
     <div className="group flex items-center gap-stack-md bg-surface-container-lowest p-stack-md rounded-xl shadow-[0_2px_8px_rgba(208,197,253,0.08)] border border-transparent hover:border-primary-container/30 transition-all">
       <button className="w-7 h-7 rounded-full border-[2.5px] border-primary shrink-0 hover:bg-primary/10 transition-colors" />
@@ -123,7 +78,11 @@ function UncheckedItem({ item }: Readonly<{ item: UncheckedItemData }>) {
               Qty: {item.qty}
             </span>
           </div>
-          <button className="text-outline hover:text-error transition-colors opacity-0 group-hover:opacity-100 p-2">
+          <button
+            aria-label={`Remove ${item.name} placeholder`}
+            className="text-outline hover:text-error transition-colors opacity-0 group-hover:opacity-100 p-2"
+            type="button"
+          >
             <span
               className="material-symbols-outlined text-[20px]"
               style={{ fontVariationSettings: "'FILL' 0" }}
@@ -137,10 +96,16 @@ function UncheckedItem({ item }: Readonly<{ item: UncheckedItemData }>) {
   );
 }
 
-function CheckedItem({ item }: Readonly<{ item: CheckedItemData }>) {
+function CheckedItem({
+  item,
+}: Readonly<{ item: CheckedShoppingItemViewModel }>) {
   return (
     <div className="flex items-center gap-stack-md bg-secondary-fixed/30 p-stack-md rounded-xl border border-secondary-fixed/50 transition-all opacity-80">
-      <button className="w-7 h-7 rounded-full bg-primary border-primary shrink-0 flex items-center justify-center text-on-primary">
+      <button
+        aria-label={`${item.name} checked placeholder`}
+        className="w-7 h-7 rounded-full bg-primary border-primary shrink-0 flex items-center justify-center text-on-primary"
+        type="button"
+      >
         <span
           className="material-symbols-outlined text-[18px]"
           style={{ fontVariationSettings: "'wght' 700" }}
@@ -160,39 +125,64 @@ function CheckedItem({ item }: Readonly<{ item: CheckedItemData }>) {
   );
 }
 
-export function ProgressTracker() {
+export function ProgressTracker({
+  progress,
+}: Readonly<{ progress: ShoppingProgressViewModel }>) {
   return (
     <div className="bg-surface-container-lowest p-stack-md rounded-2xl shadow-[0_4px_20px_rgba(208,197,253,0.1)] border border-surface-container-highest flex flex-col gap-stack-sm">
       <div className="flex justify-between items-center font-label-sm text-label-sm text-on-surface-variant">
         <span>Shopping Progress</span>
-        <span className="font-bold text-primary">3 of 8 items found</span>
+        <span className="font-bold text-primary">{progress.label}</span>
       </div>
       <div className="h-2 w-full bg-surface-variant rounded-full overflow-hidden">
         <div
           className="h-full bg-linear-to-r from-tertiary to-primary rounded-full transition-all duration-500 ease-out"
-          style={{ width: '37.5%' }}
+          style={{ width: `${progress.percentage}%` }}
         />
       </div>
     </div>
   );
 }
 
-export default function ItemsContainer() {
-  const categories = [...new Set(UNCHECKED_ITEMS.map(i => i.categorySection))];
+function EmptyList() {
+  return (
+    <div className="bg-surface-container-lowest border border-dashed border-outline-variant rounded-2xl p-stack-lg text-center mt-stack-md">
+      <p className="font-body-lg text-body-lg text-on-surface">No items yet</p>
+    </div>
+  );
+}
+
+export default function ItemsContainer({
+  checkedItems,
+  hasItems,
+  uncheckedSections,
+}: Readonly<{
+  checkedItems: CheckedShoppingItemViewModel[];
+  hasItems: boolean;
+  uncheckedSections: ShoppingItemSectionViewModel[];
+}>) {
+  if (!hasItems) {
+    return <EmptyList />;
+  }
+
   return (
     <div className="flex flex-col gap-unit">
-      {categories.map((cat, idx) => (
-        <Fragment key={cat}>
-          <CategoryHeader first={idx === 0} label={cat} />
-          {UNCHECKED_ITEMS.filter(i => i.categorySection === cat).map(item => (
+      {uncheckedSections.map((section, idx) => (
+        <Fragment key={section.label}>
+          <CategoryHeader first={idx === 0} label={section.label} />
+          {section.items.map(item => (
             <UncheckedItem key={item.id} item={item} />
           ))}
         </Fragment>
       ))}
-      <CompletedDivider />
-      {CHECKED_ITEMS.map(item => (
-        <CheckedItem key={item.id} item={item} />
-      ))}
+      {checkedItems.length > 0 && (
+        <>
+          <CompletedDivider count={checkedItems.length} />
+          {checkedItems.map(item => (
+            <CheckedItem key={item.id} item={item} />
+          ))}
+        </>
+      )}
     </div>
   );
 }

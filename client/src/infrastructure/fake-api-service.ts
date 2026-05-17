@@ -2,6 +2,11 @@ import ApiService from '@/lib/api-service';
 import { Product, ShoppingList } from '@/lib/domain';
 
 export default class FakeApiService implements ApiService {
+  async createShoppingList(name?: string): Promise<void> {
+    await Promise.resolve();
+    console.log(`Shopping list "${name ?? 'temporary'}" created.`);
+  }
+
   async recordShoppingList(shoppingList: ShoppingList): Promise<void> {
     await Promise.resolve();
     console.log(

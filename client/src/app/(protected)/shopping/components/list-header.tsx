@@ -1,23 +1,36 @@
-const TABS = ['Weekly Grocery', 'Office Supplies', 'Party Prep'];
+type ListPageHeaderProps = {
+  itemCountLabel: string;
+  listName: string;
+};
 
-export function ListPageHeader() {
+const TABS = ['Temporary List', 'Weekly Grocery', 'Office Supplies'];
+
+export function ListPageHeader({
+  itemCountLabel,
+  listName,
+}: Readonly<ListPageHeaderProps>) {
   return (
     <div className="flex justify-between items-end">
       <div>
         <h2 className="font-headline-lg text-headline-lg text-on-surface tracking-tight">
-          Weekly Grocery
+          {listName}
         </h2>
         <p className="font-body-md text-body-md text-on-surface-variant mt-1">
-          {"Trader Joe's • 12 Items"}
+          {itemCountLabel}
         </p>
       </div>
-      <button className="flex items-center gap-2 bg-secondary-container/40 text-on-secondary-container hover:bg-secondary-container/60 transition-colors px-4 py-2 rounded-full font-label-md text-label-md">
+      <button
+        aria-label="Share the list with others"
+        className="flex items-center gap-2 bg-secondary-container/40 text-on-secondary-container hover:bg-secondary-container/60 transition-colors px-4 py-2 rounded-full font-label-md text-label-md"
+        type="button"
+      >
         <span
           className="material-symbols-outlined text-[18px]"
           style={{ fontVariationSettings: "'FILL' 0" }}
         >
           share
         </span>
+        {''}
         Share
       </button>
     </div>
@@ -40,18 +53,27 @@ function ListTab({ active = false, label }: Readonly<ListTabProps>) {
   );
 }
 
-export default function ListTabs() {
+export default function ListTabs({
+  isCreating,
+  onCreateList,
+}: Readonly<{ isCreating: boolean; onCreateList: () => void }>) {
   return (
     <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
       {TABS.map((tab, i) => (
         <ListTab key={tab} active={i === 0} label={tab} />
       ))}
-      <button className="whitespace-nowrap w-10 h-10 flex items-center justify-center rounded-full bg-surface-container text-on-surface-variant border border-dashed border-outline hover:bg-surface-container-high transition-colors">
+      <button
+        aria-label="Placeholder for creating another shopping list"
+        className="whitespace-nowrap w-10 h-10 flex items-center justify-center rounded-full bg-surface-container text-on-surface-variant border border-dashed border-outline hover:bg-surface-container-high transition-colors"
+        disabled={isCreating}
+        onClick={onCreateList}
+        type="button"
+      >
         <span
           className="material-symbols-outlined"
           style={{ fontVariationSettings: "'FILL' 0" }}
         >
-          add
+          {isCreating ? 'hourglass_top' : 'add'}
         </span>
       </button>
     </div>
