@@ -50,17 +50,15 @@ internal partial class PostgreSqlShoppingRepository(
     Guid userUid, string? shoppingListName, CancellationToken cancellationToken
   ) {
     try {
-#pragma warning disable CA1862, CA1304, CA1311
       return await context.ShoppingListOwnerships
         .AnyAsync(
           o => o.UserUid == userUid && (
             o.ShoppingList.Name == null && shoppingListName == null ||
             o.ShoppingList.Name != null &&
             shoppingListName != null &&
-            o.ShoppingList.Name.ToUpper() == shoppingListName.ToUpper()
+            EF.Functions.ILike(o.ShoppingList.Name, shoppingListName)
           ),
           cancellationToken);
-#pragma warning restore CA1862, CA1304, CA1311
     } catch (Exception ex) when (
         ex is NpgsqlException or OperationCanceledException ||
         ex.InnerException is NpgsqlException
@@ -88,17 +86,15 @@ internal partial class PostgreSqlShoppingRepository(
   public void AddItemsToList(
     Guid userUid, string? listName, IReadOnlyCollection<ShoppingItem> items
   ) {
-#pragma warning disable CA1862, CA1304, CA1311
     ShoppingListDbEntity list = context.ShoppingListOwnerships
       .Where(o => o.UserUid == userUid && (
         o.ShoppingList.Name == null && listName == null ||
         o.ShoppingList.Name != null &&
         listName != null &&
-        o.ShoppingList.Name.ToUpper() == listName.ToUpper()
+        EF.Functions.ILike(o.ShoppingList.Name, listName)
       ))
       .Select(o => o.ShoppingList)
       .First();
-#pragma warning restore CA1862, CA1304, CA1311
 
     context.ShoppingItems.AddRange(items.Select(i => new ShoppingItemDbEntity {
       ShoppingListId = list.Id,
@@ -116,7 +112,6 @@ internal partial class PostgreSqlShoppingRepository(
     CancellationToken cancellationToken
   ) {
     try {
-#pragma warning disable CA1862, CA1304, CA1311
       return await context.ShoppingItems
         .AnyAsync(
           i => i.DeletedAt == null &&
@@ -124,11 +119,10 @@ internal partial class PostgreSqlShoppingRepository(
               i.ShoppingList.Name == null && listName == null ||
               i.ShoppingList.Name != null &&
               listName != null &&
-              i.ShoppingList.Name.ToUpper() == listName.ToUpper()
+              EF.Functions.ILike(i.ShoppingList.Name, listName)
             ) &&
-            i.Name.ToUpper() == itemName.ToUpper(),
+            EF.Functions.ILike(i.Name, itemName),
           cancellationToken);
-#pragma warning restore CA1862, CA1304, CA1311
     } catch (Exception ex) when (
         ex is NpgsqlException or OperationCanceledException ||
         ex.InnerException is NpgsqlException
@@ -151,19 +145,17 @@ internal partial class PostgreSqlShoppingRepository(
     CancellationToken cancellationToken
   ) {
     try {
-#pragma warning disable CA1862, CA1304, CA1311
       return await context.ShoppingItems
         .Where(i => i.DeletedAt == null &&
           i.ShoppingList.Ownerships.Any(o => o.UserUid == userUid) && (
             i.ShoppingList.Name == null && listName == null ||
             i.ShoppingList.Name != null &&
             listName != null &&
-            i.ShoppingList.Name.ToUpper() == listName.ToUpper()
+            EF.Functions.ILike(i.ShoppingList.Name, listName)
           ) &&
-          i.Name.ToUpper() == itemName.ToUpper())
+          EF.Functions.ILike(i.Name, itemName))
         .Select(i => new ShoppingItem(i.Name, i.Quantity, new Price(i.Price), i.IsChecked))
         .FirstOrDefaultAsync(cancellationToken);
-#pragma warning restore CA1862, CA1304, CA1311
     } catch (Exception ex) when (
         ex is NpgsqlException or OperationCanceledException ||
         ex.InnerException is NpgsqlException
@@ -182,18 +174,16 @@ internal partial class PostgreSqlShoppingRepository(
   public void UpdateItem(
     Guid userUid, string? listName, string originalItemName, ShoppingItem update
   ) {
-#pragma warning disable CA1862, CA1304, CA1311
     ShoppingItemDbEntity item = context.ShoppingItems
       .Where(i => i.DeletedAt == null &&
         i.ShoppingList.Ownerships.Any(o => o.UserUid == userUid) && (
           i.ShoppingList.Name == null && listName == null ||
           i.ShoppingList.Name != null &&
           listName != null &&
-          i.ShoppingList.Name.ToUpper() == listName.ToUpper()
+          EF.Functions.ILike(i.ShoppingList.Name, listName)
         ) &&
-        i.Name.ToUpper() == originalItemName.ToUpper())
+        EF.Functions.ILike(i.Name, originalItemName))
       .First();
-#pragma warning restore CA1862, CA1304, CA1311
 
     item.Name = update.Name;
     item.Quantity = update.Quantity;
@@ -202,18 +192,16 @@ internal partial class PostgreSqlShoppingRepository(
   }
 
   public void RemoveItem(Guid userUid, string? listName, string itemName) {
-#pragma warning disable CA1862, CA1304, CA1311
     ShoppingItemDbEntity item = context.ShoppingItems
       .Where(i => i.DeletedAt == null &&
         i.ShoppingList.Ownerships.Any(o => o.UserUid == userUid) && (
           i.ShoppingList.Name == null && listName == null ||
           i.ShoppingList.Name != null &&
           listName != null &&
-          i.ShoppingList.Name.ToUpper() == listName.ToUpper()
+          EF.Functions.ILike(i.ShoppingList.Name, listName)
         ) &&
-        i.Name.ToUpper() == itemName.ToUpper())
+        EF.Functions.ILike(i.Name, itemName))
       .First();
-#pragma warning restore CA1862, CA1304, CA1311
 
     item.DeletedAt = clock.GetCurrentTime();
   }

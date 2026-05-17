@@ -195,7 +195,7 @@ internal partial class PostgreSqlMarketRepository(
     context.ChangeTracker.Clear();
 
     int superMarketId = await context.SuperMarkets
-      .Where(s => s.Name == market.Name)
+      .Where(s => EF.Functions.ILike(s.Name, market.Name))
       .Select(s => s.Id)
       .SingleAsync(cancellationToken);
 

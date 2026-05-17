@@ -3,7 +3,6 @@ namespace Metaspesa.Database.Entities;
 internal class ProductDbEntity {
   public int Id { get; set; }
   public string Name { get; set; } = null!;
-  public string? Image { get; set; }
   public int SuperMarketId { get; set; }
   public int BrandId { get; set; }
 

@@ -15,10 +15,8 @@ internal partial class PostgreSqlUserRepository(
     string username, CancellationToken cancellationToken = default
   ) {
     try {
-#pragma warning disable CA1304, CA1862, CA1311
       return await context.Users.AnyAsync(
-        u => u.Username.ToUpper() == username.ToUpper(), cancellationToken);
-#pragma warning restore CA1304, CA1862, CA1311
+        u => EF.Functions.ILike(u.Username, username), cancellationToken);
     } catch (Exception ex) when (
       ex is NpgsqlException or OperationCanceledException ||
       ex.InnerException is NpgsqlException
@@ -46,12 +44,10 @@ internal partial class PostgreSqlUserRepository(
     string username, CancellationToken cancellationToken = default
   ) {
     try {
-#pragma warning disable CA1304, CA1862, CA1311
       UserDbEntity? entity = await context.Users
         .Include(u => u.Role)
         .FirstOrDefaultAsync(
-          u => u.Username.ToUpper() == username.ToUpper(), cancellationToken);
-#pragma warning restore CA1304, CA1862, CA1311
+          u => EF.Functions.ILike(u.Username, username), cancellationToken);
 
       if (entity is null) {
         return null;

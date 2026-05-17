@@ -19,10 +19,6 @@ internal class ProductConfiguration : IEntityTypeConfiguration<ProductDbEntity> 
       .HasColumnName("name")
       .IsRequired();
 
-    builder.Property(e => e.Image)
-      .HasColumnName("image")
-      .IsRequired(false);
-
     builder.Property(e => e.SuperMarketId)
       .HasColumnName("super_market_id")
       .IsRequired();
