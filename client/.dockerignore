@@ -43,3 +43,7 @@ src/infrastructure/protos_generated/
 
 # tests
 test/
+
+# linter
+.prettierignore
+.prettierrc
