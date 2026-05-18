@@ -1,12 +1,19 @@
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace Metaspesa.Domain.Shopping;
 
-public partial record Product(string Name, string? Quantity, Price Price) {
-  public string NormalizedName => MoreThanOneSpaceRegex()
-    .Replace(Name.Trim(), " ")
-    .ToUpperInvariant()
-    .Replace(' ', '-');
+public partial record Product(string Name, Quantity? Quantity, Price Price) {
+  public string NormalizedName => NormalizeName(Name);
+
+  private static string NormalizeName(string name) {
+    Debug.Assert(name is not null);
+
+    return MoreThanOneSpaceRegex()
+      .Replace(name.Trim(), " ")
+      .ToUpperInvariant()
+      .Replace(' ', '-');
+  }
 
   [GeneratedRegex(@"\s{1,}")]
   private static partial Regex MoreThanOneSpaceRegex();

@@ -51,7 +51,7 @@ public static class UpdateItem {
           ? command.NewName
           : currentItem.Name,
         Quantity: !string.IsNullOrWhiteSpace(command.Quantity)
-          ? command.Quantity
+          ? new Quantity(command.Quantity)
           : currentItem.Quantity,
         Price: command.Price.HasValue
           ? new Price(command.Price.Value)
@@ -100,7 +100,7 @@ public static class UpdateItem {
         .WithErrorCode("ShoppingList.Items.Price.Negative");
 
       RuleFor(x => x.Quantity)
-        .MaximumLength(50)
+        .MaximumLength(Quantity.MaximumLength)
         .When(x => x.Quantity != null)
         .WithMessage(DescribeTooLongQuantity)
         .WithErrorCode("ShoppingList.Items.Quantity.TooLong");
@@ -128,7 +128,7 @@ public static class UpdateItem {
         ? "Item quantity"
         : $"Item '{command.OriginalItemName}' quantity";
 
-      return $"{prefix} length {command.Quantity!.Length} must not exceed 50 characters.";
+      return $"{prefix} length {command.Quantity!.Length} must not exceed {Quantity.MaximumLength} characters.";
     }
   }
 }

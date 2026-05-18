@@ -103,7 +103,7 @@ public class UpdateItemHandlerTest {
       Arg.Any<Guid>(),
       Arg.Any<string?>(),
       Arg.Any<string>(),
-      Arg.Is<ShoppingItem>(x => x.Quantity == command.Quantity));
+      Arg.Is<ShoppingItem>(x => x.Quantity != null && x.Quantity.Value == command.Quantity));
   }
 
   [Theory(DisplayName = "Updates item's price when new price is provided")]

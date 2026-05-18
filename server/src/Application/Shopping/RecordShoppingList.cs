@@ -27,7 +27,7 @@ public static class RecordShoppingList {
         ShoppingListName,
         ShoppingListItems.Select(item => new ShoppingItem(
           item.Name!,
-          item.Quantity,
+          Quantity.FromNullable(item.Quantity),
           new Price(item.Price),
           item.IsChecked
         )).ToList()
@@ -108,7 +108,7 @@ public static class RecordShoppingList {
             .WithErrorCode("ShoppingList.Items.Price.Negative");
 
           item.RuleFor(x => x.Quantity)
-            .MaximumLength(50)
+            .MaximumLength(Quantity.MaximumLength)
             .WithMessage(DescribeTooLongQuantity)
             .WithErrorCode("ShoppingList.Items.Quantity.TooLong");
         });
@@ -131,7 +131,7 @@ public static class RecordShoppingList {
         ? "Item quantity"
         : $"Item '{item.Name}' quantity";
 
-      return $"{prefix} length {item.Quantity!.Length} must not exceed 50 characters.";
+      return $"{prefix} length {item.Quantity!.Length} must not exceed {Quantity.MaximumLength} characters.";
     }
   }
 }

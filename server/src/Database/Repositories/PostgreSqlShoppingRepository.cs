@@ -57,7 +57,7 @@ internal partial class PostgreSqlShoppingRepository(
             .Where(i => i.DeletedAt == null)
             .Select(i => new ShoppingItem(
               Name: i.Name,
-              Quantity: i.Quantity,
+              Quantity: Quantity.FromNullable(i.Quantity),
               Price: new Price(i.Price),
               IsChecked: i.IsChecked
             )).ToList()
@@ -130,7 +130,7 @@ internal partial class PostgreSqlShoppingRepository(
     context.ShoppingItems.AddRange(items.Select(i => new ShoppingItemDbEntity {
       ShoppingListId = list.Id,
       Name = i.Name,
-      Quantity = i.Quantity,
+      Quantity = i.Quantity?.Value,
       Price = i.Price.Value,
       IsChecked = i.IsChecked,
     }));
@@ -185,7 +185,11 @@ internal partial class PostgreSqlShoppingRepository(
             EF.Functions.ILike(i.ShoppingList.Name, listName)
           ) &&
           EF.Functions.ILike(i.Name, itemName))
-        .Select(i => new ShoppingItem(i.Name, i.Quantity, new Price(i.Price), i.IsChecked))
+        .Select(i => new ShoppingItem(
+          i.Name,
+          Quantity.FromNullable(i.Quantity),
+          new Price(i.Price),
+          i.IsChecked))
         .FirstOrDefaultAsync(cancellationToken);
     } catch (Exception ex) when (
         ex is NpgsqlException or OperationCanceledException ||
@@ -217,7 +221,7 @@ internal partial class PostgreSqlShoppingRepository(
       .First();
 
     item.Name = update.Name;
-    item.Quantity = update.Quantity;
+    item.Quantity = update.Quantity?.Value;
     item.Price = update.Price.Value;
     item.IsChecked = update.IsChecked;
   }
@@ -248,7 +252,7 @@ internal partial class PostgreSqlShoppingRepository(
         UserUid = userUid,
         RegisteredItemId = 0, // Temporary
         PricePaid = ci.Price.Value,
-        Quantity = ci.Quantity,
+        Quantity = ci.Quantity?.Value,
         PurchasedAt = now,
       }));
 

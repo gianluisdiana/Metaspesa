@@ -24,7 +24,7 @@ public static class AddItemsToList {
     internal IReadOnlyCollection<ShoppingItem> ToShoppingItems() =>
       Items.Select(i => new ShoppingItem(
         i.Name!,
-        i.Quantity,
+        Quantity.FromNullable(i.Quantity),
         new Price(i.Price),
         i.IsChecked
       )).ToList();
@@ -84,7 +84,7 @@ public static class AddItemsToList {
             .WithErrorCode("ShoppingList.Items.Price.Negative");
 
           item.RuleFor(x => x.Quantity)
-            .MaximumLength(50)
+            .MaximumLength(Quantity.MaximumLength)
             .WithMessage(DescribeTooLongQuantity)
             .WithErrorCode("ShoppingList.Items.Quantity.TooLong");
         })
@@ -104,7 +104,7 @@ public static class AddItemsToList {
         ? "Item quantity"
         : $"Item '{item.Name}' quantity";
 
-      return $"{prefix} length {item.Quantity!.Length} must not exceed 50 characters.";
+      return $"{prefix} length {item.Quantity!.Length} must not exceed {Quantity.MaximumLength} characters.";
     }
   }
 }

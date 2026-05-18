@@ -106,7 +106,7 @@ public static class PostgreSqlProductRepositoryTests {
       // Assert
       Product item = result.Single();
       Assert.Equal("Milk", item.Name);
-      Assert.Equal("2L", item.Quantity);
+      Assert.Equal("2L", item.Quantity?.Value);
       Assert.Equal(3.5f, item.Price.Value, precision: 2);
     }
 
@@ -288,7 +288,7 @@ public static class PostgreSqlProductRepositoryTests {
       // Assert
       List<Product> result = await _repository.GetRegisteredItemsAsync(
         userUid, TestContext.Current.CancellationToken);
-      Assert.Equal("2L", result.Single().Quantity);
+      Assert.Equal("2L", result.Single().Quantity?.Value);
     }
 
     [Fact(

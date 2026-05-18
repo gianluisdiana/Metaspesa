@@ -107,7 +107,7 @@ public static class ShoppingGrpcServiceTests {
 
       // Assert
       for (int i = 0; i < registeredItems.Count; i++) {
-        Assert.Equal(registeredItems[i].Quantity, response.Items[i].Quantity);
+        Assert.Equal(registeredItems[i].Quantity?.Value, response.Items[i].Quantity);
       }
     }
 
@@ -333,7 +333,7 @@ public static class ShoppingGrpcServiceTests {
       // Assert
       for (int i = 0; i < shoppingList.Items.Count; i++) {
         Assert.Equal(
-          shoppingList.Items.ElementAt(i).Quantity,
+          shoppingList.Items.ElementAt(i).Quantity?.Value,
           response.ShoppingList.Items[i].Quantity);
       }
     }

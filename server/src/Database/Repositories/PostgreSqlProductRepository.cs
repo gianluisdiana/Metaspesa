@@ -19,7 +19,7 @@ internal partial class PostgreSqlProductRepository(
         .Where(ri => ri.UserUid == userUid)
         .Select(ri => new Product(
           Name: ri.Name,
-          Quantity: ri.Quantity,
+          Quantity: Quantity.FromNullable(ri.Quantity),
           Price: new Price(ri.LastKnownPrice)
         ))
         .ToListAsync(cancellationToken);
@@ -45,7 +45,7 @@ internal partial class PostgreSqlProductRepository(
         .Select(i => new RegisteredItemDbEntity {
           UserUid = userUid,
           Name = i.Name,
-          Quantity = i.Quantity,
+          Quantity = i.Quantity?.Value,
           LastKnownPrice = i.Price.Value,
         });
 
@@ -85,7 +85,7 @@ internal partial class PostgreSqlProductRepository(
         ShoppingItem shoppingItem = shoppingItems.Single(i =>
           i.Name.Equals(registeredItem.Name, StringComparison.OrdinalIgnoreCase));
 
-        registeredItem.Quantity = shoppingItem.Quantity;
+        registeredItem.Quantity = shoppingItem.Quantity?.Value;
         registeredItem.LastKnownPrice = !shoppingItem.Price.IsZero()
           ? shoppingItem.Price.Value
           : registeredItem.LastKnownPrice;

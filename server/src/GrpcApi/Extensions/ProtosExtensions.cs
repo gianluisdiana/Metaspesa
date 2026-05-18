@@ -39,8 +39,8 @@ internal static class ProtosExtensions {
       Price = item.Price.Value,
       Checked = false,
     };
-    if (!string.IsNullOrWhiteSpace(item.Quantity)) {
-      product.Quantity = item.Quantity;
+    if (!string.IsNullOrWhiteSpace(item.Quantity?.Value)) {
+      product.Quantity = item.Quantity.Value;
     }
     return product;
   }

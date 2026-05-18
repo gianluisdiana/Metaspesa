@@ -711,7 +711,7 @@ public static class PostgreSqlShoppingRepositoryTests {
         userUid, "Weekly", "Milk", TestContext.Current.CancellationToken);
       Assert.NotNull(item);
       Assert.Equal("Milk", item.Name);
-      Assert.Equal("2L", item.Quantity);
+      Assert.Equal("2L", item.Quantity?.Value);
       Assert.Equal(2.5f, item.Price.Value, precision: 2);
     }
   }
@@ -902,7 +902,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       // Assert
       Assert.NotNull(result);
       Assert.Equal("Milk", result.Name);
-      Assert.Equal("2L", result.Quantity);
+      Assert.Equal("2L", result.Quantity?.Value);
     }
 
     [Fact(
@@ -1100,7 +1100,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       ShoppingItem? result = await _repository.GetItemAsync(
         userUid, "Weekly", "Milk", TestContext.Current.CancellationToken);
       Assert.NotNull(result);
-      Assert.Equal("2L", result.Quantity);
+      Assert.Equal("2L", result.Quantity?.Value);
     }
   }
 
