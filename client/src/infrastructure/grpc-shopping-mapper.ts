@@ -17,7 +17,9 @@ export class GrpcShoppingMapper {
     return response?.items?.map(item => this.mapShoppingItem(item)) ?? [];
   }
 
-  public mapShoppingList(proto?: ShoppingList__Output): ShoppingListMessage {
+  public mapShoppingList(
+    proto?: ShoppingList__Output | null,
+  ): ShoppingListMessage {
     return {
       name: proto?.name ?? '',
       products: proto?.items?.map(item => this.mapShoppingItem(item)) ?? [],

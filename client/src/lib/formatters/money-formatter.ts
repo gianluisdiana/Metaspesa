@@ -18,7 +18,12 @@ export class MoneyFormatter {
   }
 
   public sum(prices: ReadonlyArray<number | undefined>): number {
-    return this.round(prices.reduce((total, price) => total + (price ?? 0), 0));
+    let total = 0;
+    prices.forEach(price => {
+      total += price ?? 0;
+    });
+
+    return this.round(total);
   }
 }
 

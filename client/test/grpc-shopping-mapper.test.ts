@@ -12,14 +12,14 @@ describe('GrpcShoppingMapper', () => {
     });
   });
 
-  it('maps shopping items with rounded prices and default checked state', () => {
+  it('maps shopping items with rounded prices', () => {
     expect(
       mapper.mapShoppingList({
         items: [
           {
-            checked: undefined,
+            checked: false,
             name: 'Milk',
-            price: 1.235,
+            price: '1.235',
             quantity: '1 liter',
           },
         ],

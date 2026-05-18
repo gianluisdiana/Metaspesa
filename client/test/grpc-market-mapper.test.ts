@@ -19,7 +19,7 @@ describe('GrpcMarketMapper', () => {
             formats: [
               {
                 imageUrl: '',
-                price: 1.5,
+                price: '1.5',
                 quantity: '1 kg',
               },
             ],

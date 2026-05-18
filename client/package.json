@@ -10,6 +10,7 @@
     "lint": "prettier --check . && eslint",
     "format": "prettier --write . && eslint --fix .",
     "test": "vitest run",
+    "typecheck": "tsc --noEmit",
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
