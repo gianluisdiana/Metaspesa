@@ -27,6 +27,9 @@ class WebDriver(ABC):
     async def execute_script(self, script: str) -> None: ...
 
     @abstractmethod
+    async def wait(self, seconds: float) -> None: ...
+
+    @abstractmethod
     async def wait_and_click(self, selector: Selector, timeout: float = 5) -> None: ...
 
     @abstractmethod

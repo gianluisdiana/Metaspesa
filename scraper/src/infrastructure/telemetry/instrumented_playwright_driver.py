@@ -32,9 +32,16 @@ class InstrumentedPlaywrightDriver(WebDriver):
             return await self.__driver.page_source()
 
     @override
-    async def execute_script(self, script: str) -> object:
+    async def execute_script(self, script: str) -> None:
         with self.__tracer.start_as_current_span("playwright.execute_script"):
-            return await self.__driver.execute_script(script)
+            await self.__driver.execute_script(script)
+
+    @override
+    async def wait(self, seconds: float) -> None:
+        with self.__tracer.start_as_current_span(
+            "playwright.wait", attributes={"seconds": seconds}
+        ):
+            await self.__driver.wait(seconds)
 
     @override
     async def wait_and_click(self, selector: Selector, timeout: float = 5) -> None:

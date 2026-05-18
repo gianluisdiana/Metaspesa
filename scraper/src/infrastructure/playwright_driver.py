@@ -42,6 +42,10 @@ class PlaywrightDriver(WebDriver):
         await self.__page.evaluate(script)
 
     @override
+    async def wait(self, seconds: float) -> None:
+        await self.__page.wait_for_timeout(int(seconds * 1_000))
+
+    @override
     async def wait_and_click(self, selector: Selector, timeout: float = 5) -> None:
         target = self.__get_selector_target(selector)
         await self.__page.wait_for_selector(target, timeout=int(timeout * 1_000))

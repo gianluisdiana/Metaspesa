@@ -1,5 +1,6 @@
 import logging
-from typing import override
+from contextlib import suppress
+from typing import ClassVar, override
 
 from bs4 import BeautifulSoup
 
@@ -16,7 +17,7 @@ from infrastructure.web_driver import Selector, WebDriver
 
 
 class AlcampoWebScraper(MarketWebScraper):
-    __selectors = {
+    __selectors: ClassVar[dict[str, Selector]] = {
         "reject_cookies_button": Selector(target="#onetrust-reject-all-handler"),
         "close_offer_popup_button": Selector(
             target="button[data-test='popup-banner-close-button']"
@@ -64,12 +65,10 @@ class AlcampoWebScraper(MarketWebScraper):
         await self.__driver.get(self.__url)
 
         await self.__driver.wait_and_click(self.__selectors["reject_cookies_button"])
-        try:
+        with suppress(*SCRAPER_RECOVERABLE_ERRORS):
             await self.__driver.wait_for_invisibility_css(
                 self.__selectors["reject_cookies_button"].target
             )
-        except SCRAPER_RECOVERABLE_ERRORS:
-            pass
 
         await self.__driver.wait_and_click(
             self.__selectors["close_offer_popup_button"], timeout=10
@@ -205,9 +204,7 @@ class AlcampoWebScraper(MarketWebScraper):
             scroll=lambda: self.__driver.execute_script(
                 "window.scrollBy(0, window.innerHeight);"
             ),
-            recover_after_failed_extraction=lambda: self.__driver.execute_script(
-                "setTimeout(() => {}, 1000);"
-            ),
+            recover_after_failed_extraction=lambda: self.__driver.wait(1),
         )
 
     def __parse_product_tags(self, soup: BeautifulSoup) -> list[ProductTag]:
@@ -218,9 +215,7 @@ class AlcampoWebScraper(MarketWebScraper):
         ]
 
     async def __try_close_popups(self) -> None:
-        try:
+        with suppress(*SCRAPER_RECOVERABLE_ERRORS):
             await self.__driver.wait_and_click(
                 self.__selectors["close_offer_popup_button"], timeout=1
             )
-        except SCRAPER_RECOVERABLE_ERRORS:
-            pass

@@ -7,7 +7,7 @@ from infrastructure.web_driver import WebDriver
 
 
 class MarketWebScraperFactory:
-    def __init__(self, settings: AppConfig, web_driver: WebDriver):
+    def __init__(self, settings: AppConfig, web_driver: WebDriver) -> None:
         self.__settings = settings
         self.__web_driver = web_driver
 

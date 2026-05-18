@@ -7,6 +7,8 @@ from bs4 import Tag
 from domain import Product
 from infrastructure.market_scrapers.resilience import MissingProductAttributeError
 
+MOJIBAKE_EURO_SYMBOL = "\u00e2\u201a\u00ac"
+
 
 class ProductTag(Protocol):
     def is_ready(self) -> bool: ...
@@ -66,7 +68,7 @@ class AlcampoProductTag:
     @property
     def __price(self) -> float:
         price = self.__required_text('span[data-test="fop-price"]', "price")
-        price = re.sub(r"\s+|€|â‚¬", "", price.replace(",", "."))
+        price = re.sub(rf"\s+|€|{MOJIBAKE_EURO_SYMBOL}", "", price.replace(",", "."))
         if price == "":
             raise MissingProductAttributeError("price")
 
@@ -139,7 +141,12 @@ class MercadonaProductTag:
     @property
     def __price(self) -> float:
         price = self.__required_text("p.product-price__unit-price", "price")
-        price = price.replace("€", "").replace("â‚¬", "").replace(",", ".").strip()
+        price = (
+            price.replace("€", "")
+            .replace(MOJIBAKE_EURO_SYMBOL, "")
+            .replace(",", ".")
+            .strip()
+        )
         if price == "":
             raise MissingProductAttributeError("price")
 

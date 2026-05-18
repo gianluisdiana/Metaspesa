@@ -1,5 +1,5 @@
 import logging
-from typing import override
+from typing import ClassVar, override
 
 from bs4 import BeautifulSoup, Tag
 
@@ -12,7 +12,7 @@ from infrastructure.web_driver import Selector, WebDriver
 
 
 class MercadonaWebScraper(MarketWebScraper):
-    __selectors: dict[str, Selector] = {
+    __selectors: ClassVar[dict[str, Selector]] = {
         "close_cookies_button": Selector(target="button.ui-button:nth-child(3)"),
         "postal_code_input": Selector(
             target='input[data-testid="postal-code-checker-input"]'
@@ -129,7 +129,7 @@ class MercadonaWebScraper(MarketWebScraper):
             lambda: self.__scrape_subcategory(subcategory),
             description=f"Mercadona subcategory '{subcategory.name}'",
             logger=self.__logger,
-            recover=lambda: self.__driver.execute_script("setTimeout(() => {}, 1000);"),
+            recover=lambda: self.__driver.wait(1),
         )
         return products or []
 
@@ -157,9 +157,7 @@ class MercadonaWebScraper(MarketWebScraper):
             scroll=lambda: self.__driver.execute_script(
                 "window.scrollBy(0, window.innerHeight);"
             ),
-            recover_after_failed_extraction=lambda: self.__driver.execute_script(
-                "setTimeout(() => {}, 1000);"
-            ),
+            recover_after_failed_extraction=lambda: self.__driver.wait(1),
         )
 
     def __parse_product_tags(self, soup: BeautifulSoup) -> list[ProductTag]:
