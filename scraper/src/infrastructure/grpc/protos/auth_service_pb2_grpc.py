@@ -30,11 +30,11 @@ class AuthServiceStub(object):
     """Handles the authentication related operations.
     """
 
-    def __init__(self, channel: grpc.aio.Channel):
+    def __init__(self, channel):
         """Constructor.
 
         Args:
-            channel: A grpc.aio.Channel.
+            channel: A grpc.Channel.
         """
         self.Register = channel.unary_unary(
                 '/Metaspesa.Protos.Auth.AuthService/Register',
