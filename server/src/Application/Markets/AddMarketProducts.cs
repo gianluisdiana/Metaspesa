@@ -7,6 +7,7 @@ using Metaspesa.Application.Extensions;
 using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.Shopping;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Metaspesa.Application.Markets;
 
@@ -45,12 +46,19 @@ public static class AddMarketProducts {
   internal class Handler(
     IValidator<Command> validator,
     IMarketRepository marketRepository,
-    IServiceScopeFactory scopeFactory
-  ) : CancellableCommandHandler<Command>(scopeFactory) {
+    IServiceScopeFactory scopeFactory,
+    ILogger<Handler> logger
+  ) : CancellableCommandHandler<Command>(scopeFactory, logger) {
     private List<Market> _addedMarkets = [];
     private List<ProductBrand> _addedBrands = [];
     private readonly List<int> _addedProductIds = [];
     private readonly List<string> _completedMarketNames = [];
+
+    protected override bool HasRollbackWork =>
+      _completedMarketNames.Count > 0 ||
+      _addedProductIds.Count > 0 ||
+      _addedBrands.Count > 0 ||
+      _addedMarkets.Count > 0;
 
     protected override async Task<Result> ExecuteAsync(
       Command command, CancellationToken cancellationToken
