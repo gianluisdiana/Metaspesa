@@ -33,5 +33,5 @@ class AppConfig(BaseModel):
 
 def load_config(config_path: str | Path = "config.yaml") -> AppConfig:
     with open(config_path, encoding="utf-8") as file:
-        raw_data = yaml.safe_load(file)
+        raw_data = yaml.safe_load(file) or {}
     return AppConfig(**raw_data)
