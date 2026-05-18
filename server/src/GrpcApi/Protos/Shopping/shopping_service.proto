@@ -62,7 +62,7 @@ message UpdateItemRequest {
   string original_item_name = 2;
   optional string item_name = 3;
   optional string item_quantity = 4;
-  optional float item_price = 5;
+  optional string item_price = 5;
   optional bool checked = 6;
 }
 

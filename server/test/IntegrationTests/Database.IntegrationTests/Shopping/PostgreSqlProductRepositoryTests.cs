@@ -68,8 +68,8 @@ public static class PostgreSqlProductRepositoryTests {
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.RegisterItems(userUid, [
-        new ShoppingItem("Milk", "1L", new Price(1.5f), false),
-        new ShoppingItem("Bread", null, new Price(2.0f), false),
+        new ShoppingItem("Milk", "1L", new Price(1.5m), false),
+        new ShoppingItem("Bread", null, new Price(2.0m), false),
       ]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -95,7 +95,7 @@ public static class PostgreSqlProductRepositoryTests {
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.RegisterItems(
-        userUid, [new ShoppingItem("Milk", "2L", new Price(3.5f), false)]);
+        userUid, [new ShoppingItem("Milk", "2L", new Price(3.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
@@ -106,7 +106,7 @@ public static class PostgreSqlProductRepositoryTests {
       Product item = result.Single();
       Assert.Equal("Milk", item.Name);
       Assert.Equal("2L", item.Quantity?.Value);
-      Assert.Equal(3.5f, item.Price.Value, precision: 2);
+      Assert.Equal(3.5m, item.Price.Value);
     }
 
     [Fact(
@@ -126,7 +126,7 @@ public static class PostgreSqlProductRepositoryTests {
       );
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.RegisterItems(
-        otherUid, [new ShoppingItem("Milk", null, new Price(1.5f), false)]);
+        otherUid, [new ShoppingItem("Milk", null, new Price(1.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
@@ -175,7 +175,7 @@ public static class PostgreSqlProductRepositoryTests {
 
       // Act
       _repository.RegisterItems(
-        userUid, [new ShoppingItem("Milk", null, new Price(1.5f), false)]);
+        userUid, [new ShoppingItem("Milk", null, new Price(1.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
@@ -200,7 +200,7 @@ public static class PostgreSqlProductRepositoryTests {
 
       // Act
       _repository.RegisterItems(
-        userUid, [new ShoppingItem("Coffee", null, new Price(7.5f), false)]);
+        userUid, [new ShoppingItem("Coffee", null, new Price(7.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
@@ -209,7 +209,7 @@ public static class PostgreSqlProductRepositoryTests {
         .FirstAsync(
           ri => ri.UserUid == userUid && ri.Name == "Coffee",
           TestContext.Current.CancellationToken);
-      Assert.Equal(7.5f, dbEntity.LastKnownPrice, precision: 2);
+      Assert.Equal(7.5m, dbEntity.LastKnownPrice);
     }
 
     [Fact(
@@ -228,9 +228,9 @@ public static class PostgreSqlProductRepositoryTests {
 
       // Act
       _repository.RegisterItems(userUid, [
-        new ShoppingItem("ItemA", null, new Price(1.0f), false),
-        new ShoppingItem("ItemB", null, new Price(2.0f), false),
-        new ShoppingItem("ItemC", null, new Price(3.0f), false),
+        new ShoppingItem("ItemA", null, new Price(1.0m), false),
+        new ShoppingItem("ItemB", null, new Price(2.0m), false),
+        new ShoppingItem("ItemC", null, new Price(3.0m), false),
       ]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -276,12 +276,12 @@ public static class PostgreSqlProductRepositoryTests {
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.RegisterItems(
-        userUid, [new ShoppingItem("Milk", "1L", new Price(1.5f), false)]);
+        userUid, [new ShoppingItem("Milk", "1L", new Price(1.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
       _repository.UpdateRegisteredItems(
-        userUid, [new ShoppingItem("Milk", "2L", new Price(1.5f), false)]);
+        userUid, [new ShoppingItem("Milk", "2L", new Price(1.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
@@ -304,18 +304,18 @@ public static class PostgreSqlProductRepositoryTests {
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.RegisterItems(
-        userUid, [new ShoppingItem("Milk", null, new Price(1.5f), false)]);
+        userUid, [new ShoppingItem("Milk", null, new Price(1.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
       _repository.UpdateRegisteredItems(
-        userUid, [new ShoppingItem("Milk", null, new Price(3.0f), false)]);
+        userUid, [new ShoppingItem("Milk", null, new Price(3.0m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
       List<Product> result = await _repository.GetRegisteredItemsAsync(
         userUid, TestContext.Current.CancellationToken);
-      Assert.Equal(3.0f, result.Single().Price.Value, precision: 2);
+      Assert.Equal(3.0m, result.Single().Price.Value, precision: 2);
     }
 
     [Fact(
@@ -332,7 +332,7 @@ public static class PostgreSqlProductRepositoryTests {
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.RegisterItems(
-        userUid, [new ShoppingItem("Milk", null, new Price(1.5f), false)]);
+        userUid, [new ShoppingItem("Milk", null, new Price(1.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
@@ -343,7 +343,7 @@ public static class PostgreSqlProductRepositoryTests {
       // Assert
       List<Product> result = await _repository.GetRegisteredItemsAsync(
         userUid, TestContext.Current.CancellationToken);
-      Assert.Equal(1.5f, result.Single().Price.Value, precision: 2);
+      Assert.Equal(1.5m, result.Single().Price.Value, precision: 2);
     }
 
     [Fact(
@@ -357,18 +357,18 @@ public static class PostgreSqlProductRepositoryTests {
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.RegisterItems(
-        userUid, [new ShoppingItem("milk", null, new Price(1.0f), false)]);
+        userUid, [new ShoppingItem("milk", null, new Price(1.0m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
       _repository.UpdateRegisteredItems(
-        userUid, [new ShoppingItem("MILK", null, new Price(2.0f), false)]);
+        userUid, [new ShoppingItem("MILK", null, new Price(2.0m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
       List<Product> result = await _repository.GetRegisteredItemsAsync(
         userUid, TestContext.Current.CancellationToken);
-      Assert.Equal(2.0f, result.Single().Price.Value, precision: 2);
+      Assert.Equal(2.0m, result.Single().Price.Value, precision: 2);
     }
 
     [Fact(
@@ -387,18 +387,18 @@ public static class PostgreSqlProductRepositoryTests {
         });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.RegisterItems(
-        otherUid, [new ShoppingItem("Milk", null, new Price(1.0f), false)]);
+        otherUid, [new ShoppingItem("Milk", null, new Price(1.0m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
       _repository.UpdateRegisteredItems(
-        userUid, [new ShoppingItem("Milk", null, new Price(5.0f), false)]);
+        userUid, [new ShoppingItem("Milk", null, new Price(5.0m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
       List<Product> otherResult = await _repository.GetRegisteredItemsAsync(
         otherUid, TestContext.Current.CancellationToken);
-      Assert.Equal(1.0f, otherResult.Single().Price.Value, precision: 2);
+      Assert.Equal(1.0m, otherResult.Single().Price.Value, precision: 2);
     }
   }
 }

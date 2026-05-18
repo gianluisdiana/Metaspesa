@@ -5,7 +5,7 @@ internal class ShoppingItemDbEntity {
   public int ShoppingListId { get; set; }
   public string Name { get; set; } = null!;
   public string? Quantity { get; set; }
-  public float Price { get; set; }
+  public decimal Price { get; set; }
   public bool IsChecked { get; set; }
   public DateTime? DeletedAt { get; set; }
 

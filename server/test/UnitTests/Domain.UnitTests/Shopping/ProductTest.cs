@@ -131,8 +131,8 @@ public static class ProductTest {
     [Fact(DisplayName = "Returns true when both products have the same price")]
     public void Products_HasSamePrice_WhenSamePrice() {
       // Arrange
-      var product1 = new Product("Apple", "1 kg", new Price(2.5f));
-      var product2 = new Product("Apple", "1 kg", new Price(2.5f));
+      var product1 = new Product("Apple", "1 kg", new Price(2.5m));
+      var product2 = new Product("Apple", "1 kg", new Price(2.5m));
 
       // Act
       bool hasSamePrice = product1.HasSamePrice(product2);
@@ -144,8 +144,8 @@ public static class ProductTest {
     [Fact(DisplayName = "Returns false when products have different prices")]
     public void Products_HasSamePrice_ReturnsFalse_WhenDifferentPrices() {
       // Arrange
-      var product1 = new Product("Apple", "1 kg", new Price(2.5f));
-      var product2 = new Product("Apple", "1 kg", new Price(5.0f));
+      var product1 = new Product("Apple", "1 kg", new Price(2.5m));
+      var product2 = new Product("Apple", "1 kg", new Price(5.0m));
 
       // Act
       bool hasSamePrice = product1.HasSamePrice(product2);
@@ -157,7 +157,7 @@ public static class ProductTest {
     [Fact(DisplayName = "Returns false when the other product is null")]
     public void Products_HasSamePrice_ReturnsFalse_WhenOtherIsNull() {
       // Arrange
-      var product = new Product("Apple", "1 kg", new Price(2.5f));
+      var product = new Product("Apple", "1 kg", new Price(2.5m));
 
       // Act
       bool hasSamePrice = product.HasSamePrice(null);
@@ -169,8 +169,8 @@ public static class ProductTest {
     [Fact(DisplayName = "Returns true when both prices are within epsilon")]
     public void Products_HasSamePrice_ReturnsTrue_WhenPricesWithinEpsilon() {
       // Arrange
-      var product1 = new Product("Apple", "1 kg", new Price(2.0f));
-      var product2 = new Product("Apple", "1 kg", new Price(2.005f));
+      var product1 = new Product("Apple", "1 kg", new Price(2.0m));
+      var product2 = new Product("Apple", "1 kg", new Price(2.005m));
 
       // Act
       bool hasSamePrice = product1.HasSamePrice(product2);

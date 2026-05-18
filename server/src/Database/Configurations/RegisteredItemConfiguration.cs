@@ -25,6 +25,7 @@ internal class RegisteredItemConfiguration : IEntityTypeConfiguration<Registered
 
     builder.Property(e => e.LastKnownPrice)
       .HasColumnName("last_known_price")
+      .HasPrecision(18, 2)
       .IsRequired();
 
     builder.Property(e => e.Quantity)

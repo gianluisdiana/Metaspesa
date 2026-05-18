@@ -36,6 +36,7 @@ internal class PurchaseConfiguration : IEntityTypeConfiguration<PurchaseDbEntity
 
     builder.Property(e => e.PricePaid)
       .HasColumnName("price_paid")
+      .HasPrecision(18, 2)
       .IsRequired();
 
     builder.Property(e => e.Quantity)

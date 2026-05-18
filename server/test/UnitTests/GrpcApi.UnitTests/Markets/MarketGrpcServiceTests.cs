@@ -37,7 +37,7 @@ public static class MarketGrpcServiceTests {
       var request = new AddProductsRequest {
         Products = {
           new Product {
-            Name = "Milk", Price = 1.99f, Quantity = "1L",
+            Name = "Milk", Price = "1.99", Quantity = "1L",
             MarketName = "Walmart", BrandName = "Nike"
           }
         },
@@ -61,7 +61,7 @@ public static class MarketGrpcServiceTests {
       var request = new AddProductsRequest {
         Products = {
           new Product {
-            Name = "Milk", Price = 1.99f, Quantity = "1L",
+            Name = "Milk", Price = "1.99", Quantity = "1L",
             MarketName = "Walmart", BrandName = "Nike"
           }
         },
@@ -84,8 +84,8 @@ public static class MarketGrpcServiceTests {
 
       var request = new AddProductsRequest {
         Products = {
-          new Product { Name = "Milk", Price = 1.99f, MarketName = "Walmart", BrandName = "Nike" },
-          new Product { Name = "Bread", Price = 0.99f, MarketName = "Carrefour", BrandName = "Adidas" },
+          new Product { Name = "Milk", Price = "1.99", MarketName = "Walmart", BrandName = "Nike" },
+          new Product { Name = "Bread", Price = "0.99", MarketName = "Carrefour", BrandName = "Adidas" },
         },
         RegisteredAt = Timestamp.FromDateTime(DateTime.UtcNow),
       };
@@ -110,7 +110,7 @@ public static class MarketGrpcServiceTests {
         Products = {
           new Product {
             Name = "Caf\u00e9 \u2615",
-            Price = 1.99f,
+            Price = "1.99",
             Quantity = "500 g \u2713",
             MarketName = "Mercad\u00f3na",
             BrandName = "Ni\u00f1o",
@@ -142,7 +142,7 @@ public static class MarketGrpcServiceTests {
       var expectedTime = new DateTime(2024, 6, 15, 12, 0, 0, DateTimeKind.Utc);
       var request = new AddProductsRequest {
         Products = {
-          new Product { Name = "Milk", Price = 1.99f, MarketName = "Walmart", BrandName = "Nike" }
+          new Product { Name = "Milk", Price = "1.99", MarketName = "Walmart", BrandName = "Nike" }
         },
         RegisteredAt = Timestamp.FromDateTime(expectedTime),
       };
@@ -193,8 +193,8 @@ public static class MarketGrpcServiceTests {
       _useCaseHandler
         .Handle(Arg.Any<GetMarketProducts.Query>(), TestContext.Current.CancellationToken)
         .Returns(new PagedResult<DomainMarket>([
-          new DomainMarket("Mercadona", [new DomainMarketProduct("Leche", new ProductBrand("H"), [new ProductFormat("1L", new DomainPrice(0.89f), null)])]),
-          new DomainMarket("Alcampo", [new DomainMarketProduct("Pan", new ProductBrand("B"), [new ProductFormat("500g", new DomainPrice(1.20f), null)])]),
+          new DomainMarket("Mercadona", [new DomainMarketProduct("Leche", new ProductBrand("H"), [new ProductFormat("1L", new DomainPrice(0.89m), null)])]),
+          new DomainMarket("Alcampo", [new DomainMarketProduct("Pan", new ProductBrand("B"), [new ProductFormat("500g", new DomainPrice(1.20m), null)])]),
         ], 2));
 
       // Act

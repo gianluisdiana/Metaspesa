@@ -13,7 +13,7 @@ public static class RecordShoppingList {
   public record CommandItem(
     string? Name,
     string? Quantity,
-    float Price,
+    decimal Price,
     bool IsChecked
   );
   public record Command(

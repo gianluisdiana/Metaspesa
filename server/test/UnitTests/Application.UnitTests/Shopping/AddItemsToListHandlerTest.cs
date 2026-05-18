@@ -56,8 +56,8 @@ public class AddItemsToListHandlerTest {
     var userUid = Guid.NewGuid();
     const string ListName = "Weekly";
     List<CommandItem> items = [
-      new("Milk", "1 litre", 2f, false),
-      new("Bread", null, 1.5f, false),
+      new("Milk", "1 litre", 2m, false),
+      new("Bread", null, 1.5m, false),
     ];
     var command = new Command(userUid, ListName, items);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
@@ -77,7 +77,7 @@ public class AddItemsToListHandlerTest {
   public async Task Handler_MapsItemNames_ToShoppingItems() {
     // Arrange
     var userUid = Guid.NewGuid();
-    List<CommandItem> items = [new("Milk", null, 2f, false)];
+    List<CommandItem> items = [new("Milk", null, 2m, false)];
     var command = new Command(userUid, "Weekly", items);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
@@ -96,7 +96,7 @@ public class AddItemsToListHandlerTest {
   public async Task Handler_MapsItemPrices_ToShoppingItems() {
     // Arrange
     var userUid = Guid.NewGuid();
-    List<CommandItem> items = [new("Milk", null, 3.99f, false)];
+    List<CommandItem> items = [new("Milk", null, 3.99m, false)];
     var command = new Command(userUid, "Weekly", items);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
@@ -108,14 +108,14 @@ public class AddItemsToListHandlerTest {
     _shoppingRepository.Received(1).AddItemsToList(
       userUid,
       "Weekly",
-      Arg.Is<IReadOnlyCollection<ShoppingItem>>(x => x.First().Price == new Price(3.99f)));
+      Arg.Is<IReadOnlyCollection<ShoppingItem>>(x => x.First().Price == new Price(3.99m)));
   }
 
   [Fact(DisplayName = "Maps item IsChecked to shopping items")]
   public async Task Handler_MapsItemIsChecked_ToShoppingItems() {
     // Arrange
     var userUid = Guid.NewGuid();
-    List<CommandItem> items = [new("Milk", null, 1f, true)];
+    List<CommandItem> items = [new("Milk", null, 1m, true)];
     var command = new Command(userUid, "Weekly", items);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
@@ -133,7 +133,7 @@ public class AddItemsToListHandlerTest {
   [Fact(DisplayName = "Saves changes to unit of work")]
   public async Task Handler_SavesChangesToUnitOfWork() {
     // Arrange
-    var command = new Command(Guid.NewGuid(), "Weekly", [new("Milk", null, 2f, false)]);
+    var command = new Command(Guid.NewGuid(), "Weekly", [new("Milk", null, 2m, false)]);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
 
@@ -161,7 +161,7 @@ public class AddItemsToListHandlerTest {
   [Fact(DisplayName = "Returns success result when handling is successful")]
   public async Task Handler_ReturnsSuccessResult_WhenHandlingIsSuccessful() {
     // Arrange
-    var command = new Command(Guid.NewGuid(), "Weekly", [new("Milk", null, 2f, false)]);
+    var command = new Command(Guid.NewGuid(), "Weekly", [new("Milk", null, 2m, false)]);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
 

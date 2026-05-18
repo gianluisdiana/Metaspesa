@@ -49,8 +49,8 @@ public static class ShoppingListTest {
       // Arrange
       var list = new ShoppingList("Groceries", []);
       IReadOnlyCollection<Product> products = [
-        new Product("Milk", null, new Price(2.0f)),
-        new Product("Watermelon", null, new Price(10.0f))
+        new Product("Milk", null, new Price(2.0m)),
+        new Product("Watermelon", null, new Price(10.0m))
       ];
 
       // Act
@@ -64,9 +64,9 @@ public static class ShoppingListTest {
     public void ShoppingList_ReturnsEmptyList_WhenGivenListIsEmpty() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, new Price(1.5f), false),
-        new ShoppingItem("Bread", null, new Price(2.5f), false),
-        new ShoppingItem("Eggs", null, new Price(12.5f), false)
+        new ShoppingItem("Milk", null, new Price(1.5m), false),
+        new ShoppingItem("Bread", null, new Price(2.5m), false),
+        new ShoppingItem("Eggs", null, new Price(12.5m), false)
       ]);
 
       IReadOnlyCollection<Product> products = [];
@@ -82,14 +82,14 @@ public static class ShoppingListTest {
     public void ShoppingList_ReturnsShoppingList_WithCommonItems() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, new Price(1.5f), false),
-        new ShoppingItem("Bread", null, new Price(2.5f), false),
-        new ShoppingItem("Eggs", null, new Price(12.5f), false)
+        new ShoppingItem("Milk", null, new Price(1.5m), false),
+        new ShoppingItem("Bread", null, new Price(2.5m), false),
+        new ShoppingItem("Eggs", null, new Price(12.5m), false)
       ]);
 
       IReadOnlyCollection<Product> products = [
-        new Product("Milk", null, new Price(2.0f)),
-        new Product("Watermelon", null, new Price(10.0f))
+        new Product("Milk", null, new Price(2.0m)),
+        new Product("Watermelon", null, new Price(10.0m))
       ];
 
       // Act
@@ -103,14 +103,14 @@ public static class ShoppingListTest {
     public void ShoppingList_ReturnsShoppingList_WithoutNonIntersectingItems() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, new Price(1.5f), false),
-        new ShoppingItem("Bread", null, new Price(2.5f), false),
-        new ShoppingItem("Eggs", null, new Price(12.5f), false)
+        new ShoppingItem("Milk", null, new Price(1.5m), false),
+        new ShoppingItem("Bread", null, new Price(2.5m), false),
+        new ShoppingItem("Eggs", null, new Price(12.5m), false)
       ]);
 
       IReadOnlyCollection<Product> products = [
-        new Product("Milk", null, new Price(2.0f)),
-        new Product("Watermelon", null, new Price(10.0f))
+        new Product("Milk", null, new Price(2.0m)),
+        new Product("Watermelon", null, new Price(10.0m))
       ];
 
       // Act
@@ -125,14 +125,14 @@ public static class ShoppingListTest {
     public void ShoppingList_ReturnsShoppingList_WithSameNameAsSourceList() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, new Price(1.5f), false),
-        new ShoppingItem("Bread", null, new Price(2.5f), false),
-        new ShoppingItem("Eggs", null, new Price(12.5f), false)
+        new ShoppingItem("Milk", null, new Price(1.5m), false),
+        new ShoppingItem("Bread", null, new Price(2.5m), false),
+        new ShoppingItem("Eggs", null, new Price(12.5m), false)
       ]);
 
       IReadOnlyCollection<Product> products = [
-        new Product("Milk", null, new Price(2.0f)),
-        new Product("Watermelon", null, new Price(10.0f))
+        new Product("Milk", null, new Price(2.0m)),
+        new Product("Watermelon", null, new Price(10.0m))
       ];
 
       // Act
@@ -146,11 +146,11 @@ public static class ShoppingListTest {
     public void ShoppingList_ExcludesItems_WhenPriceMatchesRegisteredProduct() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, new Price(2.0f), false),
+        new ShoppingItem("Milk", null, new Price(2.0m), false),
       ]);
 
       IReadOnlyCollection<Product> products = [
-        new Product("Milk", null, new Price(2.0f)),
+        new Product("Milk", null, new Price(2.0m)),
       ];
 
       // Act
@@ -167,8 +167,8 @@ public static class ShoppingListTest {
       // Arrange
       var list = new ShoppingList("Groceries", []);
       IReadOnlyCollection<Product> products = [
-        new Product("Milk", null, new Price(2.0f)),
-        new Product("Watermelon", null, new Price(10.0f))
+        new Product("Milk", null, new Price(2.0m)),
+        new Product("Watermelon", null, new Price(10.0m))
       ];
 
       // Act
@@ -182,9 +182,9 @@ public static class ShoppingListTest {
     public void ShoppingList_ReturnsSameList_WhenGivenListIsEmpty() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, new Price(1.5f), false),
-        new ShoppingItem("Bread", null, new Price(2.5f), false),
-        new ShoppingItem("Eggs", null, new Price(12.5f), false)
+        new ShoppingItem("Milk", null, new Price(1.5m), false),
+        new ShoppingItem("Bread", null, new Price(2.5m), false),
+        new ShoppingItem("Eggs", null, new Price(12.5m), false)
       ]);
 
       IReadOnlyCollection<Product> products = [];
@@ -202,14 +202,14 @@ public static class ShoppingListTest {
     public void ShoppingList_ReturnsShoppingList_WithoutIntersectingItems() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, new Price(1.5f), false),
-        new ShoppingItem("Bread", null, new Price(2.5f), false),
-        new ShoppingItem("Eggs", null, new Price(12.5f), false)
+        new ShoppingItem("Milk", null, new Price(1.5m), false),
+        new ShoppingItem("Bread", null, new Price(2.5m), false),
+        new ShoppingItem("Eggs", null, new Price(12.5m), false)
       ]);
 
       IReadOnlyCollection<Product> products = [
-        new Product("Milk", null, new Price(2.0f)),
-        new Product("Watermelon", null, new Price(10.0f))
+        new Product("Milk", null, new Price(2.0m)),
+        new Product("Watermelon", null, new Price(10.0m))
       ];
 
       // Act
@@ -223,14 +223,14 @@ public static class ShoppingListTest {
     public void ShoppingList_ReturnsShoppingList_WithSameNameAsSourceList() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, new Price(1.5f), false),
-        new ShoppingItem("Bread", null, new Price(2.5f), false),
-        new ShoppingItem("Eggs", null, new Price(12.5f), false)
+        new ShoppingItem("Milk", null, new Price(1.5m), false),
+        new ShoppingItem("Bread", null, new Price(2.5m), false),
+        new ShoppingItem("Eggs", null, new Price(12.5m), false)
       ]);
 
       IReadOnlyCollection<Product> products = [
-        new Product("Milk", null, new Price(2.0f)),
-        new Product("Watermelon", null, new Price(10.0f))
+        new Product("Milk", null, new Price(2.0m)),
+        new Product("Watermelon", null, new Price(10.0m))
       ];
 
       // Act
@@ -255,8 +255,8 @@ public static class ShoppingListTest {
     public void ShoppingList_DoesNotHaveCheckedItems_WhenAllItemsUnchecked() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, new Price(1.5f), false),
-        new ShoppingItem("Bread", null, new Price(2.5f), false),
+        new ShoppingItem("Milk", null, new Price(1.5m), false),
+        new ShoppingItem("Bread", null, new Price(2.5m), false),
       ]);
 
       // Act & Assert
@@ -267,8 +267,8 @@ public static class ShoppingListTest {
     public void ShoppingList_HasCheckedItems_WhenAtLeastOneItemChecked() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, new Price(1.5f), true),
-        new ShoppingItem("Bread", null, new Price(2.5f), false),
+        new ShoppingItem("Milk", null, new Price(1.5m), true),
+        new ShoppingItem("Bread", null, new Price(2.5m), false),
       ]);
 
       // Act & Assert
@@ -279,8 +279,8 @@ public static class ShoppingListTest {
     public void ShoppingList_HasCheckedItems_WhenAllItemsChecked() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, new Price(1.5f), true),
-        new ShoppingItem("Bread", null, new Price(2.5f), true),
+        new ShoppingItem("Milk", null, new Price(1.5m), true),
+        new ShoppingItem("Bread", null, new Price(2.5m), true),
       ]);
 
       // Act & Assert
@@ -305,8 +305,8 @@ public static class ShoppingListTest {
     public void ShoppingList_OnlyWithCheckedItems_ReturnsEmpty_WhenNoItemsChecked() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, new Price(1.5f), false),
-        new ShoppingItem("Bread", null, new Price(2.5f), false),
+        new ShoppingItem("Milk", null, new Price(1.5m), false),
+        new ShoppingItem("Bread", null, new Price(2.5m), false),
       ]);
 
       // Act
@@ -319,10 +319,10 @@ public static class ShoppingListTest {
     [Fact(DisplayName = "Returns only checked items")]
     public void ShoppingList_OnlyWithCheckedItems_ReturnsOnlyCheckedItems() {
       // Arrange
-      var checkedItem = new ShoppingItem("Milk", null, new Price(1.5f), true);
+      var checkedItem = new ShoppingItem("Milk", null, new Price(1.5m), true);
       var list = new ShoppingList("Groceries", [
         checkedItem,
-        new ShoppingItem("Bread", null, new Price(2.5f), false),
+        new ShoppingItem("Bread", null, new Price(2.5m), false),
       ]);
 
       // Act
@@ -337,7 +337,7 @@ public static class ShoppingListTest {
     public void ShoppingList_OnlyWithCheckedItems_PreservesName() {
       // Arrange
       var list = new ShoppingList("Groceries", [
-        new ShoppingItem("Milk", null, new Price(1.5f), true),
+        new ShoppingItem("Milk", null, new Price(1.5m), true),
       ]);
 
       // Act

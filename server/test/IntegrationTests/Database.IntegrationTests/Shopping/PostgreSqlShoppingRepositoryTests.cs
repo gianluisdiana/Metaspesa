@@ -374,8 +374,8 @@ public static class PostgreSqlShoppingRepositoryTests {
       _repository.CreateShoppingList(userUid, "Groceries");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.AddItemsToList(userUid, "Groceries", [
-        new ShoppingItem("Milk", null, new Price(1.5f), false),
-        new ShoppingItem("Bread", null, new Price(2.0f), false),
+        new ShoppingItem("Milk", null, new Price(1.5m), false),
+        new ShoppingItem("Bread", null, new Price(2.0m), false),
       ]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.RemoveItem(userUid, "Groceries", "Milk");
@@ -647,8 +647,8 @@ public static class PostgreSqlShoppingRepositoryTests {
 
       // Act
       _repository.AddItemsToList(userUid, "Weekly", [
-        new ShoppingItem("Milk", "1L", new Price(1.5f), false),
-        new ShoppingItem("Eggs", "12", new Price(3.0f), false),
+        new ShoppingItem("Milk", "1L", new Price(1.5m), false),
+        new ShoppingItem("Eggs", "12", new Price(3.0m), false),
       ]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -673,7 +673,7 @@ public static class PostgreSqlShoppingRepositoryTests {
 
       // Act
       _repository.AddItemsToList(
-        userUid, null, [new ShoppingItem("Butter", null, new Price(2.0f), false)]);
+        userUid, null, [new ShoppingItem("Butter", null, new Price(2.0m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
@@ -697,7 +697,7 @@ public static class PostgreSqlShoppingRepositoryTests {
 
       // Act
       _repository.AddItemsToList(
-        userUid, "Weekly", [new ShoppingItem("Milk", "2L", new Price(2.5f), false)]);
+        userUid, "Weekly", [new ShoppingItem("Milk", "2L", new Price(2.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
@@ -706,7 +706,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       Assert.NotNull(item);
       Assert.Equal("Milk", item.Name);
       Assert.Equal("2L", item.Quantity?.Value);
-      Assert.Equal(2.5f, item.Price.Value, precision: 2);
+      Assert.Equal(2.5m, item.Price.Value);
     }
   }
 
@@ -766,7 +766,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.AddItemsToList(
-        userUid, "Weekly", [new ShoppingItem("Milk", null, new Price(1.5f), false)]);
+        userUid, "Weekly", [new ShoppingItem("Milk", null, new Price(1.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
@@ -790,7 +790,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.AddItemsToList(
-        userUid, "Weekly", [new ShoppingItem("milk", null, new Price(1.5f), false)]);
+        userUid, "Weekly", [new ShoppingItem("milk", null, new Price(1.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
@@ -814,7 +814,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.AddItemsToList(
-        userUid, "Weekly", [new ShoppingItem("Milk", null, new Price(1.5f), false)]);
+        userUid, "Weekly", [new ShoppingItem("Milk", null, new Price(1.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.RemoveItem(userUid, "Weekly", "Milk");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -884,7 +884,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.AddItemsToList(
-        userUid, "Weekly", [new ShoppingItem("Milk", "2L", new Price(1.5f), false)]);
+        userUid, "Weekly", [new ShoppingItem("Milk", "2L", new Price(1.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
@@ -910,7 +910,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.AddItemsToList(
-        userUid, "Weekly", [new ShoppingItem("Milk", null, new Price(1.5f), false)]);
+        userUid, "Weekly", [new ShoppingItem("Milk", null, new Price(1.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.RemoveItem(userUid, "Weekly", "Milk");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -936,7 +936,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.AddItemsToList(
-        userUid, "Weekly", [new ShoppingItem("milk", null, new Price(1.5f), false)]);
+        userUid, "Weekly", [new ShoppingItem("milk", null, new Price(1.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
@@ -983,7 +983,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.AddItemsToList(
-        userUid, "Weekly", [new ShoppingItem("Milk", null, new Price(1.5f), false)]);
+        userUid, "Weekly", [new ShoppingItem("Milk", null, new Price(1.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
@@ -991,7 +991,7 @@ public static class PostgreSqlShoppingRepositoryTests {
         userUid,
         "Weekly",
         "Milk",
-        new ShoppingItem("Whole Milk", null, new Price(1.5f), false));
+        new ShoppingItem("Whole Milk", null, new Price(1.5m), false));
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
@@ -1014,7 +1014,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.AddItemsToList(
-        userUid, "Weekly", [new ShoppingItem("Milk", null, new Price(1.5f), false)]);
+        userUid, "Weekly", [new ShoppingItem("Milk", null, new Price(1.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
@@ -1022,14 +1022,14 @@ public static class PostgreSqlShoppingRepositoryTests {
         userUid,
         "Weekly",
         "Milk",
-        new ShoppingItem("Milk", null, new Price(3.5f), false));
+        new ShoppingItem("Milk", null, new Price(3.5m), false));
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
       ShoppingItem? result = await _repository.GetItemAsync(
         userUid, "Weekly", "Milk", TestContext.Current.CancellationToken);
       Assert.NotNull(result);
-      Assert.Equal(3.5f, result.Price.Value, precision: 2);
+      Assert.Equal(3.5m, result.Price.Value);
     }
 
     [Fact(
@@ -1045,7 +1045,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.AddItemsToList(
-        userUid, "Weekly", [new ShoppingItem("Milk", null, new Price(1.5f), false)]);
+        userUid, "Weekly", [new ShoppingItem("Milk", null, new Price(1.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
@@ -1053,7 +1053,7 @@ public static class PostgreSqlShoppingRepositoryTests {
         userUid,
         "Weekly",
         "Milk",
-        new ShoppingItem("Milk", null, new Price(1.5f), true));
+        new ShoppingItem("Milk", null, new Price(1.5m), true));
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
@@ -1076,7 +1076,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.AddItemsToList(
-        userUid, "Weekly", [new ShoppingItem("Milk", "1L", new Price(1.5f), false)]);
+        userUid, "Weekly", [new ShoppingItem("Milk", "1L", new Price(1.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
@@ -1084,7 +1084,7 @@ public static class PostgreSqlShoppingRepositoryTests {
         userUid,
         "Weekly",
         "Milk",
-        new ShoppingItem("Milk", "2L", new Price(1.5f), false));
+        new ShoppingItem("Milk", "2L", new Price(1.5m), false));
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
@@ -1130,7 +1130,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.AddItemsToList(
-        userUid, "Weekly", [new ShoppingItem("Milk", null, new Price(1.5f), false)]);
+        userUid, "Weekly", [new ShoppingItem("Milk", null, new Price(1.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
@@ -1160,7 +1160,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.AddItemsToList(
-        userUid, "Weekly", [new ShoppingItem("Milk", null, new Price(1.5f), false)]);
+        userUid, "Weekly", [new ShoppingItem("Milk", null, new Price(1.5m), false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
@@ -1208,22 +1208,22 @@ public static class PostgreSqlShoppingRepositoryTests {
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       var registeredItem = new RegisteredItemDbEntity {
-        UserUid = userUid, Name = "Milk", LastKnownPrice = 1.5f
+        UserUid = userUid, Name = "Milk", LastKnownPrice = 1.5m
       };
       _context.RegisteredItems.Add(registeredItem);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.AddItemsToList(userUid, "Weekly", [
-        new ShoppingItem("Milk", null, new Price(1.5f), true),
-        new ShoppingItem("Bread", null, new Price(2.0f), false),
+        new ShoppingItem("Milk", null, new Price(1.5m), true),
+        new ShoppingItem("Bread", null, new Price(2.0m), false),
       ]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
       _repository.RecordShoppingList(userUid, new ShoppingList("Weekly", [
-        new ShoppingItem("Milk", null, new Price(1.5f), true),
-        new ShoppingItem("Bread", null, new Price(2.0f), false),
+        new ShoppingItem("Milk", null, new Price(1.5m), true),
+        new ShoppingItem("Bread", null, new Price(2.0m), false),
       ]));
       foreach (EntityEntry<PurchaseDbEntity> entry in _context.ChangeTracker.Entries<PurchaseDbEntity>()) {
         entry.Entity.RegisteredItemId = registeredItem.Id;
@@ -1257,19 +1257,19 @@ public static class PostgreSqlShoppingRepositoryTests {
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       var registeredItem = new RegisteredItemDbEntity {
-        UserUid = userUid, Name = "Eggs", LastKnownPrice = 3.0f
+        UserUid = userUid, Name = "Eggs", LastKnownPrice = 3.0m
       };
       _context.RegisteredItems.Add(registeredItem);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.AddItemsToList(
-        userUid, "Weekly", [new ShoppingItem("Eggs", null, new Price(3.0f), true)]);
+        userUid, "Weekly", [new ShoppingItem("Eggs", null, new Price(3.0m), true)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
       _repository.RecordShoppingList(userUid, new ShoppingList("Weekly", [
-        new ShoppingItem("Eggs", null, new Price(3.0f), true),
+        new ShoppingItem("Eggs", null, new Price(3.0m), true),
       ]));
       foreach (EntityEntry<PurchaseDbEntity> entry in _context.ChangeTracker.Entries<PurchaseDbEntity>()) {
         entry.Entity.RegisteredItemId = registeredItem.Id;

@@ -107,13 +107,13 @@ public class UpdateItemHandlerTest {
   }
 
   [Theory(DisplayName = "Updates item's price when new price is provided")]
-  [InlineData(3.99f)]
-  [InlineData(0f)]
-  public async Task Handler_UpdatesItemPrice_WhenNewPriceIsProvided(float newPrice) {
+  [InlineData(3.99)]
+  [InlineData(0)]
+  public async Task Handler_UpdatesItemPrice_WhenNewPriceIsProvided(double newPrice) {
     // Arrange
     var userUid = Guid.NewGuid();
     var command = new Command(
-      userUid, "Weekly", "Milk", null, null, newPrice, null);
+      userUid, "Weekly", "Milk", null, null, (decimal)newPrice, null);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
     _shoppingRepository.GetItemAsync(
@@ -173,7 +173,7 @@ public class UpdateItemHandlerTest {
     var userUid = Guid.NewGuid();
     var command = new Command(
       userUid, "Weekly", "Milk", newName, null, null, null);
-    ShoppingItem currentItem = new("Milk", "1 litre", new Price(2f), true);
+    ShoppingItem currentItem = new("Milk", "1 litre", new Price(2m), true);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
     _shoppingRepository.GetItemAsync(
@@ -203,7 +203,7 @@ public class UpdateItemHandlerTest {
     var userUid = Guid.NewGuid();
     var command = new Command(
       userUid, "Weekly", "Milk", null, newQuantity, null, null);
-    ShoppingItem currentItem = new("Milk", "1 litre", new Price(2f), true);
+    ShoppingItem currentItem = new("Milk", "1 litre", new Price(2m), true);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
     _shoppingRepository.GetItemAsync(
@@ -230,7 +230,7 @@ public class UpdateItemHandlerTest {
     var userUid = Guid.NewGuid();
     var command = new Command(
       userUid, "Weekly", "Milk", null, null, null, null);
-    ShoppingItem currentItem = new("Milk", "1 litre", new Price(2f), true);
+    ShoppingItem currentItem = new("Milk", "1 litre", new Price(2m), true);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
     _shoppingRepository.GetItemAsync(
@@ -257,7 +257,7 @@ public class UpdateItemHandlerTest {
     var userUid = Guid.NewGuid();
     var command = new Command(
       userUid, "Weekly", "Milk", null, null, null, null);
-    ShoppingItem currentItem = new("Milk", "1 litre", new Price(2f), true);
+    ShoppingItem currentItem = new("Milk", "1 litre", new Price(2m), true);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
     _shoppingRepository.GetItemAsync(

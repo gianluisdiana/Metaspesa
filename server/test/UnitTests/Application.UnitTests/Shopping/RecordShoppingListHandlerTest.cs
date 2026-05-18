@@ -48,8 +48,8 @@ public class RecordShoppingListHandlerTest {
     var userUid = Guid.NewGuid();
     var commonItem = new ShoppingItem("Item 1", null, new Price(2), true);
     List<CommandItem> items = [
-      new CommandItem("Item 1", null, 2f, true),
-      new CommandItem("Item 2", null, 3f, true),
+      new CommandItem("Item 1", null, 2m, true),
+      new CommandItem("Item 2", null, 3m, true),
     ];
     Command command = new(userUid, "Test List", items);
 
@@ -77,7 +77,7 @@ public class RecordShoppingListHandlerTest {
     // Arrange
     var userUid = Guid.NewGuid();
     var commonItem = new ShoppingItem("Item 1", null, new Price(1), true);
-    Command command = new(userUid, "Test List", [new CommandItem("Item 1", null, 1f, true)]);
+    Command command = new(userUid, "Test List", [new CommandItem("Item 1", null, 1m, true)]);
 
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
@@ -100,8 +100,8 @@ public class RecordShoppingListHandlerTest {
     // Arrange
     var userUid = Guid.NewGuid();
     Command command = new(userUid, "Test List", [
-      new CommandItem("Item 1", null, 2f, true),
-      new CommandItem("Item 2", null, 3f, true),
+      new CommandItem("Item 1", null, 2m, true),
+      new CommandItem("Item 2", null, 3m, true),
     ]);
 
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
@@ -124,8 +124,8 @@ public class RecordShoppingListHandlerTest {
     // Arrange
     var userUid = Guid.NewGuid();
     Command command = new(userUid, "Test List", [
-      new CommandItem("Item 1", null, 2f, true),
-      new CommandItem("Item 2", null, 3f, true),
+      new CommandItem("Item 1", null, 2m, true),
+      new CommandItem("Item 2", null, 3m, true),
     ]);
 
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
@@ -150,8 +150,8 @@ public class RecordShoppingListHandlerTest {
     var userUid = Guid.NewGuid();
     var newItem = new ShoppingItem("Item 2", null, new Price(3), true);
     Command command = new(userUid, "Test List", [
-      new CommandItem("Item 1", null, 2f, true),
-      new CommandItem("Item 2", null, 3f, true),
+      new CommandItem("Item 1", null, 2m, true),
+      new CommandItem("Item 2", null, 3m, true),
     ]);
 
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
@@ -176,8 +176,8 @@ public class RecordShoppingListHandlerTest {
     // Arrange
     var userUid = Guid.NewGuid();
     Command command = new(userUid, "Test List", [
-      new CommandItem("Item 1", null, 2f, true),
-      new CommandItem("Item 2", null, 3f, true),
+      new CommandItem("Item 1", null, 2m, true),
+      new CommandItem("Item 2", null, 3m, true),
     ]);
 
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
@@ -203,7 +203,7 @@ public class RecordShoppingListHandlerTest {
   public async Task Handler_AlwaysRecordsShoppingList() {
     // Arrange
     var userUid = Guid.NewGuid();
-    Command command = new(userUid, "Test List", [new CommandItem("Item 1", null, 2f, true)]);
+    Command command = new(userUid, "Test List", [new CommandItem("Item 1", null, 2m, true)]);
 
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
@@ -242,7 +242,7 @@ public class RecordShoppingListHandlerTest {
   public async Task Handler_SavesChangesToUnitOfWork() {
     // Arrange
     var userUid = Guid.NewGuid();
-    Command command = new(userUid, "Test List", [new CommandItem("Item 1", null, 2f, true)]);
+    Command command = new(userUid, "Test List", [new CommandItem("Item 1", null, 2m, true)]);
 
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
@@ -263,7 +263,7 @@ public class RecordShoppingListHandlerTest {
   public async Task Handler_ReturnsSuccessResult_WhenHandlingIsSuccessful() {
     // Arrange
     var userUid = Guid.NewGuid();
-    Command command = new(userUid, "Test List", [new CommandItem("Item 1", null, 2f, true)]);
+    Command command = new(userUid, "Test List", [new CommandItem("Item 1", null, 2m, true)]);
 
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());

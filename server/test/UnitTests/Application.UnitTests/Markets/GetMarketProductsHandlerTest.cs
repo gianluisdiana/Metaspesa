@@ -136,7 +136,7 @@ public class GetMarketProductsHandlerTest {
     // Arrange
     var markets = new List<Market> {
       new("Mercadona", [
-        new MarketProduct("Leche", new ProductBrand("Hacendado"), [new ProductFormat("1L", new Price(0.89f), null)]),
+        new MarketProduct("Leche", new ProductBrand("Hacendado"), [new ProductFormat("1L", new Price(0.89m), null)]),
       ]),
     };
     _marketRepository

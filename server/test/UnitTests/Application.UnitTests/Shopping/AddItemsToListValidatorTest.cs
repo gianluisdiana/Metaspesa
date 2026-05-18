@@ -19,7 +19,7 @@ public class AddItemsToListValidatorTest {
   public async Task Validator_Fails_WhenShoppingListDoesNotExist() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Nonexistent", [new("Milk", null, 1f, false)]);
+    var command = new Command(userUid, "Nonexistent", [new("Milk", null, 1m, false)]);
     _shoppingRepository
       .CheckShoppingListExistAsync(userUid, "Nonexistent", TestContext.Current.CancellationToken)
       .Returns(false);
@@ -59,7 +59,7 @@ public class AddItemsToListValidatorTest {
   public async Task Validator_Fails_WhenItemNameIsEmpty(string? name) {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", [new(name!, null, 1f, false)]);
+    var command = new Command(userUid, "Weekly", [new(name!, null, 1m, false)]);
     _shoppingRepository.CheckShoppingListExistAsync(
       userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
       .Returns(true);
@@ -77,7 +77,7 @@ public class AddItemsToListValidatorTest {
   public async Task Validator_Fails_WhenItemPriceIsNegative() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", [new("Milk", null, -1f, false)]);
+    var command = new Command(userUid, "Weekly", [new("Milk", null, -1m, false)]);
     _shoppingRepository.CheckShoppingListExistAsync(
       userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
       .Returns(true);
@@ -97,7 +97,7 @@ public class AddItemsToListValidatorTest {
     // Arrange
     var userUid = Guid.NewGuid();
     var command = new Command(
-      userUid, "Weekly", [new("Milk", new string('a', 51), 1f, false)]);
+      userUid, "Weekly", [new("Milk", new string('a', 51), 1m, false)]);
     _shoppingRepository.CheckShoppingListExistAsync(
       userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
       .Returns(true);
@@ -116,7 +116,7 @@ public class AddItemsToListValidatorTest {
   public async Task Validator_Passes_WhenAllFieldsAreValid() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", [new("Milk", "1 litre", 2f, false)]);
+    var command = new Command(userUid, "Weekly", [new("Milk", "1 litre", 2m, false)]);
     _shoppingRepository.CheckShoppingListExistAsync(
       userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
       .Returns(true);
@@ -133,7 +133,7 @@ public class AddItemsToListValidatorTest {
   public async Task Validator_Fails_WhenItemAlreadyExistsInList() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", [new("Milk", null, 1f, false)]);
+    var command = new Command(userUid, "Weekly", [new("Milk", null, 1m, false)]);
     _shoppingRepository.CheckShoppingListExistAsync(
         userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
       .Returns(true);
@@ -155,7 +155,7 @@ public class AddItemsToListValidatorTest {
   public async Task Validator_Passes_WhenItemPriceIsZero() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", [new("Milk", null, 0f, false)]);
+    var command = new Command(userUid, "Weekly", [new("Milk", null, 0m, false)]);
     _shoppingRepository.CheckShoppingListExistAsync(
       userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
       .Returns(true);
@@ -172,7 +172,7 @@ public class AddItemsToListValidatorTest {
   public async Task Validator_Passes_WhenItemQuantityIsExactly50Chars() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", [new("Milk", new string('a', 50), 1f, false)]);
+    var command = new Command(userUid, "Weekly", [new("Milk", new string('a', 50), 1m, false)]);
     _shoppingRepository.CheckShoppingListExistAsync(
       userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
       .Returns(true);
@@ -189,7 +189,7 @@ public class AddItemsToListValidatorTest {
   public async Task Validator_DoesNotCheckDuplicates_WhenItemNameIsEmpty() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", [new("", null, 1f, false)]);
+    var command = new Command(userUid, "Weekly", [new("", null, 1m, false)]);
     _shoppingRepository.CheckShoppingListExistAsync(
       userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
       .Returns(true);
@@ -207,7 +207,7 @@ public class AddItemsToListValidatorTest {
   public async Task Validator_Fails_WithTemporaryListMessage_WhenListNameIsNull() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, null, [new("Milk", null, 1f, false)]);
+    var command = new Command(userUid, null, [new("Milk", null, 1m, false)]);
     _shoppingRepository
       .CheckShoppingListExistAsync(userUid, null, TestContext.Current.CancellationToken)
       .Returns(false);

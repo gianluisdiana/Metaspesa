@@ -17,6 +17,7 @@ internal class ProductsHistoryConfiguration : IEntityTypeConfiguration<ProductsH
 
     builder.Property(e => e.Price)
       .HasColumnName("price")
+      .HasPrecision(18, 2)
       .IsRequired();
 
     builder.Property(e => e.Quantity)

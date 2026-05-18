@@ -348,7 +348,7 @@ public static class PostgreSqlMarketRepositoryTests {
       GC.SuppressFinalize(this);
     }
 
-    private static Market MakeMarket(string productName, float price, string quantity) =>
+    private static Market MakeMarket(string productName, decimal price, string quantity) =>
       new Market(MarketName, [
         new MarketProduct(
           productName,
@@ -362,7 +362,7 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_CreatesNewProduct_WhenItDoesNotExist() {
       // Act
       await _repository.AddMarketProductsAsync(
-        MakeMarket("IntegrationProduct1", 1.99f, "1kg"),
+        MakeMarket("IntegrationProduct1", 1.99m, "1kg"),
         DateOnly.FromDateTime(DateTime.Today),
         TestContext.Current.CancellationToken);
 
@@ -381,7 +381,7 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_AddsHistoryEntry_ForProduct() {
       // Act
       await _repository.AddMarketProductsAsync(
-        MakeMarket("IntegrationProduct2", 2.50f, "500ml"),
+        MakeMarket("IntegrationProduct2", 2.50m, "500ml"),
         DateOnly.FromDateTime(DateTime.Today),
         TestContext.Current.CancellationToken);
 
@@ -404,7 +404,7 @@ public static class PostgreSqlMarketRepositoryTests {
 
       // Act
       await _repository.AddMarketProductsAsync(
-        MakeMarket("IntegrationProduct3", 3.00f, "1L"),
+        MakeMarket("IntegrationProduct3", 3.00m, "1L"),
         registeredAt,
         TestContext.Current.CancellationToken);
 
@@ -423,13 +423,13 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_ReusesExistingProduct_AddsNewHistoryEntry() {
       // Arrange
       await _repository.AddMarketProductsAsync(
-        MakeMarket("IntegrationProduct4", 1.00f, "1pc"),
+        MakeMarket("IntegrationProduct4", 1.00m, "1pc"),
         DateOnly.FromDateTime(DateTime.Today),
         TestContext.Current.CancellationToken);
 
       // Act — add same product again with different price
       await _repository.AddMarketProductsAsync(
-        MakeMarket("IntegrationProduct4", 1.50f, "1pc"),
+        MakeMarket("IntegrationProduct4", 1.50m, "1pc"),
         DateOnly.FromDateTime(DateTime.Today),
         TestContext.Current.CancellationToken);
 
@@ -491,7 +491,7 @@ public static class PostgreSqlMarketRepositoryTests {
         ..productNames.Select(n => new MarketProduct(
           n,
           new ProductBrand(BrandName),
-          [new ProductFormat("1kg", new Price(1.00f), null)]
+          [new ProductFormat("1kg", new Price(1.00m), null)]
         ))
       ]);
 
@@ -705,7 +705,7 @@ public static class PostgreSqlMarketRepositoryTests {
         new MarketProduct(
           productName,
           new ProductBrand(BrandName),
-          [new ProductFormat("1kg", new Price(1.00f), null)]
+          [new ProductFormat("1kg", new Price(1.00m), null)]
         )
       ]);
 
@@ -802,7 +802,7 @@ public static class PostgreSqlMarketRepositoryTests {
 
     private async Task SeedProductWithHistoryAsync(
       string marketName, string brandName, string productName,
-      float price, string quantity, DateTime createdAt
+      decimal price, string quantity, DateTime createdAt
     ) {
       int marketId = await _context.SuperMarkets
         .Where(m => m.Name == marketName)
@@ -878,8 +878,8 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_ReturnsProducts_WithoutFilter() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Entera GP", 0.89f, "1L", now);
-      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan Blanco GP", 1.20f, "500g", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Entera GP", 0.89m, "1L", now);
+      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan Blanco GP", 1.20m, "500g", now);
 
       // Act
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -895,8 +895,8 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_ReturnsTotalCount_WithoutFilter() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Entera TCF", 0.89f, "1L", now);
-      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan Blanco TCF", 1.20f, "500g", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Entera TCF", 0.89m, "1L", now);
+      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan Blanco TCF", 1.20m, "500g", now);
 
       // Act
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -912,8 +912,8 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_GroupsProducts_UnderTheirMarket() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche GroupTest", 0.89f, "1L", now);
-      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan GroupTest", 1.20f, "500g", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche GroupTest", 0.89m, "1L", now);
+      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan GroupTest", 1.20m, "500g", now);
 
       // Act
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -930,8 +930,8 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_FiltersByMarketName_ReturnsOnlyMatchingMarket() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche MarketFilter", 0.89f, "1L", now);
-      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan MarketFilter", 1.20f, "500g", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche MarketFilter", 0.89m, "1L", now);
+      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan MarketFilter", 1.20m, "500g", now);
 
       // Act
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -947,8 +947,8 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_FiltersByMarketName_ReturnsCorrectMarketName() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche MarketNameFilter", 0.89f, "1L", now);
-      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan MarketNameFilter", 1.20f, "500g", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche MarketNameFilter", 0.89m, "1L", now);
+      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan MarketNameFilter", 1.20m, "500g", now);
 
       // Act
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -964,8 +964,8 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_FiltersByBrandNameSegment_CaseInsensitiveContains() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche", 0.89f, "1L", now);
-      await SeedProductWithHistoryAsync(MarketA, BrandB, "Pan", 1.20f, "500g", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche", 0.89m, "1L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandB, "Pan", 1.20m, "500g", now);
 
       // Act — use a segment that partially matches one brand
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -982,8 +982,8 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_FiltersByBrandNameSegment_CaseInsensitivePartialMatch() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche BrandFilter", 0.89f, "1L", now);
-      await SeedProductWithHistoryAsync(MarketA, BrandB, "Pan BrandFilter", 1.20f, "500g", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche BrandFilter", 0.89m, "1L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandB, "Pan BrandFilter", 1.20m, "500g", now);
 
       // Act — use a segment that only matches BrandA
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -1000,8 +1000,8 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_FiltersByNameSegment_CaseInsensitiveContains() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Entera SegFilter", 0.89f, "1L", now);
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Pan Blanco SegFilter", 1.20f, "500g", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Entera SegFilter", 0.89m, "1L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Pan Blanco SegFilter", 1.20m, "500g", now);
 
       // Act
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -1019,8 +1019,8 @@ public static class PostgreSqlMarketRepositoryTests {
       // Arrange
       DateTime older = new(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
       DateTime newer = new(2024, 6, 1, 0, 0, 0, DateTimeKind.Utc);
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche HistoryTest", 0.79f, "1L", older);
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche HistoryTest", 0.89f, "1L", newer);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche HistoryTest", 0.79m, "1L", older);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche HistoryTest", 0.89m, "1L", newer);
 
       // Act
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -1038,8 +1038,8 @@ public static class PostgreSqlMarketRepositoryTests {
       // Arrange
       DateTime older = new(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
       DateTime newer = new(2024, 6, 1, 0, 0, 0, DateTimeKind.Utc);
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche LatestPriceTest", 0.79f, "1L", older);
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche LatestPriceTest", 0.89f, "1L", newer);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche LatestPriceTest", 0.79m, "1L", older);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche LatestPriceTest", 0.89m, "1L", newer);
 
       // Act
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -1047,7 +1047,7 @@ public static class PostgreSqlMarketRepositoryTests {
 
       // Assert
       MarketProduct product = result.Values.SelectMany(m => m.Products).Single();
-      Assert.Equal(0.89f, product.Formats.Single().Price.Value, precision: 2);
+      Assert.Equal(0.89m, product.Formats.Single().Price.Value, precision: 2);
     }
 
     [Fact(
@@ -1085,9 +1085,9 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_Pagination_TotalCountReflectsAllMatches() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Page1", 1.00f, "1L", now);
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Page2", 1.10f, "1L", now);
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Page3", 1.20f, "1L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Page1", 1.00m, "1L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Page2", 1.10m, "1L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Page3", 1.20m, "1L", now);
 
       // Act — page 2 with pageSize 1, filtered by segment "Leche Page"
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -1104,9 +1104,9 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_Pagination_ReturnsSingleProductOnSecondPage() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche PgB1", 1.00f, "1L", now);
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche PgB2", 1.10f, "1L", now);
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche PgB3", 1.20f, "1L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche PgB1", 1.00m, "1L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche PgB2", 1.10m, "1L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche PgB3", 1.20m, "1L", now);
 
       // Act
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -1165,7 +1165,7 @@ public static class PostgreSqlMarketRepositoryTests {
         new MarketProduct(
           productName,
           new ProductBrand(BrandName),
-          [new ProductFormat("1kg", new Price(1.00f), null)]
+          [new ProductFormat("1kg", new Price(1.00m), null)]
         )
       ]);
 

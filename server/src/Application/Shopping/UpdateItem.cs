@@ -15,7 +15,7 @@ public static class UpdateItem {
     string OriginalItemName,
     string? NewName,
     string? Quantity,
-    float? Price,
+    decimal? Price,
     bool? IsChecked
   ) : ICommand;
 

@@ -3,13 +3,13 @@ using System.Diagnostics;
 namespace Metaspesa.Domain.Shopping;
 
 public record Price {
-  private const float Epsilon = 0.01f;
+  private const decimal Epsilon = 0.01m;
 
-  public float Value { get; }
+  public decimal Value { get; }
 
   public static readonly Price Empty = new(0);
 
-  public Price(float value) {
+  public Price(decimal value) {
     Debug.Assert(PricePolicy.IsValidPrice(value));
     Value = value;
   }

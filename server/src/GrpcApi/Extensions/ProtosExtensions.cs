@@ -36,7 +36,7 @@ internal static class ProtosExtensions {
   public static Protos.Shopping.ShoppingItem ToProto(this Product item) {
     var product = new Protos.Shopping.ShoppingItem {
       Name = item.Name,
-      Price = item.Price.Value,
+      Price = GrpcPriceConverter.ToProto(item.Price.Value),
       Checked = false,
     };
     if (!string.IsNullOrWhiteSpace(item.Quantity?.Value)) {
@@ -61,7 +61,7 @@ internal static class ProtosExtensions {
       Formats = {
         product.Formats.Select(f => new Protos.Markets.MarketProductFormat {
           Quantity = f.Quantity,
-          Price = f.Price.Value,
+          Price = GrpcPriceConverter.ToProto(f.Price.Value),
           ImageUrl = f.ImageUrl?.ToString() ?? string.Empty,
         }),
       },
@@ -72,7 +72,7 @@ internal static class ProtosExtensions {
   ) => new(
     GrpcTextSanitizer.SanitizeAscii(protoProduct.Name),
     protoProduct.HasQuantity ? GrpcTextSanitizer.SanitizeAscii(protoProduct.Quantity) : null,
-    protoProduct.HasPrice ? protoProduct.Price : 0f,
+    protoProduct.HasPrice ? GrpcPriceConverter.ToDecimal(protoProduct.Price) : 0m,
     protoProduct.Checked
   );
 
@@ -81,7 +81,7 @@ internal static class ProtosExtensions {
   ) => new(
     GrpcTextSanitizer.SanitizeAscii(protoItem.Name),
     protoItem.HasQuantity ? GrpcTextSanitizer.SanitizeAscii(protoItem.Quantity) : null,
-    protoItem.HasPrice ? protoItem.Price : 0f,
+    protoItem.HasPrice ? GrpcPriceConverter.ToDecimal(protoItem.Price) : 0m,
     protoItem.Checked
   );
 }

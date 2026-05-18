@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Google.Protobuf.WellKnownTypes;
@@ -149,7 +150,9 @@ public static class ShoppingGrpcServiceTests {
 
       // Assert
       for (int i = 0; i < registeredItems.Count; i++) {
-        Assert.Equal(registeredItems[i].Price.Value, response.Items[i].Price);
+        Assert.Equal(
+          registeredItems[i].Price.Value.ToString(CultureInfo.InvariantCulture),
+          response.Items[i].Price);
       }
     }
 
@@ -170,7 +173,7 @@ public static class ShoppingGrpcServiceTests {
 
       // Assert
       for (int i = 0; i < registeredItems.Count; i++) {
-        Assert.Equal(0, response.Items[i].Price);
+        Assert.Equal("0", response.Items[i].Price);
       }
     }
 
@@ -367,7 +370,7 @@ public static class ShoppingGrpcServiceTests {
       var shoppingList = new Domain.Shopping.ShoppingList(
         "Weekly Groceries", [
           new("Product 1", null, new Price(3), true),
-          new("Product 2", null, new Price(10.3f), false),
+          new("Product 2", null, new Price(10.3m), false),
         ]);
 
       _useCaseHandler
@@ -381,7 +384,7 @@ public static class ShoppingGrpcServiceTests {
       // Assert
       for (int i = 0; i < shoppingList.Items.Count; i++) {
         Assert.Equal(
-          shoppingList.Items.ElementAt(i).Price.Value,
+          shoppingList.Items.ElementAt(i).Price.Value.ToString(CultureInfo.InvariantCulture),
           response.ShoppingList.Items[i].Price);
       }
     }
@@ -405,7 +408,7 @@ public static class ShoppingGrpcServiceTests {
 
       // Assert
       for (int i = 0; i < shoppingList.Items.Count; i++) {
-        Assert.Equal(0f, response.ShoppingList.Items[i].Price);
+        Assert.Equal("0", response.ShoppingList.Items[i].Price);
       }
     }
 
@@ -695,13 +698,13 @@ public static class ShoppingGrpcServiceTests {
             new Protos.Shopping.ShoppingItem {
               Name = "Product 1",
               Quantity = "1 litre",
-              Price = 3,
+              Price = "3",
               Checked = true,
             },
             new Protos.Shopping.ShoppingItem {
               Name = "Product 2",
               Quantity = "2 kg",
-              Price = 10.3f,
+              Price = "10.3",
               Checked = false,
             }
           }
@@ -736,13 +739,13 @@ public static class ShoppingGrpcServiceTests {
             new Protos.Shopping.ShoppingItem {
               Name = "Product 1",
               Quantity = "1 litre",
-              Price = 3,
+              Price = "3",
               Checked = true,
             },
             new Protos.Shopping.ShoppingItem {
               Name = "Product 2",
               Quantity = "2 kg",
-              Price = 10.3f,
+              Price = "10.3",
               Checked = false,
             }
           }
@@ -776,13 +779,13 @@ public static class ShoppingGrpcServiceTests {
             new Protos.Shopping.ShoppingItem {
               Name = "Product 1",
               Quantity = "1 litre",
-              Price = 3,
+              Price = "3",
               Checked = true,
             },
             new Protos.Shopping.ShoppingItem {
               Name = "Product 2",
               Quantity = "2 kg",
-              Price = 10.3f,
+              Price = "10.3",
               Checked = false,
             }
           }
@@ -797,9 +800,11 @@ public static class ShoppingGrpcServiceTests {
       await service.RecordShoppingList(request, CreateServerCallContext());
 
       // Assert
-      const float Epsilon = 0.01f;
+      const decimal Epsilon = 0.01m;
       for (int i = 0; i < request.ShoppingList.Items.Count; i++) {
-        float price = request.ShoppingList.Items[i].Price;
+        decimal price = decimal.Parse(
+          request.ShoppingList.Items[i].Price,
+          CultureInfo.InvariantCulture);
         await _useCaseHandler.Received(1).Handle(
           Arg.Is<RecordShoppingList.Command>(cmd => Math.Abs(
             cmd.ShoppingListItems.ElementAt(i).Price - price
@@ -818,13 +823,13 @@ public static class ShoppingGrpcServiceTests {
             new Protos.Shopping.ShoppingItem {
               Name = "Product 1",
               Quantity = "1 litre",
-              Price = 3,
+              Price = "3",
               Checked = true,
             },
             new Protos.Shopping.ShoppingItem {
               Name = "Product 2",
               Quantity = "2 kg",
-              Price = 10.3f,
+              Price = "10.3",
               Checked = false,
             }
           }
@@ -1114,8 +1119,8 @@ public static class ShoppingGrpcServiceTests {
       var request = new AddItemsToListRequest {
         ShoppingListName = "Weekly",
         Items = {
-          new Protos.Shopping.ShoppingItem { Name = "Milk", Price = 2f },
-          new Protos.Shopping.ShoppingItem { Name = "Bread", Price = 1.5f },
+          new Protos.Shopping.ShoppingItem { Name = "Milk", Price = "2" },
+          new Protos.Shopping.ShoppingItem { Name = "Bread", Price = "1.5" },
         }
       };
 
@@ -1144,7 +1149,7 @@ public static class ShoppingGrpcServiceTests {
           new Protos.Shopping.ShoppingItem {
             Name = "Caf\u00e9 \u2615",
             Quantity = "500 g \u2713",
-            Price = 2f,
+            Price = "2",
           },
         }
       };
@@ -1209,7 +1214,7 @@ public static class ShoppingGrpcServiceTests {
         .Returns(new DomainError(string.Empty, string.Empty, ErrorKind.Unexpected));
 
       var request = new UpdateItemRequest {
-        ShoppingListName = "Weekly", OriginalItemName = "Milk", ItemPrice = 3f
+        ShoppingListName = "Weekly", OriginalItemName = "Milk", ItemPrice = "3"
       };
 
       // Act
@@ -1227,7 +1232,7 @@ public static class ShoppingGrpcServiceTests {
         .Returns(Result.Success());
 
       var request = new UpdateItemRequest {
-        ShoppingListName = "Weekly", OriginalItemName = "Milk", ItemPrice = 3f
+        ShoppingListName = "Weekly", OriginalItemName = "Milk", ItemPrice = "3"
       };
 
       // Act
@@ -1266,17 +1271,17 @@ public static class ShoppingGrpcServiceTests {
         .Returns(Result.Success());
 
       var request = new UpdateItemRequest {
-        ShoppingListName = "Weekly", OriginalItemName = "Milk", ItemPrice = 3.5f
+        ShoppingListName = "Weekly", OriginalItemName = "Milk", ItemPrice = "3.5"
       };
 
       // Act
       await service.UpdateItem(request, CreateServerCallContext());
 
       // Assert
-      const float Epsilon = 0.01f;
+      const decimal Epsilon = 0.01m;
       await _useCaseHandler.Received(1).Handle(
         Arg.Is<UpdateItem.Command>(cmd =>
-          cmd.Price.HasValue && Math.Abs(cmd.Price.Value - 3.5f) < Epsilon),
+          cmd.Price.HasValue && Math.Abs(cmd.Price.Value - 3.5m) < Epsilon),
         TestContext.Current.CancellationToken);
     }
 

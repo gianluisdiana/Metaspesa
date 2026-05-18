@@ -103,7 +103,7 @@ public class UpdateItemValidatorTest {
   public async Task Validator_Fails_WhenPriceIsNegative() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", "Milk", null, null, -1f, null);
+    var command = new Command(userUid, "Weekly", "Milk", null, null, -1m, null);
     _shoppingRepository
       .CheckShoppingListExistAsync(userUid, "Weekly", TestContext.Current.CancellationToken)
       .Returns(true);
@@ -147,7 +147,7 @@ public class UpdateItemValidatorTest {
   public async Task Validator_Passes_WhenAllFieldsAreValid() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", "Milk", "Whole Milk", "2 litres", 3.5f, true);
+    var command = new Command(userUid, "Weekly", "Milk", "Whole Milk", "2 litres", 3.5m, true);
     _shoppingRepository
       .CheckShoppingListExistAsync(userUid, "Weekly", TestContext.Current.CancellationToken)
       .Returns(true);
@@ -170,7 +170,7 @@ public class UpdateItemValidatorTest {
   public async Task Validator_Passes_WhenPriceIsZero() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", "Milk", null, null, 0f, null);
+    var command = new Command(userUid, "Weekly", "Milk", null, null, 0m, null);
     _shoppingRepository
       .CheckShoppingListExistAsync(userUid, "Weekly", TestContext.Current.CancellationToken)
       .Returns(true);
@@ -298,7 +298,7 @@ public class UpdateItemValidatorTest {
   public async Task Validator_DoesNotFail_IfPriceIsProvided() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", "Milk", null, null, 3.5f, null);
+    var command = new Command(userUid, "Weekly", "Milk", null, null, 3.5m, null);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(

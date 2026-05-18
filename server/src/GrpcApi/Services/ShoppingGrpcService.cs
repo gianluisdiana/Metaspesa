@@ -128,7 +128,7 @@ internal class ShoppingGrpcService(
       OriginalItemName: GrpcTextSanitizer.SanitizeAscii(request.OriginalItemName),
       NewName: request.HasItemName ? GrpcTextSanitizer.SanitizeAscii(request.ItemName) : null,
       Quantity: request.HasItemQuantity ? GrpcTextSanitizer.SanitizeAscii(request.ItemQuantity) : null,
-      Price: request.HasItemPrice ? request.ItemPrice : null,
+      Price: request.HasItemPrice ? GrpcPriceConverter.ToDecimal(request.ItemPrice) : null,
       IsChecked: request.HasChecked ? request.Checked : null);
 
     Result result = await updateItemHandler.Handle(command, context.CancellationToken);

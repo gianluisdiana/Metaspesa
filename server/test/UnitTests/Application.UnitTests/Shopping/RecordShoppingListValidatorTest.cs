@@ -22,7 +22,7 @@ public class RecordShoppingListValidatorTest {
     var command = new Command(
       Guid.NewGuid(),
       "Test List",
-      [new CommandItem("Milk", null, 1f, false)]
+      [new CommandItem("Milk", null, 1m, false)]
     );
 
     // Act
@@ -42,7 +42,7 @@ public class RecordShoppingListValidatorTest {
     var command = new Command(
       Guid.NewGuid(),
       "Nonexistent List",
-      [new CommandItem("Milk", null, 1f, true)]
+      [new CommandItem("Milk", null, 1m, true)]
     );
 
     string? listName = command.ShoppingListName;
@@ -69,7 +69,7 @@ public class RecordShoppingListValidatorTest {
     var command = new Command(
       Guid.NewGuid(),
       "Test List",
-      [new CommandItem(itemName!, null, 1f, true)]
+      [new CommandItem(itemName!, null, 1m, true)]
     );
 
     // Act
@@ -88,7 +88,7 @@ public class RecordShoppingListValidatorTest {
     var command = new Command(
       Guid.NewGuid(),
       "Test List",
-      [new CommandItem("Milk", null, -1f, true)]
+      [new CommandItem("Milk", null, -1m, true)]
     );
 
     // Act
@@ -107,7 +107,7 @@ public class RecordShoppingListValidatorTest {
     var command = new Command(
       Guid.NewGuid(),
       "Test List",
-      [new CommandItem("Milk", new string('a', 51), 1f, true)]
+      [new CommandItem("Milk", new string('a', 51), 1m, true)]
     );
 
     // Act
@@ -126,7 +126,7 @@ public class RecordShoppingListValidatorTest {
     var command = new Command(
       Guid.NewGuid(),
       "Test List",
-      [new CommandItem("Milk", "1 liter", 1f, true)]
+      [new CommandItem("Milk", "1 liter", 1m, true)]
     );
 
     string? listName = command.ShoppingListName;

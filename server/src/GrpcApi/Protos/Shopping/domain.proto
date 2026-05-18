@@ -8,7 +8,7 @@ option csharp_namespace = "Metaspesa.GrpcApi.Protos.Shopping";
 message ShoppingItem {
   string name = 1;
   optional string quantity = 2;
-  optional float price = 3;
+  optional string price = 3;
   bool checked = 4;
 }
 
