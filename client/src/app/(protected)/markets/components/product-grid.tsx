@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 
+import { euros } from '@/lib/formatters/money-formatter';
 import { useInfiniteScroll } from '@/lib/hooks/use-infinite-scroll';
 import { MarketFilter } from '@/lib/market-api-service';
 import { MarketMessage, MarketProductMessage } from '@/lib/market-contracts';
@@ -12,7 +13,6 @@ import AddToListModal from './add-to-list-modal';
 import ProductCard, { type Product } from './product-card';
 import { usePaginatedMarketProducts } from './use-paginated-market-products';
 
-const EURO_SYMBOL = '€';
 const MISSING_PRICE_LABEL = '—';
 
 function toProduct(p: MarketProductMessage): Product {
@@ -23,9 +23,7 @@ function toProduct(p: MarketProductMessage): Product {
     imageAlt: p.name,
     imageUrl: first.imageUrl ?? '',
     name: p.name,
-    price: first
-      ? `${EURO_SYMBOL}${first.price.toFixed(2)}`
-      : MISSING_PRICE_LABEL,
+    price: first ? euros.format(first.price) : MISSING_PRICE_LABEL,
     unit: first?.quantity ?? '',
   };
 }

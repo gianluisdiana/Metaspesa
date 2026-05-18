@@ -1,3 +1,4 @@
+import { dollars } from '@/lib/formatters/money-formatter';
 import {
   ProductMessage,
   ShoppingListMessage,
@@ -8,8 +9,6 @@ import { RegisteredItemsResponse__Output } from '@/protos/shopping/RegisteredIte
 import { ShoppingItem__Output } from '@/protos/shopping/ShoppingItem';
 import { ShoppingList__Output } from '@/protos/shopping/ShoppingList';
 import { ShoppingListSummary__Output } from '@/protos/shopping/ShoppingListSummary';
-
-const ROUND_FACTOR = 100;
 
 export class GrpcShoppingMapper {
   public mapRegisteredItems(
@@ -46,7 +45,7 @@ export class GrpcShoppingMapper {
       price:
         item.price === undefined
           ? undefined
-          : Math.round(Number(item.price) * ROUND_FACTOR) / ROUND_FACTOR,
+          : dollars.round(Number(item.price)),
       quantity: item.quantity,
     };
   }
