@@ -25,8 +25,37 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Test backend
-        run: dotnet test server -- --explicit on
+      - name: Test backend application unit tests
+        run: dotnet test server/test/UnitTests/Application.UnitTests/Application.UnitTests.csproj
+
+      - name: Test backend domain unit tests
+        run: dotnet test server/test/UnitTests/Domain.UnitTests/Domain.UnitTests.csproj
+
+      - name: Test backend gRPC API unit tests
+        run: dotnet test server/test/UnitTests/GrpcApi.UnitTests/GrpcApi.UnitTests.csproj
+
+      - name: Test backend infrastructure unit tests
+        run: dotnet test server/test/UnitTests/Infrastructure.UnitTests/Infrastructure.UnitTests.csproj
+
+  pass-backend-integration-tests:
+    name: Pass backend integration tests on ${{matrix.os}}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Test backend database integration tests
+        run: dotnet test server/test/IntegrationTests/Database.IntegrationTests/Database.IntegrationTests.csproj -- --explicit on
+
+      - name: Test backend infrastructure integration tests
+        run: dotnet test server/test/IntegrationTests/Infrastructure.IntegrationTests/Infrastructure.IntegrationTests.csproj -- --explicit on
 
   pass-frontend-unit-tests:
     name: Pass frontend unit tests on ${{matrix.os}}
