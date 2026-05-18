@@ -1,4 +1,4 @@
-import { ProductMessage } from '@/lib/messages';
+import { ProductMessage } from '@/lib/shopping-list-contracts';
 
 import { ShoppingPriceViewModel } from './price-view-model';
 

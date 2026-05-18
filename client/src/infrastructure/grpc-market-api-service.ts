@@ -6,7 +6,7 @@ import MarketApiService, { MarketFilter } from '@/lib/market-api-service';
 import {
   MarketProductsResult,
   MarketSummaryMessage,
-} from '@/lib/market-messages';
+} from '@/lib/market-contracts';
 
 import { MarketServiceClient } from '@/protos/markets/MarketService';
 

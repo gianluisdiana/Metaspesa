@@ -1,4 +1,4 @@
-import { LoginResultMessage } from '@/lib/auth-messages';
+import { LoginResultMessage } from '@/lib/auth-contracts';
 
 import { LoginResponse__Output } from '@/protos/auth/LoginResponse';
 

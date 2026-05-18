@@ -3,7 +3,7 @@ import {
   ProductMessage,
   ShoppingListMessage,
   ShoppingListSummaryMessage,
-} from '@/lib/messages';
+} from '@/lib/shopping-list-contracts';
 
 export default class FakeApiService implements ApiService {
   async createShoppingList(name?: string): Promise<void> {

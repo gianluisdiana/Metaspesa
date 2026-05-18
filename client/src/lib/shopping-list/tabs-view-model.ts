@@ -1,7 +1,7 @@
 import {
   ShoppingListMessage,
   ShoppingListSummaryMessage,
-} from '@/lib/messages';
+} from '@/lib/shopping-list-contracts';
 
 const EMPTY_LIST_SORT_ORDER = -1;
 const NAMED_LIST_SORT_ORDER = 1;

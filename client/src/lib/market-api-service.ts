@@ -1,4 +1,4 @@
-import { MarketProductsResult, MarketSummaryMessage } from './market-messages';
+import { MarketProductsResult, MarketSummaryMessage } from './market-contracts';
 
 export interface MarketFilter {
   marketName?: string;

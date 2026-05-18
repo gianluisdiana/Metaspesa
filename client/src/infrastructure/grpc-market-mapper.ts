@@ -1,4 +1,4 @@
-import { MarketMessage, MarketSummaryMessage } from '@/lib/market-messages';
+import { MarketMessage, MarketSummaryMessage } from '@/lib/market-contracts';
 
 import { Market__Output } from '@/protos/markets/Market';
 import { MarketSummary__Output } from '@/protos/markets/MarketSummary';

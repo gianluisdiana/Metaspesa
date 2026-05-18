@@ -4,14 +4,14 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import {
-  ShoppingListMessage,
-  ShoppingListSummaryMessage,
-} from '@/lib/messages';
-import {
   ShoppingListClient,
   ShoppingListTabsViewModel,
   ShoppingListViewModel,
 } from '@/lib/shopping-list';
+import {
+  ShoppingListMessage,
+  ShoppingListSummaryMessage,
+} from '@/lib/shopping-list-contracts';
 
 import { useToast } from '../../components/toast-provider';
 import ListTabs, { ListPageHeader } from './list-header';

@@ -7,7 +7,7 @@ import {
   ProductMessage,
   ShoppingListMessage,
   ShoppingListSummaryMessage,
-} from '@/lib/messages';
+} from '@/lib/shopping-list-contracts';
 
 import { ShoppingServiceClient } from '@/protos/shopping/ShoppingService';
 

@@ -7,7 +7,7 @@ import {
   MarketMessage,
   MarketProductMessage,
   MarketProductsResult,
-} from '@/lib/market-messages';
+} from '@/lib/market-contracts';
 
 const DEFAULT_PAGE_SIZE = 20;
 const FIRST_NEXT_PAGE = 2;

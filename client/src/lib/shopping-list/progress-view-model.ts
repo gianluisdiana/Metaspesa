@@ -1,4 +1,4 @@
-import { ProductMessage } from '@/lib/messages';
+import { ProductMessage } from '@/lib/shopping-list-contracts';
 
 const PERCENTAGE_FACTOR = 100;
 

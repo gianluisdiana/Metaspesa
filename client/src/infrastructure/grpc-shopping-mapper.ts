@@ -2,7 +2,7 @@ import {
   ProductMessage,
   ShoppingListMessage,
   ShoppingListSummaryMessage,
-} from '@/lib/messages';
+} from '@/lib/shopping-list-contracts';
 
 import { RegisteredItemsResponse__Output } from '@/protos/shopping/RegisteredItemsResponse';
 import { ShoppingItem__Output } from '@/protos/shopping/ShoppingItem';

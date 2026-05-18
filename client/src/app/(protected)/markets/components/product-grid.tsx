@@ -4,8 +4,8 @@ import { useRef, useState } from 'react';
 
 import { useInfiniteScroll } from '@/lib/hooks/use-infinite-scroll';
 import { MarketFilter } from '@/lib/market-api-service';
-import { MarketMessage, MarketProductMessage } from '@/lib/market-messages';
-import { ShoppingListSummaryMessage } from '@/lib/messages';
+import { MarketMessage, MarketProductMessage } from '@/lib/market-contracts';
+import { ShoppingListSummaryMessage } from '@/lib/shopping-list-contracts';
 
 import { useToast } from '../../components/toast-provider';
 import AddToListModal from './add-to-list-modal';

@@ -2,7 +2,7 @@ import 'server-only';
 
 import { SeverityNumber, logs } from '@opentelemetry/api-logs';
 
-import { CredentialsMessage, LoginResultMessage } from '@/lib/auth-messages';
+import { CredentialsMessage, LoginResultMessage } from '@/lib/auth-contracts';
 import AuthService from '@/lib/auth-service';
 
 import { AuthServiceClient } from '@/protos/auth/AuthService';

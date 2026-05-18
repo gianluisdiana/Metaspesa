@@ -2,7 +2,7 @@ import {
   ProductMessage,
   ShoppingListMessage,
   ShoppingListSummaryMessage,
-} from './messages';
+} from './shopping-list-contracts';
 
 export default interface ApiService {
   createShoppingList(name?: string): Promise<void>;

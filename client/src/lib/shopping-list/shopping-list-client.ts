@@ -1,7 +1,7 @@
 import {
   ShoppingListMessage,
   ShoppingListSummaryMessage,
-} from '@/lib/messages';
+} from '@/lib/shopping-list-contracts';
 
 export type CreateListResponse = {
   message?: string;

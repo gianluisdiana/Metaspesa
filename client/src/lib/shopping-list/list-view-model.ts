@@ -1,4 +1,7 @@
-import { ProductMessage, ShoppingListMessage } from '@/lib/messages';
+import {
+  ProductMessage,
+  ShoppingListMessage,
+} from '@/lib/shopping-list-contracts';
 
 import {
   CheckedShoppingItemViewModel,

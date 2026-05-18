@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import { ShoppingListSummaryMessage } from '@/lib/messages';
+import { ShoppingListSummaryMessage } from '@/lib/shopping-list-contracts';
 
 type Props = {
   isOpen: boolean;
