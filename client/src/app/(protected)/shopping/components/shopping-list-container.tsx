@@ -8,6 +8,7 @@ import {
   ShoppingListSummaryMessage,
 } from '@/lib/messages';
 import {
+  ShoppingListClient,
   ShoppingListTabsViewModel,
   ShoppingListViewModel,
 } from '@/lib/shopping-list';
@@ -16,50 +17,6 @@ import { useToast } from '../../components/toast-provider';
 import ListTabs, { ListPageHeader } from './list-header';
 import ItemsContainer, { ProgressTracker } from './list-items';
 import SummaryFooter from './summary-footer';
-
-type CreateListResponse = {
-  message?: string;
-  shoppingList: ShoppingListMessage;
-  shoppingListSummaries: ShoppingListSummaryMessage[];
-};
-
-async function fetchShoppingList(name?: string): Promise<ShoppingListMessage> {
-  const params = new URLSearchParams();
-  params.set('name', name ?? '');
-  const response = await fetch(`/api/shopping/lists?${params}`, {
-    cache: 'no-store',
-  });
-  if (!response.ok) {
-    throw new Error('Could not load the current shopping list.');
-  }
-
-  return (await response.json()) as ShoppingListMessage;
-}
-
-async function createTemporaryList(): Promise<CreateListResponse> {
-  const response = await fetch('/api/shopping/lists', {
-    method: 'POST',
-  });
-  const body = (await response.json()) as CreateListResponse;
-  if (!response.ok) {
-    throw new Error(body.message ?? 'Could not create a temporary list.');
-  }
-
-  return body;
-}
-
-async function fetchShoppingListSummaries(): Promise<
-  ShoppingListSummaryMessage[]
-> {
-  const response = await fetch('/api/shopping/lists', {
-    cache: 'no-store',
-  });
-  if (!response.ok) {
-    throw new Error('Could not load shopping lists.');
-  }
-
-  return (await response.json()) as ShoppingListSummaryMessage[];
-}
 
 export default function ShoppingListContainer({
   initialSelectedListName,
@@ -81,6 +38,7 @@ export default function ShoppingListContainer({
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const { showToast } = useToast();
+  const client = new ShoppingListClient();
   const viewModel = new ShoppingListViewModel(shoppingList);
   const tabsViewModel = new ShoppingListTabsViewModel(
     shoppingListSummaries,
@@ -92,7 +50,7 @@ export default function ShoppingListContainer({
     setSelectedListName(name);
     setIsLoading(true);
     try {
-      setShoppingList(await fetchShoppingList(name));
+      setShoppingList(await client.getShoppingList(name));
       router.push(
         name ? `/shopping?name=${encodeURIComponent(name)}` : '/shopping?name=',
       );
@@ -112,7 +70,7 @@ export default function ShoppingListContainer({
   async function handleCreateList() {
     setIsCreating(true);
     try {
-      const result = await createTemporaryList();
+      const result = await client.createTemporaryList();
       setShoppingList(result.shoppingList);
       setShoppingListSummaries(result.shoppingListSummaries);
       setSelectedListName(undefined);
@@ -131,8 +89,8 @@ export default function ShoppingListContainer({
       });
       setIsLoading(true);
       try {
-        setShoppingList(await fetchShoppingList(selectedListName));
-        setShoppingListSummaries(await fetchShoppingListSummaries());
+        setShoppingList(await client.getShoppingList(selectedListName));
+        setShoppingListSummaries(await client.getShoppingListSummaries());
       } finally {
         setIsLoading(false);
       }
