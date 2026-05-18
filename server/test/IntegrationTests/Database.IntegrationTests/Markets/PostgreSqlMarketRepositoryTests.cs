@@ -5,7 +5,6 @@ using Metaspesa.Database.Repositories;
 using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.Shopping;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Metaspesa.Database.IntegrationTests.Markets;
 
@@ -18,7 +17,7 @@ public static class PostgreSqlMarketRepositoryTests {
     public GetBrandsAsync(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
-        _context, NullLogger<PostgreSqlMarketRepository>.Instance);
+        _context);
     }
 
     public async ValueTask InitializeAsync() {
@@ -87,7 +86,7 @@ public static class PostgreSqlMarketRepositoryTests {
     public AddBrandsTests(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
-        _context, NullLogger<PostgreSqlMarketRepository>.Instance);
+        _context);
     }
 
     public async ValueTask InitializeAsync() {
@@ -168,7 +167,7 @@ public static class PostgreSqlMarketRepositoryTests {
     public GetMarketsAsync(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
-        _context, NullLogger<PostgreSqlMarketRepository>.Instance);
+        _context);
     }
 
     public async ValueTask InitializeAsync() {
@@ -237,7 +236,7 @@ public static class PostgreSqlMarketRepositoryTests {
     public AddMarketsTests(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
-        _context, NullLogger<PostgreSqlMarketRepository>.Instance);
+        _context);
     }
 
     public async ValueTask InitializeAsync() {
@@ -320,7 +319,7 @@ public static class PostgreSqlMarketRepositoryTests {
     public AddProductsTests(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
-        _context, NullLogger<PostgreSqlMarketRepository>.Instance);
+        _context);
     }
 
     public async ValueTask InitializeAsync() {
@@ -458,7 +457,7 @@ public static class PostgreSqlMarketRepositoryTests {
     public AddMarketProductsReturnsTests(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
-        _context, NullLogger<PostgreSqlMarketRepository>.Instance);
+        _context);
     }
 
     public async ValueTask InitializeAsync() {
@@ -540,7 +539,7 @@ public static class PostgreSqlMarketRepositoryTests {
     public DeleteBrandsTests(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
-        _context, NullLogger<PostgreSqlMarketRepository>.Instance);
+        _context);
     }
 
     public async ValueTask InitializeAsync() {
@@ -605,7 +604,7 @@ public static class PostgreSqlMarketRepositoryTests {
     public DeleteMarketsTests(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
-        _context, NullLogger<PostgreSqlMarketRepository>.Instance);
+        _context);
     }
 
     public async ValueTask InitializeAsync() {
@@ -672,7 +671,7 @@ public static class PostgreSqlMarketRepositoryTests {
     public DeleteProductsTests(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
-        _context, NullLogger<PostgreSqlMarketRepository>.Instance);
+        _context);
     }
 
     public async ValueTask InitializeAsync() {
@@ -768,7 +767,7 @@ public static class PostgreSqlMarketRepositoryTests {
     public GetProductsAsync(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
-        _context, NullLogger<PostgreSqlMarketRepository>.Instance);
+        _context);
     }
 
     public async ValueTask InitializeAsync() {
@@ -1130,7 +1129,7 @@ public static class PostgreSqlMarketRepositoryTests {
     public DeleteProductsHistoryForMarketsTests(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
-        _context, NullLogger<PostgreSqlMarketRepository>.Instance);
+        _context);
     }
 
     public async ValueTask InitializeAsync() {
@@ -1269,7 +1268,7 @@ public static class PostgreSqlMarketRepositoryTests {
     public GetMarketSummariesAsync(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
-        _context, NullLogger<PostgreSqlMarketRepository>.Instance);
+        _context);
     }
 
     public async ValueTask InitializeAsync() {

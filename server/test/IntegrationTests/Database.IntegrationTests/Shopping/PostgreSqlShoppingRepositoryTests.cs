@@ -4,7 +4,6 @@ using Metaspesa.Database.Repositories;
 using Metaspesa.Domain.Shopping;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 
 namespace Metaspesa.Database.IntegrationTests.Shopping;
@@ -29,8 +28,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       IClock _clock = Substitute.For<IClock>();
       _repository = new PostgreSqlShoppingRepository(
         _context,
-        _clock,
-        NullLogger<PostgreSqlShoppingRepository>.Instance);
+        _clock);
       _clock.GetCurrentTime().Returns(DateTime.UtcNow);
     }
 
@@ -269,8 +267,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       IClock _clock = Substitute.For<IClock>();
       _repository = new PostgreSqlShoppingRepository(
         _context,
-        _clock,
-        NullLogger<PostgreSqlShoppingRepository>.Instance);
+        _clock);
       _clock.GetCurrentTime().Returns(DateTime.UtcNow);
     }
 
@@ -428,8 +425,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       IClock _clock = Substitute.For<IClock>();
       _repository = new PostgreSqlShoppingRepository(
         _context,
-        _clock,
-        NullLogger<PostgreSqlShoppingRepository>.Instance);
+        _clock);
       _clock.GetCurrentTime().Returns(DateTime.UtcNow);
     }
 
@@ -559,8 +555,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       IClock _clock = Substitute.For<IClock>();
       _repository = new PostgreSqlShoppingRepository(
         _context,
-        _clock,
-        NullLogger<PostgreSqlShoppingRepository>.Instance);
+        _clock);
       _clock.GetCurrentTime().Returns(DateTime.UtcNow);
     }
 
@@ -625,8 +620,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       IClock _clock = Substitute.For<IClock>();
       _repository = new PostgreSqlShoppingRepository(
         _context,
-        _clock,
-        NullLogger<PostgreSqlShoppingRepository>.Instance);
+        _clock);
       _clock.GetCurrentTime().Returns(DateTime.UtcNow);
     }
 
@@ -726,8 +720,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       IClock _clock = Substitute.For<IClock>();
       _repository = new PostgreSqlShoppingRepository(
         _context,
-        _clock,
-        NullLogger<PostgreSqlShoppingRepository>.Instance);
+        _clock);
       _clock.GetCurrentTime().Returns(DateTime.UtcNow);
     }
 
@@ -845,8 +838,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       IClock _clock = Substitute.For<IClock>();
       _repository = new PostgreSqlShoppingRepository(
         _context,
-        _clock,
-        NullLogger<PostgreSqlShoppingRepository>.Instance);
+        _clock);
       _clock.GetCurrentTime().Returns(DateTime.UtcNow);
     }
 
@@ -966,8 +958,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       IClock _clock = Substitute.For<IClock>();
       _repository = new PostgreSqlShoppingRepository(
         _context,
-        _clock,
-        NullLogger<PostgreSqlShoppingRepository>.Instance);
+        _clock);
       _clock.GetCurrentTime().Returns(DateTime.UtcNow);
     }
 
@@ -1114,8 +1105,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       IClock _clock = Substitute.For<IClock>();
       _repository = new PostgreSqlShoppingRepository(
         _context,
-        _clock,
-        NullLogger<PostgreSqlShoppingRepository>.Instance);
+        _clock);
       _clock.GetCurrentTime().Returns(DateTime.UtcNow);
     }
 
@@ -1195,8 +1185,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       IClock _clock = Substitute.For<IClock>();
       _repository = new PostgreSqlShoppingRepository(
         _context,
-        _clock,
-        NullLogger<PostgreSqlShoppingRepository>.Instance);
+        _clock);
       _clock.GetCurrentTime().Returns(DateTime.UtcNow);
     }
 

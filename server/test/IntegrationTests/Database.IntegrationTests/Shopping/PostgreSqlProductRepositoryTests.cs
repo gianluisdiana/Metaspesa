@@ -2,7 +2,6 @@ using Metaspesa.Database.Entities;
 using Metaspesa.Database.Repositories;
 using Metaspesa.Domain.Shopping;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Metaspesa.Database.IntegrationTests.Shopping;
 
@@ -20,7 +19,7 @@ public static class PostgreSqlProductRepositoryTests {
     public GetRegisteredItemsAsync(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       _repository = new PostgreSqlProductRepository(
-        _context, NullLogger<PostgreSqlProductRepository>.Instance);
+        _context);
     }
 
     public async ValueTask InitializeAsync() {
@@ -147,7 +146,7 @@ public static class PostgreSqlProductRepositoryTests {
     public RegisterItems(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       _repository = new PostgreSqlProductRepository(
-        _context, NullLogger<PostgreSqlProductRepository>.Instance);
+        _context);
     }
 
     public async ValueTask InitializeAsync() {
@@ -250,7 +249,7 @@ public static class PostgreSqlProductRepositoryTests {
     public UpdateRegisteredItems(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       _repository = new PostgreSqlProductRepository(
-        _context, NullLogger<PostgreSqlProductRepository>.Instance);
+        _context);
     }
 
     public async ValueTask InitializeAsync() {

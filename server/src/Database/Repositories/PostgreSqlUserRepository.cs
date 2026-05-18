@@ -2,34 +2,18 @@ using Metaspesa.Application.Abstractions.Users;
 using Metaspesa.Database.Entities;
 using Metaspesa.Domain.Users;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Npgsql;
 
 namespace Metaspesa.Database.Repositories;
 
 internal partial class PostgreSqlUserRepository(
-  MainContext context,
-  ILogger<PostgreSqlUserRepository> logger
+  MainContext context
 ) : IUserRepository {
   public async Task<bool> CheckUsernameExistsAsync(
     string username, CancellationToken cancellationToken = default
-  ) {
-    try {
-      return await context.Users.AnyAsync(
-        u => EF.Functions.ILike(u.Username, username), cancellationToken);
-    } catch (Exception ex) when (
-      ex is NpgsqlException or OperationCanceledException ||
-      ex.InnerException is NpgsqlException
-    ) {
-      LogErrorCheckingUsernameExists(username, ex);
-      return true;
-    }
-  }
-
-  [LoggerMessage(
-    LogLevel.Error,
-    "Error checking if username '{Username}' exists")]
-  partial void LogErrorCheckingUsernameExists(string username, Exception ex);
+  ) => await PostgreSqlExceptionMapper.MapAsync(
+    async () => await context.Users.AnyAsync(
+      u => EF.Functions.ILike(u.Username, username), cancellationToken),
+    "Couldn't check if username exists.");
 
   public void SaveUser(User user) {
     context.Users.Add(new UserDbEntity {
@@ -42,31 +26,18 @@ internal partial class PostgreSqlUserRepository(
 
   public async Task<User?> GetUserByUsernameAsync(
     string username, CancellationToken cancellationToken = default
-  ) {
-    try {
-      UserDbEntity? entity = await context.Users
-        .Include(u => u.Role)
-        .FirstOrDefaultAsync(
-          u => EF.Functions.ILike(u.Username, username), cancellationToken);
+  ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
+    UserDbEntity? entity = await context.Users
+      .Include(u => u.Role)
+      .FirstOrDefaultAsync(
+        u => EF.Functions.ILike(u.Username, username), cancellationToken);
 
-      if (entity is null) {
-        return null;
-      }
-
-      return Enum.TryParse(entity.Role.Name, out Role role)
-        ? new User(entity.Uid, entity.Username, entity.EncryptedPassword, role)
-        : null;
-    } catch (Exception ex) when (
-      ex is NpgsqlException or OperationCanceledException ||
-      ex.InnerException is NpgsqlException
-    ) {
-      LogErrorGettingUserByUsername(username, ex);
+    if (entity is null) {
       return null;
     }
-  }
 
-  [LoggerMessage(
-    LogLevel.Error,
-    "Error getting user by username '{Username}'")]
-  partial void LogErrorGettingUserByUsername(string username, Exception ex);
+    return Enum.TryParse(entity.Role.Name, out Role role)
+      ? new User(entity.Uid, entity.Username, entity.EncryptedPassword, role)
+      : null;
+  }, "Couldn't get user by username.");
 }

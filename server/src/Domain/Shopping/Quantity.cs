@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace Metaspesa.Domain.Shopping;
 
-public sealed record Quantity {
+public record Quantity {
   public const int MaximumLength = 50;
 
   public string Value { get; }

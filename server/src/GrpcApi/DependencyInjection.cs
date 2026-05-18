@@ -1,13 +1,14 @@
 using System.Threading.RateLimiting;
 using Grpc.Core;
 using Metaspesa.GrpcApi.Extensions;
+using Metaspesa.GrpcApi.Interceptors;
 using Metaspesa.GrpcApi.Services;
 
 namespace Metaspesa.GrpcApi;
 
 internal static class ServiceCollectionExtensions {
   public static IServiceCollection AddGrpcApi(this IServiceCollection services) {
-    services.AddGrpc();
+    services.AddGrpc(options => options.Interceptors.Add<ExceptionInterceptor>());
     services.AddGrpcReflection();
 
     services.AddRateLimiter(options => {

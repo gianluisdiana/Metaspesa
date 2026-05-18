@@ -4,193 +4,115 @@ using Metaspesa.Database.Entities;
 using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.Shopping;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Npgsql;
 
 namespace Metaspesa.Database.Repositories;
 
 internal partial class PostgreSqlMarketRepository(
-  MainContext context,
-  ILogger<PostgreSqlMarketRepository> logger
+  MainContext context
 ) : IMarketRepository {
   public async Task<List<MarketSummary>> GetMarketSummariesAsync(
     CancellationToken cancellationToken
-  ) {
-    try {
-      List<MarketSummary> marketSummaries = await context.SuperMarkets
-        .Select(m => new MarketSummary(
-          m.Name,
-          m.LogoUrl == null ? null : new Uri(m.LogoUrl)
-        ))
-        .ToListAsync(cancellationToken);
-
-      return marketSummaries;
-    } catch (Exception ex) when (
-      ex is NpgsqlException or OperationCanceledException ||
-      ex.InnerException is NpgsqlException
-    ) {
-      LogErrorGettingMarketSummaries(ex);
-      return [];
-    }
-  }
-
-  [LoggerMessage(LogLevel.Error, "Couldn't get market summaries")]
-  partial void LogErrorGettingMarketSummaries(Exception ex);
+  ) => await PostgreSqlExceptionMapper.MapAsync(
+    async () => await context.SuperMarkets
+      .Select(m => new MarketSummary(
+        m.Name,
+        m.LogoUrl == null ? null : new Uri(m.LogoUrl)
+      ))
+      .ToListAsync(cancellationToken),
+    "Couldn't get market summaries.");
 
   public async Task<PagedResult<Market>> GetProductsAsync(
     GetMarketProductsFilter filter, CancellationToken cancellationToken
-  ) {
-    try {
-      IQueryable<ProductDbEntity> baseQuery = context.Products
-        .Include(p => p.Brand)
-        .Include(p => p.SuperMarket)
-        .Where(p => p.History.Any());
+  ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
+    IQueryable<ProductDbEntity> baseQuery = context.Products
+      .Include(p => p.Brand)
+      .Include(p => p.SuperMarket)
+      .Where(p => p.History.Any());
 
-      if (filter.MarketName is not null) {
-        baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.SuperMarket.Name, filter.MarketName));
-      }
-      if (filter.BrandNameSegment is not null) {
-        baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.Brand.Name, $"%{filter.BrandNameSegment}%"));
-      }
-      if (filter.NameSegment is not null) {
-        baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.Name, $"%{filter.NameSegment}%"));
-      }
-
-      int totalCount = await baseQuery.CountAsync(cancellationToken);
-
-      IQueryable<ProductDbEntity> orderedQuery = baseQuery
-        .Include(p => p.History)
-        .OrderBy(p => p.SuperMarket.Name).ThenBy(p => p.Name);
-
-      bool isInfinite = filter.Pagination is null || filter.Pagination.IsInfinite;
-
-      List<ProductDbEntity> entities = isInfinite
-        ? await orderedQuery.ToListAsync(cancellationToken)
-        : await orderedQuery
-            .Skip(filter.Pagination!.Skip)
-            .Take(filter.Pagination.Size)
-            .ToListAsync(cancellationToken);
-
-      IReadOnlyCollection<Market> markets = [..entities
-        .GroupBy(p => p.SuperMarket.Name)
-        .Select(g => new Market(
-          g.Key,
-          [..g.Select(p => {
-            DateTime latest = p.History.Max(h => h.CreatedAt);
-            return new MarketProduct(
-              Name: p.Name,
-              Brand: new ProductBrand(p.Brand.Name),
-              Formats: [..p.History
-                .Where(h => h.CreatedAt == latest)
-                .Select(h => new ProductFormat(
-                  Quantity: h.Quantity,
-                  Price: new Price(h.Price),
-                  ImageUrl: h.ImageUrl is null ? null : new Uri(h.ImageUrl, UriKind.Absolute)
-                ))]);
-          })]
-        ))];
-
-      return new PagedResult<Market>(markets, totalCount);
-    } catch (Exception ex) when (
-      ex is NpgsqlException or OperationCanceledException ||
-      ex.InnerException is NpgsqlException
-    ) {
-      LogErrorGettingProducts(ex);
-      return new PagedResult<Market>([], 0);
+    if (filter.MarketName is not null) {
+      baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.SuperMarket.Name, filter.MarketName));
     }
-  }
+    if (filter.BrandNameSegment is not null) {
+      baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.Brand.Name, $"%{filter.BrandNameSegment}%"));
+    }
+    if (filter.NameSegment is not null) {
+      baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.Name, $"%{filter.NameSegment}%"));
+    }
 
-  [LoggerMessage(LogLevel.Error, "Couldn't get market products")]
-  partial void LogErrorGettingProducts(Exception ex);
+    int totalCount = await baseQuery.CountAsync(cancellationToken);
+
+    IQueryable<ProductDbEntity> orderedQuery = baseQuery
+      .Include(p => p.History)
+      .OrderBy(p => p.SuperMarket.Name).ThenBy(p => p.Name);
+
+    bool isInfinite = filter.Pagination is null || filter.Pagination.IsInfinite;
+
+    List<ProductDbEntity> entities = isInfinite
+      ? await orderedQuery.ToListAsync(cancellationToken)
+      : await orderedQuery
+          .Skip(filter.Pagination!.Skip)
+          .Take(filter.Pagination.Size)
+          .ToListAsync(cancellationToken);
+
+    IReadOnlyCollection<Market> markets = [..entities
+      .GroupBy(p => p.SuperMarket.Name)
+      .Select(g => new Market(
+        g.Key,
+        [..g.Select(p => {
+          DateTime latest = p.History.Max(h => h.CreatedAt);
+          return new MarketProduct(
+            Name: p.Name,
+            Brand: new ProductBrand(p.Brand.Name),
+            Formats: [..p.History
+              .Where(h => h.CreatedAt == latest)
+              .Select(h => new ProductFormat(
+                Quantity: h.Quantity,
+                Price: new Price(h.Price),
+                ImageUrl: h.ImageUrl is null ? null : new Uri(h.ImageUrl, UriKind.Absolute)
+              ))]);
+        })]
+      ))];
+
+    return new PagedResult<Market>(markets, totalCount);
+  }, "Couldn't get market products.");
 
   public async Task<List<Market>> GetMarketsAsync(
     CancellationToken cancellationToken
-  ) {
-    try {
-      List<Market> existing = await context.SuperMarkets
-        .Select(m => new Market(m.Name, new List<MarketProduct>()))
-        .ToListAsync(cancellationToken);
-      return existing;
-    } catch (Exception ex) when (
-      ex is NpgsqlException or OperationCanceledException ||
-      ex.InnerException is NpgsqlException
-    ) {
-      LogErrorGettingMarkets(ex);
-      return [];
-    }
-  }
-
-  [LoggerMessage(
-    LogLevel.Error,
-    "Couldn't get markets")]
-  partial void LogErrorGettingMarkets(Exception ex);
+  ) => await PostgreSqlExceptionMapper.MapAsync(
+    async () => await context.SuperMarkets
+      .Select(m => new Market(m.Name, new List<MarketProduct>()))
+      .ToListAsync(cancellationToken),
+    "Couldn't get markets.");
 
   public async Task AddMarketsAsync(
     IReadOnlyCollection<Market> markets, CancellationToken cancellationToken
-  ) {
-    try {
-      context.SuperMarkets.AddRange(
-        markets.Select(m => new SuperMarketDbEntity { Name = m.Name }));
-      await context.SaveChangesAsync(cancellationToken);
-    } catch (Exception ex) when (
-      ex is NpgsqlException or OperationCanceledException ||
-      ex.InnerException is NpgsqlException
-    ) {
-      LogErrorAddingMarkets(string.Join(", ", markets.Select(m => m.Name)), ex);
-    }
-  }
-
-  [LoggerMessage(
-    LogLevel.Error,
-    "Couldn't add markets {MarketNames}")]
-  partial void LogErrorAddingMarkets(string marketNames, Exception ex);
+  ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
+    context.SuperMarkets.AddRange(
+      markets.Select(m => new SuperMarketDbEntity { Name = m.Name }));
+    await context.SaveChangesAsync(cancellationToken);
+  }, "Couldn't add markets.");
 
   public async Task<List<ProductBrand>> GetBrandsAsync(
     CancellationToken cancellationToken
-  ) {
-    try {
-      return await context.ProductBrands
-        .Select(b => new ProductBrand(b.Name))
-        .ToListAsync(cancellationToken);
-    } catch (Exception ex) when (
-      ex is NpgsqlException or OperationCanceledException ||
-      ex.InnerException is NpgsqlException
-    ) {
-      LogErrorGettingBrands(ex);
-      return [];
-    }
-  }
-
-  [LoggerMessage(
-    LogLevel.Error,
-    "Couldn't get brands")]
-  partial void LogErrorGettingBrands(Exception ex);
+  ) => await PostgreSqlExceptionMapper.MapAsync(
+    async () => await context.ProductBrands
+      .Select(b => new ProductBrand(b.Name))
+      .ToListAsync(cancellationToken),
+    "Couldn't get brands.");
 
   public async Task AddBrandsAsync(
     IReadOnlyCollection<ProductBrand> brands, CancellationToken cancellationToken
-  ) {
-    try {
-      context.ProductBrands.AddRange(
-        brands.Select(b => new ProductBrandDbEntity { Name = b.Name }));
-      await context.SaveChangesAsync(cancellationToken);
-    } catch (Exception ex) when (
-      ex is NpgsqlException or OperationCanceledException ||
-      ex.InnerException is NpgsqlException
-    ) {
-      LogErrorAddingBrands(string.Join(", ", brands.Select(b => b.Name)), ex);
-    }
-  }
-
-  [LoggerMessage(
-    LogLevel.Error,
-    "Couldn't add brands {BrandNames}")]
-  partial void LogErrorAddingBrands(string brandNames, Exception ex);
+  ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
+    context.ProductBrands.AddRange(
+      brands.Select(b => new ProductBrandDbEntity { Name = b.Name }));
+    await context.SaveChangesAsync(cancellationToken);
+  }, "Couldn't add brands.");
 
   public async Task<IReadOnlyCollection<int>> AddMarketProductsAsync(
     Market market,
     DateOnly registeredAt,
     CancellationToken cancellationToken
-  ) {
+  ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
     context.ChangeTracker.AutoDetectChangesEnabled = false;
     context.ChangeTracker.Clear();
 
@@ -269,21 +191,21 @@ internal partial class PostgreSqlMarketRepository(
     }
 
     return addedProductIds;
-  }
+  }, "Couldn't add market products.");
 
   public async Task DeleteProductsAsync(
     IReadOnlyCollection<int> productIds, CancellationToken cancellationToken
-  ) {
+  ) => await PostgreSqlExceptionMapper.MapAsync(async () =>
     await context.Products
       .Where(p => productIds.Contains(p.Id))
-      .ExecuteDeleteAsync(cancellationToken);
-  }
+      .ExecuteDeleteAsync(cancellationToken),
+    "Couldn't delete products.");
 
   public async Task DeleteProductsHistoryForMarketsAsync(
     IReadOnlyCollection<string> marketNames,
     DateOnly registeredAt,
     CancellationToken cancellationToken
-  ) {
+  ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
     var date = registeredAt.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
     IQueryable<ProductsHistoryDbEntity> productsHistoryDbEntities =
@@ -298,26 +220,21 @@ internal partial class PostgreSqlMarketRepository(
 
     await productsHistoryDbEntities
       .ExecuteDeleteAsync(cancellationToken);
-  }
+  }, "Couldn't delete product history.");
 
   public async Task DeleteMarketsAsync(
     IReadOnlyCollection<string> marketNames, CancellationToken cancellationToken
-  ) {
+  ) => await PostgreSqlExceptionMapper.MapAsync(async () =>
     await context.SuperMarkets
       .Where(m => marketNames.Contains(m.Name))
-      .ExecuteDeleteAsync(cancellationToken);
-  }
+      .ExecuteDeleteAsync(cancellationToken),
+    "Couldn't delete markets.");
 
   public async Task DeleteBrandsAsync(
     IReadOnlyCollection<string> brandNames, CancellationToken cancellationToken
-  ) {
+  ) => await PostgreSqlExceptionMapper.MapAsync(async () =>
     await context.ProductBrands
       .Where(b => brandNames.Contains(b.Name))
-      .ExecuteDeleteAsync(cancellationToken);
-  }
-
-  [LoggerMessage(
-    LogLevel.Error,
-    "Couldn't add products {ProductNames}")]
-  partial void LogErrorAddingProducts(string productNames, Exception ex);
+      .ExecuteDeleteAsync(cancellationToken),
+    "Couldn't delete brands.");
 }

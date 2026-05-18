@@ -2,7 +2,6 @@ using Metaspesa.Database.Entities;
 using Metaspesa.Database.Repositories;
 using Metaspesa.Domain.Users;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Metaspesa.Database.IntegrationTests.Users;
 
@@ -20,7 +19,7 @@ public static class PostgreSqlUserRepositoryTests {
     public CheckUsernameExistsAsync(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       _repository = new PostgreSqlUserRepository(
-        _context, NullLogger<PostgreSqlUserRepository>.Instance);
+        _context);
     }
 
     public async ValueTask InitializeAsync() {
@@ -92,7 +91,7 @@ public static class PostgreSqlUserRepositoryTests {
     public SaveUser(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       _repository = new PostgreSqlUserRepository(
-        _context, NullLogger<PostgreSqlUserRepository>.Instance);
+        _context);
     }
 
     public async ValueTask InitializeAsync() {
@@ -186,7 +185,7 @@ public static class PostgreSqlUserRepositoryTests {
     public GetUserByUsernameAsync(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       _repository = new PostgreSqlUserRepository(
-        _context, NullLogger<PostgreSqlUserRepository>.Instance);
+        _context);
     }
 
     public async ValueTask InitializeAsync() {

@@ -1,5 +1,6 @@
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Database.Entities;
+using Metaspesa.Database.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace Metaspesa.Database;
@@ -22,4 +23,10 @@ internal class MainContext(
   protected override void OnModelCreating(ModelBuilder modelBuilder) {
     modelBuilder.ApplyConfigurationsFromAssembly(typeof(MainContext).Assembly);
   }
+
+  public override async Task<int> SaveChangesAsync(
+    CancellationToken cancellationToken = default
+  ) => await PostgreSqlExceptionMapper.MapAsync(
+    async () => await base.SaveChangesAsync(cancellationToken),
+    "Couldn't save database changes.");
 }
