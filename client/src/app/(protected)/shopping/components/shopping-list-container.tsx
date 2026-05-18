@@ -10,7 +10,7 @@ import {
 import {
   ShoppingListTabsViewModel,
   ShoppingListViewModel,
-} from '@/lib/shopping-list-view-model';
+} from '@/lib/shopping-list';
 
 import { useToast } from '../../components/toast-provider';
 import ListTabs, { ListPageHeader } from './list-header';

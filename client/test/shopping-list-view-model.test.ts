@@ -5,7 +5,7 @@ import {
   ShoppingListTabsViewModel,
   ShoppingListViewModel,
   ShoppingPriceViewModel,
-} from '@/lib/shopping-list-view-model';
+} from '@/lib/shopping-list';
 
 describe('ShoppingPriceViewModel', () => {
   it('formats missing prices as a placeholder', () => {

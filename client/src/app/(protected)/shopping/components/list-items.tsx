@@ -5,7 +5,7 @@ import {
   ShoppingItemSectionViewModel,
   ShoppingProgressViewModel,
   UncheckedShoppingItemViewModel,
-} from '@/lib/shopping-list-view-model';
+} from '@/lib/shopping-list';
 
 function ItemBadge({
   colorClass,

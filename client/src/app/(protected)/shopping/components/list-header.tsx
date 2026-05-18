@@ -1,4 +1,4 @@
-import { ShoppingListTabViewModel } from '@/lib/shopping-list-view-model';
+import { ShoppingListTabViewModel } from '@/lib/shopping-list';
 
 type ListPageHeaderProps = {
   itemCountLabel: string;
