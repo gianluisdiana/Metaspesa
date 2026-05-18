@@ -83,8 +83,8 @@ class ScrapeMarketsCommandHandler:
         await scraper.set_location(postal_code)
         categories = await scraper.get_categories()
         products: list[Product] = []
-        for category in categories[:1]:
+        for category in categories:
             subcategories = await scraper.get_subcategories(category)
-            for subcategory in subcategories[:1]:
+            for subcategory in subcategories:
                 products += await scraper.scrape_subcategory(subcategory)
         return products

@@ -97,7 +97,7 @@ def test_maps_product_price_to_add_products_request():
     product = mapped_request().products[0]
 
     # Assert
-    assert abs(product.price - 1.99) < 0.001
+    assert product.price == "1.99"
 
 
 def test_maps_product_quantity_to_add_products_request():
