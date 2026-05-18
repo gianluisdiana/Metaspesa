@@ -1,5 +1,9 @@
 import ApiService from '@/lib/api-service';
-import { Product, ShoppingList } from '@/lib/domain';
+import {
+  ProductMessage,
+  ShoppingListMessage,
+  ShoppingListSummaryMessage,
+} from '@/lib/messages';
 
 export default class FakeApiService implements ApiService {
   async createShoppingList(name?: string): Promise<void> {
@@ -7,7 +11,7 @@ export default class FakeApiService implements ApiService {
     console.log(`Shopping list "${name ?? 'temporary'}" created.`);
   }
 
-  async recordShoppingList(shoppingList: ShoppingList): Promise<void> {
+  async recordShoppingList(shoppingList: ShoppingListMessage): Promise<void> {
     await Promise.resolve();
     console.log(
       `Shopping list "${shoppingList.name}" recorded:`,
@@ -15,30 +19,53 @@ export default class FakeApiService implements ApiService {
     );
   }
 
-  getShoppingList(name?: string): Promise<ShoppingList> {
-    return Promise.resolve(
-      new ShoppingList(
-        [
-          new Product('Naranjas', '1 paquete', 2),
-          // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-          new Product('Pan dulce', undefined, 1.5, true),
-          new Product('Leche entera', '1 litro'),
-        ],
-        name,
-      ),
-    );
+  getShoppingList(name?: string): Promise<ShoppingListMessage> {
+    return Promise.resolve({
+      name,
+      products: [
+        {
+          checked: true,
+          name: 'Naranjas',
+          price: 2,
+          quantity: '1 paquete',
+        },
+        {
+          checked: true,
+          name: 'Pan dulce',
+          price: 1.5,
+        },
+        {
+          checked: true,
+          name: 'Leche entera',
+          quantity: '1 litro',
+        },
+      ],
+    });
   }
 
-  getShoppingListSummaries(): Promise<{ name?: string }[]> {
+  getShoppingListSummaries(): Promise<ShoppingListSummaryMessage[]> {
     return Promise.resolve([{ name: undefined }, { name: 'Groceries' }]);
   }
 
-  getRegisteredProducts(): Promise<Product[]> {
+  getRegisteredProducts(): Promise<ProductMessage[]> {
     return Promise.resolve([
-      new Product('Manzanas', '1 paquete', 2),
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-      new Product('Pan', '2 barras', 1.5),
-      new Product('Leche', '1 litro'),
+      {
+        checked: true,
+        name: 'Manzanas',
+        price: 2,
+        quantity: '1 paquete',
+      },
+      {
+        checked: true,
+        name: 'Pan',
+        price: 1.5,
+        quantity: '2 barras',
+      },
+      {
+        checked: true,
+        name: 'Leche',
+        quantity: '1 litro',
+      },
     ]);
   }
 }
