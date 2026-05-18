@@ -72,7 +72,7 @@ class GrpcProductRepository(ProductRepository):
     def __build_request(  # type: ignore
         self, market_name: str, date: date, products: list[Product]
     ) -> market_service_pb2.AddProductsRequest:  # type: ignore
-        return self.__request_mapper.to_request(market_name, date, products)
+        return self.__request_mapper.to_request(market_name, date, products)  # type: ignore
 
     async def __ensure_authenticated(self) -> None:
         try:
@@ -113,7 +113,7 @@ class AddProductsRequestMapper:
             products=[
                 domain_pb2.Product(  # type: ignore
                     name=p.name,
-                    price=p.price,
+                    price=f"{p.price}",
                     quantity=p.quantity,
                     market_name=market_name,
                     brand_name=p.brand,

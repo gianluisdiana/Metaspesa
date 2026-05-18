@@ -109,7 +109,7 @@ function mapMarket(market: Market__Output): MarketMessage {
         formats:
           p.formats?.map(f => ({
             imageUrl: f.imageUrl || null,
-            price: f.price,
+            price: Number(f.price),
             quantity: f.quantity,
           })) ?? [],
         name: p.name,

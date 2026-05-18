@@ -132,7 +132,7 @@ export default class GrpcApiService implements ApiService {
             response!.items?.map(item => ({
               checked: item.checked ?? false,
               name: item.name,
-              price: item.price,
+              price: Number(item.price),
               quantity: item.quantity,
             })) ?? [],
           );
@@ -158,7 +158,7 @@ export default class GrpcApiService implements ApiService {
         price:
           itemProto.price === undefined
             ? undefined
-            : Math.round(itemProto.price * factor) / factor,
+            : Math.round(Number(itemProto.price) * factor) / factor,
         quantity: itemProto.quantity,
       })) ?? [];
     return {
