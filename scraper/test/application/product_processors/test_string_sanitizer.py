@@ -88,7 +88,7 @@ def test_string_sanitizer_removes_non_ascii_from_image_url():
     assert result.image_url == "https://example.com/cafe.png"
 
 
-def test_string_sanitizer_runs_before_next_processor():
+def test_string_sanitizer_sends_product_to_next_processor():
     # Arrange
     class CapturingProcessor(ProductProcessor):
         def __init__(self):
@@ -114,5 +114,59 @@ def test_string_sanitizer_runs_before_next_processor():
 
     # Assert
     assert next_processor.received_product is not None
+
+
+def test_string_sanitizer_sanitizes_name_before_next_processor():
+    # Arrange
+    class CapturingProcessor(ProductProcessor):
+        def __init__(self):
+            super().__init__()
+            self.received_product: Product | None = None
+
+        def _process(self, product: Product) -> Product:
+            self.received_product = product
+            return product
+
+    sanitizer = StringSanitizer()
+    next_processor = CapturingProcessor()
+    sanitizer.next(next_processor)
+    product = Product(
+        name="Café ☕",
+        price=1.0,
+        quantity="500 g ✓",
+        image_url="https://example.com/product.png",
+    )
+
+    # Act
+    sanitizer.process(product)
+
+    # Assert
     assert next_processor.received_product.name == "Cafe "
+
+
+def test_string_sanitizer_sanitizes_quantity_before_next_processor():
+    # Arrange
+    class CapturingProcessor(ProductProcessor):
+        def __init__(self):
+            super().__init__()
+            self.received_product: Product | None = None
+
+        def _process(self, product: Product) -> Product:
+            self.received_product = product
+            return product
+
+    sanitizer = StringSanitizer()
+    next_processor = CapturingProcessor()
+    sanitizer.next(next_processor)
+    product = Product(
+        name="Café ☕",
+        price=1.0,
+        quantity="500 g ✓",
+        image_url="https://example.com/product.png",
+    )
+
+    # Act
+    sanitizer.process(product)
+
+    # Assert
     assert next_processor.received_product.quantity == "500 g "

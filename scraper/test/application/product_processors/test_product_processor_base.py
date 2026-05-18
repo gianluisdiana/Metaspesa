@@ -29,7 +29,7 @@ def test_processor_processes_product():
     assert processor.has_processed_products
 
 
-def test_chain_of_responsibility_processes_in_sequence():
+def test_chain_of_responsibility_processes_first_processor():
     # Arrange
     p1 = SpyProcessor()
     p2 = SpyProcessor()
@@ -46,7 +46,27 @@ def test_chain_of_responsibility_processes_in_sequence():
     p1.process(product)
 
     # Assert
-    assert p1.has_processed_products and p2.has_processed_products
+    assert p1.has_processed_products
+
+
+def test_chain_of_responsibility_processes_next_processor():
+    # Arrange
+    p1 = SpyProcessor()
+    p2 = SpyProcessor()
+    p1.next(p2)
+
+    product = Product(
+        name="apple",
+        price=1.0,
+        quantity="1 kg",
+        image_url="https://example.com/product.png",
+    )
+
+    # Act
+    p1.process(product)
+
+    # Assert
+    assert p2.has_processed_products
 
 
 def test_chain_of_responsibility_returns_final_product():

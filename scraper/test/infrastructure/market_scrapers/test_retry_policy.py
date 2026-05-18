@@ -8,7 +8,7 @@ from infrastructure.market_scrapers.resilience import (
 )
 
 
-async def test_retries_recoverable_failures():
+async def test_returns_result_after_recoverable_failures():
     # Arrange
     logger = logging.getLogger("test_retry_policy")
     call_count = 0
@@ -29,6 +29,28 @@ async def test_retries_recoverable_failures():
 
     # Assert
     assert result == "success"
+
+
+async def test_retries_until_recoverable_failure_succeeds():
+    # Arrange
+    logger = logging.getLogger("test_retry_policy")
+    call_count = 0
+
+    async def operation() -> str:
+        nonlocal call_count
+        call_count += 1
+        if call_count < 3:
+            raise MissingProductAttributeError("name")
+        return "success"
+
+    # Act
+    await RetryPolicy(attempts=3).run(
+        operation,
+        description="operation",
+        logger=logger,
+    )
+
+    # Assert
     assert call_count == 3
 
 

@@ -2,6 +2,7 @@ import logging
 from datetime import date
 from typing import override
 
+import pytest
 from conftest import (
     DummyFallbackRepository,
     DummyProductRepository,
@@ -246,12 +247,11 @@ async def test_raises_if_no_market_scrapers_are_configured():
     handler = make_handler(market_web_scrapers={})
 
     # Act / Assert
-    try:
+    with pytest.raises(
+        MissingMarketWebScrapersError,
+        match="At least one market web scraper must be configured.",
+    ):
         await handler.handle("12345")
-    except MissingMarketWebScrapersError as ex:
-        assert str(ex) == "At least one market web scraper must be configured."
-    else:
-        assert False
 
 
 async def test_saves_only_not_repeated_products_to_main_repository():
@@ -324,6 +324,30 @@ async def test_saves_to_fallback_if_main_raises():
 
     # Assert
     assert len(fallback.save_calls) == 1
+
+
+async def test_saves_products_to_fallback_if_main_raises():
+    # Arrange
+    products = [
+        Product(
+            name="product1",
+            price=1.0,
+            quantity="1 unit",
+            image_url="https://example.com/product.png",
+        )
+    ]
+    scraper = FakeMarketWebScraper(products)
+    fallback = SpyFallbackRepository()
+    handler = make_handler(
+        main_repository=FailingProductRepository(),
+        fallback_repository=fallback,
+        market_web_scrapers={"Market": scraper},
+    )
+
+    # Act
+    await handler.handle("12345")
+
+    # Assert
     assert fallback.save_calls[0][2] == products
 
 
@@ -354,4 +378,32 @@ async def test_saves_only_not_repeated_products_to_fallback_if_main_raises():
 
     # Assert
     assert len(fallback.save_calls) == 1
+
+
+async def test_saves_only_unique_products_to_fallback_if_main_raises():
+    # Arrange
+    repeated_product = Product(
+        name="product1",
+        price=1.0,
+        quantity="1 unit",
+        image_url="https://example.com/product.png",
+    )
+    unique_product = Product(
+        name="product2",
+        price=2.0,
+        quantity="1 unit",
+        image_url="https://example.com/product.png",
+    )
+    scraper = FakeMarketWebScraper([repeated_product, unique_product, repeated_product])
+    fallback = SpyFallbackRepository()
+    handler = make_handler(
+        main_repository=FailingProductRepository(),
+        fallback_repository=fallback,
+        market_web_scrapers={"Market": scraper},
+    )
+
+    # Act
+    await handler.handle("12345")
+
+    # Assert
     assert fallback.save_calls[0][2] == [repeated_product, unique_product]

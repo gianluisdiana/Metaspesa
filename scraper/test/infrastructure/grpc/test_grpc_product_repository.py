@@ -67,23 +67,76 @@ def authorization(metadata) -> str:
     return metadata.get("authorization")
 
 
-def test_maps_products_to_add_products_request():
+def mapped_request():
     # Arrange
     mapper = AddProductsRequestMapper()
     registered_at = date(2026, 5, 18)
 
     # Act
-    request = mapper.to_request("Market", registered_at, [branded_product()])
+    return mapper.to_request("Market", registered_at, [branded_product()])
+
+
+def test_maps_one_product_to_add_products_request():
+    # Arrange / Act
+    request = mapped_request()
 
     # Assert
     assert len(request.products) == 1
-    product = request.products[0]
+
+
+def test_maps_product_name_to_add_products_request():
+    # Arrange / Act
+    product = mapped_request().products[0]
+
+    # Assert
     assert product.name == "Product"
+
+
+def test_maps_product_price_to_add_products_request():
+    # Arrange / Act
+    product = mapped_request().products[0]
+
+    # Assert
     assert abs(product.price - 1.99) < 0.001
+
+
+def test_maps_product_quantity_to_add_products_request():
+    # Arrange / Act
+    product = mapped_request().products[0]
+
+    # Assert
     assert product.quantity == "500g"
+
+
+def test_maps_market_name_to_add_products_request():
+    # Arrange / Act
+    product = mapped_request().products[0]
+
+    # Assert
     assert product.market_name == "Market"
+
+
+def test_maps_product_brand_to_add_products_request():
+    # Arrange / Act
+    product = mapped_request().products[0]
+
+    # Assert
     assert product.brand_name == "Brand"
+
+
+def test_maps_product_image_url_to_add_products_request():
+    # Arrange / Act
+    product = mapped_request().products[0]
+
+    # Assert
     assert product.image_url == "https://example.com/product.png"
+
+
+def test_maps_registered_at_to_add_products_request():
+    # Arrange / Act
+    request = mapped_request()
+
+    # Assert
     assert request.registered_at.ToDatetime(tzinfo=UTC) == datetime(
         2026, 5, 18, tzinfo=UTC
     )
@@ -102,7 +155,7 @@ def test_filters_products_without_brand_from_request():
     assert [product.name for product in request.products] == ["Product"]
 
 
-async def test_authenticates_before_save():
+async def test_authenticates_once_before_save():
     # Arrange
     market_stub = FakeMarketStub()
     auth_stub = FakeAuthStub()
@@ -113,13 +166,49 @@ async def test_authenticates_before_save():
 
     # Assert
     assert len(auth_stub.login_requests) == 1
+
+
+async def test_authenticates_with_username_before_save():
+    # Arrange
+    market_stub = FakeMarketStub()
+    auth_stub = FakeAuthStub()
+    repository = make_repository(market_stub, auth_stub)
+
+    # Act
+    await repository.save("Market", date(2026, 5, 18), [branded_product()])
+
+    # Assert
     assert auth_stub.login_requests[0].username == "scraper"
+
+
+async def test_authenticates_with_password_before_save():
+    # Arrange
+    market_stub = FakeMarketStub()
+    auth_stub = FakeAuthStub()
+    repository = make_repository(market_stub, auth_stub)
+
+    # Act
+    await repository.save("Market", date(2026, 5, 18), [branded_product()])
+
+    # Assert
     assert auth_stub.login_requests[0].password == "password"
+
+
+async def test_sends_authorization_metadata_after_authentication():
+    # Arrange
+    market_stub = FakeMarketStub()
+    auth_stub = FakeAuthStub()
+    repository = make_repository(market_stub, auth_stub)
+
+    # Act
+    await repository.save("Market", date(2026, 5, 18), [branded_product()])
+
+    # Assert
     _, metadata = market_stub.add_products_calls[0]
     assert authorization(metadata) == "Bearer token-1"
 
 
-async def test_reuses_valid_token():
+async def test_reuses_valid_token_without_logging_in_again():
     # Arrange
     market_stub = FakeMarketStub()
     auth_stub = FakeAuthStub()
@@ -131,10 +220,23 @@ async def test_reuses_valid_token():
 
     # Assert
     assert len(auth_stub.login_requests) == 1
+
+
+async def test_saves_both_requests_when_reusing_valid_token():
+    # Arrange
+    market_stub = FakeMarketStub()
+    auth_stub = FakeAuthStub()
+    repository = make_repository(market_stub, auth_stub)
+
+    # Act
+    await repository.save("Market", date(2026, 5, 18), [branded_product("Product 1")])
+    await repository.save("Market", date(2026, 5, 19), [branded_product("Product 2")])
+
+    # Assert
     assert len(market_stub.add_products_calls) == 2
 
 
-async def test_refreshes_expired_token():
+async def test_refreshes_expired_token_by_logging_in_again():
     # Arrange
     market_stub = FakeMarketStub()
     auth_stub = FakeAuthStub(
@@ -151,7 +253,43 @@ async def test_refreshes_expired_token():
 
     # Assert
     assert len(auth_stub.login_requests) == 2
+
+
+async def test_uses_first_token_for_first_save_when_token_expires():
+    # Arrange
+    market_stub = FakeMarketStub()
+    auth_stub = FakeAuthStub(
+        [
+            datetime.now(UTC) - timedelta(minutes=1),
+            datetime.now(UTC) + timedelta(hours=1),
+        ]
+    )
+    repository = make_repository(market_stub, auth_stub)
+
+    # Act
+    await repository.save("Market", date(2026, 5, 18), [branded_product("Product 1")])
+    await repository.save("Market", date(2026, 5, 19), [branded_product("Product 2")])
+
+    # Assert
     _, first_metadata = market_stub.add_products_calls[0]
-    _, second_metadata = market_stub.add_products_calls[1]
     assert authorization(first_metadata) == "Bearer token-1"
+
+
+async def test_uses_refreshed_token_for_second_save_when_token_expires():
+    # Arrange
+    market_stub = FakeMarketStub()
+    auth_stub = FakeAuthStub(
+        [
+            datetime.now(UTC) - timedelta(minutes=1),
+            datetime.now(UTC) + timedelta(hours=1),
+        ]
+    )
+    repository = make_repository(market_stub, auth_stub)
+
+    # Act
+    await repository.save("Market", date(2026, 5, 18), [branded_product("Product 1")])
+    await repository.save("Market", date(2026, 5, 19), [branded_product("Product 2")])
+
+    # Assert
+    _, second_metadata = market_stub.add_products_calls[1]
     assert authorization(second_metadata) == "Bearer token-2"

@@ -58,7 +58,7 @@ async def test_saves_products_to_main_repository():
     assert main.saved_products == products
 
 
-async def test_saves_with_correct_market_name_and_date():
+async def test_saves_with_correct_market_name():
     # Arrange
     today = date.today()
     fallback = SpyFallbackRepository(
@@ -71,8 +71,24 @@ async def test_saves_with_correct_market_name_and_date():
     await handler.handle()
 
     # Assert
-    market_name, saved_date, _ = main.save_calls[0]
+    market_name, _, _ = main.save_calls[0]
     assert market_name == "Mercadona"
+
+
+async def test_saves_with_correct_date():
+    # Arrange
+    today = date.today()
+    fallback = SpyFallbackRepository(
+        markets_and_dates=[("Mercadona", today)], products=[]
+    )
+    main = SpyProductRepository()
+    handler = make_handler(fallback_repository=fallback, main_repository=main)
+
+    # Act
+    await handler.handle()
+
+    # Assert
+    _, saved_date, _ = main.save_calls[0]
     assert saved_date == today
 
 
@@ -105,7 +121,7 @@ async def test_does_not_remove_old_products_if_save_fails():
     assert fallback.remove_calls == []
 
 
-async def test_handles_multiple_markets():
+async def test_saves_once_per_market():
     # Arrange
     today = date.today()
     markets_and_dates = [("Market1", today), ("Market2", today)]
@@ -118,6 +134,35 @@ async def test_handles_multiple_markets():
 
     # Assert
     assert len(main.save_calls) == 2
+
+
+async def test_saves_first_market_when_handling_multiple_markets():
+    # Arrange
+    today = date.today()
+    markets_and_dates = [("Market1", today), ("Market2", today)]
+    fallback = SpyFallbackRepository(markets_and_dates=markets_and_dates)
+    main = SpyProductRepository()
+    handler = make_handler(fallback_repository=fallback, main_repository=main)
+
+    # Act
+    await handler.handle()
+
+    # Assert
     saved_names = [call[0] for call in main.save_calls]
     assert "Market1" in saved_names
+
+
+async def test_saves_second_market_when_handling_multiple_markets():
+    # Arrange
+    today = date.today()
+    markets_and_dates = [("Market1", today), ("Market2", today)]
+    fallback = SpyFallbackRepository(markets_and_dates=markets_and_dates)
+    main = SpyProductRepository()
+    handler = make_handler(fallback_repository=fallback, main_repository=main)
+
+    # Act
+    await handler.handle()
+
+    # Assert
+    saved_names = [call[0] for call in main.save_calls]
     assert "Market2" in saved_names

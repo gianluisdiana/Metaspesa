@@ -15,7 +15,7 @@ def test_reads_secret_from_environment(monkeypatch):
     assert secret == "user@example.com"
 
 
-def test_raises_if_secret_is_missing(monkeypatch):
+def test_missing_secret_error_contains_secret_name(monkeypatch):
     # Arrange
     monkeypatch.delenv("METASPESA_MISSING_SECRET", raising=False)
     vault = LocalSecretVault()
@@ -25,4 +25,15 @@ def test_raises_if_secret_is_missing(monkeypatch):
         vault.read_secret("metaspesa_missing_secret")
 
     assert "metaspesa_missing_secret" in str(ex.value)
+
+
+def test_missing_secret_error_contains_environment_variable_name(monkeypatch):
+    # Arrange
+    monkeypatch.delenv("METASPESA_MISSING_SECRET", raising=False)
+    vault = LocalSecretVault()
+
+    # Act / Assert
+    with pytest.raises(SecretNotFoundError) as ex:
+        vault.read_secret("metaspesa_missing_secret")
+
     assert "METASPESA_MISSING_SECRET" in str(ex.value)
