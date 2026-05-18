@@ -1,9 +1,6 @@
 import 'server-only';
 
-import path from 'node:path';
-
 import * as grpc from '@grpc/grpc-js';
-import * as protoLoader from '@grpc/proto-loader';
 
 import ApiService from '@/lib/api-service';
 import {
@@ -15,36 +12,16 @@ import {
 import { ShoppingList__Output } from '@/protos/shopping/ShoppingList';
 import { ShoppingListSummary__Output } from '@/protos/shopping/ShoppingListSummary';
 import { ShoppingServiceClient } from '@/protos/shopping/ShoppingService';
-import { ProtoGrpcType } from '@/protos/shopping_service';
 
-import { createTracingMetadata } from './grpc-metadata';
+import { GrpcClientFactory } from './grpc-client-factory';
 
 export default class GrpcApiService implements ApiService {
   private readonly client: ShoppingServiceClient;
   private readonly metadata: grpc.Metadata;
 
-  constructor(token: string) {
-    const protoPath = path.resolve(
-      process.cwd(),
-      'src/infrastructure/protos/Shopping/shopping_service.proto',
-    );
-    const packageDefinition = protoLoader.loadSync(protoPath, {
-      defaults: true,
-    });
-    const { ShoppingService } = (
-      grpc.loadPackageDefinition(packageDefinition) as unknown as ProtoGrpcType
-    ).Metaspesa.Protos.Shopping;
-
-    const credentials =
-      process.env.BACKEND_SECURE === 'true'
-        ? grpc.credentials.createSsl()
-        : grpc.credentials.createInsecure();
-    this.client = new ShoppingService(
-      process.env.GRPC_SERVER_URL as string,
-      credentials,
-    );
-    this.metadata = createTracingMetadata();
-    this.metadata.set('Authorization', `Bearer ${token}`);
+  constructor(token: string, factory = new GrpcClientFactory()) {
+    this.client = factory.createShoppingServiceClient();
+    this.metadata = factory.createAuthorizedMetadata(token);
   }
 
   async createShoppingList(name?: string): Promise<void> {

@@ -1,9 +1,6 @@
 import 'server-only';
 
-import path from 'node:path';
-
 import * as grpc from '@grpc/grpc-js';
-import * as protoLoader from '@grpc/proto-loader';
 
 import MarketApiService, { MarketFilter } from '@/lib/market-api-service';
 import {
@@ -15,34 +12,16 @@ import {
 import { Market__Output } from '@/protos/markets/Market';
 import { MarketServiceClient } from '@/protos/markets/MarketService';
 import { MarketSummary__Output } from '@/protos/markets/MarketSummary';
-import { ProtoGrpcType } from '@/protos/markets_service';
 
-import { createTracingMetadata } from './grpc-metadata';
+import { GrpcClientFactory } from './grpc-client-factory';
 
 export default class GrpcMarketApiService implements MarketApiService {
   private readonly client: MarketServiceClient;
   private readonly metadata: grpc.Metadata;
 
-  constructor(token: string) {
-    const protoPath = path.resolve(
-      process.cwd(),
-      'src/infrastructure/protos/Markets/markets_service.proto',
-    );
-    const packageDefinition = protoLoader.loadSync(protoPath);
-    const { MarketService } = (
-      grpc.loadPackageDefinition(packageDefinition) as unknown as ProtoGrpcType
-    ).Metaspesa.Protos.Markets;
-
-    const credentials =
-      process.env.BACKEND_SECURE === 'true'
-        ? grpc.credentials.createSsl()
-        : grpc.credentials.createInsecure();
-    this.client = new MarketService(
-      process.env.GRPC_SERVER_URL as string,
-      credentials,
-    );
-    this.metadata = createTracingMetadata();
-    this.metadata.set('Authorization', `Bearer ${token}`);
+  constructor(token: string, factory = new GrpcClientFactory()) {
+    this.client = factory.createMarketServiceClient();
+    this.metadata = factory.createAuthorizedMetadata(token);
   }
 
   async getMarketProducts(filter: MarketFilter): Promise<MarketProductsResult> {
