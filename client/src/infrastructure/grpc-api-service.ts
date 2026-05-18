@@ -9,18 +9,23 @@ import {
   ShoppingListSummaryMessage,
 } from '@/lib/messages';
 
-import { ShoppingList__Output } from '@/protos/shopping/ShoppingList';
-import { ShoppingListSummary__Output } from '@/protos/shopping/ShoppingListSummary';
 import { ShoppingServiceClient } from '@/protos/shopping/ShoppingService';
 
 import { GrpcClientFactory } from './grpc-client-factory';
+import { GrpcShoppingMapper } from './grpc-shopping-mapper';
 
 export default class GrpcApiService implements ApiService {
   private readonly client: ShoppingServiceClient;
+  private readonly mapper: GrpcShoppingMapper;
   private readonly metadata: grpc.Metadata;
 
-  constructor(token: string, factory = new GrpcClientFactory()) {
+  constructor(
+    token: string,
+    factory = new GrpcClientFactory(),
+    mapper = new GrpcShoppingMapper(),
+  ) {
     this.client = factory.createShoppingServiceClient();
+    this.mapper = mapper;
     this.metadata = factory.createAuthorizedMetadata(token);
   }
 
@@ -54,7 +59,7 @@ export default class GrpcApiService implements ApiService {
                 return;
               }
 
-              resolve(this.mapShoppingList(response!.shoppingList!));
+              resolve(this.mapper.mapShoppingList(response?.shoppingList));
             },
           );
         },
@@ -83,9 +88,7 @@ export default class GrpcApiService implements ApiService {
               }
 
               resolve(
-                response!.shoppingLists?.map(summary =>
-                  this.mapShoppingListSummary(summary),
-                ) ?? [],
+                this.mapper.mapShoppingListSummaries(response?.shoppingLists),
               );
             },
           );
@@ -105,14 +108,7 @@ export default class GrpcApiService implements ApiService {
             return;
           }
 
-          resolve(
-            response!.items?.map(item => ({
-              checked: item.checked ?? false,
-              name: item.name,
-              price: Number(item.price),
-              quantity: item.quantity,
-            })) ?? [],
-          );
+          resolve(this.mapper.mapRegisteredItems(response));
         });
       });
     } catch {
@@ -124,29 +120,5 @@ export default class GrpcApiService implements ApiService {
     throw new Error(
       `Method not implemented. Received: ${JSON.stringify(shoppingList)}`,
     );
-  }
-
-  private mapShoppingList(proto: ShoppingList__Output): ShoppingListMessage {
-    const factor = 100;
-    const products: ProductMessage[] =
-      proto.items?.map(itemProto => ({
-        checked: itemProto.checked ?? false,
-        name: itemProto.name,
-        price:
-          itemProto.price === undefined
-            ? undefined
-            : Math.round(Number(itemProto.price) * factor) / factor,
-        quantity: itemProto.quantity,
-      })) ?? [];
-    return {
-      name: proto.name,
-      products,
-    };
-  }
-
-  private mapShoppingListSummary(
-    proto: ShoppingListSummary__Output,
-  ): ShoppingListSummaryMessage {
-    return { name: proto.name };
   }
 }

@@ -7,6 +7,7 @@ import AuthService from '@/lib/auth-service';
 
 import { AuthServiceClient } from '@/protos/auth/AuthService';
 
+import { GrpcAuthMapper } from './grpc-auth-mapper';
 import { GrpcClientFactory } from './grpc-client-factory';
 
 const logger = logs.getLogger('grpc-auth-service');
@@ -14,10 +15,15 @@ const logger = logs.getLogger('grpc-auth-service');
 export default class GrpcAuthService implements AuthService {
   private readonly client: AuthServiceClient;
   private readonly factory: GrpcClientFactory;
+  private readonly mapper: GrpcAuthMapper;
 
-  constructor(factory = new GrpcClientFactory()) {
+  constructor(
+    factory = new GrpcClientFactory(),
+    mapper = new GrpcAuthMapper(),
+  ) {
     this.factory = factory;
     this.client = factory.createAuthServiceClient();
+    this.mapper = mapper;
   }
 
   async login(credentials: CredentialsMessage): Promise<LoginResultMessage> {
@@ -31,10 +37,7 @@ export default class GrpcAuthService implements AuthService {
               reject(err);
               return;
             }
-            resolve({
-              expirationInUtc: response!.expirationInUtc,
-              token: response!.token,
-            });
+            resolve(this.mapper.mapLoginResult(response));
           },
         );
       });

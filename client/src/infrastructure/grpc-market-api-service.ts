@@ -4,23 +4,27 @@ import * as grpc from '@grpc/grpc-js';
 
 import MarketApiService, { MarketFilter } from '@/lib/market-api-service';
 import {
-  MarketMessage,
   MarketProductsResult,
   MarketSummaryMessage,
 } from '@/lib/market-messages';
 
-import { Market__Output } from '@/protos/markets/Market';
 import { MarketServiceClient } from '@/protos/markets/MarketService';
-import { MarketSummary__Output } from '@/protos/markets/MarketSummary';
 
 import { GrpcClientFactory } from './grpc-client-factory';
+import { GrpcMarketMapper } from './grpc-market-mapper';
 
 export default class GrpcMarketApiService implements MarketApiService {
   private readonly client: MarketServiceClient;
+  private readonly mapper: GrpcMarketMapper;
   private readonly metadata: grpc.Metadata;
 
-  constructor(token: string, factory = new GrpcClientFactory()) {
+  constructor(
+    token: string,
+    factory = new GrpcClientFactory(),
+    mapper = new GrpcMarketMapper(),
+  ) {
     this.client = factory.createMarketServiceClient();
+    this.mapper = mapper;
     this.metadata = factory.createAuthorizedMetadata(token);
   }
 
@@ -42,8 +46,8 @@ export default class GrpcMarketApiService implements MarketApiService {
               return;
             }
             resolve({
-              markets: response!.markets?.map(mapMarket) ?? [],
-              totalProducts: response!.totalProducts ?? 0,
+              markets: this.mapper.mapMarkets(response?.markets),
+              totalProducts: response?.totalProducts ?? 0,
             });
           },
         );
@@ -61,37 +65,11 @@ export default class GrpcMarketApiService implements MarketApiService {
             reject(err);
             return;
           }
-          resolve(response!.markets?.map(mapMarketSummary) ?? []);
+          resolve(this.mapper.mapMarketSummaries(response?.markets));
         });
       });
     } catch {
       return [];
     }
   }
-}
-
-function mapMarketSummary(
-  summary: MarketSummary__Output,
-): MarketSummaryMessage {
-  return {
-    logoUrl: summary.logoUrl || null,
-    name: summary.name,
-  };
-}
-
-function mapMarket(market: Market__Output): MarketMessage {
-  return {
-    name: market.name,
-    products:
-      market.products?.map(p => ({
-        brandName: p.brandName,
-        formats:
-          p.formats?.map(f => ({
-            imageUrl: f.imageUrl || null,
-            price: Number(f.price),
-            quantity: f.quantity,
-          })) ?? [],
-        name: p.name,
-      })) ?? [],
-  };
 }
