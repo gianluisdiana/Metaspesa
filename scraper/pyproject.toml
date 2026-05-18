@@ -38,9 +38,18 @@ select = [
     "F",  # pyflakes (unused variables, undefined names - catches real bugs!)
     "I",  # isort (automatically sorts and groups your imports alphabetically)
     "UP", # pyupgrade (automatically upgrades older Python syntax to modern 3.14 syntax)
+    "B",  # flake8-bugbear (likely bugs and footguns)
+    "ASYNC", # flake8-async (async-specific correctness checks)
+    "SIM", # flake8-simplify (simpler equivalent code)
+    "PLC", # pylint convention checks
+    "PLE", # pylint error checks
+    "PLW", # pylint warning checks
+    "RUF", # Ruff-specific rules
 ]
 
-ignore = []
+ignore = [
+    "ASYNC109", # driver methods pass timeout values through to Playwright APIs
+]
 
 [tool.ruff.format]
 quote-style = "double"

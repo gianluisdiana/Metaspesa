@@ -10,7 +10,7 @@ class BrandExtractor(ProductProcessor):
     def __init__(self, known_brands: list[str]) -> None:
         super().__init__()
         self.__logger = logging.getLogger(self.__class__.__name__)
-        self.__known_brands = sorted(known_brands, key=lambda x: len(x), reverse=True)
+        self.__known_brands = sorted(known_brands, key=len, reverse=True)
 
     @override
     def _process(self, product: Product) -> Product:

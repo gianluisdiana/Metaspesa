@@ -1,3 +1,5 @@
+import logging
+
 import grpc.aio
 
 from application.abstractions import (
@@ -30,6 +32,8 @@ from infrastructure.telemetry.instrumented_playwright_driver import (
 )
 from infrastructure.web_driver import WebDriver
 
+__logger = logging.getLogger(__name__)
+
 
 def __create_market_web_scrapers(
     settings: AppConfig, web_driver: WebDriver
@@ -54,6 +58,14 @@ def __create_main_repository(
         username = vault.read_secret(settings.credentials.username_secret)
         password = vault.read_secret(settings.credentials.password_secret)
     except SecretNotFoundError:
+        __logger.warning(
+            "Scraper credentials were not found; continuing with empty credentials. "
+            "Repository authentication will fail unless the server accepts them.",
+            extra={
+                "username_secret": settings.credentials.username_secret,
+                "password_secret": settings.credentials.password_secret,
+            },
+        )
         username = ""
         password = ""
     return GrpcProductRepository(channel, username, password)

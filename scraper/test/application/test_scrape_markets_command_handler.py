@@ -249,7 +249,7 @@ async def test_raises_if_no_market_scrapers_are_configured():
     # Act / Assert
     with pytest.raises(
         MissingMarketWebScrapersError,
-        match="At least one market web scraper must be configured.",
+        match=r"At least one market web scraper must be configured\.",
     ):
         await handler.handle("12345")
 
