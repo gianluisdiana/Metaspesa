@@ -60,7 +60,7 @@ public static class ApplicationDependencyInjection {
         IQueryHandler<GetShoppingList.Query, ShoppingList>,
         GetShoppingList.Handler>();
 
-    services.AddScoped<
+      services.AddScoped<
         IQueryHandler<GetShoppingListSummaries.Query, List<ShoppingList>>,
         GetShoppingListSummaries.Handler>();
 

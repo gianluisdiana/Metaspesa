@@ -157,47 +157,47 @@ internal partial class PostgreSqlShoppingRepository(
 
   public void RemoveItem(Guid userUid, string? listName, string itemName) =>
     PostgreSqlExceptionMapper.Map(() => {
-    ShoppingItemDbEntity item = context.ShoppingItems
-      .Where(i => i.DeletedAt == null &&
-        i.ShoppingList.Ownerships.Any(o => o.UserUid == userUid) && (
-          i.ShoppingList.Name == null && listName == null ||
-          i.ShoppingList.Name != null &&
-          listName != null &&
-          EF.Functions.ILike(i.ShoppingList.Name, listName)
-        ) &&
-        EF.Functions.ILike(i.Name, itemName))
-      .First();
+      ShoppingItemDbEntity item = context.ShoppingItems
+        .Where(i => i.DeletedAt == null &&
+          i.ShoppingList.Ownerships.Any(o => o.UserUid == userUid) && (
+            i.ShoppingList.Name == null && listName == null ||
+            i.ShoppingList.Name != null &&
+            listName != null &&
+            EF.Functions.ILike(i.ShoppingList.Name, listName)
+          ) &&
+          EF.Functions.ILike(i.Name, itemName))
+        .First();
 
-    item.DeletedAt = clock.GetCurrentTime();
-  }, "Couldn't remove shopping item.");
+      item.DeletedAt = clock.GetCurrentTime();
+    }, "Couldn't remove shopping item.");
 
   public void RecordShoppingList(Guid userUid, ShoppingList shoppingList) {
     Debug.Assert(shoppingList.HasCheckedItems());
 
     PostgreSqlExceptionMapper.Map(() => {
-    List<ShoppingItem> checkedItems = [.. shoppingList.Items.Where(i => i.IsChecked)];
+      List<ShoppingItem> checkedItems = [.. shoppingList.Items.Where(i => i.IsChecked)];
 
-    DateTime now = clock.GetCurrentTime();
-    context.Purchases.AddRange(checkedItems.Select(ci => new PurchaseDbEntity {
-      UserUid = userUid,
-      RegisteredItemId = 0, // Temporary
-      PricePaid = ci.Price.Value,
-      Quantity = ci.Quantity?.Value,
-      PurchasedAt = now,
-    }));
+      DateTime now = clock.GetCurrentTime();
+      context.Purchases.AddRange(checkedItems.Select(ci => new PurchaseDbEntity {
+        UserUid = userUid,
+        RegisteredItemId = 0, // Temporary
+        PricePaid = ci.Price.Value,
+        Quantity = ci.Quantity?.Value,
+        PurchasedAt = now,
+      }));
 
 #pragma warning disable CA1304, CA1311
-    var purchasedEntities = context.ShoppingItems
-      .Where(i => i.ShoppingList.Ownerships.Any(o => o.UserUid == userUid) &&
-        i.ShoppingList.Name == shoppingList.Name &&
-        checkedItems.Select(ci => ci.Name.ToUpper()).Contains(i.Name.ToUpper()))
-      .Include(i => i.ShoppingList)
-      .ToList();
+      var purchasedEntities = context.ShoppingItems
+        .Where(i => i.ShoppingList.Ownerships.Any(o => o.UserUid == userUid) &&
+          i.ShoppingList.Name == shoppingList.Name &&
+          checkedItems.Select(ci => ci.Name.ToUpper()).Contains(i.Name.ToUpper()))
+        .Include(i => i.ShoppingList)
+        .ToList();
 #pragma warning restore CA1304, CA1311
 
-    foreach (ShoppingItemDbEntity itemEntity in purchasedEntities) {
-      itemEntity.DeletedAt = now;
-    }
+      foreach (ShoppingItemDbEntity itemEntity in purchasedEntities) {
+        itemEntity.DeletedAt = now;
+      }
     }, "Couldn't record shopping list.");
   }
 }

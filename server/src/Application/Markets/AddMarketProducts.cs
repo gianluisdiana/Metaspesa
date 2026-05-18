@@ -14,7 +14,7 @@ namespace Metaspesa.Application.Markets;
 public static class AddMarketProducts {
   public record CommandProduct(
     string? Name,
-    float Price,
+    decimal Price,
     string? Quantity,
     string? MarketName,
     string? BrandName,

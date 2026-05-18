@@ -155,7 +155,7 @@ public static class AuthGrpcServiceTests {
     public async Task Api_ReturnsLoginResponse_WithToken_WhenCredentialsValid() {
       // Arrange
       var token = new Token("jwt-token-value", DateTime.UtcNow.AddHours(1));
-      
+
       _loginHandler
         .Handle(Arg.Any<LoginUser.Query>(), TestContext.Current.CancellationToken)
         .Returns(token);
