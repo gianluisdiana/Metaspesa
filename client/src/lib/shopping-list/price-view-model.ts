@@ -15,6 +15,9 @@ export class ShoppingPriceViewModel {
 export function sumShoppingPrices(
   products: ReadonlyArray<{ price?: number }>,
 ): number {
-  const total = products.reduce((sum, product) => sum + (product.price ?? 0), 0);
+  const total = products.reduce(
+    (sum, product) => sum + (product.price ?? 0),
+    0,
+  );
   return Math.round(total * ROUND_FACTOR) / ROUND_FACTOR;
 }
