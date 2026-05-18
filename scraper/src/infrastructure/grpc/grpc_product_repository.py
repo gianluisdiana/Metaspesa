@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
-from typing import override
+from typing import Any, override
 
 import grpc.aio
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -23,9 +25,16 @@ class GrpcProductRepository(ProductRepository):
         channel: grpc.aio.Channel,
         username: str,
         password: str,
+        *,
+        market_stub: Any | None = None,
+        auth_stub: Any | None = None,
+        request_mapper: AddProductsRequestMapper | None = None,
     ) -> None:
-        self.__market_stub = market_service_pb2_grpc.MarketServiceStub(channel)
-        self.__auth_stub = auth_service_pb2_grpc.AuthServiceStub(channel)
+        self.__market_stub = market_stub or market_service_pb2_grpc.MarketServiceStub(
+            channel
+        )
+        self.__auth_stub = auth_stub or auth_service_pb2_grpc.AuthServiceStub(channel)
+        self.__request_mapper = request_mapper or AddProductsRequestMapper()
         self.__username = username
         self.__password = password
         self.__token: Token | None = None
@@ -63,27 +72,7 @@ class GrpcProductRepository(ProductRepository):
     def __build_request(  # type: ignore
         self, market_name: str, date: date, products: list[Product]
     ) -> market_service_pb2.AddProductsRequest:  # type: ignore
-        registered_at = Timestamp()
-        registered_at.FromDatetime(
-            datetime.combine(date, datetime.min.time(), tzinfo=UTC)
-        )
-        request = market_service_pb2.AddProductsRequest(  # type: ignore
-            products=[
-                domain_pb2.Product(  # type: ignore
-                    name=p.name,
-                    price=p.price,
-                    quantity=p.quantity,
-                    market_name=market_name,
-                    brand_name=p.brand,
-                    image_url=p.image_url,
-                )
-                for p in products
-                if p.brand is not None
-            ],
-            registered_at=registered_at,
-        )
-
-        return request  # type: ignore
+        return self.__request_mapper.to_request(market_name, date, products)
 
     async def __ensure_authenticated(self) -> None:
         try:
@@ -110,6 +99,33 @@ class GrpcProductRepository(ProductRepository):
                 },
             )
             raise RepositorySaveException from e
+
+
+class AddProductsRequestMapper:
+    def to_request(  # type: ignore
+        self, market_name: str, date: date, products: list[Product]
+    ) -> market_service_pb2.AddProductsRequest:  # type: ignore
+        registered_at = Timestamp()
+        registered_at.FromDatetime(
+            datetime.combine(date, datetime.min.time(), tzinfo=UTC)
+        )
+        request = market_service_pb2.AddProductsRequest(  # type: ignore
+            products=[
+                domain_pb2.Product(  # type: ignore
+                    name=p.name,
+                    price=p.price,
+                    quantity=p.quantity,
+                    market_name=market_name,
+                    brand_name=p.brand,
+                    image_url=p.image_url,
+                )
+                for p in products
+                if p.brand is not None
+            ],
+            registered_at=registered_at,
+        )
+
+        return request  # type: ignore
 
 
 @dataclass
