@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 
 import GrpcAuthService from '@/infrastructure/grpc-auth-service';
 import { Credentials } from '@/lib/auth-domain';
+import { GrpcErrorMessage } from '@/lib/auth-errors';
 
 export type LoginState = { error: string } | null;
 
@@ -30,7 +31,10 @@ export async function loginAction(
     token = t;
     expirationInUtc = exp;
   } catch (err) {
-    return { error: getGrpcErrorMessage(err) };
+    return {
+      error: new GrpcErrorMessage(err, 'Login failed. Please try again.')
+        .message,
+    };
   }
 
   const cookieStore = await cookies();
@@ -43,12 +47,4 @@ export async function loginAction(
   });
 
   redirect('/markets');
-}
-
-function getGrpcErrorMessage(err: unknown): string {
-  if (err && typeof err === 'object' && 'details' in err) {
-    const { details } = err as { details: string };
-    if (details) return details;
-  }
-  return 'Login failed. Please try again.';
 }
