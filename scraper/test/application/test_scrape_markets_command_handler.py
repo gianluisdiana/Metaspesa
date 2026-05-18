@@ -13,7 +13,7 @@ from conftest import (
 from application.abstractions import MarketWebScraper
 from application.clock import Clock
 from application.product_processors import ProductProcessor
-from application.use_case import (
+from application.use_cases import (
     MissingMarketWebScrapersError,
     ScrapeMarketsCommandHandler,
 )

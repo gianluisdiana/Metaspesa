@@ -8,6 +8,7 @@ from config import (
     ScraperSettings,
 )
 from infrastructure.market_scrapers.alcampo_web_scraper import AlcampoWebScraper
+from infrastructure.market_scrapers.market_names import ALCAMPO, MERCADONA
 from infrastructure.market_scrapers.market_web_scraper_factory import (
     MarketWebScraperFactory,
 )
@@ -35,7 +36,7 @@ def test_creates_mercadona_web_scraper():
     factory = MarketWebScraperFactory(settings, web_driver)
 
     # Act
-    web_scraper = factory.create("Mercadona")
+    web_scraper = factory.create(MERCADONA)
 
     # Assert
     assert isinstance(web_scraper, MercadonaWebScraper)
@@ -48,7 +49,7 @@ def test_creates_alcampo_web_scraper():
     factory = MarketWebScraperFactory(settings, web_driver)
 
     # Act
-    web_scraper = factory.create("Alcampo")
+    web_scraper = factory.create(ALCAMPO)
 
     # Assert
     assert isinstance(web_scraper, AlcampoWebScraper)
@@ -57,7 +58,7 @@ def test_creates_alcampo_web_scraper():
 def __create_default_settings() -> AppConfig:
     return AppConfig(
         postal_code="38320",
-        markets=["Alcampo", "Mercadona"],
+        markets=[ALCAMPO, MERCADONA],
         processor=ProcessorSettings(known_brands=[], replacements={}),
         scrapers=ScraperSettings(skipped_categories=[]),
         fallback_persistence=FallbackPersistenceSettings(folder_path="data"),

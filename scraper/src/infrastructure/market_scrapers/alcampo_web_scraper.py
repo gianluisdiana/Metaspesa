@@ -211,12 +211,11 @@ class AlcampoWebScraper(MarketWebScraper):
         )
 
     def __parse_product_tags(self, soup: BeautifulSoup) -> list[ProductTag]:
-        return list(
-            filter[AlcampoProductTag](
-                lambda tag: not tag.is_featured(),
-                map(AlcampoProductTag, soup.select("div.product-card-container")),
-            )
-        )
+        return [
+            tag
+            for tag in map(AlcampoProductTag, soup.select("div.product-card-container"))
+            if not tag.is_featured()
+        ]
 
     async def __try_close_popups(self) -> None:
         try:

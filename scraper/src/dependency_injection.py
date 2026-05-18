@@ -13,7 +13,7 @@ from application.product_processors import (
     QuantityRedundancyRemover,
     StringSanitizer,
 )
-from application.use_case import (
+from application.use_cases import (
     RetryFailedSavesCommandHandler,
     ScrapeMarketsCommandHandler,
 )

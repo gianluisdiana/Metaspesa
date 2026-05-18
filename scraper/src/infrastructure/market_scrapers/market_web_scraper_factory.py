@@ -1,6 +1,7 @@
 from application.abstractions import MarketWebScraper
 from config import AppConfig
 from infrastructure.market_scrapers.alcampo_web_scraper import AlcampoWebScraper
+from infrastructure.market_scrapers.market_names import ALCAMPO, MERCADONA
 from infrastructure.market_scrapers.mercadona_web_scraper import MercadonaWebScraper
 from infrastructure.web_driver import WebDriver
 
@@ -11,8 +12,8 @@ class MarketWebScraperFactory:
         self.__web_driver = web_driver
 
     def create(self, market_name: str) -> MarketWebScraper:
-        if market_name == "Mercadona":
+        if market_name == MERCADONA:
             return MercadonaWebScraper(self.__web_driver)
-        if market_name == "Alcampo":
+        if market_name == ALCAMPO:
             return AlcampoWebScraper(self.__web_driver, self.__settings.scrapers)
         raise ValueError(f"Unsupported market: {market_name}")

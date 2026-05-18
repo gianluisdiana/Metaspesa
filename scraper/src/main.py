@@ -5,7 +5,7 @@ import os
 import grpc.aio
 from opentelemetry.instrumentation.grpc import aio_client_interceptors  # type: ignore
 
-from application.use_case import (
+from application.use_cases import (
     RetryFailedSavesCommandHandler,
     ScrapeMarketsCommandHandler,
 )

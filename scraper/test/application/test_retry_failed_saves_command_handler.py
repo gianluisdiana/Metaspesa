@@ -8,7 +8,7 @@ from conftest import (
     SpyProductRepository,
 )
 
-from application.use_case import RetryFailedSavesCommandHandler
+from application.use_cases import RetryFailedSavesCommandHandler
 from domain import Product
 
 
