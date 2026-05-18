@@ -12,13 +12,11 @@ import { ProtoGrpcType as MarketsProtoGrpcType } from '@/protos/markets_service'
 import { ShoppingServiceClient } from '@/protos/shopping/ShoppingService';
 import { ProtoGrpcType as ShoppingProtoGrpcType } from '@/protos/shopping_service';
 
+import { GrpcConfig } from './grpc-config';
 import { createTracingMetadata } from './grpc-metadata';
 
 export class GrpcClientFactory {
-  public constructor(
-    private readonly serverUrl = process.env.GRPC_SERVER_URL as string,
-    private readonly backendSecure = process.env.BACKEND_SECURE === 'true',
-  ) {}
+  public constructor(private readonly config = GrpcConfig.fromEnvironment()) {}
 
   public createAuthorizedMetadata(token: string): grpc.Metadata {
     const metadata = createTracingMetadata();
@@ -31,7 +29,7 @@ export class GrpcClientFactory {
       'src/infrastructure/protos/Auth/auth_service.proto',
     ).Metaspesa.Protos.Auth;
 
-    return new AuthService(this.serverUrl, this.credentials);
+    return new AuthService(this.config.serverUrl, this.credentials);
   }
 
   public createMetadata(): grpc.Metadata {
@@ -43,7 +41,7 @@ export class GrpcClientFactory {
       'src/infrastructure/protos/Markets/markets_service.proto',
     ).Metaspesa.Protos.Markets;
 
-    return new MarketService(this.serverUrl, this.credentials);
+    return new MarketService(this.config.serverUrl, this.credentials);
   }
 
   public createShoppingServiceClient(): ShoppingServiceClient {
@@ -52,11 +50,11 @@ export class GrpcClientFactory {
       { defaults: true },
     ).Metaspesa.Protos.Shopping;
 
-    return new ShoppingService(this.serverUrl, this.credentials);
+    return new ShoppingService(this.config.serverUrl, this.credentials);
   }
 
   private get credentials(): grpc.ChannelCredentials {
-    return this.backendSecure
+    return this.config.backendSecure
       ? grpc.credentials.createSsl()
       : grpc.credentials.createInsecure();
   }
