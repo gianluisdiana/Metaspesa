@@ -42,7 +42,10 @@ class CsvProductRepository(FallbackProductRepository):
                 continue
 
             market_name = name_parts[1]
-            registered_at = date.fromisoformat(name_parts[0])
+            try:
+                registered_at = date.fromisoformat(name_parts[0])
+            except ValueError:
+                continue
             markets_and_dates.append((market_name, registered_at))
 
         return markets_and_dates
