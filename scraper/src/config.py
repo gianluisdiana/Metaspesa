@@ -23,6 +23,8 @@ class CredentialsSettings(BaseModel):
 
 
 class AppConfig(BaseModel):
+    postal_code: str
+    markets: list[str]
     processor: ProcessorSettings
     scrapers: ScraperSettings
     fallback_persistence: FallbackPersistenceSettings

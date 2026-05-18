@@ -56,6 +56,8 @@ def test_creates_alcampo_web_scraper():
 
 def __create_default_settings() -> AppConfig:
     return AppConfig(
+        postal_code="38320",
+        markets=["Alcampo", "Mercadona"],
         processor=ProcessorSettings(known_brands=[], replacements={}),
         scrapers=ScraperSettings(skipped_categories=[]),
         fallback_persistence=FallbackPersistenceSettings(folder_path="data"),

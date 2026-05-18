@@ -8,8 +8,14 @@ from application.abstractions import (
     ProductRepository,
     RepositorySaveException,
 )
+from application.clock import Clock, SystemClock
 from application.product_processors import ProductProcessor
 from domain import Product
+
+
+class MissingMarketWebScrapersError(ValueError):
+    def __init__(self) -> None:
+        super().__init__("At least one market web scraper must be configured.")
 
 
 class RetryFailedSavesCommandHandler:
@@ -60,17 +66,20 @@ class ScrapeMarketsCommandHandler:
         fallback_repository: FallbackProductRepository,
         market_web_scrapers: dict[str, MarketWebScraper],
         product_processor: ProductProcessor,
+        clock: Clock | None = None,
     ) -> None:
         self.__main_repository = main_repository
         self.__fallback_repository = fallback_repository
         self.__market_web_scrapers = market_web_scrapers
         self.__product_processor = product_processor
+        self.__clock = clock or SystemClock()
         self.__logger = logging.getLogger(self.__class__.__name__)
 
     async def handle(self, postal_code: str) -> None:
-        assert len(self.__market_web_scrapers) > 0
+        if len(self.__market_web_scrapers) == 0:
+            raise MissingMarketWebScrapersError()
 
-        now = date.today()
+        now = self.__clock.today()
         saving_tasks: list[asyncio.Task[None]] = []
         for market_name in self.__market_web_scrapers:
             scraper = self.__market_web_scrapers[market_name]

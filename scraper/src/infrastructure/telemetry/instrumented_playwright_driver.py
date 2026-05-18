@@ -32,7 +32,7 @@ class InstrumentedPlaywrightDriver(WebDriver):
             return await self.__driver.page_source()
 
     @override
-    async def execute_script(self, script: str):
+    async def execute_script(self, script: str) -> object:
         with self.__tracer.start_as_current_span("playwright.execute_script"):
             return await self.__driver.execute_script(script)
 

@@ -10,7 +10,7 @@ from domain import Product
 
 
 class ProductProcessor:
-    def __init__(self):
+    def __init__(self) -> None:
         self.__next: ProductProcessor | None = None
 
     def next(self, next_processor: ProductProcessor) -> ProductProcessor:
@@ -55,7 +55,7 @@ class StringSanitizer(ProductProcessor):
 
 
 class BrandExtractor(ProductProcessor):
-    def __init__(self, known_brands: list[str]):
+    def __init__(self, known_brands: list[str]) -> None:
         super().__init__()
         self.__logger = logging.getLogger(self.__class__.__name__)
         self.__known_brands = sorted(known_brands, key=lambda x: len(x), reverse=True)

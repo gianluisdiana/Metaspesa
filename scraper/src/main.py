@@ -45,7 +45,7 @@ async def main() -> None:
 
             tasks = [
                 retry_failed_saves(telemetry, retry_handler),
-                scrape(telemetry, scrape_handler),
+                scrape(telemetry, scrape_handler, settings.postal_code),
             ]
             await asyncio.gather(*tasks)
         finally:
@@ -54,16 +54,18 @@ async def main() -> None:
 
 async def retry_failed_saves(
     telemetry: ScraperTelemetry, retry_handler: RetryFailedSavesCommandHandler
-):
+) -> None:
     with telemetry.measure_run("retry_failed_saves"):
         await retry_handler.handle()
 
 
 async def scrape(
-    telemetry: ScraperTelemetry, scrape_handler: ScrapeMarketsCommandHandler
-):
+    telemetry: ScraperTelemetry,
+    scrape_handler: ScrapeMarketsCommandHandler,
+    postal_code: str,
+) -> None:
     with telemetry.measure_run("scrape_all_markets"):
-        await scrape_handler.handle("38320")
+        await scrape_handler.handle(postal_code)
 
 
 if __name__ == "__main__":

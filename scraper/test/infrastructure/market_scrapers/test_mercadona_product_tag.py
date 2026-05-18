@@ -1,7 +1,7 @@
 import pytest
 from bs4 import BeautifulSoup
 
-from infrastructure.market_scrapers.mercadona_web_scraper import MercadonaProductTag
+from infrastructure.market_scrapers.product_tags import MercadonaProductTag
 from infrastructure.market_scrapers.resilience import MissingProductAttributeError
 
 
@@ -243,6 +243,27 @@ def test_returns_image_url_if_required_attributes_are_present():
 
 
 def test_removes_euro_symbol_from_price():
+    # Arrange
+    html = """
+    <div>
+        <h4 class="product-cell__description-name">Product Name</h4>
+        <div class="product-format__size--cell">500g</div>
+        <p class="product-price__unit-price">1.99€</p>
+        <div class="product-cell__image-wrapper">
+            <img src="https://example.com/product.png" />
+        </div>
+    </div>
+    """
+    tag = product_tag(html)
+
+    # Act
+    product = tag.to_product()
+
+    # Assert
+    assert abs(product.price - 1.99) < 0.01
+
+
+def test_removes_utf8_euro_symbol_from_price():
     # Arrange
     html = """
     <div>

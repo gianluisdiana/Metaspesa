@@ -1,4 +1,5 @@
 import logging
+from datetime import date
 from typing import override
 
 from conftest import (
@@ -10,8 +11,12 @@ from conftest import (
 )
 
 from application.abstractions import MarketWebScraper
+from application.clock import Clock
 from application.product_processors import ProductProcessor
-from application.use_case import ScrapeMarketsCommandHandler
+from application.use_case import (
+    MissingMarketWebScrapersError,
+    ScrapeMarketsCommandHandler,
+)
 from domain import Product, Subcategory
 
 
@@ -19,6 +24,15 @@ class DummyProductProcessor(ProductProcessor):
     @override
     def _process(self, product: Product) -> Product:
         return product
+
+
+class FixedClock(Clock):
+    def __init__(self, today: date) -> None:
+        self.__today = today
+
+    @override
+    def today(self) -> date:
+        return self.__today
 
 
 class SpyMarketWebScraper(MarketWebScraper):
@@ -199,6 +213,45 @@ async def test_saves_scrapped_products_to_main_repository():
 
     # Assert
     assert repository.saved_products == products
+
+
+async def test_saves_scrapped_products_with_clock_date():
+    # Arrange
+    products = [
+        Product(
+            name="product1",
+            price=1.0,
+            quantity="1 unit",
+            image_url="https://example.com/product.png",
+        )
+    ]
+    scraper = FakeMarketWebScraper(products)
+    repository = SpyProductRepository()
+    scrape_date = date(2026, 5, 18)
+    handler = make_handler(
+        main_repository=repository,
+        market_web_scrapers={"Market": scraper},
+        clock=FixedClock(scrape_date),
+    )
+
+    # Act
+    await handler.handle("12345")
+
+    # Assert
+    assert repository.save_calls[0][1] == scrape_date
+
+
+async def test_raises_if_no_market_scrapers_are_configured():
+    # Arrange
+    handler = make_handler(market_web_scrapers={})
+
+    # Act / Assert
+    try:
+        await handler.handle("12345")
+    except MissingMarketWebScrapersError as ex:
+        assert str(ex) == "At least one market web scraper must be configured."
+    else:
+        assert False
 
 
 async def test_saves_only_not_repeated_products_to_main_repository():

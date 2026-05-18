@@ -1,7 +1,7 @@
 import pytest
 from bs4 import BeautifulSoup
 
-from infrastructure.market_scrapers.alcampo_web_scraper import AlcampoProductTag
+from infrastructure.market_scrapers.product_tags import AlcampoProductTag
 from infrastructure.market_scrapers.resilience import MissingProductAttributeError
 
 
@@ -204,6 +204,25 @@ def test_returns_image_url_if_required_attributes_are_present():
 
 
 def test_removes_euro_symbol_from_price():
+    # Arrange
+    html = """
+    <div>
+        <h3 data-test="fop-title">Product Name</h3>
+        <div data-test="fop-size"><span>500g</span></div>
+        <span data-test="fop-price">1.99€</span>
+        <img data-test="lazy-load-image" src="https://example.com/product.png" />
+    </div>
+    """
+    tag = product_tag(html)
+
+    # Act
+    product = tag.to_product()
+
+    # Assert
+    assert abs(product.price - 1.99) < 0.001
+
+
+def test_removes_utf8_euro_symbol_from_price():
     # Arrange
     html = """
     <div>

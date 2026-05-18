@@ -5,6 +5,7 @@ from application.abstractions import (
     MarketWebScraper,
     ProductRepository,
 )
+from application.clock import SystemClock
 from application.product_processors import (
     BrandExtractor,
     BrandSimplifier,
@@ -34,11 +35,7 @@ def __create_market_web_scrapers(
     settings: AppConfig, web_driver: WebDriver
 ) -> dict[str, MarketWebScraper]:
     factory = MarketWebScraperFactory(settings, web_driver)
-    market_names = [
-        "Alcampo",
-        "Mercadona",
-    ]
-    return {name: factory.create(name) for name in market_names}
+    return {name: factory.create(name) for name in settings.markets}
 
 
 def __create_product_processor(settings: AppConfig) -> ProductProcessor:
@@ -74,6 +71,7 @@ def create_scrape_handler(
         fallback_repository=__create_fallback_repository(settings),
         market_web_scrapers=__create_market_web_scrapers(settings, web_driver),
         product_processor=__create_product_processor(settings),
+        clock=SystemClock(),
     )
 
 

@@ -38,8 +38,8 @@ class PlaywrightDriver(WebDriver):
         return await self.__page.content()
 
     @override
-    async def execute_script(self, script: str):
-        return await self.__page.evaluate(script)
+    async def execute_script(self, script: str) -> None:
+        await self.__page.evaluate(script)
 
     @override
     async def wait_and_click(self, selector: Selector, timeout: float = 5) -> None:

@@ -1,18 +1,13 @@
 import logging
 from typing import override
-from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup, Tag
 
 from application.abstractions import MarketWebScraper
 from domain import Product, Subcategory
-from infrastructure.market_scrapers.product_scroll import (
-    ProductScrollScraper,
-)
-from infrastructure.market_scrapers.resilience import (
-    MissingProductAttributeError,
-    RetryPolicy,
-)
+from infrastructure.market_scrapers.product_tags import MercadonaProductTag, ProductTag
+from infrastructure.market_scrapers.product_window_scraper import ProductWindowScraper
+from infrastructure.market_scrapers.resilience import RetryPolicy
 from infrastructure.web_driver import Selector, WebDriver
 
 
@@ -40,7 +35,7 @@ class MercadonaWebScraper(MarketWebScraper):
         self.__driver = driver
         self.__logger = logging.getLogger(self.__class__.__name__)
         self.__retry_policy = RetryPolicy()
-        self.__product_scroll_scraper = ProductScrollScraper(
+        self.__product_window_scraper = ProductWindowScraper(
             self.__retry_policy, self.__logger
         )
         self.__url = "https://tienda.mercadona.es"
@@ -156,8 +151,9 @@ class MercadonaWebScraper(MarketWebScraper):
     async def __get_products(self) -> list[Product]:
         await self.__driver.wait_for_presence(self.__selectors["subcategory_title"])
 
-        return await self.__product_scroll_scraper.scrape(
-            get_products_from_current_window=self.__get_products_from_current_window,
+        return await self.__product_window_scraper.scrape(
+            get_page_source=self.__driver.page_source,
+            parse_tags=self.__parse_product_tags,
             scroll=lambda: self.__driver.execute_script(
                 "window.scrollBy(0, window.innerHeight);"
             ),
@@ -166,111 +162,8 @@ class MercadonaWebScraper(MarketWebScraper):
             ),
         )
 
-    async def __get_products_from_current_window(
-        self, products: list[Product]
-    ) -> tuple[list[Product], list[MercadonaProductTag]]:
-        soup = BeautifulSoup(await self.__driver.page_source(), "html.parser")
-
-        product_tags = [
+    def __parse_product_tags(self, soup: BeautifulSoup) -> list[ProductTag]:
+        return [
             MercadonaProductTag(tag)
             for tag in soup.select("button.product-cell__content-link")
         ]
-        last_added_product = products[-1] if products else None
-        products += self.__get_new_products(product_tags, last_added_product)
-        return products, product_tags
-
-    def __get_new_products(
-        self,
-        product_tags: list[MercadonaProductTag],
-        last_added_product: Product | None,
-    ) -> list[Product]:
-        visible_products = [tag.to_product() for tag in product_tags if tag.is_ready()]
-        index_of_last_added_product = (
-            visible_products.index(last_added_product)
-            if last_added_product is not None and last_added_product in visible_products
-            else -1
-        )
-        return visible_products[index_of_last_added_product + 1 :]
-
-
-class MercadonaProductTag:
-    def __init__(self, tag: Tag) -> None:
-        self.__tag = tag
-
-    def to_product(self) -> Product:
-        return Product(
-            name=self.__name,
-            quantity=self.__quantity,
-            price=self.__price,
-            image_url=self.__image_url,
-        )
-
-    def is_ready(self) -> bool:
-        return (
-            self.__text("h4.product-cell__description-name") != ""
-            and self.__quantity_text != ""
-            and self.__text("p.product-price__unit-price") != ""
-            and self.__has_valid_image_url()
-        )
-
-    @property
-    def __name(self) -> str:
-        return self.__required_text("h4.product-cell__description-name", "name")
-
-    @property
-    def __quantity(self) -> str:
-        quantity = self.__quantity_text
-        if quantity == "":
-            raise MissingProductAttributeError("quantity")
-        return quantity
-
-    @property
-    def __quantity_text(self) -> str:
-        quantity_tag = self.__tag.select_one("div.product-format__size--cell")
-        if quantity_tag:
-            texts = [text for text in quantity_tag.stripped_strings if text]
-            if len(texts) > 1:
-                return texts[1].strip()
-            elif len(texts) == 1:
-                return texts[0].strip()
-        return ""
-
-    @property
-    def __price(self) -> float:
-        price = self.__required_text("p.product-price__unit-price", "price")
-        price = price.replace("€", "").replace(",", ".").strip()
-        if price == "":
-            raise MissingProductAttributeError("price")
-
-        try:
-            return float(price)
-        except ValueError as ex:
-            raise MissingProductAttributeError("price") from ex
-
-    @property
-    def __image_url(self) -> str:
-        image_tag = self.__tag.select_one("div.product-cell__image-wrapper img")
-        image_url = str(image_tag.get("src", "")).strip() if image_tag else ""
-        if not self.__is_valid_url(image_url):
-            raise MissingProductAttributeError("image_url")
-        return image_url
-
-    def __required_text(self, selector: str, attribute: str) -> str:
-        text = self.__text(selector)
-        if text == "":
-            raise MissingProductAttributeError(attribute)
-        return text
-
-    def __text(self, selector: str) -> str:
-        tag = self.__tag.select_one(selector)
-        return str(tag.text).strip() if tag else ""
-
-    def __has_valid_image_url(self) -> bool:
-        image_tag = self.__tag.select_one("div.product-cell__image-wrapper img")
-        image_url = str(image_tag.get("src", "")).strip() if image_tag else ""
-        return self.__is_valid_url(image_url)
-
-    @staticmethod
-    def __is_valid_url(image_url: str) -> bool:
-        parsed_url = urlparse(image_url)
-        return parsed_url.scheme in {"http", "https"} and parsed_url.netloc != ""

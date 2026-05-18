@@ -1,3 +1,9 @@
+postal_code: "38320"
+
+markets:
+  - "Alcampo"
+  - "Mercadona"
+
 processor:
   known_brands:
     - "Adrian Gutierrez e Hijas"

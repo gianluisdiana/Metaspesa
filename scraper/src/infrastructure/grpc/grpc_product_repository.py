@@ -39,7 +39,8 @@ class GrpcProductRepository(ProductRepository):
             market_name, date, products
         )
 
-        assert self.__token
+        if self.__token is None:
+            raise RepositorySaveException("Authentication did not return a token.")
         try:
             await self.__market_stub.AddProducts(  # type: ignore
                 request,
