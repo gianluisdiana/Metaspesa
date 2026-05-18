@@ -3,35 +3,24 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import GrpcApiService from '@/infrastructure/grpc-api-service';
 
-const ALREADY_EXISTS = 6;
-
-function getErrorCode(error: unknown): number | undefined {
-  if (typeof error !== 'object' || error === null || !('code' in error)) {
-    return undefined;
-  }
-
-  return Number(error.code);
-}
-
-function hasListName(request: NextRequest): boolean {
-  return request.nextUrl.searchParams.has('name');
-}
-
-function getListName(request: NextRequest): string | undefined {
-  const name = request.nextUrl.searchParams.get('name');
-  return name && name.length > 0 ? name : undefined;
-}
+import {
+  GrpcStatusError,
+  ShoppingListsRequest,
+} from './shopping-lists-request';
 
 export async function GET(request: NextRequest) {
   const cookieStore = await cookies();
   const token = cookieStore.get('auth_token')?.value ?? '';
   const service = new GrpcApiService(token);
+  const listsRequest = new ShoppingListsRequest(request);
 
-  if (!hasListName(request)) {
+  if (!listsRequest.hasListName) {
     return NextResponse.json(await service.getShoppingListSummaries());
   }
 
-  return NextResponse.json(await service.getShoppingList(getListName(request)));
+  return NextResponse.json(
+    await service.getShoppingList(listsRequest.listName),
+  );
 }
 
 export async function POST() {
@@ -49,7 +38,7 @@ export async function POST() {
   } catch (error) {
     const shoppingList = await service.getShoppingList();
     const shoppingListSummaries = await service.getShoppingListSummaries();
-    if (getErrorCode(error) === ALREADY_EXISTS) {
+    if (new GrpcStatusError(error).alreadyExists) {
       return NextResponse.json({
         message: 'Temporary list already exists.',
         shoppingList,
