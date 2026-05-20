@@ -1,13 +1,12 @@
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
 import GrpcMarketApiService from '@/infrastructure/grpc-market-api-service';
+import { getAuthToken } from '@/lib/server/auth-cookie';
 
 import { MarketProductsRequest } from './market-products-request';
 
 export async function GET(request: NextRequest) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth_token')?.value ?? '';
+  const token = await getAuthToken();
   const filter = new MarketProductsRequest(
     request.nextUrl.searchParams,
   ).toFilter();

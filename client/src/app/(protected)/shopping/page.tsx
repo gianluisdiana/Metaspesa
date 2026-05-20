@@ -1,7 +1,6 @@
-import { cookies } from 'next/headers';
-
 import GrpcApiService from '@/infrastructure/grpc-api-service';
 import { PageSearchParams, stringParam } from '@/lib/search-params';
+import { getAuthToken } from '@/lib/server/auth-cookie';
 
 import ShoppingListContainer from './components/shopping-list-container';
 
@@ -10,8 +9,7 @@ export default async function ShoppingPage({
 }: Readonly<{
   searchParams: Promise<PageSearchParams>;
 }>) {
-  const [params, cookieStore] = await Promise.all([searchParams, cookies()]);
-  const token = cookieStore.get('auth_token')?.value ?? '';
+  const [params, token] = await Promise.all([searchParams, getAuthToken()]);
   const selectedListName = stringParam(params, 'name');
   const service = new GrpcApiService(token);
   const [shoppingList, shoppingListSummaries] = await Promise.all([

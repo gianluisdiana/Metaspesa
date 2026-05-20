@@ -1,7 +1,7 @@
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
 import GrpcApiService from '@/infrastructure/grpc-api-service';
+import { getAuthToken } from '@/lib/server/auth-cookie';
 
 import {
   GrpcStatusError,
@@ -9,8 +9,7 @@ import {
 } from './shopping-lists-request';
 
 export async function GET(request: NextRequest) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth_token')?.value ?? '';
+  const token = await getAuthToken();
   const service = new GrpcApiService(token);
   const listsRequest = new ShoppingListsRequest(request);
 
@@ -24,8 +23,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth_token')?.value ?? '';
+  const token = await getAuthToken();
   const service = new GrpcApiService(token);
 
   try {
