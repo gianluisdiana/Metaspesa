@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { ShoppingServiceClient } from '@/generated-protos/shopping/ShoppingService';
 import * as grpc from '@grpc/grpc-js';
 
 import ApiService from '@/lib/api-service';
@@ -8,8 +9,6 @@ import {
   ShoppingListMessage,
   ShoppingListSummaryMessage,
 } from '@/lib/shopping-list-contracts';
-
-import { ShoppingServiceClient } from '@/protos/shopping/ShoppingService';
 
 import { GrpcClientFactory } from './grpc-client-factory';
 import { requireGrpcResponse } from './grpc-response-guards';

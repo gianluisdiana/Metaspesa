@@ -6,23 +6,19 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src/'),
-      '@/protos/auth': path.resolve(
+      '@/generated-protos': path.resolve(
+        __dirname,
+        './src/infrastructure/protos_generated',
+      ),
+      '@/generated-protos/auth': path.resolve(
         __dirname,
         './src/infrastructure/protos_generated/Metaspesa/Protos/Auth/',
       ),
-      '@/protos/markets': path.resolve(
+      '@/generated-protos/markets': path.resolve(
         __dirname,
         './src/infrastructure/protos_generated/Metaspesa/Protos/Markets/',
       ),
-      '@/protos/shopping': path.resolve(
-        __dirname,
-        './src/infrastructure/protos_generated/Metaspesa/Protos/Shopping/',
-      ),
-      '@protos/': path.resolve(
-        __dirname,
-        './src/infrastructure/protos_generated/',
-      ),
-      '@protos/shopping': path.resolve(
+      '@/generated-protos/shopping': path.resolve(
         __dirname,
         './src/infrastructure/protos_generated/Metaspesa/Protos/Shopping/',
       ),

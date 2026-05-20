@@ -1,6 +1,6 @@
-import { LoginResultMessage } from '@/lib/auth-contracts';
+import { LoginResponse__Output } from '@/generated-protos/auth/LoginResponse';
 
-import { LoginResponse__Output } from '@/protos/auth/LoginResponse';
+import { LoginResultMessage } from '@/lib/auth-contracts';
 
 import { requireGrpcResponse } from './grpc-response-guards';
 

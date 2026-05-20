@@ -2,15 +2,14 @@ import 'server-only';
 
 import path from 'node:path';
 
+import { AuthServiceClient } from '@/generated-protos/auth/AuthService';
+import { ProtoGrpcType as AuthProtoGrpcType } from '@/generated-protos/auth_service';
+import { MarketServiceClient } from '@/generated-protos/markets/MarketService';
+import { ProtoGrpcType as MarketsProtoGrpcType } from '@/generated-protos/markets_service';
+import { ShoppingServiceClient } from '@/generated-protos/shopping/ShoppingService';
+import { ProtoGrpcType as ShoppingProtoGrpcType } from '@/generated-protos/shopping_service';
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
-
-import { AuthServiceClient } from '@/protos/auth/AuthService';
-import { ProtoGrpcType as AuthProtoGrpcType } from '@/protos/auth_service';
-import { MarketServiceClient } from '@/protos/markets/MarketService';
-import { ProtoGrpcType as MarketsProtoGrpcType } from '@/protos/markets_service';
-import { ShoppingServiceClient } from '@/protos/shopping/ShoppingService';
-import { ProtoGrpcType as ShoppingProtoGrpcType } from '@/protos/shopping_service';
 
 import { GrpcConfig } from './grpc-config';
 import { createTracingMetadata } from './grpc-metadata';

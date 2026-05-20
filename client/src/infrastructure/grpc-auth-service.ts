@@ -1,11 +1,10 @@
 import 'server-only';
 
+import { AuthServiceClient } from '@/generated-protos/auth/AuthService';
 import { SeverityNumber, logs } from '@opentelemetry/api-logs';
 
 import { CredentialsMessage, LoginResultMessage } from '@/lib/auth-contracts';
 import AuthService from '@/lib/auth-service';
-
-import { AuthServiceClient } from '@/protos/auth/AuthService';
 
 import { GrpcAuthMapper } from './grpc-auth-mapper';
 import { GrpcClientFactory } from './grpc-client-factory';

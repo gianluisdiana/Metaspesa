@@ -20,14 +20,14 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@/protos/*": ["./src/infrastructure/protos_generated/*.ts"],
-      "@/protos/shopping/*": [
+      "@/generated-protos/*": ["./src/infrastructure/protos_generated/*.ts"],
+      "@/generated-protos/shopping/*": [
         "./src/infrastructure/protos_generated/Metaspesa/Protos/Shopping/*"
       ],
-      "@/protos/auth/*": [
+      "@/generated-protos/auth/*": [
         "./src/infrastructure/protos_generated/Metaspesa/Protos/Auth/*"
       ],
-      "@/protos/markets/*": [
+      "@/generated-protos/markets/*": [
         "./src/infrastructure/protos_generated/Metaspesa/Protos/Markets/*"
       ]
     }

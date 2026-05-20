@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { MarketServiceClient } from '@/generated-protos/markets/MarketService';
 import * as grpc from '@grpc/grpc-js';
 
 import MarketApiService, { MarketFilter } from '@/lib/market-api-service';
@@ -7,8 +8,6 @@ import {
   MarketProductsResult,
   MarketSummaryMessage,
 } from '@/lib/market-contracts';
-
-import { MarketServiceClient } from '@/protos/markets/MarketService';
 
 import { GrpcClientFactory } from './grpc-client-factory';
 import { GrpcMarketMapper } from './grpc-market-mapper';

@@ -1,7 +1,7 @@
-import { MarketMessage, MarketSummaryMessage } from '@/lib/market-contracts';
+import { Market__Output } from '@/generated-protos/markets/Market';
+import { MarketSummary__Output } from '@/generated-protos/markets/MarketSummary';
 
-import { Market__Output } from '@/protos/markets/Market';
-import { MarketSummary__Output } from '@/protos/markets/MarketSummary';
+import { MarketMessage, MarketSummaryMessage } from '@/lib/market-contracts';
 
 export class GrpcMarketMapper {
   public mapMarket(market: Market__Output): MarketMessage {

@@ -1,14 +1,14 @@
+import { RegisteredItemsResponse__Output } from '@/generated-protos/shopping/RegisteredItemsResponse';
+import { ShoppingItem__Output } from '@/generated-protos/shopping/ShoppingItem';
+import { ShoppingList__Output } from '@/generated-protos/shopping/ShoppingList';
+import { ShoppingListSummary__Output } from '@/generated-protos/shopping/ShoppingListSummary';
+
 import { dollars } from '@/lib/formatters/money-formatter';
 import {
   ProductMessage,
   ShoppingListMessage,
   ShoppingListSummaryMessage,
 } from '@/lib/shopping-list-contracts';
-
-import { RegisteredItemsResponse__Output } from '@/protos/shopping/RegisteredItemsResponse';
-import { ShoppingItem__Output } from '@/protos/shopping/ShoppingItem';
-import { ShoppingList__Output } from '@/protos/shopping/ShoppingList';
-import { ShoppingListSummary__Output } from '@/protos/shopping/ShoppingListSummary';
 
 import { requireGrpcResponse } from './grpc-response-guards';
 
