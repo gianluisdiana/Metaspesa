@@ -5,11 +5,10 @@ import { GrpcShoppingMapper } from '@/infrastructure/grpc-shopping-mapper';
 describe('GrpcShoppingMapper', () => {
   const mapper = new GrpcShoppingMapper();
 
-  it('maps missing shopping list to an empty list', () => {
-    expect(mapper.mapShoppingList()).toEqual({
-      name: '',
-      products: [],
-    });
+  it('fails on missing shopping lists', () => {
+    expect(() => mapper.mapShoppingList()).toThrow(
+      'Malformed gRPC response: ShoppingList',
+    );
   });
 
   it('maps shopping items with rounded prices', () => {

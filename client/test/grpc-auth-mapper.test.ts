@@ -5,11 +5,10 @@ import { GrpcAuthMapper } from '@/infrastructure/grpc-auth-mapper';
 describe('GrpcAuthMapper', () => {
   const mapper = new GrpcAuthMapper();
 
-  it('maps missing login responses to empty values', () => {
-    expect(mapper.mapLoginResult()).toEqual({
-      expirationInUtc: '',
-      token: '',
-    });
+  it('fails on missing login responses', () => {
+    expect(() => mapper.mapLoginResult()).toThrow(
+      'Malformed gRPC response: LoginResponse',
+    );
   });
 
   it('maps login responses', () => {

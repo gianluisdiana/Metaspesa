@@ -10,6 +10,8 @@ import { ShoppingItem__Output } from '@/protos/shopping/ShoppingItem';
 import { ShoppingList__Output } from '@/protos/shopping/ShoppingList';
 import { ShoppingListSummary__Output } from '@/protos/shopping/ShoppingListSummary';
 
+import { requireGrpcResponse } from './grpc-response-guards';
+
 export class GrpcShoppingMapper {
   public mapRegisteredItems(
     response?: RegisteredItemsResponse__Output,
@@ -20,9 +22,11 @@ export class GrpcShoppingMapper {
   public mapShoppingList(
     proto?: ShoppingList__Output | null,
   ): ShoppingListMessage {
+    const shoppingList = requireGrpcResponse(proto, 'ShoppingList');
     return {
-      name: proto?.name ?? '',
-      products: proto?.items?.map(item => this.mapShoppingItem(item)) ?? [],
+      name: shoppingList.name,
+      products:
+        shoppingList.items?.map(item => this.mapShoppingItem(item)) ?? [],
     };
   }
 

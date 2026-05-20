@@ -12,6 +12,7 @@ import {
 import { ShoppingServiceClient } from '@/protos/shopping/ShoppingService';
 
 import { GrpcClientFactory } from './grpc-client-factory';
+import { requireGrpcResponse } from './grpc-response-guards';
 import { GrpcShoppingMapper } from './grpc-shopping-mapper';
 
 export default class GrpcApiService implements ApiService {
@@ -59,7 +60,13 @@ export default class GrpcApiService implements ApiService {
                 return;
               }
 
-              resolve(this.mapper.mapShoppingList(response?.shoppingList));
+              const responseMessage = requireGrpcResponse(
+                response,
+                'GetShoppingListResponse',
+              );
+              resolve(
+                this.mapper.mapShoppingList(responseMessage.shoppingList),
+              );
             },
           );
         },
@@ -108,7 +115,11 @@ export default class GrpcApiService implements ApiService {
             return;
           }
 
-          resolve(this.mapper.mapRegisteredItems(response));
+          resolve(
+            this.mapper.mapRegisteredItems(
+              requireGrpcResponse(response, 'RegisteredItemsResponse'),
+            ),
+          );
         });
       });
     } catch {
