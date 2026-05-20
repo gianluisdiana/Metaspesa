@@ -1,0 +1,23 @@
+services:
+  server:
+    image: gianluisdiana/metaspesa_server:${METASPESA_VERSION}
+    build: null
+    restart: unless-stopped
+
+  client:
+    image: gianluisdiana/metaspesa_client:${METASPESA_VERSION}
+    build: null
+    restart: unless-stopped
+    ports:
+      - 3000:8080
+
+  scraper:
+    image: gianluisdiana/metaspesa_scraper:${METASPESA_VERSION}
+    build: null
+    restart: unless-stopped
+
+  db:
+    restart: unless-stopped
+
+  migrations:
+    build: null

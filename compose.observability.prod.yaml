@@ -1,0 +1,17 @@
+services:
+  alloy:
+    restart: unless-stopped
+
+  loki:
+    restart: unless-stopped
+
+  mimir:
+    restart: unless-stopped
+
+  tempo:
+    restart: unless-stopped
+
+  grafana:
+    restart: unless-stopped
+    ports:
+      - 3001:3000

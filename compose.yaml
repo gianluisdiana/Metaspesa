@@ -1,11 +1,9 @@
 services:
   server:
-    image: gianluisdiana/metaspesa_server:latest
+    image: gianluisdiana/metaspesa_server:${METASPESA_VERSION:-latest}
     build:
       context: ./server
       dockerfile: ./src/GrpcApi/Dockerfile
-    ports:
-      - 5000:8080
     environment:
       ASPNETCORE_URLS: http://+:8080
       POSTGRES_CONNECTION_STRING: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
@@ -19,7 +17,7 @@ services:
       - metaspesa_telemetry_default
 
   migrations:
-    image: gianluisdiana/metaspesa_migrations:latest
+    image: gianluisdiana/metaspesa_migrations:${METASPESA_VERSION:-latest}
     build:
       context: ./server
       dockerfile: ./src/MigrationService/Dockerfile
@@ -38,10 +36,10 @@ services:
       - metaspesa_telemetry_default
 
   client:
+    image: gianluisdiana/metaspesa_client:${METASPESA_VERSION:-latest}
     build:
       context: ./client
       dockerfile: Dockerfile
-    image: gianluisdiana/metaspesa_client:latest
     ports:
       - 3000:8080
     depends_on:
@@ -55,10 +53,10 @@ services:
       - metaspesa_telemetry_default
 
   scraper:
+    image: gianluisdiana/metaspesa_scraper:${METASPESA_VERSION:-latest}
     build:
       context: ./scraper
       dockerfile: Dockerfile
-    image: gianluisdiana/metaspesa_scraper:latest
     depends_on:
       - server
     environment:
@@ -74,9 +72,7 @@ services:
       - metaspesa_telemetry_default
 
   db:
-    image: postgres:latest
-    ports:
-      - 5432:5432
+    image: postgres:18.4-alpine
     env_file:
       - .env
     volumes:
