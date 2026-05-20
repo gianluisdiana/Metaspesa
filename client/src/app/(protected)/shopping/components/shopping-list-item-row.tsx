@@ -43,7 +43,7 @@ export function UncheckedItem({
             </span>
           </div>
           <button
-            aria-label={`Remove ${item.name} placeholder`}
+            aria-label={`Remove ${item.name}`}
             className="text-outline hover:text-error transition-colors opacity-0 group-hover:opacity-100 p-2"
             type="button"
           >
@@ -66,7 +66,7 @@ export function CheckedItem({
   return (
     <div className="flex items-center gap-stack-md bg-secondary-fixed/30 p-stack-md rounded-xl border border-secondary-fixed/50 transition-all opacity-80">
       <button
-        aria-label={`${item.name} checked placeholder`}
+        aria-label={`${item.name} checked`}
         className="w-7 h-7 rounded-full bg-primary border-primary shrink-0 flex items-center justify-center text-on-primary"
         type="button"
       >
