@@ -1,17 +1,18 @@
 import { NextRequest } from 'next/server';
 
+import { hasParam, stringParam } from '@/lib/search-params';
+
 export const ALREADY_EXISTS = 6;
 
 export class ShoppingListsRequest {
   public constructor(private readonly request: NextRequest) {}
 
   public get hasListName(): boolean {
-    return this.request.nextUrl.searchParams.has('name');
+    return hasParam(this.request.nextUrl.searchParams, 'name');
   }
 
   public get listName(): string | undefined {
-    const name = this.request.nextUrl.searchParams.get('name');
-    return name && name.length > 0 ? name : undefined;
+    return stringParam(this.request.nextUrl.searchParams, 'name');
   }
 }
 

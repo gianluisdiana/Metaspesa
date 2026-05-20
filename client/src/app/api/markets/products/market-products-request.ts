@@ -1,4 +1,5 @@
 import { MarketFilter } from '@/lib/market-api-service';
+import { positiveNumberParam, stringParam } from '@/lib/search-params';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 20;
@@ -17,12 +18,10 @@ export class MarketProductsRequest {
   }
 
   private positiveNumberParam(key: string, fallback: number): number {
-    const value = Number(this.params.get(key));
-    return Number.isInteger(value) && value > 0 ? value : fallback;
+    return positiveNumberParam(this.params, key, fallback);
   }
 
   private stringParam(key: string): string | undefined {
-    const value = this.params.get(key);
-    return value && value.length > 0 ? value : undefined;
+    return stringParam(this.params, key);
   }
 }

@@ -4,22 +4,17 @@ import { Suspense } from 'react';
 import GrpcApiService from '@/infrastructure/grpc-api-service';
 import GrpcMarketApiService from '@/infrastructure/grpc-market-api-service';
 import { MarketFilter } from '@/lib/market-api-service';
+import { PageSearchParams, stringParam } from '@/lib/search-params';
 
 import FilterHeader from './components/filter-header';
 import ProductGrid from './components/product-grid';
 
-type SearchParams = { [key: string]: string | string[] | undefined };
 const PRODUCTS_PAGE_SIZE = 20;
-
-function stringParam(params: SearchParams, key: string): string | undefined {
-  const value = params[key];
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
-}
 
 export default async function MarketsPage({
   searchParams,
 }: Readonly<{
-  searchParams: Promise<SearchParams>;
+  searchParams: Promise<PageSearchParams>;
 }>) {
   const [params, cookieStore] = await Promise.all([searchParams, cookies()]);
   const token = cookieStore.get('auth_token')?.value ?? '';
