@@ -10,7 +10,8 @@ import { ShoppingListSummaryMessage } from '@/lib/shopping-list-contracts';
 
 import { useToast } from '../../components/toast-provider';
 import AddToListModal from './add-to-list-modal';
-import ProductCard, { type Product } from './product-card';
+import ProductCard from './product-card';
+import { type Product } from './product-card-model';
 import { usePaginatedMarketProducts } from './use-paginated-market-products';
 
 const MISSING_PRICE_LABEL = '—';
