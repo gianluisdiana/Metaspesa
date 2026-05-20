@@ -19,3 +19,10 @@ export class GrpcErrorMessage {
     return this.fallbackMessage;
   }
 }
+
+export function getGrpcErrorMessage(
+  error: unknown,
+  fallbackMessage: string,
+): string {
+  return new GrpcErrorMessage(error, fallbackMessage).message;
+}

@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 
 import GrpcAuthService from '@/infrastructure/grpc-auth-service';
 import { Credentials } from '@/lib/auth-domain';
-import { GrpcErrorMessage } from '@/lib/auth-errors';
+import { getGrpcErrorMessage } from '@/lib/auth-errors';
 
 export type LoginState = { error: string } | null;
 
@@ -32,8 +32,7 @@ export async function loginAction(
     expirationInUtc = exp;
   } catch (err) {
     return {
-      error: new GrpcErrorMessage(err, 'Login failed. Please try again.')
-        .message,
+      error: getGrpcErrorMessage(err, 'Login failed. Please try again.'),
     };
   }
 

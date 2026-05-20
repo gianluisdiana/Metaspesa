@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 
 import GrpcAuthService from '@/infrastructure/grpc-auth-service';
 import { Credentials } from '@/lib/auth-domain';
-import { GrpcErrorMessage } from '@/lib/auth-errors';
+import { getGrpcErrorMessage } from '@/lib/auth-errors';
 
 export type RegisterState = { error: string } | null;
 
@@ -35,8 +35,7 @@ export async function registerAction(
     await service.register({ password, username });
   } catch (err) {
     return {
-      error: new GrpcErrorMessage(err, 'Registration failed. Please try again.')
-        .message,
+      error: getGrpcErrorMessage(err, 'Registration failed. Please try again.'),
     };
   }
 
