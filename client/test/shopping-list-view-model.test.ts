@@ -59,8 +59,8 @@ describe('ShoppingListViewModel', () => {
     expect(viewModel.uncheckedSections[0].label).toBe('To buy');
     expect(viewModel.uncheckedSections[0].items).toHaveLength(1);
     expect(viewModel.uncheckedSections[0].items[0].badge).toEqual({
-      colorClass: 'bg-tertiary-container/30 text-on-tertiary-container',
       label: 'Item',
+      tone: 'item',
     });
     expect(viewModel.uncheckedSections[0].items[0].categorySection).toBe(
       'To buy',

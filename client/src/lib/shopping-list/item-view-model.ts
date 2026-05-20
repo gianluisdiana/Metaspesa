@@ -2,6 +2,13 @@ import { ProductMessage } from '@/lib/shopping-list-contracts';
 
 import { ShoppingPriceViewModel } from './price-view-model';
 
+export type ShoppingItemBadgeTone = 'item';
+
+export type ShoppingItemBadgeViewModel = {
+  label: string;
+  tone: ShoppingItemBadgeTone;
+};
+
 export class CheckedShoppingItemViewModel {
   public constructor(
     private readonly product: ProductMessage,
@@ -27,10 +34,10 @@ export class UncheckedShoppingItemViewModel {
     private readonly index: number,
   ) {}
 
-  public get badge(): { colorClass: string; label: string } {
+  public get badge(): ShoppingItemBadgeViewModel {
     return {
-      colorClass: 'bg-tertiary-container/30 text-on-tertiary-container',
       label: 'Item',
+      tone: 'item',
     };
   }
 

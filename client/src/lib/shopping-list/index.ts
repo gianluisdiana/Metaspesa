@@ -1,5 +1,7 @@
 export {
   CheckedShoppingItemViewModel,
+  type ShoppingItemBadgeTone,
+  type ShoppingItemBadgeViewModel,
   ShoppingItemSectionViewModel,
   UncheckedShoppingItemViewModel,
 } from './item-view-model';
