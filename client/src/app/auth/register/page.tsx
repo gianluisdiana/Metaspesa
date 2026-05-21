@@ -1,4 +1,14 @@
+import type { Metadata } from 'next';
+
+import { pageMetadata } from '@/lib/seo';
+
 import RegisterCard from './components/register-card';
+
+export const metadata: Metadata = pageMetadata({
+  canonicalPath: '/auth/register',
+  noIndex: true,
+  title: 'Crear cuenta',
+});
 
 export default function RegisterPage() {
   return (

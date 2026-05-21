@@ -1,8 +1,17 @@
+import type { Metadata } from 'next';
+
 import GrpcApiService from '@/infrastructure/grpc-api-service';
 import { PageSearchParams, stringParam } from '@/lib/search-params';
+import { pageMetadata } from '@/lib/seo';
 import { getAuthToken } from '@/lib/server/auth-cookie';
 
 import ShoppingListContainer from './components/shopping-list-container';
+
+export const metadata: Metadata = pageMetadata({
+  canonicalPath: '/shopping',
+  noIndex: true,
+  title: 'Lista de compra',
+});
 
 export default async function ShoppingPage({
   searchParams,

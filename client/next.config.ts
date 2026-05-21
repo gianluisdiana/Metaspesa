@@ -1,6 +1,22 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        hostname: 'lh3.googleusercontent.com',
+        protocol: 'https',
+      },
+      {
+        hostname: 'www.alcampo.es',
+        protocol: 'https',
+      },
+      {
+        hostname: 'prod-mercadona.imgix.net',
+        protocol: 'https',
+      },
+    ],
+  },
   serverExternalPackages: [
     '@grpc/grpc-js',
     '@grpc/proto-loader',
