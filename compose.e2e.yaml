@@ -1,0 +1,8 @@
+services:
+  server:
+    ports:
+      - "8080:8080"
+
+  client:
+    environment:
+      GRPC_SERVER_URL: server:8080
