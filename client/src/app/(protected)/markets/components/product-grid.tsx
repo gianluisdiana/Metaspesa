@@ -11,17 +11,20 @@ export default function ProductGrid({
   filter,
   initialMarkets,
   initialTotalProducts,
+  isAuthenticated,
   shoppingListSummaries,
 }: Readonly<{
   filter: MarketFilter;
   initialMarkets: MarketMessage[];
   initialTotalProducts: number;
+  isAuthenticated: boolean;
   shoppingListSummaries: ShoppingListSummaryMessage[];
 }>) {
   const controller = useProductGridController({
     filter,
     initialMarkets,
     initialTotalProducts,
+    isAuthenticated,
   });
 
   return (

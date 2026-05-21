@@ -1,6 +1,13 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 const AUTH_PATHS = ['/auth/login', '/auth/register'];
+const PROTECTED_PATHS = ['/api/shopping', '/shopping'];
+
+function isProtectedPath(pathname: string): boolean {
+  return PROTECTED_PATHS.some(path => {
+    return pathname === path || pathname.startsWith(`${path}/`);
+  });
+}
 
 export function proxy(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value;
@@ -8,7 +15,7 @@ export function proxy(request: NextRequest) {
 
   const isAuthPath = AUTH_PATHS.some(p => pathname.startsWith(p));
 
-  if (!token && !isAuthPath) {
+  if (!token && isProtectedPath(pathname)) {
     return NextResponse.redirect(new URL('/auth/login', request.url));
   }
   if (token && isAuthPath) {

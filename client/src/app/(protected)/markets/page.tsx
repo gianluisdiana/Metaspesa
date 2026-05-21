@@ -31,7 +31,7 @@ export default async function MarketsPage({
   const [result, markets, shoppingListSummaries] = await Promise.all([
     marketService.getMarketProducts(filter),
     marketService.getMarkets(),
-    shoppingService.getShoppingListSummaries(),
+    token ? shoppingService.getShoppingListSummaries() : [],
   ]);
 
   return (
@@ -43,6 +43,7 @@ export default async function MarketsPage({
         filter={filter}
         initialMarkets={result.markets}
         initialTotalProducts={result.totalProducts}
+        isAuthenticated={Boolean(token)}
         shoppingListSummaries={shoppingListSummaries}
       />
     </>

@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname, useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 import { useInfiniteScroll } from '@/lib/hooks/use-infinite-scroll';
@@ -14,11 +15,15 @@ export function useProductGridController({
   filter,
   initialMarkets,
   initialTotalProducts,
+  isAuthenticated,
 }: Readonly<{
   filter: MarketFilter;
   initialMarkets: MarketMessage[];
   initialTotalProducts: number;
+  isAuthenticated: boolean;
 }>) {
+  const pathname = usePathname();
+  const router = useRouter();
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product>();
   const { showToast } = useToast();
@@ -37,6 +42,15 @@ export function useProductGridController({
   });
 
   function openAddToListModal(product: Product) {
+    if (!isAuthenticated) {
+      showToast({
+        message: 'Log in to add products to a shopping list.',
+        tone: 'info',
+      });
+      router.push(`/auth/login?next=${encodeURIComponent(pathname)}`);
+      return;
+    }
+
     setSelectedProduct(product);
     setIsModalOpen(true);
   }

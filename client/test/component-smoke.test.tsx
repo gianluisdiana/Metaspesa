@@ -69,6 +69,7 @@ describe('component smoke tests', () => {
           filter={{ page: 1, pageSize: 20 }}
           initialMarkets={[]}
           initialTotalProducts={0}
+          isAuthenticated
           shoppingListSummaries={[]}
         />
       </ToastProvider>,
