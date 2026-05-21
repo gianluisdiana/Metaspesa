@@ -1,4 +1,4 @@
-name: pass unit tests
+name: CI
 
 on:
   push:
@@ -9,8 +9,23 @@ on:
 env:
   DOTNET_VERSION: "10.0.100"
   NODE_VERSION: "24"
+  PYTHON_VERSION: "3.14"
 
 jobs:
+  check-backend-format:
+    name: Check backend format
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Check backend format
+        run: dotnet format server/Metaspesa.slnx --verify-no-changes --verbosity diagnostic
+
   pass-backend-unit-tests:
     name: Pass backend unit tests on ${{matrix.os}}
     runs-on: ${{ matrix.os }}
@@ -75,6 +90,10 @@ jobs:
         run: npm ci
         working-directory: client
 
+      - name: Check frontend lint and format
+        run: npm run lint
+        working-directory: client
+
       - name: Test frontend
         run: npm run test
         working-directory: client
@@ -89,9 +108,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install uv
         run: pip install uv
@@ -100,6 +119,28 @@ jobs:
         run: uv sync
         working-directory: scraper
 
+      - name: Check scraper lint
+        run: uv run ruff check src test
+        working-directory: scraper
+
+      - name: Check scraper format
+        run: uv run ruff format --check src test
+        working-directory: scraper
+
       - name: Test scraper
         run: uv run pytest
+        working-directory: scraper
+
+      - name: Install Playwright browsers and Linux dependencies
+        if: runner.os == 'Linux'
+        run: uv run playwright install --with-deps firefox
+        working-directory: scraper
+
+      - name: Install Playwright browsers
+        if: runner.os != 'Linux'
+        run: uv run playwright install firefox
+        working-directory: scraper
+
+      - name: Test scraper live retailer integrations
+        run: uv run pytest -m integration
         working-directory: scraper
