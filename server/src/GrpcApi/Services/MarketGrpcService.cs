@@ -41,7 +41,7 @@ internal class MarketGrpcService(
     return new Empty();
   }
 
-  [Authorize(Roles = nameof(Role.Shopper))]
+  [AllowAnonymous]
   public override async Task<GetMarketProductsResponse> GetMarketProducts(
     GetMarketProductsRequest request, ServerCallContext context
   ) {
@@ -68,7 +68,7 @@ internal class MarketGrpcService(
     return response;
   }
 
-  [Authorize(Roles = nameof(Role.Shopper))]
+  [AllowAnonymous]
   public override async Task<GetMarketsResponse> GetMarkets(
     Empty request, ServerCallContext context
   ) {

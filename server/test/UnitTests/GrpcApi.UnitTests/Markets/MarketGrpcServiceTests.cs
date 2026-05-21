@@ -4,8 +4,10 @@ using Grpc.Core.Testing;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Markets;
 using Metaspesa.Domain.Markets;
+using Metaspesa.Domain.Users;
 using Metaspesa.GrpcApi.Protos.Markets;
 using Metaspesa.GrpcApi.Services;
+using Microsoft.AspNetCore.Authorization;
 using NSubstitute;
 using DomainMarket = Metaspesa.Domain.Markets.Market;
 using DomainMarketProduct = Metaspesa.Domain.Markets.MarketProduct;
@@ -15,6 +17,55 @@ using DomainPrice = Metaspesa.Domain.Shopping.Price;
 namespace Metaspesa.GrpcApi.UnitTests.Markets;
 
 public static class MarketGrpcServiceTests {
+  public class AuthorizationAttributes {
+    [Fact(DisplayName = "Allows anonymous users to get market products")]
+    public void GetMarketProducts_AllowsAnonymousUsers() {
+      // Act
+      object[] attributes = typeof(MarketGrpcService)
+        .GetMethod(nameof(MarketGrpcService.GetMarketProducts))!
+        .GetCustomAttributes(inherit: true);
+
+      // Assert
+      Assert.Contains(attributes, attribute => attribute is AllowAnonymousAttribute);
+    }
+
+    [Fact(DisplayName = "Allows anonymous users to get markets")]
+    public void GetMarkets_AllowsAnonymousUsers() {
+      // Act
+      object[] attributes = typeof(MarketGrpcService)
+        .GetMethod(nameof(MarketGrpcService.GetMarkets))!
+        .GetCustomAttributes(inherit: true);
+
+      // Assert
+      Assert.Contains(attributes, attribute => attribute is AllowAnonymousAttribute);
+    }
+
+    [Fact(DisplayName = "Requires product manager role to add products")]
+    public void AddProducts_RequiresProductManagerRole() {
+      // Act
+      AuthorizeAttribute attribute = typeof(MarketGrpcService)
+        .GetMethod(nameof(MarketGrpcService.AddProducts))!
+        .GetCustomAttributes(inherit: true)
+        .OfType<AuthorizeAttribute>()
+        .Single();
+
+      // Assert
+      Assert.Equal(nameof(Role.ProductManager), attribute.Roles);
+    }
+
+    [Fact(DisplayName = "Keeps shopping service protected for shoppers")]
+    public void ShoppingService_RequiresShopperRole() {
+      // Act
+      AuthorizeAttribute attribute = typeof(ShoppingGrpcService)
+        .GetCustomAttributes(inherit: true)
+        .OfType<AuthorizeAttribute>()
+        .Single();
+
+      // Assert
+      Assert.Equal(nameof(Role.Shopper), attribute.Roles);
+    }
+  }
+
   public class AddProductsRpc {
     private readonly ICommandHandler<AddMarketProducts.Command> _useCaseHandler;
     private readonly MarketGrpcService _service;
