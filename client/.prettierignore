@@ -2,4 +2,6 @@
 coverage
 next-env.d.ts
 node_modules
+playwright-report
 src/infrastructure/protos_generated
+test-results

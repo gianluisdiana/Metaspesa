@@ -24,4 +24,7 @@ export default defineConfig({
       ),
     },
   },
+  test: {
+    setupFiles: ['./test/component/setup.ts'],
+  },
 });
