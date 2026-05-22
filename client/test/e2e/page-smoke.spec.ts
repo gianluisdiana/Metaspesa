@@ -7,10 +7,12 @@ test.describe('page smoke e2e', () => {
     await expect(page.getByRole('heading', { name: /markets/i })).toBeVisible();
   });
 
-  test('shopping page renders a page heading', async ({ page }) => {
+  test('shopping page redirects unauthenticated users to login', async ({
+    page,
+  }) => {
     await page.goto('/shopping');
 
-    await expect(page.getByRole('heading')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /sign in/i })).toBeVisible();
   });
 
   test('evolution page renders price history chart heading', async ({

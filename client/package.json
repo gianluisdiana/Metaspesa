@@ -13,8 +13,8 @@
     "test:unit": "vitest run test/unit",
     "test:component": "vitest run test/component",
     "test:integration": "vitest run test/integration",
-    "test:e2e": "playwright test --project=chromium-e2e",
-    "test:visual": "playwright test --project=chromium-visual",
+    "test:e2e": "playwright test --project=firefox-e2e",
+    "test:visual": "playwright test --project=firefox-visual",
     "typecheck": "tsc --noEmit",
     "coverage": "vitest run --coverage"
   },

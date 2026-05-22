@@ -15,16 +15,16 @@ export default defineConfig({
   outputDir: 'test-results/playwright',
   projects: [
     {
-      name: 'chromium-e2e',
+      name: 'firefox-e2e',
       testDir: './test/e2e',
       testIgnore: /.*\.visual\.spec\.ts/,
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Firefox'] },
     },
     {
-      name: 'chromium-visual',
+      name: 'firefox-visual',
       testDir: './test/e2e',
       testMatch: /.*\.visual\.spec\.ts/,
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Firefox'] },
     },
   ],
   reporter: [['list'], ['html', { open: 'never' }]],
