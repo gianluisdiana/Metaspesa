@@ -27,10 +27,15 @@ export default function ShoppingListContainer({
     <ShoppingListView
       isCreating={controller.isCreating}
       isLoading={controller.isLoading}
+      itemPendingDelete={controller.itemPendingDelete}
       tabs={controller.tabs}
       viewModel={controller.viewModel}
+      onCancelDeleteItem={controller.handleCancelDeleteItem}
+      onConfirmDeleteItem={controller.handleConfirmDeleteItem}
       onCreateList={controller.handleCreateList}
+      onRequestDeleteItem={controller.handleRequestDeleteItem}
       onSelectList={controller.handleSelectList}
+      onToggleItemChecked={controller.handleToggleItemChecked}
     />
   );
 }

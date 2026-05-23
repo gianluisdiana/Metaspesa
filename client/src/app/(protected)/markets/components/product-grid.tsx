@@ -23,6 +23,7 @@ export default function ProductGrid({
   const controller = useProductGridController({
     filter,
     initialMarkets,
+    initialShoppingListSummaries: shoppingListSummaries,
     initialTotalProducts,
     isAuthenticated,
   });
@@ -36,7 +37,7 @@ export default function ProductGrid({
       markets={controller.markets}
       selectedProduct={controller.selectedProduct}
       sentinelRef={controller.sentinelRef}
-      shoppingListSummaries={shoppingListSummaries}
+      shoppingListSummaries={controller.shoppingListSummaries}
       onAddProduct={controller.openAddToListModal}
       onCloseModal={controller.closeAddToListModal}
       onCreateList={controller.handleCreateList}

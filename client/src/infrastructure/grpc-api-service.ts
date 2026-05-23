@@ -6,6 +6,7 @@ import * as grpc from '@grpc/grpc-js';
 import ApiService from '@/lib/api-service';
 import {
   ProductMessage,
+  ShoppingItemUpdateMessage,
   ShoppingListMessage,
   ShoppingListSummaryMessage,
 } from '@/lib/shopping-list-contracts';
@@ -27,6 +28,29 @@ export default class GrpcApiService implements ApiService {
     this.client = factory.createShoppingServiceClient();
     this.mapper = mapper;
     this.metadata = factory.createAuthorizedMetadata(token);
+  }
+
+  async addItemsToList(
+    shoppingListName: string | undefined,
+    products: ProductMessage[],
+  ): Promise<void> {
+    await this.executeEmptyCall(resolve => {
+      this.client.AddItemsToList(
+        {
+          ...(shoppingListName ? { shoppingListName } : {}),
+          items: products.map(product => ({
+            checked: product.checked,
+            name: product.name,
+            ...(product.price === undefined
+              ? {}
+              : { price: product.price.toString() }),
+            ...(product.quantity ? { quantity: product.quantity } : {}),
+          })),
+        },
+        this.metadata,
+        resolve,
+      );
+    });
   }
 
   async createShoppingList(name?: string): Promise<void> {
@@ -126,9 +150,58 @@ export default class GrpcApiService implements ApiService {
     }
   }
 
+  async removeItem(
+    shoppingListName: string | undefined,
+    itemName: string,
+  ): Promise<void> {
+    await this.executeEmptyCall(resolve => {
+      this.client.RemoveItem(
+        { itemName, shoppingListName: shoppingListName ?? '' },
+        this.metadata,
+        resolve,
+      );
+    });
+  }
+
   recordShoppingList(shoppingList: ShoppingListMessage): Promise<void> {
     throw new Error(
       `Method not implemented. Received: ${JSON.stringify(shoppingList)}`,
     );
+  }
+
+  async updateItem(
+    shoppingListName: string | undefined,
+    itemName: string,
+    update: ShoppingItemUpdateMessage,
+  ): Promise<void> {
+    await this.executeEmptyCall(resolve => {
+      this.client.UpdateItem(
+        {
+          ...(update.checked === undefined ? {} : { checked: update.checked }),
+          ...(update.name ? { itemName: update.name } : {}),
+          ...(update.price === undefined ? {} : { itemPrice: update.price }),
+          ...(update.quantity ? { itemQuantity: update.quantity } : {}),
+          originalItemName: itemName,
+          shoppingListName: shoppingListName ?? '',
+        },
+        this.metadata,
+        resolve,
+      );
+    });
+  }
+
+  private async executeEmptyCall(
+    call: (resolve: grpc.requestCallback<unknown>) => void,
+  ): Promise<void> {
+    await new Promise<void>((resolve, reject) => {
+      call(err => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        resolve();
+      });
+    });
   }
 }

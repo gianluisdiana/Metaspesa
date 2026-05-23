@@ -9,4 +9,5 @@ export type Product = {
   badge?: { label: string; colorClass: string };
   originalPrice?: string;
   hasQuantityControl?: boolean;
+  priceValue?: number;
 };

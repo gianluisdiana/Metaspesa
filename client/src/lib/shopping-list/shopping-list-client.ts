@@ -1,4 +1,6 @@
 import {
+  ProductMessage,
+  ShoppingItemUpdateMessage,
   ShoppingListMessage,
   ShoppingListSummaryMessage,
 } from '@/lib/shopping-list-contracts';
@@ -10,6 +12,16 @@ export type CreateListResponse = {
 };
 
 export class ShoppingListClient {
+  public async addItemsToList(
+    shoppingListName: string | undefined,
+    items: ProductMessage[],
+  ): Promise<CreateListResponse> {
+    return await this.mutateItems('POST', {
+      items,
+      shoppingListName,
+    });
+  }
+
   public async createTemporaryList(): Promise<CreateListResponse> {
     const response = await fetch('/api/shopping/lists', {
       method: 'POST',
@@ -46,5 +58,46 @@ export class ShoppingListClient {
     }
 
     return (await response.json()) as ShoppingListSummaryMessage[];
+  }
+
+  public async removeItem(
+    shoppingListName: string | undefined,
+    itemName: string,
+  ): Promise<CreateListResponse> {
+    return await this.mutateItems('DELETE', {
+      itemName,
+      shoppingListName,
+    });
+  }
+
+  public async updateItem(
+    shoppingListName: string | undefined,
+    itemName: string,
+    update: ShoppingItemUpdateMessage,
+  ): Promise<CreateListResponse> {
+    return await this.mutateItems('PATCH', {
+      itemName,
+      shoppingListName,
+      update,
+    });
+  }
+
+  private async mutateItems(
+    method: 'DELETE' | 'PATCH' | 'POST',
+    body: unknown,
+  ): Promise<CreateListResponse> {
+    const response = await fetch('/api/shopping/lists/items', {
+      body: JSON.stringify(body),
+      headers: { 'Content-Type': 'application/json' },
+      method,
+    });
+    const responseBody = (await response.json()) as CreateListResponse;
+    if (!response.ok) {
+      throw new Error(
+        responseBody.message ?? 'Could not update shopping list.',
+      );
+    }
+
+    return responseBody;
   }
 }

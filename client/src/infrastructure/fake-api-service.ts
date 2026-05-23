@@ -1,11 +1,20 @@
 import ApiService from '@/lib/api-service';
 import {
   ProductMessage,
+  ShoppingItemUpdateMessage,
   ShoppingListMessage,
   ShoppingListSummaryMessage,
 } from '@/lib/shopping-list-contracts';
 
 export default class FakeApiService implements ApiService {
+  async addItemsToList(
+    shoppingListName: string | undefined,
+    products: ProductMessage[],
+  ): Promise<void> {
+    const list = await this.getShoppingList(shoppingListName);
+    list.products.push(...products);
+  }
+
   async createShoppingList(name?: string): Promise<void> {
     await Promise.resolve();
     console.log(`Shopping list "${name ?? 'temporary'}" created.`);
@@ -67,5 +76,24 @@ export default class FakeApiService implements ApiService {
         quantity: '1 litro',
       },
     ]);
+  }
+
+  async removeItem(
+    shoppingListName: string | undefined,
+    itemName: string,
+  ): Promise<void> {
+    const list = await this.getShoppingList(shoppingListName);
+    list.products = list.products.filter(product => product.name !== itemName);
+  }
+
+  async updateItem(
+    shoppingListName: string | undefined,
+    itemName: string,
+    update: ShoppingItemUpdateMessage,
+  ): Promise<void> {
+    const list = await this.getShoppingList(shoppingListName);
+    list.products = list.products.map(product =>
+      product.name === itemName ? { ...product, ...update } : product,
+    );
   }
 }

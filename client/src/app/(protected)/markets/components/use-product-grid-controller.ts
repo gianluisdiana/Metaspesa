@@ -6,6 +6,8 @@ import { useRef, useState } from 'react';
 import { useInfiniteScroll } from '@/lib/hooks/use-infinite-scroll';
 import { MarketFilter } from '@/lib/market-api-service';
 import { MarketMessage } from '@/lib/market-contracts';
+import { ShoppingListClient } from '@/lib/shopping-list';
+import { ShoppingListSummaryMessage } from '@/lib/shopping-list-contracts';
 
 import { useToast } from '../../components/toast-provider';
 import { type Product } from './product-card-model';
@@ -14,11 +16,13 @@ import { usePaginatedMarketProducts } from './use-paginated-market-products';
 export function useProductGridController({
   filter,
   initialMarkets,
+  initialShoppingListSummaries,
   initialTotalProducts,
   isAuthenticated,
 }: Readonly<{
   filter: MarketFilter;
   initialMarkets: MarketMessage[];
+  initialShoppingListSummaries: ShoppingListSummaryMessage[];
   initialTotalProducts: number;
   isAuthenticated: boolean;
 }>) {
@@ -26,7 +30,11 @@ export function useProductGridController({
   const router = useRouter();
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product>();
+  const [shoppingListSummaries, setShoppingListSummaries] = useState(
+    initialShoppingListSummaries,
+  );
   const { showToast } = useToast();
+  const client = new ShoppingListClient();
   const { hasFailed, hasMore, isLoading, loadNextPage, markets } =
     usePaginatedMarketProducts({
       filter,
@@ -59,20 +67,56 @@ export function useProductGridController({
     setIsModalOpen(false);
   }
 
-  function handleCreateList() {
-    closeAddToListModal();
+  async function addSelectedProductToList(listName?: string) {
+    if (!selectedProduct) {
+      return;
+    }
+
+    const result = await client.addItemsToList(listName, [
+      {
+        checked: false,
+        name: selectedProduct.name,
+        price: selectedProduct.priceValue,
+        quantity: selectedProduct.unit || undefined,
+      },
+    ]);
+    setShoppingListSummaries(result.shoppingListSummaries);
     showToast({
-      message: 'Create shopping list flow is not connected yet.',
-      tone: 'info',
+      message: `Item added to ${listName ?? 'Temporary List'}.`,
+      tone: 'success',
     });
   }
 
-  function handleSelectList(listName?: string) {
+  async function handleCreateList() {
     closeAddToListModal();
-    showToast({
-      message: `Item queued for ${listName ?? 'Temporary List'}.`,
-      tone: 'success',
-    });
+    try {
+      const result = await client.createTemporaryList();
+      setShoppingListSummaries(result.shoppingListSummaries);
+      await addSelectedProductToList(undefined);
+    } catch (requestError) {
+      showToast({
+        message:
+          requestError instanceof Error
+            ? requestError.message
+            : 'Could not add item to shopping list.',
+        tone: 'error',
+      });
+    }
+  }
+
+  async function handleSelectList(listName?: string) {
+    closeAddToListModal();
+    try {
+      await addSelectedProductToList(listName);
+    } catch (requestError) {
+      showToast({
+        message:
+          requestError instanceof Error
+            ? requestError.message
+            : 'Could not add item to shopping list.',
+        tone: 'error',
+      });
+    }
   }
 
   return {
@@ -87,5 +131,6 @@ export function useProductGridController({
     retry: () => void loadNextPage(),
     selectedProduct,
     sentinelRef,
+    shoppingListSummaries,
   };
 }

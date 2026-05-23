@@ -34,6 +34,7 @@ export function useShoppingListController({
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [itemPendingDelete, setItemPendingDelete] = useState<string>();
   const { showToast } = useToast();
   const client = new ShoppingListClient();
   const viewModel = new ShoppingListViewModel(shoppingList);
@@ -96,11 +97,78 @@ export function useShoppingListController({
     }
   }
 
+  async function handleConfirmDeleteItem() {
+    if (!itemPendingDelete) {
+      return;
+    }
+
+    const previousShoppingList = shoppingList;
+    const deletedItemName = itemPendingDelete;
+    setItemPendingDelete(undefined);
+    setShoppingList({
+      ...shoppingList,
+      products: shoppingList.products.filter(
+        product => product.name !== deletedItemName,
+      ),
+    });
+
+    try {
+      const result = await client.removeItem(selectedListName, deletedItemName);
+      setShoppingList(result.shoppingList);
+      setShoppingListSummaries(result.shoppingListSummaries);
+      showToast({
+        message: `${deletedItemName} deleted.`,
+        tone: 'success',
+      });
+    } catch (requestError) {
+      setShoppingList(previousShoppingList);
+      showToast({
+        message:
+          requestError instanceof Error
+            ? requestError.message
+            : 'Could not delete item.',
+        tone: 'error',
+      });
+    }
+  }
+
+  async function handleToggleItemChecked(itemName: string, checked: boolean) {
+    const previousShoppingList = shoppingList;
+    setShoppingList({
+      ...shoppingList,
+      products: shoppingList.products.map(product =>
+        product.name === itemName ? { ...product, checked } : product,
+      ),
+    });
+
+    try {
+      const result = await client.updateItem(selectedListName, itemName, {
+        checked,
+      });
+      setShoppingList(result.shoppingList);
+      setShoppingListSummaries(result.shoppingListSummaries);
+    } catch (requestError) {
+      setShoppingList(previousShoppingList);
+      showToast({
+        message:
+          requestError instanceof Error
+            ? requestError.message
+            : 'Could not update item.',
+        tone: 'error',
+      });
+    }
+  }
+
   return {
+    handleCancelDeleteItem: () => setItemPendingDelete(undefined),
+    handleConfirmDeleteItem,
     handleCreateList,
+    handleRequestDeleteItem: setItemPendingDelete,
     handleSelectList,
+    handleToggleItemChecked,
     isCreating,
     isLoading,
+    itemPendingDelete,
     tabs: tabsViewModel.tabs,
     viewModel,
   };

@@ -13,3 +13,10 @@ export interface ShoppingListMessage {
 export interface ShoppingListSummaryMessage {
   name?: string;
 }
+
+export interface ShoppingItemUpdateMessage {
+  checked?: boolean;
+  name?: string;
+  price?: number;
+  quantity?: string;
+}

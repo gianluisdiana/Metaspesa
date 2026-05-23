@@ -3,6 +3,7 @@ import {
   ShoppingListViewModel,
 } from '@/lib/shopping-list';
 
+import { DeleteItemConfirmationModal } from './delete-item-confirmation-modal';
 import ListTabs, { ListPageHeader } from './list-header';
 import ItemsContainer from './list-items';
 import { ProgressTracker } from './progress-tracker';
@@ -12,15 +13,25 @@ import SummaryFooter from './summary-footer';
 export function ShoppingListView({
   isCreating,
   isLoading,
+  itemPendingDelete,
+  onCancelDeleteItem,
+  onConfirmDeleteItem,
   onCreateList,
+  onRequestDeleteItem,
   onSelectList,
+  onToggleItemChecked,
   tabs,
   viewModel,
 }: Readonly<{
   isCreating: boolean;
   isLoading: boolean;
+  itemPendingDelete?: string;
+  onCancelDeleteItem: () => void;
+  onConfirmDeleteItem: () => void;
   onCreateList: () => void;
+  onRequestDeleteItem: (itemName: string) => void;
   onSelectList: (name?: string) => void;
+  onToggleItemChecked: (itemName: string, checked: boolean) => void;
   tabs: ShoppingListTabViewModel[];
   viewModel: ShoppingListViewModel;
 }>) {
@@ -47,6 +58,8 @@ export function ShoppingListView({
             checkedItems={viewModel.checkedItems}
             hasItems={viewModel.hasItems}
             uncheckedSections={viewModel.uncheckedSections}
+            onRequestDeleteItem={onRequestDeleteItem}
+            onToggleItemChecked={onToggleItemChecked}
           />
         )}
       </div>
@@ -54,6 +67,13 @@ export function ShoppingListView({
         checkedTotal={viewModel.checkedTotal}
         estimatedTotal={viewModel.estimatedTotal}
       />
+      {itemPendingDelete && (
+        <DeleteItemConfirmationModal
+          itemName={itemPendingDelete}
+          onCancel={onCancelDeleteItem}
+          onConfirm={onConfirmDeleteItem}
+        />
+      )}
     </>
   );
 }

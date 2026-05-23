@@ -15,10 +15,14 @@ import {
 export default function ItemsContainer({
   checkedItems,
   hasItems,
+  onRequestDeleteItem,
+  onToggleItemChecked,
   uncheckedSections,
 }: Readonly<{
   checkedItems: CheckedShoppingItemViewModel[];
   hasItems: boolean;
+  onRequestDeleteItem: (itemName: string) => void;
+  onToggleItemChecked: (itemName: string, checked: boolean) => void;
   uncheckedSections: ShoppingItemSectionViewModel[];
 }>) {
   if (!hasItems) {
@@ -31,7 +35,12 @@ export default function ItemsContainer({
         <Fragment key={section.label}>
           <CategoryHeader first={idx === 0} label={section.label} />
           {section.items.map(item => (
-            <UncheckedItem key={item.id} item={item} />
+            <UncheckedItem
+              key={item.id}
+              item={item}
+              onDelete={() => onRequestDeleteItem(item.name)}
+              onToggleChecked={() => onToggleItemChecked(item.name, true)}
+            />
           ))}
         </Fragment>
       ))}
@@ -39,7 +48,11 @@ export default function ItemsContainer({
         <>
           <CompletedDivider count={checkedItems.length} />
           {checkedItems.map(item => (
-            <CheckedItem key={item.id} item={item} />
+            <CheckedItem
+              key={item.id}
+              item={item}
+              onToggleChecked={() => onToggleItemChecked(item.name, false)}
+            />
           ))}
         </>
       )}

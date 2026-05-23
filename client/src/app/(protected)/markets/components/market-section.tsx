@@ -15,6 +15,7 @@ function toProduct(p: MarketProductMessage): Product {
     imageUrl: first.imageUrl ?? '',
     name: p.name,
     price: first ? euros.format(first.price) : MISSING_PRICE_LABEL,
+    priceValue: first?.price,
     unit: first?.quantity ?? '',
   };
 }
