@@ -949,6 +949,101 @@ public static class PostgreSqlShoppingRepositoryTests {
   }
 
   [Collection("Database")]
+  public class UpdateShoppingList : IAsyncLifetime {
+    private readonly MainContext _context;
+    private readonly PostgreSqlShoppingRepository _repository;
+
+    public UpdateShoppingList(DatabaseFixture fixture) {
+      _context = fixture.CreateContext();
+      IClock _clock = Substitute.For<IClock>();
+      _repository = new PostgreSqlShoppingRepository(
+        _context,
+        _clock);
+      _clock.GetCurrentTime().Returns(DateTime.UtcNow);
+    }
+
+    public ValueTask InitializeAsync() =>
+      EnsureShopperRoleAsync(_context, TestContext.Current.CancellationToken);
+
+    public async ValueTask DisposeAsync() {
+      await _context.DisposeAsync();
+      GC.SuppressFinalize(this);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Renames temporary list to requested name")]
+    public async Task UpdateShoppingListName_RenamesTemporaryList_ToRequestedName() {
+      // Arrange
+      var userUid = Guid.CreateVersion7();
+      _context.Users.Add(new UserDbEntity {
+        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      _repository.CreateShoppingList(userUid, null);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      _repository.UpdateShoppingListName(userUid, null, "Groceries");
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Assert
+      ShoppingList? list = await _repository.GetShoppingListAsync(
+        userUid, "Groceries", TestContext.Current.CancellationToken);
+      Assert.NotNull(list);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Removes temporary list identity after renaming")]
+    public async Task UpdateShoppingListName_RemovesTemporaryListIdentity_AfterRenaming() {
+      // Arrange
+      var userUid = Guid.CreateVersion7();
+      _context.Users.Add(new UserDbEntity {
+        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      _repository.CreateShoppingList(userUid, null);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      _repository.UpdateShoppingListName(userUid, null, "Groceries");
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Assert
+      bool temporaryListExists = await _repository.CheckShoppingListExistAsync(
+        userUid, null, TestContext.Current.CancellationToken);
+      Assert.False(temporaryListExists);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Preserves items when temporary list is renamed")]
+    public async Task UpdateShoppingListName_PreservesItems_WhenTemporaryListIsRenamed() {
+      // Arrange
+      var userUid = Guid.CreateVersion7();
+      _context.Users.Add(new UserDbEntity {
+        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      _repository.CreateShoppingList(userUid, null);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      _repository.AddItemsToList(
+        userUid, null, [new ShoppingItem("Milk", null, new Price(1.5m), false)]);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      _repository.UpdateShoppingListName(userUid, null, "Groceries");
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Assert
+      ShoppingList? list = await _repository.GetShoppingListAsync(
+        userUid, "Groceries", TestContext.Current.CancellationToken);
+      Assert.Equal("Milk", list!.Items.Single().Name);
+    }
+  }
+
+  [Collection("Database")]
   public class UpdateItem : IAsyncLifetime {
     private readonly MainContext _context;
     private readonly PostgreSqlShoppingRepository _repository;

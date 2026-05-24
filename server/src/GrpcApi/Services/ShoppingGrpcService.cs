@@ -20,7 +20,8 @@ internal class ShoppingGrpcService(
   ICommandHandler<CreateShoppingList.Command> createShoppingListHandler,
   ICommandHandler<AddItemsToList.Command> addItemsToListHandler,
   ICommandHandler<UpdateItem.Command> updateItemHandler,
-  ICommandHandler<RemoveItem.Command> removeItemHandler
+  ICommandHandler<RemoveItem.Command> removeItemHandler,
+  ICommandHandler<UpdateShoppingList.Command>? updateShoppingListHandler = null
 ) : ShoppingService.ShoppingServiceBase {
 
   public override async Task<RegisteredItemsResponse> GetRegisteredItems(
@@ -132,6 +133,29 @@ internal class ShoppingGrpcService(
       IsChecked: request.HasChecked ? request.Checked : null);
 
     Result result = await updateItemHandler.Handle(command, context.CancellationToken);
+
+    result.ThrowRpcExceptionIfFailed();
+
+    return new Empty();
+  }
+
+  public override async Task<Empty> UpdateShoppingList(
+    UpdateShoppingListRequest request, ServerCallContext context
+  ) {
+    if (updateShoppingListHandler is null) {
+      throw new RpcException(new Status(StatusCode.Internal, "Update shopping list handler is not configured."));
+    }
+
+    var command = new UpdateShoppingList.Command(
+      UserUid: context.GetHttpContext().GetUserUid(),
+      ShoppingListName: string.IsNullOrWhiteSpace(request.ShoppingListName)
+        ? null
+        : GrpcTextSanitizer.SanitizeAscii(request.ShoppingListName),
+      NewName: request.HasListName
+        ? GrpcTextSanitizer.SanitizeAscii(request.ListName)
+        : null);
+
+    Result result = await updateShoppingListHandler.Handle(command, context.CancellationToken);
 
     result.ThrowRpcExceptionIfFailed();
 

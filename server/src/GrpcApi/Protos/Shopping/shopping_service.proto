@@ -28,6 +28,9 @@ service ShoppingService {
   // Updates an item in a shopping list.
   rpc UpdateItem(UpdateItemRequest) returns (google.protobuf.Empty);
 
+  // Updates a shopping list.
+  rpc UpdateShoppingList(UpdateShoppingListRequest) returns (google.protobuf.Empty);
+
   // Remove item from a shopping list.
   rpc RemoveItem(RemoveItemRequest) returns (google.protobuf.Empty);
 
@@ -64,6 +67,12 @@ message UpdateItemRequest {
   optional string item_quantity = 4;
   optional string item_price = 5;
   optional bool checked = 6;
+}
+
+// Request message to update a shopping list.
+message UpdateShoppingListRequest {
+  string shopping_list_name = 1;
+  optional string list_name = 2;
 }
 
 // Request message to remove an item from a shopping list.

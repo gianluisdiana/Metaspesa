@@ -85,6 +85,10 @@ public static class ApplicationDependencyInjection {
         UpdateItem.Handler>();
 
       services.AddScoped<
+        ICommandHandler<UpdateShoppingList.Command>,
+        UpdateShoppingList.Handler>();
+
+      services.AddScoped<
         ICommandHandler<RemoveItem.Command>,
         RemoveItem.Handler>();
 

@@ -1441,6 +1441,149 @@ public static class ShoppingGrpcServiceTests {
     }
   }
 
+  public class UpdateShoppingListRpc {
+    private readonly ICommandHandler<UpdateShoppingList.Command> _useCaseHandler;
+    private readonly ShoppingGrpcService service;
+
+    public UpdateShoppingListRpc() {
+      _useCaseHandler = Substitute.For<ICommandHandler<UpdateShoppingList.Command>>();
+      service = new ShoppingGrpcService(
+        Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
+        Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
+        Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
+        Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
+        Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
+        Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
+        Substitute.For<ICommandHandler<UpdateItem.Command>>(),
+        Substitute.For<ICommandHandler<RemoveItem.Command>>(),
+        _useCaseHandler
+      );
+    }
+
+    [Fact(DisplayName = "Throws RpcException if the command handler returns a failure result")]
+    public async Task Api_ThrowsRpcException_IfCommandHandlerFails() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<UpdateShoppingList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(new DomainError(string.Empty, string.Empty, ErrorKind.Unexpected));
+
+      var request = new UpdateShoppingListRequest { ShoppingListName = "", ListName = "Groceries" };
+
+      // Act
+      async Task action() => await service.UpdateShoppingList(request, CreateServerCallContext());
+
+      // Assert
+      await Assert.ThrowsAsync<RpcException>(action);
+    }
+
+    [Fact(DisplayName = "Returns empty when handler succeeds")]
+    public async Task Api_ReturnsEmpty_WhenHandlerSucceeds() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<UpdateShoppingList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new UpdateShoppingListRequest { ShoppingListName = "", ListName = "Groceries" };
+
+      // Act
+      Empty response = await service.UpdateShoppingList(request, CreateServerCallContext());
+
+      // Assert
+      Assert.NotNull(response);
+    }
+
+    [Fact(DisplayName = "Maps empty shopping list name to temporary list")]
+    public async Task Api_MapsEmptyShoppingListName_ToTemporaryList() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<UpdateShoppingList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new UpdateShoppingListRequest { ShoppingListName = "", ListName = "Groceries" };
+
+      // Act
+      await service.UpdateShoppingList(request, CreateServerCallContext());
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<UpdateShoppingList.Command>(cmd => cmd.ShoppingListName == null),
+        TestContext.Current.CancellationToken);
+    }
+
+    [Fact(DisplayName = "Maps named shopping list from request to command")]
+    public async Task Api_MapsNamedShoppingList_FromRequestToCommand() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<UpdateShoppingList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new UpdateShoppingListRequest { ShoppingListName = "Weekly", ListName = "Groceries" };
+
+      // Act
+      await service.UpdateShoppingList(request, CreateServerCallContext());
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<UpdateShoppingList.Command>(cmd => cmd.ShoppingListName == "Weekly"),
+        TestContext.Current.CancellationToken);
+    }
+
+    [Fact(DisplayName = "Maps list name from request to command")]
+    public async Task Api_MapsListName_FromRequestToCommand() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<UpdateShoppingList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new UpdateShoppingListRequest { ShoppingListName = "", ListName = "Groceries" };
+
+      // Act
+      await service.UpdateShoppingList(request, CreateServerCallContext());
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<UpdateShoppingList.Command>(cmd => cmd.NewName == "Groceries"),
+        TestContext.Current.CancellationToken);
+    }
+
+    [Fact(DisplayName = "Maps null list name when request has no list name")]
+    public async Task Api_MapsNullListName_WhenRequestHasNoListName() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<UpdateShoppingList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new UpdateShoppingListRequest { ShoppingListName = "" };
+
+      // Act
+      await service.UpdateShoppingList(request, CreateServerCallContext());
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<UpdateShoppingList.Command>(cmd => cmd.NewName == null),
+        TestContext.Current.CancellationToken);
+    }
+
+    [Fact(DisplayName = "Passes user UID from JWT claim to command")]
+    public async Task Api_PassesUserUidFromClaim_ToCommand() {
+      // Arrange
+      var expectedUid = Guid.CreateVersion7();
+      _useCaseHandler
+        .Handle(Arg.Any<UpdateShoppingList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new UpdateShoppingListRequest { ShoppingListName = "", ListName = "Groceries" };
+
+      // Act
+      await service.UpdateShoppingList(request, CreateServerCallContext(expectedUid));
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<UpdateShoppingList.Command>(cmd => cmd.UserUid == expectedUid),
+        TestContext.Current.CancellationToken);
+    }
+  }
+
   public class RemoveItemRpc {
     private readonly ICommandHandler<RemoveItem.Command> _useCaseHandler;
     private readonly ShoppingGrpcService service;

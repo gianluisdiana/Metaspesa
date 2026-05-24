@@ -71,6 +71,21 @@ internal partial class PostgreSqlShoppingRepository(
     });
   }
 
+  public void UpdateShoppingListName(Guid userUid, string? listName, string? newName) =>
+    PostgreSqlExceptionMapper.Map(() => {
+      ShoppingListDbEntity list = context.ShoppingListOwnerships
+        .Where(o => o.UserUid == userUid && (
+          o.ShoppingList.Name == null && listName == null ||
+          o.ShoppingList.Name != null &&
+          listName != null &&
+          EF.Functions.ILike(o.ShoppingList.Name, listName)
+        ))
+        .Select(o => o.ShoppingList)
+        .First();
+
+      list.Name = newName;
+    }, "Couldn't update shopping list.");
+
   public void AddItemsToList(
     Guid userUid, string? listName, IReadOnlyCollection<ShoppingItem> items
   ) => PostgreSqlExceptionMapper.Map(() => {
