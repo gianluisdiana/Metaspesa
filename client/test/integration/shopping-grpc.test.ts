@@ -44,12 +44,16 @@ async function createTemporaryShoppingList() {
   return { createResponse, summaries };
 }
 
-async function createApiServiceWithTemporaryShoppingList() {
+async function createApiServiceWithShoppingList(name?: string) {
   const loginResponse = await registerAndLogin();
   const service = new GrpcApiService(loginResponse.token);
-  await service.createShoppingList();
+  await service.createShoppingList(name);
 
   return service;
+}
+
+function uniqueListName(prefix: string): string {
+  return `${prefix} ${Date.now()}`;
 }
 
 const milk = {
@@ -70,19 +74,19 @@ describeIfGrpc('shopping gRPC integration', () => {
   it('creates a temporary shopping list with empty name', async () => {
     const { createResponse } = await createTemporaryShoppingList();
 
-    expect(createResponse.name).toBe('');
+    expect(createResponse.name).toBeUndefined();
   });
 
   it('returns created temporary shopping list in summaries', async () => {
     const { summaries } = await createTemporaryShoppingList();
 
     expect(
-      summaries.shoppingLists.filter(summary => summary.name === ''),
+      summaries.shoppingLists.filter(summary => summary.name === undefined),
     ).toHaveLength(1);
   });
 
   it('adds a shopping item through api service', async () => {
-    const service = await createApiServiceWithTemporaryShoppingList();
+    const service = await createApiServiceWithShoppingList();
 
     await service.addItemsToList(undefined, [milk]);
 
@@ -94,17 +98,18 @@ describeIfGrpc('shopping gRPC integration', () => {
   });
 
   it('updates only the requested shopping item fields through api service', async () => {
-    const service = await createApiServiceWithTemporaryShoppingList();
-    await service.addItemsToList(undefined, [milk]);
+    const shoppingListName = uniqueListName('Integration Update');
+    const service = await createApiServiceWithShoppingList(shoppingListName);
+    await service.addItemsToList(shoppingListName, [milk]);
 
-    await service.updateItem(undefined, 'Integration Milk', { checked: true });
+    await service.updateItem(shoppingListName, milk.name, { checked: true });
 
-    await expect(service.getShoppingList()).resolves.toEqual(
+    await expect(service.getShoppingList(shoppingListName)).resolves.toEqual(
       expect.objectContaining({
         products: expect.arrayContaining([
           expect.objectContaining({
             checked: true,
-            name: 'Integration Milk',
+            name: milk.name,
             price: 1.29,
             quantity: '1 l',
           }),
@@ -114,12 +119,13 @@ describeIfGrpc('shopping gRPC integration', () => {
   });
 
   it('removes one shopping item and preserves remaining items through api service', async () => {
-    const service = await createApiServiceWithTemporaryShoppingList();
-    await service.addItemsToList(undefined, [milk, bread]);
+    const shoppingListName = uniqueListName('Integration Remove');
+    const service = await createApiServiceWithShoppingList(shoppingListName);
+    await service.addItemsToList(shoppingListName, [milk, bread]);
 
-    await service.removeItem(undefined, 'Integration Milk');
+    await service.removeItem(shoppingListName, milk.name);
 
-    await expect(service.getShoppingList()).resolves.toEqual(
+    await expect(service.getShoppingList(shoppingListName)).resolves.toEqual(
       expect.objectContaining({
         products: [bread],
       }),
