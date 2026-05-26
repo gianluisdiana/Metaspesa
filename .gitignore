@@ -72,3 +72,9 @@ scraper/data/
 # docker secrets (local copies)
 secrets/
 !**/test/**/Secrets/
+
+# AI agents
+.claude
+.codex
+.github/agents
+AGENTS.md
