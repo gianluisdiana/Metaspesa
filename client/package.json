@@ -9,7 +9,7 @@
     "generate-proto": "proto-loader-gen-types --defaults --grpcLib=@grpc/grpc-js --outDir=./src/infrastructure/protos_generated ./src/infrastructure/protos/Shopping/shopping_service.proto ./src/infrastructure/protos/Auth/auth_service.proto ./src/infrastructure/protos/Markets/markets_service.proto",
     "lint": "prettier --check . && eslint",
     "format": "prettier --write . && eslint --fix .",
-    "test": "npm run test:unit && npm run test:component",
+    "test": "pnpm test:unit && pnpm test:component",
     "test:unit": "vitest run test/unit",
     "test:component": "vitest run test/component",
     "test:integration": "vitest run test/integration",
@@ -21,6 +21,7 @@
   "dependencies": {
     "@grpc/grpc-js": "1.14.3",
     "@grpc/proto-loader": "0.8.0",
+    "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/api-logs": "^0.216.0",
     "@opentelemetry/auto-instrumentations-node": "^0.74.0",
     "@opentelemetry/exporter-logs-otlp-grpc": "^0.216.0",

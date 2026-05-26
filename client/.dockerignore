@@ -43,6 +43,9 @@ src/infrastructure/protos_generated/
 
 # tests
 test/
+playwright.config.ts
+playwright-report/
+TESTING.md
 
 # linter
 .prettierignore
