@@ -13,8 +13,12 @@ import {
 } from '@/lib/shopping-list-contracts';
 
 import { GrpcClientFactory } from './grpc-client-factory';
+import { logGrpcReadFailure } from './grpc-error-logger';
 import { requireGrpcResponse } from './grpc-response-guards';
 import { GrpcShoppingMapper } from './grpc-shopping-mapper';
+
+const LOGGER_NAME = 'grpc-shopping-service';
+const SERVICE_NAME = 'ShoppingService';
 
 export default class GrpcApiService implements ApiService {
   private readonly client: ShoppingServiceClient;
@@ -97,11 +101,14 @@ export default class GrpcApiService implements ApiService {
       );
 
       return shoppingList;
-    } catch {
-      return {
-        name: '',
-        products: [],
-      };
+    } catch (error) {
+      logGrpcReadFailure({
+        error,
+        grpcMethod: 'GetShoppingList',
+        grpcService: SERVICE_NAME,
+        loggerName: LOGGER_NAME,
+      });
+      throw error;
     }
   }
 
@@ -125,8 +132,14 @@ export default class GrpcApiService implements ApiService {
           );
         },
       );
-    } catch {
-      return [];
+    } catch (error) {
+      logGrpcReadFailure({
+        error,
+        grpcMethod: 'GetShoppingListSummaries',
+        grpcService: SERVICE_NAME,
+        loggerName: LOGGER_NAME,
+      });
+      throw error;
     }
   }
 
@@ -146,8 +159,14 @@ export default class GrpcApiService implements ApiService {
           );
         });
       });
-    } catch {
-      return [];
+    } catch (error) {
+      logGrpcReadFailure({
+        error,
+        grpcMethod: 'GetRegisteredItems',
+        grpcService: SERVICE_NAME,
+        loggerName: LOGGER_NAME,
+      });
+      throw error;
     }
   }
 

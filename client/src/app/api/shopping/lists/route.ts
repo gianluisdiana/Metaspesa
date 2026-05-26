@@ -15,18 +15,29 @@ type UpdateShoppingListBody = {
   };
 };
 
+function shoppingListsErrorResponse() {
+  return NextResponse.json(
+    { message: 'Could not load shopping lists.' },
+    { status: 500 },
+  );
+}
+
 export async function GET(request: NextRequest) {
   const token = await getAuthToken();
   const service = new GrpcApiService(token);
   const listsRequest = new ShoppingListsRequest(request);
 
-  if (!listsRequest.hasListName) {
-    return NextResponse.json(await service.getShoppingListSummaries());
-  }
+  try {
+    if (!listsRequest.hasListName) {
+      return NextResponse.json(await service.getShoppingListSummaries());
+    }
 
-  return NextResponse.json(
-    await service.getShoppingList(listsRequest.listName),
-  );
+    return NextResponse.json(
+      await service.getShoppingList(listsRequest.listName),
+    );
+  } catch {
+    return shoppingListsErrorResponse();
+  }
 }
 
 export async function POST() {
@@ -41,25 +52,21 @@ export async function POST() {
       shoppingListSummaries: await service.getShoppingListSummaries(),
     });
   } catch (error) {
-    const shoppingList = await service.getShoppingList();
-    const shoppingListSummaries = await service.getShoppingListSummaries();
     if (new GrpcStatusError(error).alreadyExists) {
-      return NextResponse.json({
-        message: 'Temporary list already exists. Name it or create a new one?',
-        requiresTemporaryListName: true,
-        shoppingList,
-        shoppingListSummaries,
-      });
+      try {
+        return NextResponse.json({
+          message:
+            'Temporary list already exists. Name it or create a new one?',
+          requiresTemporaryListName: true,
+          shoppingList: await service.getShoppingList(),
+          shoppingListSummaries: await service.getShoppingListSummaries(),
+        });
+      } catch {
+        return shoppingListsErrorResponse();
+      }
     }
 
-    return NextResponse.json(
-      {
-        message: 'Could not create a temporary list.',
-        shoppingList,
-        shoppingListSummaries,
-      },
-      { status: 500 },
-    );
+    return shoppingListsErrorResponse();
   }
 }
 
@@ -86,13 +93,6 @@ export async function PATCH(request: NextRequest) {
       shoppingListSummaries: await service.getShoppingListSummaries(),
     });
   } catch {
-    return NextResponse.json(
-      {
-        message: 'Could not create a temporary list.',
-        shoppingList: await service.getShoppingList(body.shoppingListName),
-        shoppingListSummaries: await service.getShoppingListSummaries(),
-      },
-      { status: 500 },
-    );
+    return shoppingListsErrorResponse();
   }
 }

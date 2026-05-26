@@ -10,7 +10,11 @@ import {
 } from '@/lib/market-contracts';
 
 import { GrpcClientFactory } from './grpc-client-factory';
+import { logGrpcReadFailure } from './grpc-error-logger';
 import { GrpcMarketMapper } from './grpc-market-mapper';
+
+const LOGGER_NAME = 'grpc-market-service';
+const SERVICE_NAME = 'MarketService';
 
 export default class GrpcMarketApiService implements MarketApiService {
   private readonly client: MarketServiceClient;
@@ -51,8 +55,14 @@ export default class GrpcMarketApiService implements MarketApiService {
           },
         );
       });
-    } catch {
-      return { markets: [], totalProducts: 0 };
+    } catch (error) {
+      logGrpcReadFailure({
+        error,
+        grpcMethod: 'GetMarketProducts',
+        grpcService: SERVICE_NAME,
+        loggerName: LOGGER_NAME,
+      });
+      throw error;
     }
   }
 
@@ -67,8 +77,14 @@ export default class GrpcMarketApiService implements MarketApiService {
           resolve(this.mapper.mapMarketSummaries(response?.markets));
         });
       });
-    } catch {
-      return [];
+    } catch (error) {
+      logGrpcReadFailure({
+        error,
+        grpcMethod: 'GetMarkets',
+        grpcService: SERVICE_NAME,
+        loggerName: LOGGER_NAME,
+      });
+      throw error;
     }
   }
 }

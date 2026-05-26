@@ -11,7 +11,13 @@ export async function GET(request: NextRequest) {
     request.nextUrl.searchParams,
   ).toFilter();
   const service = new GrpcMarketApiService(token);
-  const result = await service.getMarketProducts(filter);
 
-  return NextResponse.json(result);
+  try {
+    return NextResponse.json(await service.getMarketProducts(filter));
+  } catch {
+    return NextResponse.json(
+      { message: 'Could not load market products.' },
+      { status: 500 },
+    );
+  }
 }
