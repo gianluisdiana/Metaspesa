@@ -1,4 +1,5 @@
 using FluentValidation.TestHelper;
+using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Shopping;
 using NSubstitute;
 using static Metaspesa.Application.Shopping.CreateShoppingList;
@@ -50,7 +51,8 @@ public class CreateShoppingListValidatorTest {
 
     // Assert
     result.ShouldHaveValidationErrorFor(x => x.ShoppingListName)
-      .WithErrorCode("ShoppingList.AlreadyExists");
+      .WithErrorCode("ShoppingList.AlreadyExists")
+      .WithCustomState(ErrorKind.Conflict);
   }
 
   [Fact(DisplayName = "Passes when named list does not exist for user")]

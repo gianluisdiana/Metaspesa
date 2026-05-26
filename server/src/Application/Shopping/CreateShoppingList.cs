@@ -40,7 +40,8 @@ public static class CreateShoppingList {
         .WithMessage(command => string.IsNullOrWhiteSpace(command.ShoppingListName)
           ? $"User {command.UserUid} already has a temporary shopping list."
           : $"User {command.UserUid} already has a shopping list named '{command.ShoppingListName}'.")
-        .WithErrorCode("ShoppingList.AlreadyExists");
+        .WithErrorCode("ShoppingList.AlreadyExists")
+        .WithState(_ => ErrorKind.Conflict);
     }
   }
 }
