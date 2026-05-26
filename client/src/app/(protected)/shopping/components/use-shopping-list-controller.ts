@@ -35,6 +35,8 @@ export function useShoppingListController({
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [itemPendingDelete, setItemPendingDelete] = useState<string>();
+  const [temporaryListNamePrompt, setTemporaryListNamePrompt] =
+    useState<string>();
   const { showToast } = useToast();
   const client = new ShoppingListClient();
   const viewModel = new ShoppingListViewModel(shoppingList);
@@ -71,6 +73,15 @@ export function useShoppingListController({
       const result = await client.createTemporaryList();
       setShoppingList(result.shoppingList);
       setShoppingListSummaries(result.shoppingListSummaries);
+
+      if (result.requiresTemporaryListName) {
+        setTemporaryListNamePrompt(
+          result.message ??
+            'Temporary list already exists. Name it and create a new one?',
+        );
+        return;
+      }
+
       setSelectedListName(undefined);
       showToast({
         message: result.message ?? 'Shopping list created.',
@@ -92,6 +103,32 @@ export function useShoppingListController({
       } finally {
         setIsLoading(false);
       }
+    } finally {
+      setIsCreating(false);
+    }
+  }
+
+  async function handleConfirmTemporaryListName(name: string) {
+    setIsCreating(true);
+    try {
+      const result = await client.nameTemporaryListAndCreateNew(name);
+      setTemporaryListNamePrompt(undefined);
+      setShoppingList(result.shoppingList);
+      setShoppingListSummaries(result.shoppingListSummaries);
+      setSelectedListName(undefined);
+      showToast({
+        message: result.message ?? 'Shopping list created.',
+        tone: 'success',
+      });
+      router.push('/shopping');
+    } catch (requestError) {
+      showToast({
+        message:
+          requestError instanceof Error
+            ? requestError.message
+            : 'Could not create a temporary list.',
+        tone: 'error',
+      });
     } finally {
       setIsCreating(false);
     }
@@ -161,7 +198,9 @@ export function useShoppingListController({
 
   return {
     handleCancelDeleteItem: () => setItemPendingDelete(undefined),
+    handleCancelTemporaryListName: () => setTemporaryListNamePrompt(undefined),
     handleConfirmDeleteItem,
+    handleConfirmTemporaryListName,
     handleCreateList,
     handleRequestDeleteItem: setItemPendingDelete,
     handleSelectList,
@@ -170,6 +209,7 @@ export function useShoppingListController({
     isLoading,
     itemPendingDelete,
     tabs: tabsViewModel.tabs,
+    temporaryListNamePrompt,
     viewModel,
   };
 }

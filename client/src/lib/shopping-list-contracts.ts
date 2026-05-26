@@ -20,3 +20,7 @@ export interface ShoppingItemUpdateMessage {
   price?: number;
   quantity?: string;
 }
+
+export interface ShoppingListUpdateMessage {
+  name?: string;
+}

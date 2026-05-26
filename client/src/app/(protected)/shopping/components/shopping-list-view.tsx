@@ -9,30 +9,37 @@ import ItemsContainer from './list-items';
 import { ProgressTracker } from './progress-tracker';
 import { ShoppingListLoadingState } from './shopping-list-loading-state';
 import SummaryFooter from './summary-footer';
+import { TemporaryListNameModal } from './temporary-list-name-modal';
 
 export function ShoppingListView({
   isCreating,
   isLoading,
   itemPendingDelete,
   onCancelDeleteItem,
+  onCancelTemporaryListName,
   onConfirmDeleteItem,
+  onConfirmTemporaryListName,
   onCreateList,
   onRequestDeleteItem,
   onSelectList,
   onToggleItemChecked,
   tabs,
+  temporaryListNamePrompt,
   viewModel,
 }: Readonly<{
   isCreating: boolean;
   isLoading: boolean;
   itemPendingDelete?: string;
   onCancelDeleteItem: () => void;
+  onCancelTemporaryListName: () => void;
   onConfirmDeleteItem: () => void;
+  onConfirmTemporaryListName: (name: string) => void;
   onCreateList: () => void;
   onRequestDeleteItem: (itemName: string) => void;
   onSelectList: (name?: string) => void;
   onToggleItemChecked: (itemName: string, checked: boolean) => void;
   tabs: ShoppingListTabViewModel[];
+  temporaryListNamePrompt?: string;
   viewModel: ShoppingListViewModel;
 }>) {
   return (
@@ -72,6 +79,14 @@ export function ShoppingListView({
           itemName={itemPendingDelete}
           onCancel={onCancelDeleteItem}
           onConfirm={onConfirmDeleteItem}
+        />
+      )}
+      {temporaryListNamePrompt && (
+        <TemporaryListNameModal
+          isSaving={isCreating}
+          message={temporaryListNamePrompt}
+          onCancel={onCancelTemporaryListName}
+          onConfirm={onConfirmTemporaryListName}
         />
       )}
     </>

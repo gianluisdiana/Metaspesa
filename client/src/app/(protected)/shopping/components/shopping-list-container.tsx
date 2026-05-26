@@ -31,11 +31,14 @@ export default function ShoppingListContainer({
       tabs={controller.tabs}
       viewModel={controller.viewModel}
       onCancelDeleteItem={controller.handleCancelDeleteItem}
+      onCancelTemporaryListName={controller.handleCancelTemporaryListName}
       onConfirmDeleteItem={controller.handleConfirmDeleteItem}
+      onConfirmTemporaryListName={controller.handleConfirmTemporaryListName}
       onCreateList={controller.handleCreateList}
       onRequestDeleteItem={controller.handleRequestDeleteItem}
       onSelectList={controller.handleSelectList}
       onToggleItemChecked={controller.handleToggleItemChecked}
+      temporaryListNamePrompt={controller.temporaryListNamePrompt}
     />
   );
 }

@@ -79,7 +79,7 @@ export default function ListTabs({
         />
       ))}
       <button
-        aria-label="Placeholder for creating another shopping list"
+        aria-label="Create shopping list"
         className="whitespace-nowrap w-10 h-10 flex items-center justify-center rounded-full bg-surface-container text-on-surface-variant border border-dashed border-outline hover:bg-surface-container-high transition-colors"
         disabled={isCreating}
         onClick={onCreateList}

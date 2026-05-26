@@ -7,6 +7,7 @@ import {
 
 export type CreateListResponse = {
   message?: string;
+  requiresTemporaryListName?: boolean;
   shoppingList: ShoppingListMessage;
   shoppingListSummaries: ShoppingListSummaryMessage[];
 };
@@ -25,6 +26,24 @@ export class ShoppingListClient {
   public async createTemporaryList(): Promise<CreateListResponse> {
     const response = await fetch('/api/shopping/lists', {
       method: 'POST',
+    });
+    const body = (await response.json()) as CreateListResponse;
+    if (!response.ok) {
+      throw new Error(body.message ?? 'Could not create a temporary list.');
+    }
+
+    return body;
+  }
+
+  public async nameTemporaryListAndCreateNew(
+    name: string,
+  ): Promise<CreateListResponse> {
+    const response = await fetch('/api/shopping/lists', {
+      body: JSON.stringify({
+        update: { name },
+      }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH',
     });
     const body = (await response.json()) as CreateListResponse;
     if (!response.ok) {

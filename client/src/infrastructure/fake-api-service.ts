@@ -4,6 +4,7 @@ import {
   ShoppingItemUpdateMessage,
   ShoppingListMessage,
   ShoppingListSummaryMessage,
+  ShoppingListUpdateMessage,
 } from '@/lib/shopping-list-contracts';
 
 export default class FakeApiService implements ApiService {
@@ -94,6 +95,17 @@ export default class FakeApiService implements ApiService {
     const list = await this.getShoppingList(shoppingListName);
     list.products = list.products.map(product =>
       product.name === itemName ? { ...product, ...update } : product,
+    );
+  }
+
+  async updateShoppingList(
+    shoppingListName: string | undefined,
+    update: ShoppingListUpdateMessage,
+  ): Promise<void> {
+    await Promise.resolve();
+    console.log(
+      `Shopping list "${shoppingListName ?? 'temporary'}" updated:`,
+      update,
     );
   }
 }

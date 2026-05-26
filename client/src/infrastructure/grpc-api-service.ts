@@ -9,6 +9,7 @@ import {
   ShoppingItemUpdateMessage,
   ShoppingListMessage,
   ShoppingListSummaryMessage,
+  ShoppingListUpdateMessage,
 } from '@/lib/shopping-list-contracts';
 
 import { GrpcClientFactory } from './grpc-client-factory';
@@ -182,6 +183,22 @@ export default class GrpcApiService implements ApiService {
           ...(update.price === undefined ? {} : { itemPrice: update.price }),
           ...(update.quantity ? { itemQuantity: update.quantity } : {}),
           originalItemName: itemName,
+          shoppingListName: shoppingListName ?? '',
+        },
+        this.metadata,
+        resolve,
+      );
+    });
+  }
+
+  async updateShoppingList(
+    shoppingListName: string | undefined,
+    update: ShoppingListUpdateMessage,
+  ): Promise<void> {
+    await this.executeEmptyCall(resolve => {
+      this.client.UpdateShoppingList(
+        {
+          ...(update.name ? { listName: update.name } : {}),
           shoppingListName: shoppingListName ?? '',
         },
         this.metadata,

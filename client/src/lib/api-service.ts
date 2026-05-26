@@ -3,6 +3,7 @@ import {
   ShoppingItemUpdateMessage,
   ShoppingListMessage,
   ShoppingListSummaryMessage,
+  ShoppingListUpdateMessage,
 } from './shopping-list-contracts';
 
 export default interface ApiService {
@@ -23,5 +24,9 @@ export default interface ApiService {
     shoppingListName: string | undefined,
     itemName: string,
     update: ShoppingItemUpdateMessage,
+  ): Promise<void>;
+  updateShoppingList(
+    shoppingListName: string | undefined,
+    update: ShoppingListUpdateMessage,
   ): Promise<void>;
 }
