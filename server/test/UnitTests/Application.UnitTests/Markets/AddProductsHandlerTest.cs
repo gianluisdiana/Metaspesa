@@ -37,6 +37,12 @@ public class AddMarketProductsHandlerTest {
       .Returns([]);
   }
 
+  private static TaskCompletionSource CreateRollbackSignal() =>
+    new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+  private static async Task WaitForRollback(Task rollbackSignal) =>
+    await rollbackSignal.WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
+
   [Fact(DisplayName = "Returns errors when validation fails")]
   public async Task Handler_ReturnsErrors_WhenValidationFails() {
     // Arrange
@@ -79,7 +85,6 @@ public class AddMarketProductsHandlerTest {
     await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
-    await Task.Delay(100, TestContext.Current.CancellationToken);
     await _marketRepository.DidNotReceive().DeleteMarketsAsync(
       Arg.Any<IReadOnlyCollection<string>>(),
       Arg.Any<CancellationToken>());
@@ -96,7 +101,6 @@ public class AddMarketProductsHandlerTest {
     await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
-    await Task.Delay(100, TestContext.Current.CancellationToken);
     await _marketRepository.DidNotReceive().DeleteBrandsAsync(
       Arg.Any<IReadOnlyCollection<string>>(),
       Arg.Any<CancellationToken>());
@@ -113,7 +117,6 @@ public class AddMarketProductsHandlerTest {
     await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
-    await Task.Delay(100, TestContext.Current.CancellationToken);
     await _marketRepository.DidNotReceive().DeleteProductsAsync(
       Arg.Any<IReadOnlyCollection<int>>(),
       Arg.Any<CancellationToken>());
@@ -231,6 +234,14 @@ public class AddMarketProductsHandlerTest {
 
     _marketRepository.GetBrandsAsync(Arg.Any<CancellationToken>())
       .ThrowsAsync<OperationCanceledException>();
+    TaskCompletionSource rollbackSignal = CreateRollbackSignal();
+    _marketRepository.DeleteMarketsAsync(
+        Arg.Any<IReadOnlyCollection<string>>(),
+        Arg.Any<CancellationToken>())
+      .Returns(_ => {
+        rollbackSignal.SetResult();
+        return Task.CompletedTask;
+      });
 
     // Act
     try {
@@ -240,9 +251,9 @@ public class AddMarketProductsHandlerTest {
     }
 
     // Assert
-    await Task.Delay(100, TestContext.Current.CancellationToken);
+    await WaitForRollback(rollbackSignal.Task);
     await _marketRepository.Received(1).DeleteMarketsAsync(
-      Arg.Is<IReadOnlyCollection<string>>(m => m.Count == 1),
+      Arg.Is<IReadOnlyCollection<string>>(m => m.Single() == "Walmart"),
       Arg.Any<CancellationToken>());
   }
 
@@ -289,6 +300,14 @@ public class AddMarketProductsHandlerTest {
         Arg.Any<IReadOnlyCollection<ProductBrand>>(),
         Arg.Any<CancellationToken>())
       .ThrowsAsync<OperationCanceledException>();
+    TaskCompletionSource rollbackSignal = CreateRollbackSignal();
+    _marketRepository.DeleteMarketsAsync(
+        Arg.Any<IReadOnlyCollection<string>>(),
+        Arg.Any<CancellationToken>())
+      .Returns(_ => {
+        rollbackSignal.SetResult();
+        return Task.CompletedTask;
+      });
 
     // Act
     try {
@@ -298,9 +317,9 @@ public class AddMarketProductsHandlerTest {
     }
 
     // Assert
-    await Task.Delay(100, TestContext.Current.CancellationToken);
+    await WaitForRollback(rollbackSignal.Task);
     await _marketRepository.Received(1).DeleteMarketsAsync(
-      Arg.Is<IReadOnlyCollection<string>>(m => m.Count == 1),
+      Arg.Is<IReadOnlyCollection<string>>(m => m.Single() == "Walmart"),
       Arg.Any<CancellationToken>());
   }
 
@@ -353,6 +372,14 @@ public class AddMarketProductsHandlerTest {
         Arg.Any<DateOnly>(),
         Arg.Any<CancellationToken>())
       .ThrowsAsync<OperationCanceledException>();
+    TaskCompletionSource rollbackSignal = CreateRollbackSignal();
+    _marketRepository.DeleteMarketsAsync(
+        Arg.Any<IReadOnlyCollection<string>>(),
+        Arg.Any<CancellationToken>())
+      .Returns(_ => {
+        rollbackSignal.SetResult();
+        return Task.CompletedTask;
+      });
 
     // Act
     try {
@@ -362,9 +389,9 @@ public class AddMarketProductsHandlerTest {
     }
 
     // Assert
-    await Task.Delay(100, TestContext.Current.CancellationToken);
+    await WaitForRollback(rollbackSignal.Task);
     await _marketRepository.Received(1).DeleteMarketsAsync(
-      Arg.Is<IReadOnlyCollection<string>>(m => m.Count == 1),
+      Arg.Is<IReadOnlyCollection<string>>(m => m.Single() == "Walmart"),
       Arg.Any<CancellationToken>());
   }
 
@@ -418,6 +445,14 @@ public class AddMarketProductsHandlerTest {
         Arg.Any<DateOnly>(),
         Arg.Any<CancellationToken>())
       .ThrowsAsync<OperationCanceledException>();
+    TaskCompletionSource rollbackSignal = CreateRollbackSignal();
+    _marketRepository.DeleteBrandsAsync(
+        Arg.Any<IReadOnlyCollection<string>>(),
+        Arg.Any<CancellationToken>())
+      .Returns(_ => {
+        rollbackSignal.SetResult();
+        return Task.CompletedTask;
+      });
 
     // Act
     try {
@@ -427,9 +462,123 @@ public class AddMarketProductsHandlerTest {
     }
 
     // Assert
-    await Task.Delay(100, TestContext.Current.CancellationToken);
+    await WaitForRollback(rollbackSignal.Task);
     await _marketRepository.Received(1).DeleteBrandsAsync(
-      Arg.Is<IReadOnlyCollection<string>>(b => b.Count == 1),
+      Arg.Is<IReadOnlyCollection<string>>(b => b.Single() == "Nike"),
+      Arg.Any<CancellationToken>());
+  }
+
+  [Fact(DisplayName = "Deletes product history for completed markets if command is cancelled adding later products")]
+  public async Task Handler_DeletesProductHistoryForCompletedMarkets_IfCancelledAddingLaterProducts() {
+    // Arrange
+    var registeredAt = new DateOnly(2024, 1, 15);
+    var command = new Command(
+      [
+        new CommandProduct("Milk", 1.99m, "1L", "Walmart", "Nike", null),
+        new CommandProduct("Bread", 2.49m, "500g", "Target", "Adidas", null),
+      ],
+      registeredAt);
+    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
+      .Returns(new ValidationResult());
+
+    _marketRepository.ClearSubstitute();
+
+    _marketRepository.GetMarketsAsync(Arg.Any<CancellationToken>())
+      .Returns([]);
+
+    _marketRepository.GetBrandsAsync(Arg.Any<CancellationToken>())
+      .Returns([]);
+
+    _marketRepository.AddMarketProductsAsync(
+        Arg.Is<Market>(m => m.Name == "Walmart"),
+        Arg.Any<DateOnly>(),
+        Arg.Any<CancellationToken>())
+      .Returns([123]);
+
+    _marketRepository.AddMarketProductsAsync(
+        Arg.Is<Market>(m => m.Name == "Target"),
+        Arg.Any<DateOnly>(),
+        Arg.Any<CancellationToken>())
+      .ThrowsAsync<OperationCanceledException>();
+
+    TaskCompletionSource rollbackSignal = CreateRollbackSignal();
+    _marketRepository.DeleteProductsHistoryForMarketsAsync(
+        Arg.Any<IReadOnlyCollection<string>>(),
+        Arg.Any<DateOnly>(),
+        Arg.Any<CancellationToken>())
+      .Returns(_ => {
+        rollbackSignal.SetResult();
+        return Task.CompletedTask;
+      });
+
+    // Act
+    try {
+      await _handler.Handle(command, TestContext.Current.CancellationToken);
+    } catch (OperationCanceledException) {
+      // Expected; this test verifies only the rollback side effect.
+    }
+
+    // Assert
+    await WaitForRollback(rollbackSignal.Task);
+    await _marketRepository.Received(1).DeleteProductsHistoryForMarketsAsync(
+      Arg.Is<IReadOnlyCollection<string>>(m => m.Single() == "Walmart"),
+      Arg.Is<DateOnly>(d => d == registeredAt),
+      Arg.Any<CancellationToken>());
+  }
+
+  [Fact(DisplayName = "Deletes added product ids if command is cancelled adding later products")]
+  public async Task Handler_DeletesAddedProductIds_IfCancelledAddingLaterProducts() {
+    // Arrange
+    var registeredAt = new DateOnly(2024, 1, 15);
+    var command = new Command(
+      [
+        new CommandProduct("Milk", 1.99m, "1L", "Walmart", "Nike", null),
+        new CommandProduct("Bread", 2.49m, "500g", "Target", "Adidas", null),
+      ],
+      registeredAt);
+    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
+      .Returns(new ValidationResult());
+
+    _marketRepository.ClearSubstitute();
+
+    _marketRepository.GetMarketsAsync(Arg.Any<CancellationToken>())
+      .Returns([]);
+
+    _marketRepository.GetBrandsAsync(Arg.Any<CancellationToken>())
+      .Returns([]);
+
+    _marketRepository.AddMarketProductsAsync(
+        Arg.Is<Market>(m => m.Name == "Walmart"),
+        Arg.Any<DateOnly>(),
+        Arg.Any<CancellationToken>())
+      .Returns([123]);
+
+    _marketRepository.AddMarketProductsAsync(
+        Arg.Is<Market>(m => m.Name == "Target"),
+        Arg.Any<DateOnly>(),
+        Arg.Any<CancellationToken>())
+      .ThrowsAsync<OperationCanceledException>();
+
+    TaskCompletionSource rollbackSignal = CreateRollbackSignal();
+    _marketRepository.DeleteProductsAsync(
+        Arg.Any<IReadOnlyCollection<int>>(),
+        Arg.Any<CancellationToken>())
+      .Returns(_ => {
+        rollbackSignal.SetResult();
+        return Task.CompletedTask;
+      });
+
+    // Act
+    try {
+      await _handler.Handle(command, TestContext.Current.CancellationToken);
+    } catch (OperationCanceledException) {
+      // Expected; this test verifies only the rollback side effect.
+    }
+
+    // Assert
+    await WaitForRollback(rollbackSignal.Task);
+    await _marketRepository.Received(1).DeleteProductsAsync(
+      Arg.Is<IReadOnlyCollection<int>>(ids => ids.Single() == 123),
       Arg.Any<CancellationToken>());
   }
 }

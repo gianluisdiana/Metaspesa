@@ -49,7 +49,7 @@ function shoppingListResponse(body: unknown, ok = true) {
 
 function temporaryListConflictResponse() {
   return shoppingListResponse({
-    message: 'Temporary list already exists. Name it or create a new one?',
+    message: 'Temporary list already exists. Name it and create a new one?',
     requiresTemporaryListName: true,
     shoppingList: { name: undefined, products: [] },
     shoppingListSummaries: [{ name: undefined }],
@@ -123,7 +123,7 @@ describe('shopping list component', () => {
 
     expect(
       await screen.findByText(
-        'Temporary list already exists. Name it or create a new one?',
+        'Temporary list already exists. Name it and create a new one?',
       ),
     ).toBeVisible();
   });
@@ -195,7 +195,7 @@ describe('shopping list component', () => {
 
     expect(
       await screen.findByText(
-        'Temporary list already exists. Name it or create a new one?',
+        'Temporary list already exists. Name it and create a new one?',
       ),
     ).toBeVisible();
   });

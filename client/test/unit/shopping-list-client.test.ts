@@ -9,6 +9,14 @@ function shoppingListResponse(body: unknown, ok = true) {
   };
 }
 
+function successfulCreateListResponse() {
+  return {
+    message: 'Shopping list updated.',
+    shoppingList: { name: 'Groceries', products: [] },
+    shoppingListSummaries: [{ name: 'Groceries' }],
+  };
+}
+
 describe('ShoppingListClient', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -34,5 +42,91 @@ describe('ShoppingListClient', () => {
       headers: { 'Content-Type': 'application/json' },
       method: 'PATCH',
     });
+  });
+
+  it('throws response message when naming a temporary list fails', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        shoppingListResponse({ message: 'Name already exists.' }, false),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new ShoppingListClient();
+
+    await expect(
+      client.nameTemporaryListAndCreateNew('Groceries'),
+    ).rejects.toThrow('Name already exists.');
+  });
+
+  it('sends a post request when adding items to a named list', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(shoppingListResponse(successfulCreateListResponse()));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new ShoppingListClient();
+
+    await client.addItemsToList('Groceries', [
+      { checked: false, name: 'Milk', price: 1.29, quantity: '1 l' },
+    ]);
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/shopping/lists/items', {
+      body: JSON.stringify({
+        items: [{ checked: false, name: 'Milk', price: 1.29, quantity: '1 l' }],
+        shoppingListName: 'Groceries',
+      }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+    });
+  });
+
+  it('sends a patch request when updating a list item', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(shoppingListResponse(successfulCreateListResponse()));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new ShoppingListClient();
+
+    await client.updateItem('Groceries', 'Milk', { checked: true });
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/shopping/lists/items', {
+      body: JSON.stringify({
+        itemName: 'Milk',
+        shoppingListName: 'Groceries',
+        update: { checked: true },
+      }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH',
+    });
+  });
+
+  it('sends a delete request when removing a list item', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(shoppingListResponse(successfulCreateListResponse()));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new ShoppingListClient();
+
+    await client.removeItem('Groceries', 'Milk');
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/shopping/lists/items', {
+      body: JSON.stringify({
+        itemName: 'Milk',
+        shoppingListName: 'Groceries',
+      }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'DELETE',
+    });
+  });
+
+  it('throws default message when item mutation fails without response message', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(shoppingListResponse({}, false));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new ShoppingListClient();
+
+    await expect(client.removeItem('Groceries', 'Milk')).rejects.toThrow(
+      'Could not update shopping list.',
+    );
   });
 });

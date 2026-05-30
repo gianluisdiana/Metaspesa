@@ -27,6 +27,18 @@ class DummyProductProcessor(ProductProcessor):
         return product
 
 
+class RenamingProductProcessor(ProductProcessor):
+    @override
+    def _process(self, product: Product) -> Product:
+        return Product(
+            name=f"{product.name} processed",
+            price=product.price,
+            quantity=product.quantity,
+            image_url=product.image_url,
+            brand=product.brand,
+        )
+
+
 class FixedClock(Clock):
     def __init__(self, today: date) -> None:
         self.__today = today
@@ -242,6 +254,29 @@ async def test_saves_scrapped_products_with_clock_date():
     assert repository.save_calls[0][1] == scrape_date
 
 
+async def test_saves_processed_products_to_main_repository():
+    # Arrange
+    product = Product(
+        name="product1",
+        price=1.0,
+        quantity="1 unit",
+        image_url="https://example.com/product.png",
+    )
+    scraper = FakeMarketWebScraper([product])
+    repository = SpyProductRepository()
+    handler = make_handler(
+        main_repository=repository,
+        market_web_scrapers={"Market": scraper},
+        product_processor=RenamingProductProcessor(),
+    )
+
+    # Act
+    await handler.handle("12345")
+
+    # Assert
+    assert repository.saved_products[0].name == "product1 processed"
+
+
 async def test_raises_if_no_market_scrapers_are_configured():
     # Arrange
     handler = make_handler(market_web_scrapers={})
@@ -323,7 +358,7 @@ async def test_saves_to_fallback_if_main_raises():
     await handler.handle("12345")
 
     # Assert
-    assert len(fallback.save_calls) == 1
+    assert [call[0] for call in fallback.save_calls] == ["Market"]
 
 
 async def test_saves_products_to_fallback_if_main_raises():
@@ -377,7 +412,7 @@ async def test_saves_only_not_repeated_products_to_fallback_if_main_raises():
     await handler.handle("12345")
 
     # Assert
-    assert len(fallback.save_calls) == 1
+    assert [call[0] for call in fallback.save_calls] == ["Market"]
 
 
 async def test_saves_only_unique_products_to_fallback_if_main_raises():

@@ -59,11 +59,15 @@ class SpyFallbackRepository(DummyFallbackRepository):
         self,
         markets_and_dates: list[tuple[str, date]] | None = None,
         products: list[Product] | None = None,
+        products_by_market_and_date: dict[tuple[str, date], list[Product]]
+        | None = None,
     ):
         self.save_calls: list[tuple[str, date, list[Product]]] = []
+        self.get_products_calls: list[tuple[str, date]] = []
         self.remove_calls: list[tuple[str, date]] = []
         self.__markets_and_dates = markets_and_dates or []
         self.__products = products or []
+        self.__products_by_market_and_date = products_by_market_and_date or {}
 
     @override
     async def save(self, market_name: str, date: date, products: list[Product]) -> None:
@@ -77,6 +81,9 @@ class SpyFallbackRepository(DummyFallbackRepository):
     async def get_products_by_market_and_date(
         self, market_name: str, date: date
     ) -> list[Product]:
+        self.get_products_calls.append((market_name, date))
+        if self.__products_by_market_and_date:
+            return self.__products_by_market_and_date[(market_name, date)]
         return self.__products
 
     @override

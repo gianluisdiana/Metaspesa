@@ -1,12 +1,18 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { LoginResult } from '@/lib/auth-domain';
+
+const NOW = new Date('2026-05-26T12:00:00.000Z');
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('LoginResult constructor', () => {
   it('should store the token', () => {
     // Arrange
-    const expiration = new Date(Date.now() + 60000);
+    const expiration = new Date('2026-05-26T12:01:00.000Z');
 
     // Act
     const result = new LoginResult('my-token', expiration);
@@ -17,7 +23,7 @@ describe('LoginResult constructor', () => {
 
   it('should store the expiration date', () => {
     // Arrange
-    const expiration = new Date(Date.now() + 60000);
+    const expiration = new Date('2026-05-26T12:01:00.000Z');
 
     // Act
     const result = new LoginResult('my-token', expiration);
@@ -30,19 +36,29 @@ describe('LoginResult constructor', () => {
 describe('LoginResult isExpired', () => {
   it('should return false if expiration is in the future', () => {
     // Arrange
-    const futureDate = new Date(Date.now() + 60000);
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const futureDate = new Date('2026-05-26T12:01:00.000Z');
     const result = new LoginResult('token', futureDate);
 
-    // Act & Assert
-    expect(result.isExpired()).toBe(false);
+    // Act
+    const isExpired = result.isExpired();
+
+    // Assert
+    expect(isExpired).toBe(false);
   });
 
   it('should return true if expiration is in the past', () => {
     // Arrange
-    const pastDate = new Date(Date.now() - 60000);
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const pastDate = new Date('2026-05-26T11:59:00.000Z');
     const result = new LoginResult('token', pastDate);
 
-    // Act & Assert
-    expect(result.isExpired()).toBe(true);
+    // Act
+    const isExpired = result.isExpired();
+
+    // Assert
+    expect(isExpired).toBe(true);
   });
 });

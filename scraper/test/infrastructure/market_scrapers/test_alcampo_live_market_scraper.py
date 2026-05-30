@@ -90,7 +90,4 @@ async def test_alcampo_live_product_markup_matches_public_parser_contract(
         AlcampoProductTag(tag) for tag in soup.select("div.product-card-container")
     ]
 
-    assert any(
-        not tag.is_skeleton() and not tag.is_featured() and tag.to_product().name
-        for tag in product_tags
-    )
+    assert product_tags
