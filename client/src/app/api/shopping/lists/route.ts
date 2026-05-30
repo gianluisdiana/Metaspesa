@@ -56,7 +56,7 @@ export async function POST() {
       try {
         return NextResponse.json({
           message:
-            'Temporary list already exists. Name it or create a new one?',
+            'Temporary list already exists. Name it and create a new one?',
           requiresTemporaryListName: true,
           shoppingList: await service.getShoppingList(),
           shoppingListSummaries: await service.getShoppingListSummaries(),
