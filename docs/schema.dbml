@@ -190,6 +190,7 @@ Table market.super_markets {
 
   id integer [pk, increment]
   name varchar [not null, unique]
+  logo_url varchar
 
   indexes {
     name [name: 'idx_super_market_name']
@@ -256,18 +257,18 @@ Table market.product_formats {
 
   id integer [pk, increment]
   product_id integer [not null]
-  amount decimal(10, 3) [not null]
+  quantity decimal(10, 3) [not null]
   unit_of_measure_id integer [not null]
   image_url varchar [not null]
 
   indexes {
     product_id [name: 'idx_product_format_product_id']
     unit_of_measure_id [name: 'idx_product_format_unit_of_measure_id']
-    (product_id, amount, unit_of_measure_id) [unique, name: 'idx_product_format_identity']
+    (product_id, quantity, unit_of_measure_id) [unique, name: 'idx_product_format_identity']
   }
 
   checks {
-    `amount > 0.000` [name: 'chk_product_format_positive_amount']
+    `quantity > 0.000` [name: 'chk_product_format_positive_quantity']
   }
 }
 Ref: market.product_formats.product_id > market.products.id [
