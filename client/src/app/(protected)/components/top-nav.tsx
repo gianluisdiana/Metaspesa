@@ -60,7 +60,7 @@ export function NavActions() {
 export default function TopNav() {
   return (
     <nav className="fixed top-0 w-full z-50 border-b border-orange-100 bg-white/80 backdrop-blur-md text-orange-500 font-plus-jakarta text-sm font-medium shadow-sm shadow-purple-500/10">
-      <div className="flex justify-between items-center px-6 h-16 w-full max-w-7xl mx-auto">
+      <div className="flex justify-between items-center px-6 h-16 w-full">
         <NavLogo />
         <NavActions />
       </div>
