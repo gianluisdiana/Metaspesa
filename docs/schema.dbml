@@ -1,11 +1,16 @@
 // Use DBML to define your database structure
 // Docs: https://dbml.dbdiagram.io/docs
 
+Project metaspesa {
+  Note: 'Database schema for Metaspesa shopping application'
+  database_type: 'PostgreSQL'
+}
+
 // ─────────────────────────────────────────
-// SHOPPING SCHEMA
+// IDENTITY SCHEMA
 // ─────────────────────────────────────────
 
-Table shopping.roles {
+Table identity.roles {
   note: 'User roles for access control'
 
   id integer [pk, increment]
@@ -17,7 +22,7 @@ Table shopping.roles {
   }
 }
 
-Table shopping.users {
+Table identity.users {
   note: 'Registered users of the shopping application'
 
   uid guid [pk]
@@ -31,9 +36,13 @@ Table shopping.users {
   }
 }
 
-Ref: shopping.users.role_id > shopping.roles.id [
-  delete: set null
+Ref: identity.users.role_id > identity.roles.id [
+  delete: restrict
 ]
+
+// ─────────────────────────────────────────
+// SHOPPING SCHEMA
+// ─────────────────────────────────────────
 
 Table shopping.shopping_lists {
   note: 'Shopping lists created by users, can be shared among multiple users'
@@ -60,7 +69,7 @@ Table shopping.shopping_list_ownerships {
   }
 }
 
-Ref: shopping.shopping_list_ownerships.user_uid > shopping.users.uid [
+Ref: shopping.shopping_list_ownerships.user_uid > identity.users.uid [
   delete: cascade
 ]
 Ref: shopping.shopping_list_ownerships.shopping_list_id > shopping.shopping_lists.id [
@@ -68,87 +77,107 @@ Ref: shopping.shopping_list_ownerships.shopping_list_id > shopping.shopping_list
 ]
 
 Table shopping.shopping_items {
-  note: 'Items that belong to a shopping list, representing planned purchases'
+  note: '''
+  Items that belong to a shopping list, representing planned purchases.
+  Each line points to an existing market product and the exact product history
+  row used when the item was added, so price and format are explicit.
+  '''
 
   id integer [pk, increment]
-  name varchar [not null]
-  price float [not null]
-  quantity varchar
   shopping_list_id integer [not null]
+  product_id integer [not null]
+  product_history_id integer [not null]
+  amount integer [not null, default: 1, note: 'How many units/packages of the product are planned']
   deleted_at timestamp
 
   indexes {
     shopping_list_id [name: 'idx_shopping_item_shopping_list_id']
+    product_id [name: 'idx_shopping_item_product_id']
+    product_history_id [name: 'idx_shopping_item_product_history_id']
+    (shopping_list_id, product_id) [
+      unique,
+      name: 'idx_shopping_item_list_product'
+    ]
   }
 
   checks {
-    `price >= 0.00` [name: 'chk_shopping_item_positive_price']
+    `amount > 0` [name: 'chk_shopping_item_positive_amount']
   }
 }
 
 Ref: shopping.shopping_lists.id < shopping.shopping_items.shopping_list_id [
   delete: cascade
 ]
-
-Table shopping.registered_items {
-  note: 'Items that users have registered as purchased or planned to purchase'
-
-  id integer [pk, increment]
-  name varchar [not null]
-  last_known_price float [not null]
-  quantity varchar
-  user_uid guid [not null]
-
-  indexes {
-    user_uid [name: 'idx_registered_item_user_uid']
-  }
-
-  checks {
-    `last_known_price >= 0.00` [name: 'chk_registered_item_positive_last_known_price']
-  }
-}
-
-Ref: shopping.users.uid < shopping.registered_items.user_uid [delete: cascade]
+Ref: shopping.shopping_items.product_id > market.products.id [
+  delete: restrict
+]
+Ref: shopping.shopping_items.product_history_id > market.products_history.id [
+  delete: restrict
+]
+Ref: shopping.shopping_items.product_id > market.products_history.product_id [
+  delete: restrict
+]
 
 Table shopping.purchases {
   note: '''
-  Records the actual act of buying an item — links shopping, registered items,
-  and the market. Core of savings analytics.
+  Purchase receipt header. It records who bought, when, and optionally which
+  shopping list was checked out. Product lines live in purchase_items.
   '''
 
   id integer [pk, increment]
   user_uid guid [not null]
-  registered_item_id integer [not null]
-  product_id integer [note: "May not come from a known super market product"]
-  super_market_id integer [note: "May not come from a known super market"]
-  price_paid float [not null]
-  quantity varchar
+  shopping_list_id integer
   purchased_at timestamp [not null, default: `now()`]
-
-  checks {
-    `price_paid >= 0.00` [name: 'chk_purchase_positive_price_paid']
-  }
 
   indexes {
     user_uid [name: 'idx_purchases_user_uid']
-    registered_item_id [name: 'idx_purchases_registered_item_id']
-    product_id [name: 'idx_purchases_product_id']
-    super_market_id [name: 'idx_purchases_super_market_id']
+    shopping_list_id [name: 'idx_purchases_shopping_list_id']
     purchased_at [name: 'idx_purchases_purchased_at']
   }
 }
 
-Ref: shopping.purchases.user_uid > shopping.users.uid [
+Ref: shopping.purchases.user_uid > identity.users.uid [
   delete: cascade
 ]
-Ref: shopping.purchases.registered_item_id > shopping.registered_items.id [
+Ref: shopping.purchases.shopping_list_id > shopping.shopping_lists.id [
+  delete: set null
+]
+
+Table shopping.purchase_items {
+  note: '''
+  Immutable purchase receipt lines. Each line references the exact market
+  product history row used for analytics, which provides the exact price and
+  format paid at purchase time.
+  '''
+
+  id integer [pk, increment]
+  purchase_id integer [not null]
+  product_id integer [not null]
+  product_history_id integer [not null]
+  amount integer [not null, default: 1, note: 'How many units/packages were bought']
+
+  indexes {
+    purchase_id [name: 'idx_purchase_item_purchase_id']
+    product_id [name: 'idx_purchase_item_product_id']
+    product_history_id [name: 'idx_purchase_item_product_history_id']
+  }
+
+  checks {
+    `amount > 0` [name: 'chk_purchase_item_positive_amount']
+  }
+}
+
+Ref: shopping.purchase_items.purchase_id > shopping.purchases.id [
   delete: cascade
 ]
-Ref: shopping.purchases.product_id > market.products.id [
-  delete: set null
+Ref: shopping.purchase_items.product_id > market.products.id [
+  delete: restrict
 ]
-Ref: shopping.purchases.super_market_id > market.super_markets.id [
-  delete: set null
+Ref: shopping.purchase_items.product_history_id > market.products_history.id [
+  delete: restrict
+]
+Ref: shopping.purchase_items.product_id > market.products_history.product_id [
+  delete: restrict
 ]
 
 
@@ -178,12 +207,26 @@ Table market.product_brands {
   }
 }
 
+Table market.units_of_measure {
+  note: '''
+  Units used to describe product package format, not shopping count.
+  Examples: ml, l, g, kg, piece.
+  '''
+
+  id integer [pk, increment]
+  code varchar(16) [not null, unique, note: 'Stable unit code, e.g. ml, kg, piece']
+  name varchar(64) [not null]
+
+  indexes {
+    code [name: 'idx_unit_of_measure_code']
+  }
+}
+
 Table market.products {
   note: 'Products available in the market'
 
   id integer [pk, increment]
   name varchar [not null]
-  image url
   super_market_id integer [not null]
   brand_id integer [not null]
 
@@ -204,14 +247,46 @@ Ref: market.products.brand_id > market.product_brands.id [
   delete: cascade
 ]
 
-Table market.products_history {
-  note: 'Historical price and quantity data for products, tracking changes over time'
+Table market.product_formats {
+  note: '''
+  Different package formats for the same product. For example, a soda can be sold
+  in 330 ml cans, 500 ml bottles, or 1 l bottles. Each format has its own price
+  history in products_history.
+  '''
 
   id integer [pk, increment]
-  price float [not null]
-  quantity varchar [not null]
-  created_at timestamp [not null, default: `now()`]
   product_id integer [not null]
+  amount decimal(10, 3) [not null]
+  unit_of_measure_id integer [not null]
+  image_url varchar [not null]
+
+  indexes {
+    product_id [name: 'idx_product_format_product_id']
+    unit_of_measure_id [name: 'idx_product_format_unit_of_measure_id']
+    (product_id, amount, unit_of_measure_id) [unique, name: 'idx_product_format_identity']
+  }
+
+  checks {
+    `amount > 0.000` [name: 'chk_product_format_positive_amount']
+  }
+}
+Ref: market.product_formats.product_id > market.products.id [
+  delete: cascade
+]
+Ref: market.product_formats.unit_of_measure_id > market.units_of_measure.id [
+  delete: cascade
+]
+
+Table market.products_history {
+  note: '''
+  Historical price and format data for products, tracking changes over time.
+  '''
+
+  id integer [pk, increment]
+  product_id integer [not null]
+  product_format_id integer [not null]
+  price decimal(10, 2) [not null]
+  created_at timestamp [not null, default: `now()`]
 
   checks {
     `price > 0.00` [name: 'chk_positive_price']
@@ -219,10 +294,18 @@ Table market.products_history {
 
   indexes {
     product_id [name: 'idx_product_history_product_id']
+    product_format_id [name: 'idx_product_history_product_format_id']
     created_at [name: 'idx_product_history_created_at']
+    (id, product_id) [
+      unique,
+      name: 'idx_product_history_id_product_id'
+    ]
   }
 }
 
 Ref: market.products_history.product_id > market.products.id [
+  delete: cascade
+]
+Ref: market.products_history.product_format_id > market.product_formats.id [
   delete: cascade
 ]
