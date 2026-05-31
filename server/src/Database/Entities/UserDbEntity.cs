@@ -7,7 +7,6 @@ internal class UserDbEntity {
   public int RoleId { get; set; }
 
   public UserRoleDbEntity Role { get; set; } = null!;
-  public ICollection<RegisteredItemDbEntity> RegisteredItems { get; set; } = [];
   public ICollection<ShoppingListOwnershipDbEntity> Ownerships { get; set; } = [];
   public ICollection<PurchaseDbEntity> Purchases { get; set; } = [];
 }

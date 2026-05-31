@@ -6,7 +6,7 @@ namespace Metaspesa.Database.Configurations;
 
 internal class UserConfiguration : IEntityTypeConfiguration<UserDbEntity> {
   public void Configure(EntityTypeBuilder<UserDbEntity> builder) {
-    builder.ToTable("users", "shopping", t =>
+    builder.ToTable("users", "identity", t =>
       t.HasComment("Registered users of the shopping application"));
     builder.HasKey(e => e.Uid).HasName("pk_user");
 
@@ -14,7 +14,7 @@ internal class UserConfiguration : IEntityTypeConfiguration<UserDbEntity> {
       .IsUnique();
 
     builder.Property(e => e.Uid)
-      .HasColumnName("id")
+      .HasColumnName("uid")
       .ValueGeneratedNever();
 
     builder.Property(e => e.Username)
@@ -31,15 +31,12 @@ internal class UserConfiguration : IEntityTypeConfiguration<UserDbEntity> {
       .HasColumnName("role_id")
       .IsRequired();
 
+    builder.HasIndex(e => e.RoleId, "idx_user_role_id");
+
     builder.HasOne(e => e.Role)
       .WithMany(r => r.Users)
       .HasForeignKey(e => e.RoleId)
       .OnDelete(DeleteBehavior.Restrict);
-
-    builder.HasMany(e => e.RegisteredItems)
-      .WithOne(e => e.User)
-      .HasForeignKey(e => e.UserUid)
-      .OnDelete(DeleteBehavior.Cascade);
 
     builder.HasMany(e => e.Purchases)
       .WithOne(e => e.User)

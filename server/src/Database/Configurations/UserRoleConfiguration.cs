@@ -7,7 +7,7 @@ namespace Metaspesa.Database.Configurations;
 
 internal class UserRoleConfiguration : IEntityTypeConfiguration<UserRoleDbEntity> {
   public void Configure(EntityTypeBuilder<UserRoleDbEntity> builder) {
-    builder.ToTable("roles", "shopping", t =>
+    builder.ToTable("roles", "identity", t =>
       t.HasComment("User roles for access control"));
     builder.HasKey(e => e.Id).HasName("pk_role");
 
@@ -25,7 +25,7 @@ internal class UserRoleConfiguration : IEntityTypeConfiguration<UserRoleDbEntity
 
     builder.Property(e => e.Description)
       .HasColumnName("description")
-      .HasMaxLength(500)
+      .HasMaxLength(255)
       .IsRequired();
 
     builder.HasData(
