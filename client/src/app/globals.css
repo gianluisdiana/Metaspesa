@@ -82,7 +82,9 @@ body {
   --spacing-container-margin: 20px;
 
   /* Font family tokens */
+  --font-body-sm: 'Plus Jakarta Sans', sans-serif;
   --font-body-md: 'Plus Jakarta Sans', sans-serif;
+  --font-display-lg: 'Plus Jakarta Sans', sans-serif;
   --font-headline-md: 'Plus Jakarta Sans', sans-serif;
   --font-headline-lg: 'Plus Jakarta Sans', sans-serif;
   --font-label-md: 'Plus Jakarta Sans', sans-serif;
@@ -92,10 +94,23 @@ body {
 }
 
 /* Typography scale — composite tokens not expressible in @theme */
+
+.text-body-sm {
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0;
+  font-weight: 400;
+}
 .text-body-md {
   font-size: 16px;
   line-height: 24px;
   font-weight: 400;
+}
+.text-display-lg {
+  font-size: 40px;
+  line-height: 48px;
+  letter-spacing: -0.02em;
+  font-weight: 700;
 }
 .text-headline-md {
   font-size: 24px;
