@@ -37,7 +37,7 @@ public static class AddMarketProducts {
                 Brand: new ProductBrand(gg.Key.BrandName!),
                 Formats: [
                   ..gg.Select(p => new ProductFormat(
-                    $"{p.Quantity} {p.UnitOfMeasure}",
+                    new AQuantity(p.Quantity, p.UnitOfMeasure!),
                     new Price(p.Price),
                     p.ImageUrl!))
                 ]

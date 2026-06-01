@@ -155,7 +155,8 @@ public class AddMarketProductsHandlerTest {
 
     // Assert
     await _marketRepository.Received(1).AddMarketProductsAsync(
-      Arg.Is<Market>(m => m.Products.Single().Formats.Single().Quantity.Value == "1 L"),
+      Arg.Is<Market>(m =>
+        m.Products.Single().Formats.Single().Quantity == new AQuantity(1, "L")),
       Arg.Any<DateOnly>(),
       Arg.Any<CancellationToken>());
   }

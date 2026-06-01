@@ -1,12 +1,15 @@
+using System.Diagnostics;
+using Metaspesa.Domain.Markets;
+using Metaspesa.Domain.Shopping;
+
 namespace Metaspesa.Database.Entities;
 
 internal class ProductsHistoryDbEntity {
   public int Id { get; set; }
-  public decimal Price { get; set; }
-  public string Quantity { get; set; } = null!;
-  public string? ImageUrl { get; set; }
-  public DateTime CreatedAt { get; set; }
   public int ProductId { get; set; }
+  public int ProductFormatId { get; set; }
+  public decimal Price { get; set; }
+  public DateTime CreatedAt { get; set; }
 
   public ProductDbEntity Product { get; set; } = null!;
   public ProductFormatDbEntity ProductFormat { get; set; } = null!;

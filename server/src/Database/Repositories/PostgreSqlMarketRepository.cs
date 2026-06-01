@@ -2,14 +2,45 @@ using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Database.Entities;
 using Metaspesa.Domain.Markets;
-using Metaspesa.Domain.Shopping;
 using Microsoft.EntityFrameworkCore;
 
 namespace Metaspesa.Database.Repositories;
 
+internal static class IQueryableExtensions {
+  public static IQueryable<ProductDbEntity> ApplyFilter(
+    this IQueryable<ProductDbEntity> query, GetMarketProductsFilter filter
+  ) {
+    if (filter.MarketName is not null) {
+      query = query.Where(p => EF.Functions.ILike(p.SuperMarket.Name, filter.MarketName));
+    }
+    if (filter.BrandNameSegment is not null) {
+      query = query.Where(p => EF.Functions.ILike(
+        p.Brand.Name, $"%{filter.BrandNameSegment}%"));
+    }
+    if (filter.NameSegment is not null) {
+      query = query.Where(p => EF.Functions.ILike(
+        p.Name, $"%{filter.NameSegment}%"));
+    }
+
+    return query;
+  }
+}
+
 internal partial class PostgreSqlMarketRepository(
   MainContext context
 ) : IMarketRepository {
+  private const int BatchSize = 1_000;
+
+  private readonly record struct ProductSource(
+    int ProductId, MarketProduct Source);
+  private readonly record struct ProductInsert(
+    ProductDbEntity Entity, MarketProduct Source);
+  private readonly record struct ProductFormatKey(
+    int ProductId,
+    decimal Quantity,
+    int UnitOfMeasureId
+  );
+
   public async Task<List<MarketSummary>> GetMarketSummariesAsync(
     CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync(
@@ -24,57 +55,46 @@ internal partial class PostgreSqlMarketRepository(
   public async Task<PagedResult<Market>> GetProductsAsync(
     GetMarketProductsFilter filter, CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
-    IQueryable<ProductDbEntity> baseQuery = context.Products
+    IQueryable<ProductDbEntity> query = context.Products
       .Include(p => p.Brand)
       .Include(p => p.SuperMarket)
-      .Where(p => p.History.Any());
+      .Where(p => p.History.Any())
+      .ApplyFilter(filter);
 
-    if (filter.MarketName is not null) {
-      baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.SuperMarket.Name, filter.MarketName));
-    }
-    if (filter.BrandNameSegment is not null) {
-      baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.Brand.Name, $"%{filter.BrandNameSegment}%"));
-    }
-    if (filter.NameSegment is not null) {
-      baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.Name, $"%{filter.NameSegment}%"));
-    }
+    int totalCount = await query.CountAsync(cancellationToken);
+    List<ProductDbEntity> entities = await LoadProductPageAsync(
+      query, filter, cancellationToken);
 
-    int totalCount = await baseQuery.CountAsync(cancellationToken);
-
-    IQueryable<ProductDbEntity> orderedQuery = baseQuery
-      .Include(p => p.History)
-      .OrderBy(p => p.SuperMarket.Name).ThenBy(p => p.Name);
-
-    bool isInfinite = filter.Pagination is null || filter.Pagination.IsInfinite;
-
-    List<ProductDbEntity> entities = isInfinite
-      ? await orderedQuery.ToListAsync(cancellationToken)
-      : await orderedQuery
-          .Skip(filter.Pagination!.Skip)
-          .Take(filter.Pagination.Size)
-          .ToListAsync(cancellationToken);
-
-    IReadOnlyCollection<Market> markets = [..entities
-      .GroupBy(p => p.SuperMarket.Name)
-      .Select(g => new Market(
-        g.Key,
-        [..g.Select(p => {
-          DateTime latest = p.History.Max(h => h.CreatedAt);
-          return new MarketProduct(
-            Name: p.Name,
-            Brand: new ProductBrand(p.Brand.Name),
-            Formats: [..p.History
-              .Where(h => h.CreatedAt == latest)
-              .Select(h => new ProductFormat(
-                Quantity: h.Quantity,
-                Price: new Price(h.Price),
-                ImageUrl: h.ImageUrl is null ? null : new Uri(h.ImageUrl, UriKind.Absolute)
-              ))]);
-        })]
-      ))];
-
-    return new PagedResult<Market>(markets, totalCount);
+    return new PagedResult<Market>(MapMarkets(entities), totalCount);
   }, "Couldn't get market products.");
+
+  private static async Task<List<ProductDbEntity>> LoadProductPageAsync(
+    IQueryable<ProductDbEntity> query,
+    GetMarketProductsFilter filter,
+    CancellationToken cancellationToken
+  ) {
+    IQueryable<ProductDbEntity> orderedQuery = query
+      .Include(p => p.History)
+      .ThenInclude(h => h.ProductFormat)
+      .ThenInclude(f => f.UnitOfMeasure)
+      .OrderBy(p => p.SuperMarket.Name)
+      .ThenBy(p => p.Name);
+
+    if (filter.Pagination is null || filter.Pagination.IsInfinite) {
+      return await orderedQuery.ToListAsync(cancellationToken);
+    }
+
+    return await orderedQuery
+      .Skip(filter.Pagination.Skip)
+      .Take(filter.Pagination.Size)
+      .ToListAsync(cancellationToken);
+  }
+
+  private static IReadOnlyCollection<Market> MapMarkets(
+    IEnumerable<ProductDbEntity> products
+  ) => [.. products
+    .GroupBy(p => p.SuperMarket.Name)
+    .Select(g => new Market(g.Key, [.. g.Select(p => p.MapToDomain())]))];
 
   public async Task<List<Market>> GetMarketsAsync(
     CancellationToken cancellationToken
@@ -116,82 +136,237 @@ internal partial class PostgreSqlMarketRepository(
     context.ChangeTracker.AutoDetectChangesEnabled = false;
     context.ChangeTracker.Clear();
 
-    int superMarketId = await context.SuperMarkets
-      .Where(s => EF.Functions.ILike(s.Name, market.Name))
-      .Select(s => s.Id)
-      .SingleAsync(cancellationToken);
+    int superMarketId = await GetSuperMarketIdAsync(market.Name, cancellationToken);
 
-    var brandNamesInImport = market.Products
-        .Select(p => p.Brand.Name)
-        .Distinct()
-        .ToList();
+    Dictionary<string, int> brandLookup = await GetBrandLookupAsync(
+      market.Products, cancellationToken);
+    Dictionary<(string Name, int BrandId), int> existingProducts =
+      await GetExistingProductLookupAsync(superMarketId, cancellationToken);
 
-    Dictionary<string, int> brandLookup = await context.ProductBrands
-        .Where(b => brandNamesInImport.Contains(b.Name))
-        .ToDictionaryAsync(b => b.Name, b => b.Id, cancellationToken);
+    (List<ProductSource> productSources, List<int> addedProductIds) =
+      await ResolveProductSourcesAsync(
+        market.Products,
+        superMarketId,
+        brandLookup,
+        existingProducts,
+        cancellationToken);
 
-    Dictionary<(string Name, int BrandId), int> existingProducts = await context.Products
-        .Where(p => p.SuperMarketId == superMarketId)
-        .Select(p => new { p.Id, p.Name, p.BrandId })
-        .ToDictionaryAsync(p => (p.Name, p.BrandId), p => p.Id, cancellationToken);
-
-    var history = new List<ProductsHistoryDbEntity>();
-    var toInsert = new List<(ProductDbEntity Entity, MarketProduct Source)>();
-    var addedProductIds = new List<int>();
+    Dictionary<string, int> unitLookup = await GetUnitLookupAsync(cancellationToken);
+    Dictionary<ProductFormatKey, int> formatLookup = await ResolveProductFormatsAsync(
+      productSources, unitLookup, cancellationToken);
 
     var now = registeredAt.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-    foreach (MarketProduct mp in market.Products) {
-      int brandId = brandLookup[mp.Brand.Name];
-      (string Name, int brandId) key = (mp.Name, brandId);
-
-      if (existingProducts.TryGetValue(key, out int existingId)) {
-        history.AddRange(mp.Formats.Select(f => new ProductsHistoryDbEntity {
-          ProductId = existingId,
-          Price = f.Price.Value,
-          Quantity = f.Quantity,
-          ImageUrl = f.ImageUrl?.ToString(),
-          CreatedAt = now
-        }));
-      } else {
-        toInsert.Add((new ProductDbEntity {
-          Name = mp.Name,
-          SuperMarketId = superMarketId,
-          BrandId = brandId,
-        }, mp));
-      }
-    }
-
-    if (toInsert.Count > 0) {
-      const int batchSize = 1_000;
-
-      for (int i = 0; i < toInsert.Count; i += batchSize) {
-        var batch = toInsert.Skip(i).Take(batchSize).ToList();
-
-        await context.Products.AddRangeAsync(batch.Select(x => x.Entity), cancellationToken);
-        await context.SaveChangesAsync(cancellationToken);
-        context.ChangeTracker.Clear();
-
-        addedProductIds.AddRange(batch.Select(x => x.Entity.Id));
-        history.AddRange(batch.SelectMany(x => x.Source.Formats.Select(f => new ProductsHistoryDbEntity {
-          ProductId = x.Entity.Id,
-          Price = f.Price.Value,
-          Quantity = f.Quantity,
-          ImageUrl = f.ImageUrl?.ToString(),
-          CreatedAt = now
-        })));
-      }
-    }
-
-    const int historyBatchSize = 2_000;
-    for (int i = 0; i < history.Count; i += historyBatchSize) {
-      await context.ProductsHistory.AddRangeAsync(
-          history.Skip(i).Take(historyBatchSize), cancellationToken);
-      await context.SaveChangesAsync(cancellationToken);
-      context.ChangeTracker.Clear();
-    }
+    List<ProductsHistoryDbEntity> history = BuildProductHistory(
+      productSources, unitLookup, formatLookup, now);
+    await AddProductHistoryAsync(history, cancellationToken);
 
     return addedProductIds;
   }, "Couldn't add market products.");
+
+  private async Task<int> GetSuperMarketIdAsync(
+    string marketName,
+    CancellationToken cancellationToken
+  ) => await context.SuperMarkets
+    .Where(s => EF.Functions.ILike(s.Name, marketName))
+    .Select(s => s.Id)
+    .SingleAsync(cancellationToken);
+
+  private async Task<Dictionary<string, int>> GetBrandLookupAsync(
+    IReadOnlyCollection<MarketProduct> products,
+    CancellationToken cancellationToken
+  ) {
+    List<string> brandNames = [.. products.Select(p => p.Brand.Name).Distinct()];
+
+    return await context.ProductBrands
+      .Where(b => brandNames.Contains(b.Name))
+      .ToDictionaryAsync(b => b.Name, b => b.Id, cancellationToken);
+  }
+
+  private async Task<Dictionary<(string Name, int BrandId), int>> GetExistingProductLookupAsync(
+    int superMarketId,
+    CancellationToken cancellationToken
+  ) => await context.Products
+    .Where(p => p.SuperMarketId == superMarketId)
+    .ToDictionaryAsync(p => (p.Name, p.BrandId), p => p.Id, cancellationToken);
+
+  private async Task<(List<ProductSource> Sources, List<int> AddedProductIds)> ResolveProductSourcesAsync(
+    IReadOnlyCollection<MarketProduct> products,
+    int superMarketId,
+    Dictionary<string, int> brandLookup,
+    Dictionary<(string Name, int BrandId), int> existingProducts,
+    CancellationToken cancellationToken
+  ) {
+    var toInsert = new List<ProductInsert>();
+    var sources = new List<ProductSource>();
+
+    foreach (MarketProduct product in products) {
+      int brandId = brandLookup[product.Brand.Name];
+
+      if (existingProducts.TryGetValue((product.Name, brandId), out int existingId)) {
+        sources.Add(new ProductSource(existingId, product));
+        continue;
+      }
+
+      toInsert.Add(new ProductInsert(
+        new ProductDbEntity {
+          Name = product.Name,
+          SuperMarketId = superMarketId,
+          BrandId = brandId,
+        },
+        product));
+    }
+
+    List<ProductSource> newSources = await AddProductsAsync(toInsert, cancellationToken);
+    sources.AddRange(newSources);
+
+    return (sources, newSources.Select(s => s.ProductId).ToList());
+  }
+
+  private async Task<List<ProductSource>> AddProductsAsync(
+    List<ProductInsert> toInsert,
+    CancellationToken cancellationToken
+  ) {
+    IEnumerable<List<ProductInsert>> batches = toInsert.Chunk(BatchSize)
+      .Select(x => x.ToList());
+
+    List<ProductSource> sources = [];
+    foreach (List<ProductInsert> batch in batches) {
+      await context.Products.AddRangeAsync(batch.Select(x => x.Entity), cancellationToken);
+      await context.SaveChangesAsync(cancellationToken);
+      context.ChangeTracker.Clear();
+      sources.AddRange(batch.Select(x => new ProductSource(x.Entity.Id, x.Source)));
+    }
+
+    return sources;
+  }
+
+  private async Task<Dictionary<string, int>> GetUnitLookupAsync(
+    CancellationToken cancellationToken
+  ) => await context.UnitsOfMeasure
+      .AsNoTracking()
+      .ToDictionaryAsync(u => u.Code, u => u.Id, StringComparer.OrdinalIgnoreCase, cancellationToken);
+
+  private async Task<Dictionary<ProductFormatKey, int>> ResolveProductFormatsAsync(
+    IReadOnlyCollection<ProductSource> productSources,
+    IReadOnlyDictionary<string, int> unitLookup,
+    CancellationToken cancellationToken
+  ) {
+    Dictionary<ProductFormatKey, int> formatLookup =
+      await GetExistingProductFormatLookupAsync(productSources, cancellationToken);
+
+    List<ProductFormatDbEntity> missingFormats = BuildMissingProductFormats(
+      productSources, unitLookup, formatLookup);
+
+    IDictionary<ProductFormatKey, int> newFormats = await AddProductFormatsAsync(
+      missingFormats, cancellationToken);
+
+    return formatLookup.Concat(newFormats)
+      .ToDictionary(kv => kv.Key, kv => kv.Value);
+  }
+
+  private async Task<Dictionary<ProductFormatKey, int>> GetExistingProductFormatLookupAsync(
+    IReadOnlyCollection<ProductSource> productSources,
+    CancellationToken cancellationToken
+  ) {
+    List<int> productIds = [.. productSources.Select(s => s.ProductId).Distinct()];
+
+    return await context.ProductFormats
+      .Where(f => productIds.Contains(f.ProductId))
+      .Select(f => new { f.Id, f.ProductId, f.Quantity, f.UnitOfMeasureId })
+      .ToDictionaryAsync(
+        f => new ProductFormatKey(f.ProductId, f.Quantity, f.UnitOfMeasureId),
+        f => f.Id,
+        cancellationToken);
+  }
+
+  private static List<ProductFormatDbEntity> BuildMissingProductFormats(
+    IEnumerable<ProductSource> productSources,
+    IReadOnlyDictionary<string, int> unitLookup,
+    IReadOnlyDictionary<ProductFormatKey, int> existingFormatLookup
+  ) {
+    var missingFormats = new Dictionary<ProductFormatKey, ProductFormatDbEntity>();
+
+    foreach (ProductSource productSource in productSources) {
+      foreach (ProductFormat format in productSource.Source.Formats) {
+        ProductFormatKey key = ToProductFormatKey(productSource.ProductId, format, unitLookup);
+        if (existingFormatLookup.ContainsKey(key) || missingFormats.ContainsKey(key)) {
+          continue;
+        }
+
+        missingFormats[key] = new ProductFormatDbEntity {
+          ProductId = key.ProductId,
+          Quantity = key.Quantity,
+          UnitOfMeasureId = key.UnitOfMeasureId,
+          ImageUrl = format.ImageUrl?.ToString() ?? string.Empty
+        };
+      }
+    }
+
+    return [.. missingFormats.Values];
+  }
+
+  private async Task<IDictionary<ProductFormatKey, int>> AddProductFormatsAsync(
+    List<ProductFormatDbEntity> formats,
+    CancellationToken cancellationToken
+  ) {
+    var newFormatLookup = new Dictionary<ProductFormatKey, int>();
+    IEnumerable<List<ProductFormatDbEntity>> batches = formats
+      .Chunk(BatchSize)
+      .Select(x => x.ToList());
+    foreach (List<ProductFormatDbEntity> batch in batches) {
+      await context.ProductFormats.AddRangeAsync(batch, cancellationToken);
+      await context.SaveChangesAsync(cancellationToken);
+      context.ChangeTracker.Clear();
+
+      foreach (ProductFormatDbEntity format in batch) {
+        var key = new ProductFormatKey(
+          format.ProductId,
+          format.Quantity,
+          format.UnitOfMeasureId);
+        newFormatLookup[key] = format.Id;
+      }
+    }
+
+    return newFormatLookup;
+  }
+
+  private static List<ProductsHistoryDbEntity> BuildProductHistory(
+    IEnumerable<ProductSource> productSources,
+    IReadOnlyDictionary<string, int> unitLookup,
+    IReadOnlyDictionary<ProductFormatKey, int> formatLookup,
+    DateTime createdAt
+  ) => [.. productSources.SelectMany(productSource =>
+    productSource.Source.Formats.Select(format => {
+      ProductFormatKey key = ToProductFormatKey(
+        productSource.ProductId, format, unitLookup);
+
+      return new ProductsHistoryDbEntity {
+        ProductId = productSource.ProductId,
+        ProductFormatId = formatLookup[key],
+        Price = format.Price.Value,
+        CreatedAt = createdAt
+      };
+    }))];
+
+  private static ProductFormatKey ToProductFormatKey(
+    int productId,
+    ProductFormat format,
+    IReadOnlyDictionary<string, int> unitLookup
+  ) => new(
+    productId,
+    (decimal)format.Quantity.Value,
+    unitLookup[format.Quantity.UnitOfMeasure.Trim()]);
+
+  private async Task AddProductHistoryAsync(
+    List<ProductsHistoryDbEntity> history,
+    CancellationToken cancellationToken
+  ) {
+    foreach (ProductsHistoryDbEntity[] batch in history.Chunk(BatchSize)) {
+      await context.ProductsHistory.AddRangeAsync(batch, cancellationToken);
+      await context.SaveChangesAsync(cancellationToken);
+      context.ChangeTracker.Clear();
+    }
+  }
 
   public async Task DeleteProductsAsync(
     IReadOnlyCollection<int> productIds, CancellationToken cancellationToken

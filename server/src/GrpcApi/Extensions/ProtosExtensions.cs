@@ -1,3 +1,4 @@
+using System.Globalization;
 using Metaspesa.Application.Shopping;
 using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.Shopping;
@@ -60,7 +61,9 @@ internal static class ProtosExtensions {
       BrandName = product.Brand.Name,
       Formats = {
         product.Formats.Select(f => new Protos.Markets.MarketProductFormat {
-          Quantity = f.Quantity,
+          Quantity = string.Create(
+            CultureInfo.InvariantCulture,
+            $"{f.Quantity.Value:G} {f.Quantity.UnitOfMeasure}"),
           Price = GrpcPriceConverter.ToProto(f.Price.Value),
           ImageUrl = f.ImageUrl?.ToString() ?? string.Empty,
         }),

@@ -9,6 +9,34 @@ using Microsoft.EntityFrameworkCore;
 namespace Metaspesa.Database.IntegrationTests.Markets;
 
 public static class PostgreSqlMarketRepositoryTests {
+  private static ProductFormat MakeProductFormat(
+    decimal price = 1.00m,
+    float quantity = 1,
+    string unitOfMeasure = "kg",
+    Uri? imageUrl = null
+  ) => new(
+    new AQuantity(quantity, unitOfMeasure),
+    new Price(price),
+    imageUrl);
+
+  private static async Task EnsureUnitOfMeasureAsync(
+    MainContext context,
+    string code,
+    string? name = null
+  ) {
+    bool exists = await context.UnitsOfMeasure
+      .AnyAsync(u => u.Code == code, TestContext.Current.CancellationToken);
+    if (exists) {
+      return;
+    }
+
+    context.UnitsOfMeasure.Add(new UnitOfMeasureDbEntity {
+      Code = code,
+      Name = name ?? $"Test unit {code}"
+    });
+    await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+  }
+
   [Collection("Database")]
   public class GetBrandsAsync : IAsyncLifetime {
     private readonly MainContext _context;
@@ -341,6 +369,12 @@ public static class PostgreSqlMarketRepositoryTests {
       if (_context.ChangeTracker.HasChanges()) {
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       }
+
+      await EnsureUnitOfMeasureAsync(_context, "kg");
+      await EnsureUnitOfMeasureAsync(_context, "ml");
+      await EnsureUnitOfMeasureAsync(_context, "L");
+      await EnsureUnitOfMeasureAsync(_context, "pc");
+      await EnsureUnitOfMeasureAsync(_context, "g");
     }
 
     public async ValueTask DisposeAsync() {
@@ -348,12 +382,17 @@ public static class PostgreSqlMarketRepositoryTests {
       GC.SuppressFinalize(this);
     }
 
-    private static Market MakeMarket(string productName, decimal price, string quantity) =>
+    private static Market MakeMarket(
+      string productName,
+      decimal price,
+      float quantity,
+      string unitOfMeasure
+    ) =>
       new Market(MarketName, [
         new MarketProduct(
           productName,
           new ProductBrand(BrandName),
-          [new ProductFormat(quantity, new Price(price), null)])
+          [MakeProductFormat(price, quantity, unitOfMeasure)])
       ]);
 
     [Fact(
@@ -362,7 +401,7 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_CreatesNewProduct_WhenItDoesNotExist() {
       // Act
       await _repository.AddMarketProductsAsync(
-        MakeMarket("IntegrationProduct1", 1.99m, "1kg"),
+        MakeMarket("IntegrationProduct1", 1.99m, 1, "kg"),
         DateOnly.FromDateTime(DateTime.Today),
         TestContext.Current.CancellationToken);
 
@@ -381,7 +420,7 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_AddsHistoryEntry_ForProduct() {
       // Act
       await _repository.AddMarketProductsAsync(
-        MakeMarket("IntegrationProduct2", 2.50m, "500ml"),
+        MakeMarket("IntegrationProduct2", 2.50m, 500, "ml"),
         DateOnly.FromDateTime(DateTime.Today),
         TestContext.Current.CancellationToken);
 
@@ -396,6 +435,69 @@ public static class PostgreSqlMarketRepositoryTests {
 
     [Fact(
       Explicit = true,
+      DisplayName = "Stores product format quantity separately from unit")]
+    public async Task Repository_StoresProductFormatQuantity_SeparatelyFromUnit() {
+      // Act
+      await _repository.AddMarketProductsAsync(
+        MakeMarket("IntegrationProductFormatQuantity", 2.50m, 500, "ml"),
+        DateOnly.FromDateTime(DateTime.Today),
+        TestContext.Current.CancellationToken);
+
+      // Assert
+      decimal quantity = await _context.ProductFormats
+        .AsNoTracking()
+        .Where(f => f.Product.Name == "IntegrationProductFormatQuantity")
+        .Select(f => f.Quantity)
+        .SingleAsync(TestContext.Current.CancellationToken);
+      Assert.Equal(500m, quantity);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Stores product format unit of measure by code")]
+    public async Task Repository_StoresProductFormatUnitOfMeasure_ByCode() {
+      // Act
+      await _repository.AddMarketProductsAsync(
+        MakeMarket("IntegrationProductFormatUnit", 2.50m, 500, "ml"),
+        DateOnly.FromDateTime(DateTime.Today),
+        TestContext.Current.CancellationToken);
+
+      // Assert
+      string unitCode = await _context.ProductFormats
+        .AsNoTracking()
+        .Where(f => f.Product.Name == "IntegrationProductFormatUnit")
+        .Select(f => f.UnitOfMeasure.Code)
+        .SingleAsync(TestContext.Current.CancellationToken);
+      Assert.Equal("ml", unitCode);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Links history entry to stored product format")]
+    public async Task Repository_LinksHistoryEntry_ToStoredProductFormat() {
+      // Act
+      await _repository.AddMarketProductsAsync(
+        MakeMarket("IntegrationProductHistoryFormat", 2.50m, 500, "ml"),
+        DateOnly.FromDateTime(DateTime.Today),
+        TestContext.Current.CancellationToken);
+
+      // Assert
+      int productFormatId = await _context.ProductFormats
+        .AsNoTracking()
+        .Where(f => f.Product.Name == "IntegrationProductHistoryFormat")
+        .Select(f => f.Id)
+        .SingleAsync(TestContext.Current.CancellationToken);
+      int historyFormatId = await _context.ProductsHistory
+        .AsNoTracking()
+        .Where(h => h.Product.Name == "IntegrationProductHistoryFormat")
+        .Select(h => h.ProductFormatId)
+        .SingleAsync(
+          TestContext.Current.CancellationToken);
+      Assert.Equal(productFormatId, historyFormatId);
+    }
+
+    [Fact(
+      Explicit = true,
       DisplayName = "Uses provided registered_at for history entry")]
     public async Task Repository_UsesProvidedRegisteredAt_ForHistoryEntry() {
       // Arrange
@@ -404,7 +506,7 @@ public static class PostgreSqlMarketRepositoryTests {
 
       // Act
       await _repository.AddMarketProductsAsync(
-        MakeMarket("IntegrationProduct3", 3.00m, "1L"),
+        MakeMarket("IntegrationProduct3", 3.00m, 1, "L"),
         registeredAt,
         TestContext.Current.CancellationToken);
 
@@ -423,13 +525,13 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_ReusesExistingProduct_AddsNewHistoryEntry() {
       // Arrange
       await _repository.AddMarketProductsAsync(
-        MakeMarket("IntegrationProduct4", 1.00m, "1pc"),
+        MakeMarket("IntegrationProduct4", 1.00m, 1, "pc"),
         DateOnly.FromDateTime(DateTime.Today),
         TestContext.Current.CancellationToken);
 
       // Act — add same product again with different price
       await _repository.AddMarketProductsAsync(
-        MakeMarket("IntegrationProduct4", 1.50m, "1pc"),
+        MakeMarket("IntegrationProduct4", 1.50m, 1, "pc"),
         DateOnly.FromDateTime(DateTime.Today),
         TestContext.Current.CancellationToken);
 
@@ -444,6 +546,64 @@ public static class PostgreSqlMarketRepositoryTests {
           TestContext.Current.CancellationToken);
       Assert.Equal(1, productCount);
       Assert.Equal(2, historyCount);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Reuses product format when quantity and unit are unchanged")]
+    public async Task Repository_ReusesProductFormat_WhenQuantityAndUnitAreUnchanged() {
+      // Arrange
+      await _repository.AddMarketProductsAsync(
+        MakeMarket("IntegrationProductFormatReuse", 1.00m, 1, "pc"),
+        DateOnly.FromDateTime(DateTime.Today),
+        TestContext.Current.CancellationToken);
+
+      // Act
+      await _repository.AddMarketProductsAsync(
+        MakeMarket("IntegrationProductFormatReuse", 1.50m, 1, "pc"),
+        DateOnly.FromDateTime(DateTime.Today),
+        TestContext.Current.CancellationToken);
+
+      // Assert
+      List<int> formatIds = await _context.ProductsHistory
+        .AsNoTracking()
+        .Where(h => h.Product.Name == "IntegrationProductFormatReuse")
+        .Select(h => h.ProductFormatId)
+        .ToListAsync(TestContext.Current.CancellationToken);
+      Assert.Single(formatIds.Distinct());
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Creates distinct product formats for different quantity or unit")]
+    public async Task Repository_CreatesDistinctFormats_ForDifferentQuantityOrUnit() {
+      // Arrange
+      var market = new Market(MarketName, [
+        new MarketProduct(
+          "IntegrationProduct5",
+          new ProductBrand(BrandName),
+          [
+            MakeProductFormat(1.00m, 1, "kg"),
+            MakeProductFormat(1.50m, 500, "g"),
+          ])
+      ]);
+
+      // Act
+      await _repository.AddMarketProductsAsync(
+        market,
+        DateOnly.FromDateTime(DateTime.Today),
+        TestContext.Current.CancellationToken);
+
+      // Assert
+      List<(decimal Quantity, string Unit)> formats = await _context.ProductFormats
+        .AsNoTracking()
+        .Where(f => f.Product.Name == "IntegrationProduct5")
+        .Include(f => f.UnitOfMeasure)
+        .OrderBy(f => f.Quantity)
+        .Select(f => new ValueTuple<decimal, string>(f.Quantity, f.UnitOfMeasure.Code))
+        .ToListAsync(TestContext.Current.CancellationToken);
+
+      Assert.Equal([(1m, "kg"), (500m, "g")], formats);
     }
   }
 
@@ -479,6 +639,8 @@ public static class PostgreSqlMarketRepositoryTests {
       if (_context.ChangeTracker.HasChanges()) {
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       }
+
+      await EnsureUnitOfMeasureAsync(_context, "kg");
     }
 
     public async ValueTask DisposeAsync() {
@@ -491,7 +653,7 @@ public static class PostgreSqlMarketRepositoryTests {
         ..productNames.Select(n => new MarketProduct(
           n,
           new ProductBrand(BrandName),
-          [new ProductFormat("1kg", new Price(1.00m), null)]
+          [MakeProductFormat()]
         ))
       ]);
 
@@ -693,6 +855,8 @@ public static class PostgreSqlMarketRepositoryTests {
       if (_context.ChangeTracker.HasChanges()) {
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       }
+
+      await EnsureUnitOfMeasureAsync(_context, "kg");
     }
 
     public async ValueTask DisposeAsync() {
@@ -705,7 +869,7 @@ public static class PostgreSqlMarketRepositoryTests {
         new MarketProduct(
           productName,
           new ProductBrand(BrandName),
-          [new ProductFormat("1kg", new Price(1.00m), null)]
+          [MakeProductFormat()]
         )
       ]);
 
@@ -793,6 +957,9 @@ public static class PostgreSqlMarketRepositoryTests {
       if (_context.ChangeTracker.HasChanges()) {
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       }
+
+      await EnsureUnitOfMeasureAsync(_context, "L");
+      await EnsureUnitOfMeasureAsync(_context, "g");
     }
 
     public async ValueTask DisposeAsync() {
@@ -802,7 +969,7 @@ public static class PostgreSqlMarketRepositoryTests {
 
     private async Task SeedProductWithHistoryAsync(
       string marketName, string brandName, string productName,
-      decimal price, string quantity, DateTime createdAt
+      decimal price, float quantity, string unitOfMeasure, DateTime createdAt
     ) {
       int marketId = await _context.SuperMarkets
         .Where(m => m.Name == marketName)
@@ -829,10 +996,33 @@ public static class PostgreSqlMarketRepositoryTests {
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       }
 
+      int unitOfMeasureId = await _context.UnitsOfMeasure
+        .Where(u => u.Code == unitOfMeasure)
+        .Select(u => u.Id)
+        .SingleAsync(TestContext.Current.CancellationToken);
+      decimal quantityValue = (decimal)quantity;
+
+      ProductFormatDbEntity? productFormat = await _context.ProductFormats
+        .FirstOrDefaultAsync(
+          f => f.ProductId == existing.Id &&
+            f.Quantity == quantityValue &&
+            f.UnitOfMeasureId == unitOfMeasureId,
+          TestContext.Current.CancellationToken);
+      if (productFormat is null) {
+        productFormat = new ProductFormatDbEntity {
+          ProductId = existing.Id,
+          Quantity = quantityValue,
+          UnitOfMeasureId = unitOfMeasureId,
+          ImageUrl = "https://example.com/product.png"
+        };
+        _context.ProductFormats.Add(productFormat);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      }
+
       _context.ProductsHistory.Add(new ProductsHistoryDbEntity {
         ProductId = existing.Id,
+        ProductFormatId = productFormat.Id,
         Price = price,
-        Quantity = quantity,
         CreatedAt = createdAt,
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -878,8 +1068,8 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_ReturnsProducts_WithoutFilter() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Entera GP", 0.89m, "1L", now);
-      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan Blanco GP", 1.20m, "500g", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Entera GP", 0.89m, 1, "L", now);
+      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan Blanco GP", 1.20m, 500, "g", now);
 
       // Act
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -895,8 +1085,8 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_ReturnsTotalCount_WithoutFilter() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Entera TCF", 0.89m, "1L", now);
-      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan Blanco TCF", 1.20m, "500g", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Entera TCF", 0.89m, 1, "L", now);
+      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan Blanco TCF", 1.20m, 500, "g", now);
 
       // Act
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -912,8 +1102,8 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_GroupsProducts_UnderTheirMarket() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche GroupTest", 0.89m, "1L", now);
-      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan GroupTest", 1.20m, "500g", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche GroupTest", 0.89m, 1, "L", now);
+      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan GroupTest", 1.20m, 500, "g", now);
 
       // Act
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -930,8 +1120,8 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_FiltersByMarketName_ReturnsOnlyMatchingMarket() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche MarketFilter", 0.89m, "1L", now);
-      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan MarketFilter", 1.20m, "500g", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche MarketFilter", 0.89m, 1, "L", now);
+      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan MarketFilter", 1.20m, 500, "g", now);
 
       // Act
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -947,8 +1137,8 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_FiltersByMarketName_ReturnsCorrectMarketName() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche MarketNameFilter", 0.89m, "1L", now);
-      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan MarketNameFilter", 1.20m, "500g", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche MarketNameFilter", 0.89m, 1, "L", now);
+      await SeedProductWithHistoryAsync(MarketB, BrandB, "Pan MarketNameFilter", 1.20m, 500, "g", now);
 
       // Act
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -964,8 +1154,8 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_FiltersByBrandNameSegment_CaseInsensitiveContains() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche", 0.89m, "1L", now);
-      await SeedProductWithHistoryAsync(MarketA, BrandB, "Pan", 1.20m, "500g", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche", 0.89m, 1, "L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandB, "Pan", 1.20m, 500, "g", now);
 
       // Act — use a segment that partially matches one brand
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -982,8 +1172,8 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_FiltersByBrandNameSegment_CaseInsensitivePartialMatch() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche BrandFilter", 0.89m, "1L", now);
-      await SeedProductWithHistoryAsync(MarketA, BrandB, "Pan BrandFilter", 1.20m, "500g", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche BrandFilter", 0.89m, 1, "L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandB, "Pan BrandFilter", 1.20m, 500, "g", now);
 
       // Act — use a segment that only matches BrandA
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -1000,8 +1190,8 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_FiltersByNameSegment_CaseInsensitiveContains() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Entera SegFilter", 0.89m, "1L", now);
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Pan Blanco SegFilter", 1.20m, "500g", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Entera SegFilter", 0.89m, 1, "L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Pan Blanco SegFilter", 1.20m, 500, "g", now);
 
       // Act
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -1019,8 +1209,8 @@ public static class PostgreSqlMarketRepositoryTests {
       // Arrange
       DateTime older = new(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
       DateTime newer = new(2024, 6, 1, 0, 0, 0, DateTimeKind.Utc);
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche HistoryTest", 0.79m, "1L", older);
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche HistoryTest", 0.89m, "1L", newer);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche HistoryTest", 0.79m, 1, "L", older);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche HistoryTest", 0.89m, 1, "L", newer);
 
       // Act
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -1038,8 +1228,8 @@ public static class PostgreSqlMarketRepositoryTests {
       // Arrange
       DateTime older = new(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
       DateTime newer = new(2024, 6, 1, 0, 0, 0, DateTimeKind.Utc);
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche LatestPriceTest", 0.79m, "1L", older);
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche LatestPriceTest", 0.89m, "1L", newer);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche LatestPriceTest", 0.79m, 1, "L", older);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche LatestPriceTest", 0.89m, 1, "L", newer);
 
       // Act
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -1085,9 +1275,9 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_Pagination_TotalCountReflectsAllMatches() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Page1", 1.00m, "1L", now);
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Page2", 1.10m, "1L", now);
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Page3", 1.20m, "1L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Page1", 1.00m, 1, "L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Page2", 1.10m, 1, "L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche Page3", 1.20m, 1, "L", now);
 
       // Act — page 2 with pageSize 1, filtered by segment "Leche Page"
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -1104,9 +1294,9 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_Pagination_ReturnsSingleProductOnSecondPage() {
       // Arrange
       DateTime now = DateTime.UtcNow;
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche PgB1", 1.00m, "1L", now);
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche PgB2", 1.10m, "1L", now);
-      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche PgB3", 1.20m, "1L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche PgB1", 1.00m, 1, "L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche PgB2", 1.10m, 1, "L", now);
+      await SeedProductWithHistoryAsync(MarketA, BrandA, "Leche PgB3", 1.20m, 1, "L", now);
 
       // Act
       PagedResult<Market> result = await _repository.GetProductsAsync(
@@ -1153,6 +1343,8 @@ public static class PostgreSqlMarketRepositoryTests {
       if (_context.ChangeTracker.HasChanges()) {
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       }
+
+      await EnsureUnitOfMeasureAsync(_context, "kg");
     }
 
     public async ValueTask DisposeAsync() {
@@ -1165,7 +1357,7 @@ public static class PostgreSqlMarketRepositoryTests {
         new MarketProduct(
           productName,
           new ProductBrand(BrandName),
-          [new ProductFormat("1kg", new Price(1.00m), null)]
+          [MakeProductFormat()]
         )
       ]);
 

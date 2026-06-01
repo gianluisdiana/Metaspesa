@@ -282,8 +282,8 @@ public static class MarketGrpcServiceTests {
       _useCaseHandler
         .Handle(Arg.Any<GetMarketProducts.Query>(), TestContext.Current.CancellationToken)
         .Returns(new PagedResult<DomainMarket>([
-          new DomainMarket("Mercadona", [new DomainMarketProduct("Leche", new ProductBrand("H"), [new ProductFormat("1L", new DomainPrice(0.89m), null)])]),
-          new DomainMarket("Alcampo", [new DomainMarketProduct("Pan", new ProductBrand("B"), [new ProductFormat("500g", new DomainPrice(1.20m), null)])]),
+          new DomainMarket("Mercadona", []),
+          new DomainMarket("Alcampo", []),
         ], 2));
 
       // Act
@@ -292,6 +292,27 @@ public static class MarketGrpcServiceTests {
 
       // Assert
       Assert.Equal(2, response.Markets.Count);
+    }
+
+    [Fact(DisplayName = "Maps format quantity and unit of measure to quantity text")]
+    public async Task Api_MapsFormatQuantityAndUnitOfMeasure_ToQuantityText() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<GetMarketProducts.Query>(), TestContext.Current.CancellationToken)
+        .Returns(new PagedResult<DomainMarket>([
+          new DomainMarket("Mercadona", [
+            new DomainMarketProduct("Leche", new ProductBrand("H"), [
+              new ProductFormat(new AQuantity(1.5F, "L"), new DomainPrice(0.89m), null)
+            ])
+          ]),
+        ], 1));
+
+      // Act
+      GetMarketProductsResponse response =
+        await _service.GetMarketProducts(new GetMarketProductsRequest(), CreateServerCallContext());
+
+      // Assert
+      Assert.Equal("1.5 L", response.Markets.Single().Products.Single().Formats.Single().Quantity);
     }
 
     [Fact(DisplayName = "Returns total_products from handler result")]

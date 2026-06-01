@@ -149,41 +149,41 @@ namespace Metaspesa.Database.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<string>("ImageUrl")
-                        .HasColumnType("text")
-                        .HasColumnName("image_url");
-
                     b.Property<decimal>("Price")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
                         .HasColumnName("price");
 
-                    b.Property<int?>("ProductFormatDbEntityId")
-                        .HasColumnType("integer");
+                    b.Property<int>("ProductFormatId")
+                        .HasColumnType("integer")
+                        .HasColumnName("product_format_id");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("integer")
                         .HasColumnName("product_id");
 
-                    b.Property<string>("Quantity")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("quantity");
-
                     b.HasKey("Id")
                         .HasName("pk_product_history");
 
-                    b.HasIndex("ProductFormatDbEntityId");
+                    b.HasAlternateKey("Id", "ProductId")
+                        .HasName("ak_product_history_id_product_id");
+
+                    b.HasIndex("ProductFormatId", "ProductId");
 
                     b.HasIndex(new[] { "CreatedAt" }, "idx_product_history_created_at");
+
+                    b.HasIndex(new[] { "Id", "ProductId" }, "idx_product_history_id_product_id")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "ProductFormatId" }, "idx_product_history_product_format_id");
 
                     b.HasIndex(new[] { "ProductId" }, "idx_product_history_product_id");
 
                     b.ToTable("products_history", "market", t =>
                         {
-                            t.HasComment("Historical price and quantity data for products, tracking changes over time");
+                            t.HasComment("Historical price and format data for products, tracking changes over time.");
 
-                            t.HasCheckConstraint("chk_positive_price", "price >= 0.00");
+                            t.HasCheckConstraint("chk_positive_price", "price > 0.00");
                         });
                 });
 
@@ -315,6 +315,9 @@ namespace Metaspesa.Database.Migrations
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("price");
 
+                    b.Property<int?>("ProductsHistoryDbEntityId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Quantity")
                         .HasColumnType("text")
                         .HasColumnName("quantity");
@@ -325,6 +328,8 @@ namespace Metaspesa.Database.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_shopping_item");
+
+                    b.HasIndex("ProductsHistoryDbEntityId");
 
                     b.HasIndex(new[] { "ShoppingListId" }, "idx_shopping_item_shopping_list_id");
 
@@ -575,17 +580,22 @@ namespace Metaspesa.Database.Migrations
 
             modelBuilder.Entity("Metaspesa.Database.Entities.ProductsHistoryDbEntity", b =>
                 {
-                    b.HasOne("Metaspesa.Database.Entities.ProductFormatDbEntity", null)
-                        .WithMany("History")
-                        .HasForeignKey("ProductFormatDbEntityId");
-
                     b.HasOne("Metaspesa.Database.Entities.ProductDbEntity", "Product")
                         .WithMany("History")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Metaspesa.Database.Entities.ProductFormatDbEntity", "ProductFormat")
+                        .WithMany("History")
+                        .HasForeignKey("ProductFormatId", "ProductId")
+                        .HasPrincipalKey("Id", "ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Product");
+
+                    b.Navigation("ProductFormat");
                 });
 
             modelBuilder.Entity("Metaspesa.Database.Entities.PurchaseDbEntity", b =>
@@ -634,6 +644,10 @@ namespace Metaspesa.Database.Migrations
 
             modelBuilder.Entity("Metaspesa.Database.Entities.ShoppingItemDbEntity", b =>
                 {
+                    b.HasOne("Metaspesa.Database.Entities.ProductsHistoryDbEntity", null)
+                        .WithMany("ShoppingItems")
+                        .HasForeignKey("ProductsHistoryDbEntityId");
+
                     b.HasOne("Metaspesa.Database.Entities.ShoppingListDbEntity", "ShoppingList")
                         .WithMany("Items")
                         .HasForeignKey("ShoppingListId")
@@ -690,6 +704,11 @@ namespace Metaspesa.Database.Migrations
             modelBuilder.Entity("Metaspesa.Database.Entities.ProductFormatDbEntity", b =>
                 {
                     b.Navigation("History");
+                });
+
+            modelBuilder.Entity("Metaspesa.Database.Entities.ProductsHistoryDbEntity", b =>
+                {
+                    b.Navigation("ShoppingItems");
                 });
 
             modelBuilder.Entity("Metaspesa.Database.Entities.RegisteredItemDbEntity", b =>
