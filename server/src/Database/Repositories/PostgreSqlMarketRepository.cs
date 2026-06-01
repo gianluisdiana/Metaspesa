@@ -237,4 +237,12 @@ internal partial class PostgreSqlMarketRepository(
       .Where(b => brandNames.Contains(b.Name))
       .ExecuteDeleteAsync(cancellationToken),
     "Couldn't delete brands.");
+
+  public Task<bool> CheckUnitOfMeasureIsSupportedAsync(
+    string unitOfMeasure, CancellationToken cancellationToken
+  ) => PostgreSqlExceptionMapper.MapAsync(async () =>
+    await context.UnitsOfMeasure.AnyAsync(
+      u => EF.Functions.ILike(u.Code, unitOfMeasure),
+      cancellationToken),
+    "Couldn't check unit of measure.");
 }

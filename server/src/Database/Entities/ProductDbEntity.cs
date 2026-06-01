@@ -8,6 +8,7 @@ internal class ProductDbEntity {
 
   public SuperMarketDbEntity SuperMarket { get; set; } = null!;
   public ProductBrandDbEntity Brand { get; set; } = null!;
+  public ICollection<ProductFormatDbEntity> Formats { get; set; } = [];
   public ICollection<ProductsHistoryDbEntity> History { get; set; } = [];
   public ICollection<PurchaseDbEntity> Purchases { get; set; } = [];
 }

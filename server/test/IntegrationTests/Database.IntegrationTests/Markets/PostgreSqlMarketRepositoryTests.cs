@@ -1261,6 +1261,84 @@ public static class PostgreSqlMarketRepositoryTests {
   }
 
   [Collection("Database")]
+  public class CheckUnitOfMeasureIsSupportedAsync : IAsyncLifetime {
+    private readonly MainContext _context;
+    private readonly PostgreSqlMarketRepository _repository;
+
+    public CheckUnitOfMeasureIsSupportedAsync(DatabaseFixture fixture) {
+      _context = fixture.CreateContext();
+      _repository = new PostgreSqlMarketRepository(
+        _context);
+    }
+
+    public ValueTask InitializeAsync() => ValueTask.CompletedTask;
+
+    public async ValueTask DisposeAsync() {
+      await _context.DisposeAsync();
+      GC.SuppressFinalize(this);
+    }
+
+    private async Task SeedUnitOfMeasureAsync(string code, string name) {
+      bool exists = await _context.UnitsOfMeasure
+        .AnyAsync(u => u.Code == code, TestContext.Current.CancellationToken);
+      if (exists) {
+        return;
+      }
+
+      _context.UnitsOfMeasure.Add(new UnitOfMeasureDbEntity {
+        Code = code,
+        Name = name
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns true when unit code exists")]
+    public async Task Repository_ReturnsTrue_WhenUnitCodeExists() {
+      // Arrange
+      await SeedUnitOfMeasureAsync("repo_uom", "Repository test unit");
+
+      // Act
+      bool result = await _repository.CheckUnitOfMeasureIsSupportedAsync(
+        "repo_uom",
+        TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.True(result);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Returns false when unit code does not exist")]
+    public async Task Repository_ReturnsFalse_WhenUnitCodeDoesNotExist() {
+      // Act
+      bool result = await _repository.CheckUnitOfMeasureIsSupportedAsync(
+        "missing_uom",
+        TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.False(result);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Matches unit code ignoring case")]
+    public async Task Repository_MatchesUnitCode_IgnoringCase() {
+      // Arrange
+      await SeedUnitOfMeasureAsync("case_uom", "Case-insensitive repository test unit");
+
+      // Act
+      bool result = await _repository.CheckUnitOfMeasureIsSupportedAsync(
+        "CASE_UOM",
+        TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.True(result);
+    }
+  }
+
+  [Collection("Database")]
   public class GetMarketSummariesAsync : IAsyncLifetime {
     private readonly MainContext _context;
     private readonly PostgreSqlMarketRepository _repository;

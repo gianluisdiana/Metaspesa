@@ -43,10 +43,5 @@ internal class ProductConfiguration : IEntityTypeConfiguration<ProductDbEntity> 
       .WithMany(e => e.Products)
       .HasForeignKey(e => e.BrandId)
       .OnDelete(DeleteBehavior.Cascade);
-
-    builder.HasMany(e => e.History)
-      .WithOne(e => e.Product)
-      .HasForeignKey(e => e.ProductId)
-      .OnDelete(DeleteBehavior.Cascade);
   }
 }
