@@ -11,6 +11,10 @@ public class AddProductsValidatorTest {
 
   public AddProductsValidatorTest() {
     _marketRepository = Substitute.For<IMarketRepository>();
+    _marketRepository.CheckUnitOfMeasureIsSupportedAsync(
+        Arg.Any<string>(),
+        Arg.Any<CancellationToken>())
+      .Returns(true);
     _validator = new Validator(_marketRepository);
   }
 
@@ -34,7 +38,8 @@ public class AddProductsValidatorTest {
   [InlineData("   ")]
   public async Task Validator_Fails_WhenAnyProductNameIsEmpty(string? name) {
     // Arrange
-    var command = new Command([new CommandProduct(name, 1.99m, "1L", "Walmart", "Nike", null)], DateOnly.MinValue);
+    var command = new Command(
+      [new CommandProduct(name, 1.99m, 1, "L", "Walmart", "Nike", null)], DateOnly.MinValue);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -52,7 +57,7 @@ public class AddProductsValidatorTest {
   public async Task Validator_Fails_WhenAnyMarketNameIsEmpty(string? marketName) {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 1.99m, "1L", marketName, "Nike", null)], DateOnly.MinValue);
+      [new CommandProduct("Milk", 1.99m, 1, "L", marketName, "Nike", null)], DateOnly.MinValue);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -70,7 +75,7 @@ public class AddProductsValidatorTest {
   public async Task Validator_Fails_WhenAnyBrandNameIsEmpty(string? brandName) {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 1.99m, "1L", "Walmart", brandName, null)], DateOnly.MinValue);
+      [new CommandProduct("Milk", 1.99m, 1, "L", "Walmart", brandName, null)], DateOnly.MinValue);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -81,14 +86,13 @@ public class AddProductsValidatorTest {
       .WithErrorCode("Market.Product.BrandName.Empty");
   }
 
-  [Theory(DisplayName = "Fails when quantity is empty")]
-  [InlineData(null)]
-  [InlineData("")]
-  [InlineData("   ")]
-  public async Task Validator_Fails_WhenQuantityIsEmpty(string? quantity) {
+  [Theory(DisplayName = "Fails when quantity is not positive")]
+  [InlineData(0)]
+  [InlineData(-1)]
+  public async Task Validator_Fails_WhenQuantityIsNotPositive(float quantity) {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 1.99m, quantity, "Walmart", "Nike", null)], DateOnly.MinValue);
+      [new CommandProduct("Milk", 1.99m, quantity, "L", "Walmart", "Nike", null)], DateOnly.MinValue);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -96,14 +100,88 @@ public class AddProductsValidatorTest {
 
     // Assert
     result.ShouldHaveValidationErrorFor("Products[0].Quantity")
-      .WithErrorCode("Market.Product.Quantity.Empty");
+      .WithErrorCode("Market.Product.Quantity.NonPositive");
+  }
+
+  [Theory(DisplayName = "Fails when unit of measure is empty")]
+  [InlineData(null)]
+  [InlineData("")]
+  [InlineData("   ")]
+  public async Task Validator_Fails_WhenUnitOfMeasureIsEmpty(string? unitOfMeasure) {
+    // Arrange
+    var command = new Command(
+      [new CommandProduct("Milk", 1.99m, 1, unitOfMeasure, "Walmart", "Nike", null)], DateOnly.MinValue);
+
+    // Act
+    TestValidationResult<Command> result = await _validator.TestValidateAsync(
+      command, cancellationToken: TestContext.Current.CancellationToken);
+
+    // Assert
+    result.ShouldHaveValidationErrorFor("Products[0].UnitOfMeasure")
+      .WithErrorCode("Market.Product.UnitOfMeasure.Empty");
+  }
+
+  [Fact(DisplayName = "Fails when unit of measure is unsupported")]
+  public async Task Validator_Fails_WhenUnitOfMeasureIsUnsupported() {
+    // Arrange
+    _marketRepository.CheckUnitOfMeasureIsSupportedAsync(
+        "box",
+        Arg.Any<CancellationToken>())
+      .Returns(false);
+
+    var command = new Command(
+      [new CommandProduct("Milk", 1.99m, 1, "box", "Walmart", "Nike", null)],
+      DateOnly.FromDateTime(new DateTime(2024, 6, 15, 12, 0, 0, DateTimeKind.Utc)));
+
+    // Act
+    TestValidationResult<Command> result = await _validator.TestValidateAsync(
+      command, cancellationToken: TestContext.Current.CancellationToken);
+
+    // Assert
+    result.ShouldHaveValidationErrorFor(x => x.Products)
+      .WithErrorCode("Market.Product.UnitOfMeasure.Unsupported");
+  }
+
+  [Fact(DisplayName = "Trims unit of measure before support check")]
+  public async Task Validator_TrimsUnitOfMeasure_BeforeSupportCheck() {
+    // Arrange
+    var command = new Command(
+      [new CommandProduct("Milk", 1.99m, 1, " kg ", "Walmart", "Nike", null)],
+      DateOnly.FromDateTime(new DateTime(2024, 6, 15, 12, 0, 0, DateTimeKind.Utc)));
+
+    // Act
+    await _validator.TestValidateAsync(
+      command, cancellationToken: TestContext.Current.CancellationToken);
+
+    // Assert
+    await _marketRepository.Received(1).CheckUnitOfMeasureIsSupportedAsync(
+      "kg",
+      TestContext.Current.CancellationToken);
+  }
+
+  [Fact(DisplayName = "Checks duplicate units of measure only once ignoring case")]
+  public async Task Validator_ChecksDuplicateUnitsOfMeasureOnlyOnce_IgnoringCase() {
+    // Arrange
+    var command = new Command([
+      new CommandProduct("Milk", 1.99m, 1, "kg", "Walmart", "Nike", null),
+      new CommandProduct("Bread", 0.99m, 500, "KG", "Carrefour", "Adidas", null),
+    ], DateOnly.FromDateTime(new DateTime(2024, 6, 15, 12, 0, 0, DateTimeKind.Utc)));
+
+    // Act
+    await _validator.TestValidateAsync(
+      command, cancellationToken: TestContext.Current.CancellationToken);
+
+    // Assert
+    await _marketRepository.Received(1).CheckUnitOfMeasureIsSupportedAsync(
+      Arg.Is<string>(u => u.Equals("kg", StringComparison.OrdinalIgnoreCase)),
+      TestContext.Current.CancellationToken);
   }
 
   [Fact(DisplayName = "Fails when price is negative")]
   public async Task Validator_Fails_WhenPriceIsNegative() {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", -1m, "1L", "Walmart", "Nike", null)], DateOnly.MinValue);
+      [new CommandProduct("Milk", -1m, 1, "L", "Walmart", "Nike", null)], DateOnly.MinValue);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -115,12 +193,12 @@ public class AddProductsValidatorTest {
       .WithErrorCode("Market.Product.Price.Negative");
   }
 
-  [Fact(DisplayName = "Fails when duplicate product exists in same market, brand and quantity")]
+  [Fact(DisplayName = "Fails when duplicate product exists in same market and brand")]
   public async Task Validator_Fails_WhenDuplicateProductExists() {
     // Arrange
     var command = new Command([
-      new CommandProduct("Milk", 1.99m, "1L", "Walmart", "Nike", null),
-      new CommandProduct("Milk", 2.50m, "1L", "Walmart", "Nike", null),
+      new CommandProduct("Milk", 1.99m, 1, "L", "Walmart", "Nike", null),
+      new CommandProduct("Milk", 2.50m, 2, "L", "Walmart", "Nike", null),
     ], DateOnly.MinValue);
 
     // Act
@@ -130,8 +208,8 @@ public class AddProductsValidatorTest {
     // Assert
     result.ShouldHaveValidationErrorFor("Products[0]")
       .WithErrorMessage(
-        "Each product must be unique in name, market, brand and quantity combination. " +
-        "Repeated product: name 'Milk', market 'Walmart', brand 'Nike', quantity '1L'.")
+        "Each product must be unique in name, market and brand combination. " +
+        "Repeated product: name 'Milk', market 'Walmart', brand 'Nike'.")
       .WithErrorCode("Market.Product.Duplicate");
   }
 
@@ -144,7 +222,7 @@ public class AddProductsValidatorTest {
     // Arrange
     var registeredAt = new DateOnly(year, month, day);
     var command = new Command([
-      new CommandProduct("Milk", 1.99m, "1L", "Walmart", "Nike", null),
+      new CommandProduct("Milk", 1.99m, 1, "L", "Walmart", "Nike", null),
     ], registeredAt);
 
     // Act
@@ -162,8 +240,8 @@ public class AddProductsValidatorTest {
   public async Task Validator_Passes_WhenAllProductsAreValid() {
     // Arrange
     var command = new Command([
-      new CommandProduct("Milk", 1.99m, "1L", "Walmart", "Nike", null),
-      new CommandProduct("Bread", 0.99m, "500g", "Carrefour", "Adidas", null),
+      new CommandProduct("Milk", 1.99m, 1, "L", "Walmart", "Nike", null),
+      new CommandProduct("Bread", 0.99m, 500, "g", "Carrefour", "Adidas", null),
     ], DateOnly.FromDateTime(new DateTime(2024, 6, 15, 12, 0, 0, DateTimeKind.Utc)));
 
     // Act
@@ -178,7 +256,7 @@ public class AddProductsValidatorTest {
   public async Task Validator_Passes_WhenPriceIsZero() {
     // Arrange
     var command = new Command(
-      [new CommandProduct("Milk", 0m, "1L", "Walmart", "Nike", null)],
+      [new CommandProduct("Milk", 0m, 1, "L", "Walmart", "Nike", null)],
       DateOnly.FromDateTime(new DateTime(2024, 6, 15, 12, 0, 0, DateTimeKind.Utc)));
 
     // Act

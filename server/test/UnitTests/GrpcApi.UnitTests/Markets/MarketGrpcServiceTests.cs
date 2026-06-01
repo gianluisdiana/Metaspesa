@@ -88,7 +88,7 @@ public static class MarketGrpcServiceTests {
       var request = new AddProductsRequest {
         Products = {
           new Product {
-            Name = "Milk", Price = "1.99", Quantity = "1L",
+            Name = "Milk", Price = "1.99", Quantity = 1, UnitOfMeasure = "L",
             MarketName = "Walmart", BrandName = "Nike"
           }
         },
@@ -112,7 +112,7 @@ public static class MarketGrpcServiceTests {
       var request = new AddProductsRequest {
         Products = {
           new Product {
-            Name = "Milk", Price = "1.99", Quantity = "1L",
+            Name = "Milk", Price = "1.99", Quantity = 1, UnitOfMeasure = "L",
             MarketName = "Walmart", BrandName = "Nike"
           }
         },
@@ -135,8 +135,14 @@ public static class MarketGrpcServiceTests {
 
       var request = new AddProductsRequest {
         Products = {
-          new Product { Name = "Milk", Price = "1.99", MarketName = "Walmart", BrandName = "Nike" },
-          new Product { Name = "Bread", Price = "0.99", MarketName = "Carrefour", BrandName = "Adidas" },
+          new Product {
+            Name = "Milk", Price = "1.99", Quantity = 1, UnitOfMeasure = "L",
+            MarketName = "Walmart", BrandName = "Nike"
+          },
+          new Product {
+            Name = "Bread", Price = "0.99", Quantity = 500, UnitOfMeasure = "g",
+            MarketName = "Carrefour", BrandName = "Adidas"
+          },
         },
         RegisteredAt = Timestamp.FromDateTime(DateTime.UtcNow),
       };
@@ -162,7 +168,8 @@ public static class MarketGrpcServiceTests {
           new Product {
             Name = "Caf\u00e9 \u2615",
             Price = "1.99",
-            Quantity = "500 g \u2713",
+            Quantity = 500,
+            UnitOfMeasure = "g \u2713",
             MarketName = "Mercad\u00f3na",
             BrandName = "Ni\u00f1o",
           }
@@ -177,9 +184,37 @@ public static class MarketGrpcServiceTests {
       await _useCaseHandler.Received(1).Handle(
         Arg.Is<AddMarketProducts.Command>(cmd =>
           cmd.Products.Single().Name == "Cafe " &&
-          cmd.Products.Single().Quantity == "500 g " &&
+          cmd.Products.Single().UnitOfMeasure == "g " &&
           cmd.Products.Single().MarketName == "Mercadona" &&
           cmd.Products.Single().BrandName == "Nino"),
+        TestContext.Current.CancellationToken);
+    }
+
+    [Fact(DisplayName = "Maps quantity and unit of measure from request to command")]
+    public async Task Api_MapsQuantityAndUnitOfMeasure_FromRequestToCommand() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<AddMarketProducts.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new AddProductsRequest {
+        Products = {
+          new Product {
+            Name = "Milk", Price = "1.99", Quantity = 1.5F, UnitOfMeasure = "L",
+            MarketName = "Walmart", BrandName = "Nike"
+          }
+        },
+        RegisteredAt = Timestamp.FromDateTime(DateTime.UtcNow),
+      };
+
+      // Act
+      await _service.AddProducts(request, CreateServerCallContext());
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<AddMarketProducts.Command>(cmd =>
+          Math.Abs(cmd.Products.Single().Quantity - 1.5F) < 0.001F &&
+          cmd.Products.Single().UnitOfMeasure == "L"),
         TestContext.Current.CancellationToken);
     }
 
@@ -193,7 +228,10 @@ public static class MarketGrpcServiceTests {
       var expectedTime = new DateTime(2024, 6, 15, 12, 0, 0, DateTimeKind.Utc);
       var request = new AddProductsRequest {
         Products = {
-          new Product { Name = "Milk", Price = "1.99", MarketName = "Walmart", BrandName = "Nike" }
+          new Product {
+            Name = "Milk", Price = "1.99", Quantity = 1, UnitOfMeasure = "L",
+            MarketName = "Walmart", BrandName = "Nike"
+          }
         },
         RegisteredAt = Timestamp.FromDateTime(expectedTime),
       };

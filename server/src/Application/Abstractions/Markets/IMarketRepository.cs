@@ -25,4 +25,6 @@ public interface IMarketRepository {
     IReadOnlyCollection<string> marketNames,
     DateOnly registeredAt,
     CancellationToken cancellationToken);
+  Task<bool> CheckUnitOfMeasureIsSupportedAsync(
+    string unitOfMeasure, CancellationToken cancellationToken);
 }

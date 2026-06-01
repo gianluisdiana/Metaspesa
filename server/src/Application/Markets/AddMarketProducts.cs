@@ -15,7 +15,8 @@ public static class AddMarketProducts {
   public record CommandProduct(
     string? Name,
     decimal Price,
-    string? Quantity,
+    float Quantity,
+    string? UnitOfMeasure,
     string? MarketName,
     string? BrandName,
     Uri? ImageUrl
@@ -35,7 +36,10 @@ public static class AddMarketProducts {
                 Name: gg.Key.Name!,
                 Brand: new ProductBrand(gg.Key.BrandName!),
                 Formats: [
-                  ..gg.Select(p => new ProductFormat(p.Quantity!, new Price(p.Price), p.ImageUrl))
+                  ..gg.Select(p => new ProductFormat(
+                    $"{p.Quantity} {p.UnitOfMeasure}",
+                    new Price(p.Price),
+                    p.ImageUrl!))
                 ]
               ))
           ]
@@ -177,10 +181,16 @@ public static class AddMarketProducts {
             .WithMessage("Brand name must not be empty.")
             .WithErrorCode("Market.Product.BrandName.Empty");
 
-          product.RuleFor(x => x.Quantity)
+          product.RuleFor(x => x.UnitOfMeasure)
             .NotEmpty()
-            .WithMessage("Product quantity must not be empty.")
-            .WithErrorCode("Market.Product.Quantity.Empty");
+            .WithMessage("Product unit of measure must not be empty.")
+            .WithErrorCode("Market.Product.UnitOfMeasure.Empty");
+
+          product.RuleFor(x => x.Quantity)
+            .GreaterThan(0)
+            .WithMessage(command =>
+              $"Product quantity '{command.Quantity}' must be greater than 0.")
+            .WithErrorCode("Market.Product.Quantity.NonPositive");
 
           product.RuleFor(x => x.Price)
             .Must(PricePolicy.IsValidPrice)
@@ -196,23 +206,50 @@ public static class AddMarketProducts {
           HasProductIdentity(p) &&
           p.Name == product.Name &&
           p.MarketName == product.MarketName &&
-          p.BrandName == product.BrandName &&
-          p.Quantity == product.Quantity
+          p.BrandName == product.BrandName
         ))
         .WithMessage((_, product) =>
-          "Each product must be unique in name, market, brand and quantity combination. " +
+          "Each product must be unique in name, market and brand combination. " +
           $"Repeated product: {DescribeProduct(product)}.")
         .WithErrorCode("Market.Product.Duplicate");
+
+      // Check if unique unit of measures are supported
+      RuleFor(x => x.Products)
+        .MustAsync(async (products, cancellationToken) => {
+          IEnumerable<string> uniqueUnits = products
+            .Select(p => p.UnitOfMeasure)
+            .Where(u => !string.IsNullOrWhiteSpace(u))
+            .Select(u => u!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+          foreach (string unit in uniqueUnits) {
+            if (!await marketRepository.CheckUnitOfMeasureIsSupportedAsync(unit, cancellationToken)) {
+              return false;
+            }
+          }
+          return true;
+        })
+        .WithMessage(command => {
+          IEnumerable<string> uniqueUnits = command.Products
+            .Select(p => p.UnitOfMeasure)
+            .Where(u => !string.IsNullOrWhiteSpace(u))
+            .Select(u => u!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+          return $"The following units of measure are not supported: " +
+                 $"{string.Join(", ", uniqueUnits)}.";
+        })
+        .WithErrorCode("Market.Product.UnitOfMeasure.Unsupported");
+
     }
 
     private static bool HasProductIdentity(CommandProduct product) =>
       !string.IsNullOrWhiteSpace(product.Name) &&
       !string.IsNullOrWhiteSpace(product.MarketName) &&
-      !string.IsNullOrWhiteSpace(product.BrandName) &&
-      !string.IsNullOrWhiteSpace(product.Quantity);
+      !string.IsNullOrWhiteSpace(product.BrandName);
 
     private static string DescribeProduct(CommandProduct product) =>
       $"name '{product.Name}', market '{product.MarketName}', " +
-      $"brand '{product.BrandName}', quantity '{product.Quantity}'";
+      $"brand '{product.BrandName}'";
   }
 }

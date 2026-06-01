@@ -28,7 +28,8 @@ internal class MarketGrpcService(
       [.. request.Products.Select(p => new AddMarketProducts.CommandProduct(
         GrpcTextSanitizer.SanitizeAscii(p.Name),
         GrpcPriceConverter.ToDecimal(p.Price),
-        GrpcTextSanitizer.SanitizeAscii(p.Quantity),
+        p.Quantity,
+        GrpcTextSanitizer.SanitizeAscii(p.UnitOfMeasure),
         GrpcTextSanitizer.SanitizeAscii(p.MarketName),
         GrpcTextSanitizer.SanitizeAscii(p.BrandName),
         string.IsNullOrEmpty(p.ImageUrl) ? null : new Uri(p.ImageUrl)))],
