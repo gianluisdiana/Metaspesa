@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Database.UnitTests" />
     <InternalsVisibleTo Include="MigrationService" />
   </ItemGroup>
 

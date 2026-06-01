@@ -14,6 +14,7 @@
   </Folder>
   <Folder Name="/test/UnitTests/">
     <Project Path="test/UnitTests/Application.UnitTests/Application.UnitTests.csproj" />
+    <Project Path="test/UnitTests/Database.UnitTests/Database.UnitTests.csproj" />
     <Project Path="test/UnitTests/Domain.UnitTests/Domain.UnitTests.csproj" />
     <Project Path="test/UnitTests/GrpcApi.UnitTests/GrpcApi.UnitTests.csproj" />
     <Project Path="test/UnitTests/Infrastructure.UnitTests/Infrastructure.UnitTests.csproj" />
