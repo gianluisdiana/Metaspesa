@@ -13,7 +13,6 @@ namespace Metaspesa.GrpcApi.Services;
 
 [Authorize(Roles = nameof(Role.Shopper))]
 internal class ShoppingGrpcService(
-  IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>> getRegisteredItemsHandler,
   IQueryHandler<GetShoppingListSummaries.Query, List<ShoppingList>> getShoppingListSummariesHandler,
   IQueryHandler<GetShoppingList.Query, ShoppingList> getShoppingListHandler,
   ICommandHandler<RecordShoppingList.Command> recordShoppingListHandler,
@@ -23,26 +22,6 @@ internal class ShoppingGrpcService(
   ICommandHandler<RemoveItem.Command> removeItemHandler,
   ICommandHandler<UpdateShoppingList.Command>? updateShoppingListHandler = null
 ) : ShoppingService.ShoppingServiceBase {
-
-  public override async Task<RegisteredItemsResponse> GetRegisteredItems(
-    Empty request, ServerCallContext context
-  ) {
-    var query = new GetRegisteredItems.Query(
-      UserUid: context.GetHttpContext().GetUserUid());
-
-    Result<IReadOnlyCollection<Product>> result = await getRegisteredItemsHandler.Handle(
-      query, context.CancellationToken);
-
-    result.ThrowRpcExceptionIfFailed();
-
-    var response = new RegisteredItemsResponse();
-    response.Items.AddRange(
-      result.Value.Select(item => item.ToProto())
-    );
-
-    return response;
-  }
-
   public override async Task<ShoppingListSummariesResponse> GetShoppingListSummaries(
     Empty request, ServerCallContext context
   ) {

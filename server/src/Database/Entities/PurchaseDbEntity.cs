@@ -11,7 +11,6 @@ internal class PurchaseDbEntity {
   public DateTime PurchasedAt { get; set; }
 
   public UserDbEntity User { get; set; } = null!;
-  public RegisteredItemDbEntity RegisteredItem { get; set; } = null!;
   public ProductDbEntity? Product { get; set; }
   public SuperMarketDbEntity? SuperMarket { get; set; }
 }

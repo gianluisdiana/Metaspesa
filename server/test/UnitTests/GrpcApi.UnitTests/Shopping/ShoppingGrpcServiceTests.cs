@@ -17,205 +17,6 @@ using Product = Metaspesa.Domain.Shopping.Product;
 namespace Metaspesa.GrpcApi.UnitTests.Shopping;
 
 public static class ShoppingGrpcServiceTests {
-  public class GetRegisteredItemsRpc {
-    private readonly IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>> _useCaseHandler;
-    private readonly ShoppingGrpcService service;
-
-    public GetRegisteredItemsRpc() {
-      _useCaseHandler = Substitute.For<
-      IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>();
-      service = new ShoppingGrpcService(
-        _useCaseHandler,
-        Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
-        Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
-        Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
-        Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
-        Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
-        Substitute.For<ICommandHandler<UpdateItem.Command>>(),
-        Substitute.For<ICommandHandler<RemoveItem.Command>>()
-      );
-    }
-
-    [Fact(DisplayName = "Throws RpcException if the query handler returns a failure result")]
-    public async Task Api_ThrowsRpcException_IfQueryHandlerFails() {
-      // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<GetRegisteredItems.Query>(), TestContext.Current.CancellationToken)
-        .Returns(new DomainError(string.Empty, string.Empty, ErrorKind.Unexpected));
-
-      // Act
-      async Task action() => await service.GetRegisteredItems(
-        new Empty(), CreateServerCallContext());
-
-      // Assert
-      await Assert.ThrowsAsync<RpcException>(action);
-    }
-
-    [Fact(DisplayName = "Returns the registered products if the query handler returns a success result")]
-    public async Task Api_ReturnsRegisteredProducts_IfQueryHandlerSucceeds() {
-      // Arrange
-      var registeredItems = new List<Product> {
-        new("Product 1", null, new Price(10)),
-        new("Product 2", "1 litre", new Price(5)),
-      };
-      _useCaseHandler
-        .Handle(Arg.Any<GetRegisteredItems.Query>(), TestContext.Current.CancellationToken)
-        .Returns(registeredItems);
-
-      // Act
-      RegisteredItemsResponse response = await service.GetRegisteredItems(
-        new Empty(), CreateServerCallContext());
-
-      // Assert
-      Assert.Equal(registeredItems.Count, response.Items.Count);
-    }
-
-    [Fact(DisplayName = "Maps product name from registered items")]
-    public async Task Api_MapsProductName_FromRegisteredItems() {
-      // Arrange
-      var registeredItems = new List<Product> {
-        new("Product 1", null, new Price(10)),
-        new("Product 2", "1 litre", new Price(5)),
-      };
-      _useCaseHandler
-        .Handle(Arg.Any<GetRegisteredItems.Query>(), TestContext.Current.CancellationToken)
-        .Returns(registeredItems);
-
-      // Act
-      RegisteredItemsResponse response = await service.GetRegisteredItems(
-        new Empty(), CreateServerCallContext());
-
-      // Assert
-      for (int i = 0; i < registeredItems.Count; i++) {
-        Assert.Equal(registeredItems[i].Name, response.Items[i].Name);
-      }
-    }
-
-    [Fact(DisplayName = "Maps product quantity from registered items")]
-    public async Task Api_MapsProductQuantity_FromRegisteredItems() {
-      // Arrange
-      var registeredItems = new List<Product> {
-        new("Product 1", "5 pieces", new Price(10)),
-        new("Product 2", "1 litre", new Price(5)),
-      };
-      _useCaseHandler
-        .Handle(Arg.Any<GetRegisteredItems.Query>(), TestContext.Current.CancellationToken)
-        .Returns(registeredItems);
-
-      // Act
-      RegisteredItemsResponse response = await service.GetRegisteredItems(
-        new Empty(), CreateServerCallContext());
-
-      // Assert
-      for (int i = 0; i < registeredItems.Count; i++) {
-        Assert.Equal(registeredItems[i].Quantity?.Value, response.Items[i].Quantity);
-      }
-    }
-
-    [Fact(DisplayName = "Maps product empty quantity from registered items if it doesn't have it")]
-    public async Task Api_MapsProductEmptyQuantity_FromRegisteredItems_IfItDoesNotHaveIt() {
-      // Arrange
-      var registeredItems = new List<Product> {
-        new("Product 1", null, new Price(10)),
-        new("Product 2", null, new Price(5)),
-      };
-      _useCaseHandler
-        .Handle(Arg.Any<GetRegisteredItems.Query>(), TestContext.Current.CancellationToken)
-        .Returns(registeredItems);
-
-      // Act
-      RegisteredItemsResponse response = await service.GetRegisteredItems(
-        new Empty(), CreateServerCallContext());
-
-      // Assert
-      for (int i = 0; i < registeredItems.Count; i++) {
-        Assert.Empty(response.Items[i].Quantity);
-      }
-    }
-
-    [Fact(DisplayName = "Maps product price from registered items")]
-    public async Task Api_MapsProductPrice_FromRegisteredItems() {
-      // Arrange
-      var registeredItems = new List<Product> {
-        new("Product 1", null, new Price(3)),
-        new("Product 2", "1 litre", new Price(5)),
-      };
-      _useCaseHandler
-        .Handle(Arg.Any<GetRegisteredItems.Query>(), TestContext.Current.CancellationToken)
-        .Returns(registeredItems);
-
-      // Act
-      RegisteredItemsResponse response = await service.GetRegisteredItems(
-        new Empty(), CreateServerCallContext());
-
-      // Assert
-      for (int i = 0; i < registeredItems.Count; i++) {
-        Assert.Equal(
-          registeredItems[i].Price.Value.ToString(CultureInfo.InvariantCulture),
-          response.Items[i].Price);
-      }
-    }
-
-    [Fact(DisplayName = "Maps product price to 0 if the last price is null in registered items")]
-    public async Task Api_MapsProductPriceToZero_IfLastPriceIsNullInRegisteredItems() {
-      // Arrange
-      var registeredItems = new List<Product> {
-        new("Product 1", null, Price.Empty),
-        new("Product 2", "1 litre", Price.Empty),
-      };
-      _useCaseHandler
-        .Handle(Arg.Any<GetRegisteredItems.Query>(), TestContext.Current.CancellationToken)
-        .Returns(registeredItems);
-
-      // Act
-      RegisteredItemsResponse response = await service.GetRegisteredItems(
-        new Empty(), CreateServerCallContext());
-
-      // Assert
-      for (int i = 0; i < registeredItems.Count; i++) {
-        Assert.Equal("0", response.Items[i].Price);
-      }
-    }
-
-    [Fact(DisplayName = "Maps product not checked in the response")]
-    public async Task Api_MapsProductCheckedToFalse_InResponse() {
-      // Arrange
-      var registeredItems = new List<Product> {
-        new("Product 1", null, new Price(3)),
-        new("Product 2", "1 litre", new Price(5)),
-      };
-      _useCaseHandler
-        .Handle(Arg.Any<GetRegisteredItems.Query>(), TestContext.Current.CancellationToken)
-        .Returns(registeredItems);
-
-      // Act
-      RegisteredItemsResponse response = await service.GetRegisteredItems(
-        new Empty(), CreateServerCallContext());
-
-      // Assert
-      for (int i = 0; i < registeredItems.Count; i++) {
-        Assert.False(response.Items[i].Checked);
-      }
-    }
-
-    [Fact(DisplayName = "Passes user UID from JWT claim to query")]
-    public async Task Api_PassesUserUidFromClaim_ToQuery() {
-      // Arrange
-      var expectedUid = Guid.CreateVersion7();
-      _useCaseHandler
-        .Handle(Arg.Any<GetRegisteredItems.Query>(), TestContext.Current.CancellationToken)
-        .Returns(new List<Product>());
-
-      // Act
-      await service.GetRegisteredItems(new Empty(), CreateServerCallContext(expectedUid));
-
-      // Assert
-      await _useCaseHandler.Received(1).Handle(
-        Arg.Is<GetRegisteredItems.Query>(q => q.UserUid == expectedUid),
-        TestContext.Current.CancellationToken);
-    }
-  }
-
   public class GetShoppingListRpc {
     private readonly IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList> _useCaseHandler;
     private readonly ShoppingGrpcService service;
@@ -224,7 +25,6 @@ public static class ShoppingGrpcServiceTests {
       _useCaseHandler = Substitute.For<
       IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>();
       service = new ShoppingGrpcService(
-        Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
         Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
         _useCaseHandler,
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
@@ -500,7 +300,6 @@ public static class ShoppingGrpcServiceTests {
       _useCaseHandler = Substitute.For<
         IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>();
       service = new ShoppingGrpcService(
-        Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
         _useCaseHandler,
         Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
@@ -608,7 +407,6 @@ public static class ShoppingGrpcServiceTests {
     public RecordShoppingListRpc() {
       _useCaseHandler = Substitute.For<ICommandHandler<RecordShoppingList.Command>>();
       service = new ShoppingGrpcService(
-        Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
         Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
         Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         _useCaseHandler,
@@ -882,7 +680,6 @@ public static class ShoppingGrpcServiceTests {
     public CreateShoppingListRpc() {
       _useCaseHandler = Substitute.For<ICommandHandler<CreateShoppingList.Command>>();
       service = new ShoppingGrpcService(
-        Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
         Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
         Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
@@ -1018,7 +815,6 @@ public static class ShoppingGrpcServiceTests {
     public AddItemsToListRpc() {
       _useCaseHandler = Substitute.For<ICommandHandler<AddItemsToList.Command>>();
       service = new ShoppingGrpcService(
-        Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
         Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
         Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
@@ -1195,7 +991,6 @@ public static class ShoppingGrpcServiceTests {
     public UpdateItemRpc() {
       _useCaseHandler = Substitute.For<ICommandHandler<UpdateItem.Command>>();
       service = new ShoppingGrpcService(
-        Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
         Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
         Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
@@ -1448,7 +1243,6 @@ public static class ShoppingGrpcServiceTests {
     public UpdateShoppingListRpc() {
       _useCaseHandler = Substitute.For<ICommandHandler<UpdateShoppingList.Command>>();
       service = new ShoppingGrpcService(
-        Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
         Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
         Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
@@ -1591,7 +1385,6 @@ public static class ShoppingGrpcServiceTests {
     public RemoveItemRpc() {
       _useCaseHandler = Substitute.For<ICommandHandler<RemoveItem.Command>>();
       service = new ShoppingGrpcService(
-        Substitute.For<IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>>(),
         Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
         Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),

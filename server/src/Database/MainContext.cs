@@ -10,10 +10,10 @@ internal class MainContext(
 ) : DbContext(options), IUnitOfWork {
   public DbSet<UserDbEntity> Users { get; set; } = null!;
   public DbSet<UserRoleDbEntity> UserRoles { get; set; } = null!;
+
   public DbSet<ShoppingListDbEntity> ShoppingLists { get; set; } = null!;
   public DbSet<ShoppingItemDbEntity> ShoppingItems { get; set; } = null!;
   public DbSet<ShoppingListOwnershipDbEntity> ShoppingListOwnerships { get; set; } = null!;
-  public DbSet<RegisteredItemDbEntity> RegisteredItems { get; set; } = null!;
   public DbSet<PurchaseDbEntity> Purchases { get; set; } = null!;
 
   public DbSet<SuperMarketDbEntity> SuperMarkets { get; set; } = null!;

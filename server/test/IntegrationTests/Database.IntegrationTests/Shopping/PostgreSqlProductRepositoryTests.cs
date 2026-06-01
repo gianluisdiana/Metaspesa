@@ -186,34 +186,6 @@ public static class PostgreSqlProductRepositoryTests {
 
     [Fact(
       Explicit = true,
-      DisplayName = "Persists price as LastKnownPrice")]
-    public async Task RegisterItems_PersistsPriceAsLastKnownPrice() {
-      // Arrange
-      var userUid = Guid.CreateVersion7();
-      _context.Users.Add(new UserDbEntity {
-        Uid = userUid,
-        Username = userUid.ToString(),
-        EncryptedPassword = "x",
-        Role = TestRole,
-      });
-      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-      // Act
-      _repository.RegisterItems(
-        userUid, [new ShoppingItem("Coffee", null, new Price(7.5m), false)]);
-      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-      // Assert
-      RegisteredItemDbEntity dbEntity = await _context.RegisteredItems
-        .AsNoTracking()
-        .FirstAsync(
-          ri => ri.UserUid == userUid && ri.Name == "Coffee",
-          TestContext.Current.CancellationToken);
-      Assert.Equal(7.5m, dbEntity.LastKnownPrice);
-    }
-
-    [Fact(
-      Explicit = true,
       DisplayName = "Persists multiple items in single call")]
     public async Task RegisterItems_PersistsMultipleItems_InSingleCall() {
       // Arrange

@@ -69,10 +69,6 @@ public static class ApplicationDependencyInjection {
         RecordShoppingList.Handler>();
 
       services.AddScoped<
-        IQueryHandler<GetRegisteredItems.Query, IReadOnlyCollection<Product>>,
-        GetRegisteredItems.Handler>();
-
-      services.AddScoped<
         ICommandHandler<CreateShoppingList.Command>,
         CreateShoppingList.Handler>();
 

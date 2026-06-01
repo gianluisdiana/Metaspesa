@@ -39,9 +39,9 @@ internal partial class PostgreSqlShoppingRepository(
         Items: sl.ShoppingList.Items
           .Where(i => i.DeletedAt == null)
           .Select(i => new ShoppingItem(
-            Name: i.Name,
-            Quantity: Quantity.FromNullable(i.Quantity),
-            Price: new Price(i.Price),
+            Name: i.Product.Name,
+            Quantity: new Quantity($"{i.ProductHistory.ProductFormat.Quantity}"),
+            Price: new Price(i.ProductHistory.Price),
             IsChecked: i.IsChecked
           )).ToList()
       ))
@@ -99,11 +99,17 @@ internal partial class PostgreSqlShoppingRepository(
       .Select(o => o.ShoppingList)
       .First();
 
+    var productHistoryLookup = context.ProductsHistory
+      .ToDictionary(ph => ph.Product.Name, ph => new {
+        ph.Id,
+        ph.ProductId,
+      });
+
     context.ShoppingItems.AddRange(items.Select(i => new ShoppingItemDbEntity {
       ShoppingListId = list.Id,
-      Name = i.Name,
-      Quantity = i.Quantity?.Value,
-      Price = i.Price.Value,
+      ProductHistoryId = productHistoryLookup[i.Name].Id,
+      ProductId = productHistoryLookup[i.Name].ProductId,
+      Amount = 1,
       IsChecked = i.IsChecked,
     }));
   }, "Couldn't add items to shopping list.");
@@ -123,7 +129,7 @@ internal partial class PostgreSqlShoppingRepository(
             listName != null &&
             EF.Functions.ILike(i.ShoppingList.Name, listName)
           ) &&
-          EF.Functions.ILike(i.Name, itemName),
+          EF.Functions.ILike(i.Product.Name, itemName),
         cancellationToken),
     "Couldn't check if shopping item exists.");
 
@@ -141,11 +147,11 @@ internal partial class PostgreSqlShoppingRepository(
           listName != null &&
           EF.Functions.ILike(i.ShoppingList.Name, listName)
         ) &&
-        EF.Functions.ILike(i.Name, itemName))
+        EF.Functions.ILike(i.Product.Name, itemName))
       .Select(i => new ShoppingItem(
-        i.Name,
-        Quantity.FromNullable(i.Quantity),
-        new Price(i.Price),
+        i.Product.Name,
+        new Quantity($"{i.ProductHistory.ProductFormat.Quantity}"),
+        new Price(i.ProductHistory.Price),
         i.IsChecked))
       .FirstOrDefaultAsync(cancellationToken),
     "Couldn't get shopping item.");
@@ -161,12 +167,9 @@ internal partial class PostgreSqlShoppingRepository(
           listName != null &&
           EF.Functions.ILike(i.ShoppingList.Name, listName)
         ) &&
-        EF.Functions.ILike(i.Name, originalItemName))
+        EF.Functions.ILike(i.Product.Name, originalItemName))
       .First();
 
-    item.Name = update.Name;
-    item.Quantity = update.Quantity?.Value;
-    item.Price = update.Price.Value;
     item.IsChecked = update.IsChecked;
   }, "Couldn't update shopping item.");
 
@@ -180,7 +183,7 @@ internal partial class PostgreSqlShoppingRepository(
             listName != null &&
             EF.Functions.ILike(i.ShoppingList.Name, listName)
           ) &&
-          EF.Functions.ILike(i.Name, itemName))
+          EF.Functions.ILike(i.Product.Name, itemName))
         .First();
 
       item.DeletedAt = clock.GetCurrentTime();
@@ -193,26 +196,38 @@ internal partial class PostgreSqlShoppingRepository(
       List<ShoppingItem> checkedItems = [.. shoppingList.Items.Where(i => i.IsChecked)];
 
       DateTime now = clock.GetCurrentTime();
-      context.Purchases.AddRange(checkedItems.Select(ci => new PurchaseDbEntity {
-        UserUid = userUid,
-        RegisteredItemId = 0, // Temporary
-        PricePaid = ci.Price.Value,
-        Quantity = ci.Quantity?.Value,
-        PurchasedAt = now,
-      }));
-
-#pragma warning disable CA1304, CA1311
-      var purchasedEntities = context.ShoppingItems
-        .Where(i => i.ShoppingList.Ownerships.Any(o => o.UserUid == userUid) &&
-          i.ShoppingList.Name == shoppingList.Name &&
-          checkedItems.Select(ci => ci.Name.ToUpper()).Contains(i.Name.ToUpper()))
-        .Include(i => i.ShoppingList)
-        .ToList();
-#pragma warning restore CA1304, CA1311
-
-      foreach (ShoppingItemDbEntity itemEntity in purchasedEntities) {
-        itemEntity.DeletedAt = now;
+      List<PurchaseItemDbEntity> purchaseItems = [];
+      foreach (ShoppingItem ci in checkedItems) {
+        var history = context.ProductsHistory
+          .Where(ph => ph.Product.Name == ci.Name &&
+            ph.Price == ci.Price.Value &&
+            $"{ph.ProductFormat.Quantity}" == ci.Quantity!.Value)
+          .Select(ph => new {
+            ph.Id,
+            ph.ProductId,
+          })
+          .First();
+        PurchaseItemDbEntity item = new() {
+          Amount = 1,
+          ProductId = history.ProductId,
+          ProductHistoryId = history.Id,
+        };
+        purchaseItems.Add(item);
       }
+      context.Purchases.Add(new PurchaseDbEntity {
+        UserUid = userUid,
+        ShoppingListId = context.ShoppingListOwnerships
+          .Where(o => o.UserUid == userUid && (
+            o.ShoppingList.Name == null && shoppingList.Name == null ||
+            o.ShoppingList.Name != null &&
+            shoppingList.Name != null &&
+            EF.Functions.ILike(o.ShoppingList.Name, shoppingList.Name)
+          ))
+          .Select(o => o.ShoppingListId)
+          .First(),
+        PurchasedAt = now,
+        Items = purchaseItems,
+      });
     }, "Couldn't record shopping list.");
   }
 }

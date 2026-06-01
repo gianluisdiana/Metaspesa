@@ -1302,10 +1302,6 @@ public static class PostgreSqlShoppingRepositoryTests {
         Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      var registeredItem = new RegisteredItemDbEntity {
-        UserUid = userUid, Name = "Milk", LastKnownPrice = 1.5m
-      };
-      _context.RegisteredItems.Add(registeredItem);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1320,9 +1316,6 @@ public static class PostgreSqlShoppingRepositoryTests {
         new ShoppingItem("Milk", null, new Price(1.5m), true),
         new ShoppingItem("Bread", null, new Price(2.0m), false),
       ]));
-      foreach (EntityEntry<PurchaseDbEntity> entry in _context.ChangeTracker.Entries<PurchaseDbEntity>()) {
-        entry.Entity.RegisteredItemId = registeredItem.Id;
-      }
 
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -1351,10 +1344,6 @@ public static class PostgreSqlShoppingRepositoryTests {
         Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      var registeredItem = new RegisteredItemDbEntity {
-        UserUid = userUid, Name = "Eggs", LastKnownPrice = 3.0m
-      };
-      _context.RegisteredItems.Add(registeredItem);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1366,9 +1355,6 @@ public static class PostgreSqlShoppingRepositoryTests {
       _repository.RecordShoppingList(userUid, new ShoppingList("Weekly", [
         new ShoppingItem("Eggs", null, new Price(3.0m), true),
       ]));
-      foreach (EntityEntry<PurchaseDbEntity> entry in _context.ChangeTracker.Entries<PurchaseDbEntity>()) {
-        entry.Entity.RegisteredItemId = registeredItem.Id;
-      }
 
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
