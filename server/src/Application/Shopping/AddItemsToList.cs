@@ -10,9 +10,8 @@ namespace Metaspesa.Application.Shopping;
 
 public static class AddItemsToList {
   public record CommandItem(
-    string? Name,
-    string? Quantity,
-    decimal Price,
+    int ReferenceUid,
+    int Amount,
     bool IsChecked
   );
 
@@ -21,13 +20,13 @@ public static class AddItemsToList {
     string? ShoppingListName,
     IReadOnlyCollection<CommandItem> Items
   ) : ICommand {
-    internal IReadOnlyCollection<ShoppingItem> ToShoppingItems() =>
-      Items.Select(i => new ShoppingItem(
-        i.Name!,
-        Quantity.FromNullable(i.Quantity),
-        new Price(i.Price),
-        i.IsChecked
-      )).ToList();
+    internal IReadOnlyCollection<AShoppingItem> ToShoppingItems() => [..
+      Items.Select(i => new AShoppingItem(
+        ReferenceUid: i.ReferenceUid,
+        Amount: i.Amount,
+        IsChecked: i.IsChecked
+      ))
+    ];
   }
 
   internal class Handler(
@@ -53,7 +52,10 @@ public static class AddItemsToList {
   }
 
   internal class Validator : AbstractValidator<Command> {
-    public Validator(IShoppingRepository shoppingRepository) {
+    public Validator(
+      IShoppingRepository shoppingRepository,
+      IProductRepository productRepository
+    ) {
       RuleFor(x => x)
         .MustAsync(async (command, ct) =>
           await shoppingRepository.CheckShoppingListExistAsync(
@@ -70,41 +72,30 @@ public static class AddItemsToList {
         .WithMessage("At least one item must be provided.")
         .WithErrorCode("ShoppingList.Items.Empty");
 
+      RuleFor(x => x.Items)
+        .Must(items => items.Select(i => i.ReferenceUid).Distinct().Count() == items.Count)
+        .WithName("ShoppingList.Items[].ReferenceUid")
+        .WithMessage("Duplicate product reference UIDs are not allowed.")
+        .WithErrorCode("ShoppingList.Items.DuplicateReferenceUid")
+        .WithState(_ => ErrorKind.Validation);
+
       RuleForEach(x => x.Items)
         .ChildRules(item => {
-          item.RuleFor(x => x.Name)
-            .NotEmpty()
-            .WithMessage("Item name must not be empty.")
-            .WithErrorCode("ShoppingList.Items.Name.Empty");
+          item.RuleFor(i => i.Amount)
+          .GreaterThan(0)
+          .WithMessage(i =>
+            $"Item with reference UID {i.ReferenceUid} must have an amount greater than zero.")
+          .WithErrorCode("ShoppingList.Item.Amount.Invalid")
+          .WithState(_ => ErrorKind.Validation);
 
-          item.RuleFor(x => x.Price)
-            .Must(PricePolicy.IsValidPrice)
-            .WithMessage((_, price) =>
-              $"Item price '{price.ToString(CultureInfo.InvariantCulture)}' must be greater than or equal to 0.")
-            .WithErrorCode("ShoppingList.Items.Price.Negative");
-
-          item.RuleFor(x => x.Quantity)
-            .MaximumLength(Quantity.MaximumLength)
-            .WithMessage(DescribeTooLongQuantity)
-            .WithErrorCode("ShoppingList.Items.Quantity.TooLong");
-        })
-        .MustAsync(async (command, item, ct) =>
-          !await shoppingRepository.CheckItemExistsAsync(
-            command.UserUid, command.ShoppingListName, item.Name!, ct))
-        .When(x => x.Items.All(i => !string.IsNullOrWhiteSpace(i.Name)), ApplyConditionTo.CurrentValidator)
-        .WithName("Items[].Name")
-        .WithMessage((_, item) =>
-          $"Item '{item.Name}' already exists in the shopping list.")
-        .WithErrorCode("ShoppingList.Item.AlreadyExists")
-        .WithState(_ => ErrorKind.Conflict);
-    }
-
-    private static string DescribeTooLongQuantity(CommandItem item) {
-      string prefix = string.IsNullOrWhiteSpace(item.Name)
-        ? "Item quantity"
-        : $"Item '{item.Name}' quantity";
-
-      return $"{prefix} length {item.Quantity!.Length} must not exceed {Quantity.MaximumLength} characters.";
+          item.RuleFor(i => i)
+            .MustAsync(async (item, ct) =>
+              await productRepository.CheckProductExistsAsync(item.ReferenceUid, ct))
+            .WithMessage(i =>
+              $"Product reference with UID {i.ReferenceUid} does not exist.")
+            .WithErrorCode("ShoppingList.Item.ReferenceUid.NotFound")
+            .WithState(_ => ErrorKind.Missing);
+        });
     }
   }
 }

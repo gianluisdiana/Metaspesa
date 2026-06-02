@@ -834,7 +834,7 @@ public static class ShoppingGrpcServiceTests {
 
       var request = new AddItemsToListRequest {
         ShoppingListName = "Weekly",
-        Items = { new Protos.Shopping.ShoppingItem { Name = "Milk" } }
+        Items = { new Protos.Shopping.AShoppingItem { ReferenceUid = 10, Amount = 1 } }
       };
 
       // Act
@@ -853,7 +853,7 @@ public static class ShoppingGrpcServiceTests {
 
       var request = new AddItemsToListRequest {
         ShoppingListName = "Weekly",
-        Items = { new Protos.Shopping.ShoppingItem { Name = "Milk" } }
+        Items = { new Protos.Shopping.AShoppingItem { ReferenceUid = 10, Amount = 1 } }
       };
 
       // Act
@@ -873,7 +873,7 @@ public static class ShoppingGrpcServiceTests {
 
       var request = new AddItemsToListRequest {
         ShoppingListName = ListName,
-        Items = { new Protos.Shopping.ShoppingItem { Name = "Milk" } }
+        Items = { new Protos.Shopping.AShoppingItem { ReferenceUid = 10, Amount = 1 } }
       };
 
       // Act
@@ -893,7 +893,7 @@ public static class ShoppingGrpcServiceTests {
         .Returns(Result.Success());
 
       var request = new AddItemsToListRequest {
-        Items = { new Protos.Shopping.ShoppingItem { Name = "Milk" } }
+        Items = { new Protos.Shopping.AShoppingItem { ReferenceUid = 10, Amount = 1 } }
       };
 
       // Act
@@ -905,8 +905,8 @@ public static class ShoppingGrpcServiceTests {
         TestContext.Current.CancellationToken);
     }
 
-    [Fact(DisplayName = "Maps item names from request to command")]
-    public async Task Api_MapsItemNames_FromRequestToCommand() {
+    [Fact(DisplayName = "Maps item reference UIDs from request to command")]
+    public async Task Api_MapsItemReferenceUids_FromRequestToCommand() {
       // Arrange
       _useCaseHandler
         .Handle(Arg.Any<AddItemsToList.Command>(), TestContext.Current.CancellationToken)
@@ -915,8 +915,8 @@ public static class ShoppingGrpcServiceTests {
       var request = new AddItemsToListRequest {
         ShoppingListName = "Weekly",
         Items = {
-          new Protos.Shopping.ShoppingItem { Name = "Milk", Price = "2" },
-          new Protos.Shopping.ShoppingItem { Name = "Bread", Price = "1.5" },
+          new Protos.Shopping.AShoppingItem { ReferenceUid = 10, Amount = 2 },
+          new Protos.Shopping.AShoppingItem { ReferenceUid = 11, Amount = 1 },
         }
       };
 
@@ -927,26 +927,22 @@ public static class ShoppingGrpcServiceTests {
       for (int i = 0; i < request.Items.Count; i++) {
         await _useCaseHandler.Received(1).Handle(
           Arg.Is<AddItemsToList.Command>(cmd =>
-            cmd.Items.ElementAt(i).Name == request.Items[i].Name),
+            cmd.Items.ElementAt(i).ReferenceUid == request.Items[i].ReferenceUid),
           TestContext.Current.CancellationToken);
       }
     }
 
-    [Fact(DisplayName = "Sanitizes non-ASCII item text before creating command")]
-    public async Task Api_SanitizesNonAsciiItemText_BeforeCreatingCommand() {
+    [Fact(DisplayName = "Maps item amounts from request to command")]
+    public async Task Api_MapsItemAmounts_FromRequestToCommand() {
       // Arrange
       _useCaseHandler
         .Handle(Arg.Any<AddItemsToList.Command>(), TestContext.Current.CancellationToken)
         .Returns(Result.Success());
 
       var request = new AddItemsToListRequest {
-        ShoppingListName = "Semanal \u2713",
+        ShoppingListName = "Weekly",
         Items = {
-          new Protos.Shopping.ShoppingItem {
-            Name = "Caf\u00e9 \u2615",
-            Quantity = "500 g \u2713",
-            Price = "2",
-          },
+          new Protos.Shopping.AShoppingItem { ReferenceUid = 10, Amount = 2 },
         }
       };
 
@@ -956,9 +952,55 @@ public static class ShoppingGrpcServiceTests {
       // Assert
       await _useCaseHandler.Received(1).Handle(
         Arg.Is<AddItemsToList.Command>(cmd =>
-          cmd.ShoppingListName == "Semanal " &&
-          cmd.Items.Single().Name == "Cafe " &&
-          cmd.Items.Single().Quantity == "500 g "),
+          cmd.Items.Single().Amount == 2),
+        TestContext.Current.CancellationToken);
+    }
+
+    [Fact(DisplayName = "Maps item checked state from request to command")]
+    public async Task Api_MapsItemCheckedState_FromRequestToCommand() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<AddItemsToList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new AddItemsToListRequest {
+        ShoppingListName = "Weekly",
+        Items = {
+          new Protos.Shopping.AShoppingItem { ReferenceUid = 10, Amount = 1, IsChecked = true },
+        }
+      };
+
+      // Act
+      await service.AddItemsToList(request, CreateServerCallContext());
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<AddItemsToList.Command>(cmd =>
+          cmd.Items.Single().IsChecked),
+        TestContext.Current.CancellationToken);
+    }
+
+    [Fact(DisplayName = "Sanitizes non-ASCII list name before creating command")]
+    public async Task Api_SanitizesNonAsciiListName_BeforeCreatingCommand() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<AddItemsToList.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new AddItemsToListRequest {
+        ShoppingListName = "Semanal \u2713",
+        Items = {
+          new Protos.Shopping.AShoppingItem { ReferenceUid = 10, Amount = 1 },
+        }
+      };
+
+      // Act
+      await service.AddItemsToList(request, CreateServerCallContext());
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<AddItemsToList.Command>(cmd =>
+          cmd.ShoppingListName == "Semanal "),
         TestContext.Current.CancellationToken);
     }
 
@@ -971,7 +1013,7 @@ public static class ShoppingGrpcServiceTests {
         .Returns(Result.Success());
 
       var request = new AddItemsToListRequest {
-        Items = { new Protos.Shopping.ShoppingItem { Name = "Milk" } }
+        Items = { new Protos.Shopping.AShoppingItem { ReferenceUid = 10, Amount = 1 } }
       };
 
       // Act

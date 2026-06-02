@@ -8,21 +8,25 @@ namespace Metaspesa.Application.UnitTests.Shopping;
 
 public class AddItemsToListValidatorTest {
   private readonly IShoppingRepository _shoppingRepository;
+  private readonly IProductRepository _productRepository;
   private readonly Validator _validator;
 
   public AddItemsToListValidatorTest() {
     _shoppingRepository = Substitute.For<IShoppingRepository>();
-    _validator = new Validator(_shoppingRepository);
+    _productRepository = Substitute.For<IProductRepository>();
+    _validator = new Validator(_shoppingRepository, _productRepository);
   }
 
   [Fact(DisplayName = "Fails when shopping list does not exist")]
   public async Task Validator_Fails_WhenShoppingListDoesNotExist() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Nonexistent", [new("Milk", null, 1m, false)]);
+    var command = new Command(userUid, "Nonexistent", [new(10, 1, false)]);
     _shoppingRepository
       .CheckShoppingListExistAsync(userUid, "Nonexistent", TestContext.Current.CancellationToken)
       .Returns(false);
+    _productRepository.CheckProductExistsAsync(10, TestContext.Current.CancellationToken)
+      .Returns(true);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -31,6 +35,28 @@ public class AddItemsToListValidatorTest {
     // Assert
     result.ShouldHaveValidationErrorFor(x => x.ShoppingListName)
       .WithErrorCode("ShoppingList.NotFound")
+      .WithCustomState(ErrorKind.Missing);
+  }
+
+  [Fact(DisplayName = "Fails with temporary list message when list name is null")]
+  public async Task Validator_Fails_WithTemporaryListMessage_WhenListNameIsNull() {
+    // Arrange
+    var userUid = Guid.NewGuid();
+    var command = new Command(userUid, null, [new(10, 1, false)]);
+    _shoppingRepository
+      .CheckShoppingListExistAsync(userUid, null, TestContext.Current.CancellationToken)
+      .Returns(false);
+    _productRepository.CheckProductExistsAsync(10, TestContext.Current.CancellationToken)
+      .Returns(true);
+
+    // Act
+    TestValidationResult<Command> result = await _validator.TestValidateAsync(
+      command, cancellationToken: TestContext.Current.CancellationToken);
+
+    // Assert
+    result.ShouldHaveValidationErrorFor(x => x.ShoppingListName)
+      .WithErrorCode("ShoppingList.NotFound")
+      .WithErrorMessage($"User {userUid} doesn't have a temporary shopping list.")
       .WithCustomState(ErrorKind.Missing);
   }
 
@@ -52,16 +78,15 @@ public class AddItemsToListValidatorTest {
       .WithErrorCode("ShoppingList.Items.Empty");
   }
 
-  [Theory(DisplayName = "Fails when item name is empty")]
-  [InlineData(null)]
-  [InlineData("")]
-  [InlineData(" ")]
-  public async Task Validator_Fails_WhenItemNameIsEmpty(string? name) {
+  [Fact(DisplayName = "Fails when item amount is zero")]
+  public async Task Validator_Fails_WhenItemAmountIsZero() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", [new(name!, null, 1m, false)]);
+    var command = new Command(userUid, "Weekly", [new(10, 0, false)]);
     _shoppingRepository.CheckShoppingListExistAsync(
       userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
+      .Returns(true);
+    _productRepository.CheckProductExistsAsync(10, TestContext.Current.CancellationToken)
       .Returns(true);
 
     // Act
@@ -69,17 +94,20 @@ public class AddItemsToListValidatorTest {
       command, cancellationToken: TestContext.Current.CancellationToken);
 
     // Assert
-    result.ShouldHaveValidationErrorFor("Items[0].Name")
-      .WithErrorCode("ShoppingList.Items.Name.Empty");
+    result.ShouldHaveValidationErrorFor("Items[0].Amount")
+      .WithErrorCode("ShoppingList.Item.Amount.Invalid")
+      .WithCustomState(ErrorKind.Validation);
   }
 
-  [Fact(DisplayName = "Fails when item price is negative")]
-  public async Task Validator_Fails_WhenItemPriceIsNegative() {
+  [Fact(DisplayName = "Fails when item amount is negative")]
+  public async Task Validator_Fails_WhenItemAmountIsNegative() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", [new("Milk", null, -1m, false)]);
+    var command = new Command(userUid, "Weekly", [new(10, -1, false)]);
     _shoppingRepository.CheckShoppingListExistAsync(
       userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
+      .Returns(true);
+    _productRepository.CheckProductExistsAsync(10, TestContext.Current.CancellationToken)
       .Returns(true);
 
     // Act
@@ -87,58 +115,23 @@ public class AddItemsToListValidatorTest {
       command, cancellationToken: TestContext.Current.CancellationToken);
 
     // Assert
-    result.ShouldHaveValidationErrorFor("Items[0].Price")
-      .WithErrorMessage("Item price '-1' must be greater than or equal to 0.")
-      .WithErrorCode("ShoppingList.Items.Price.Negative");
+    result.ShouldHaveValidationErrorFor("Items[0].Amount")
+      .WithErrorCode("ShoppingList.Item.Amount.Invalid")
+      .WithCustomState(ErrorKind.Validation);
   }
 
-  [Fact(DisplayName = "Fails when item quantity exceeds 50 characters")]
-  public async Task Validator_Fails_WhenItemQuantityTooLong() {
+  [Fact(DisplayName = "Fails when duplicate product reference UIDs are provided")]
+  public async Task Validator_Fails_WhenDuplicateReferenceUidsAreProvided() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(
-      userUid, "Weekly", [new("Milk", new string('a', 51), 1m, false)]);
+    var command = new Command(userUid, "Weekly", [
+      new(10, 1, false),
+      new(10, 2, true),
+    ]);
     _shoppingRepository.CheckShoppingListExistAsync(
       userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
       .Returns(true);
-
-    // Act
-    TestValidationResult<Command> result = await _validator.TestValidateAsync(
-      command, cancellationToken: TestContext.Current.CancellationToken);
-
-    // Assert
-    result.ShouldHaveValidationErrorFor("Items[0].Quantity")
-      .WithErrorMessage("Item 'Milk' quantity length 51 must not exceed 50 characters.")
-      .WithErrorCode("ShoppingList.Items.Quantity.TooLong");
-  }
-
-  [Fact(DisplayName = "Passes when all fields are valid")]
-  public async Task Validator_Passes_WhenAllFieldsAreValid() {
-    // Arrange
-    var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", [new("Milk", "1 litre", 2m, false)]);
-    _shoppingRepository.CheckShoppingListExistAsync(
-      userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
-      .Returns(true);
-
-    // Act
-    TestValidationResult<Command> result = await _validator.TestValidateAsync(
-      command, cancellationToken: TestContext.Current.CancellationToken);
-
-    // Assert
-    result.ShouldNotHaveAnyValidationErrors();
-  }
-
-  [Fact(DisplayName = "Fails when item already exists in the list")]
-  public async Task Validator_Fails_WhenItemAlreadyExistsInList() {
-    // Arrange
-    var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", [new("Milk", null, 1m, false)]);
-    _shoppingRepository.CheckShoppingListExistAsync(
-        userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
-      .Returns(true);
-    _shoppingRepository.CheckItemExistsAsync(
-        userUid, command.ShoppingListName, "Milk", TestContext.Current.CancellationToken)
+    _productRepository.CheckProductExistsAsync(10, TestContext.Current.CancellationToken)
       .Returns(true);
 
     // Act
@@ -147,69 +140,19 @@ public class AddItemsToListValidatorTest {
 
     // Assert
     Assert.Contains(result.Errors, e =>
-      e.ErrorCode == "ShoppingList.Item.AlreadyExists" &&
-      (ErrorKind)e.CustomState == ErrorKind.Conflict);
+      e.ErrorCode == "ShoppingList.Items.DuplicateReferenceUid" &&
+      (ErrorKind)e.CustomState == ErrorKind.Validation);
   }
 
-  [Fact(DisplayName = "Passes when item price is zero")]
-  public async Task Validator_Passes_WhenItemPriceIsZero() {
+  [Fact(DisplayName = "Fails when product reference UID does not exist")]
+  public async Task Validator_Fails_WhenProductReferenceUidDoesNotExist() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", [new("Milk", null, 0m, false)]);
+    var command = new Command(userUid, "Weekly", [new(10, 1, false)]);
     _shoppingRepository.CheckShoppingListExistAsync(
       userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
       .Returns(true);
-
-    // Act
-    TestValidationResult<Command> result = await _validator.TestValidateAsync(
-      command, cancellationToken: TestContext.Current.CancellationToken);
-
-    // Assert
-    result.ShouldNotHaveValidationErrorFor("Items[0].Price");
-  }
-
-  [Fact(DisplayName = "Passes when item quantity is exactly 50 characters")]
-  public async Task Validator_Passes_WhenItemQuantityIsExactly50Chars() {
-    // Arrange
-    var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", [new("Milk", new string('a', 50), 1m, false)]);
-    _shoppingRepository.CheckShoppingListExistAsync(
-      userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
-      .Returns(true);
-
-    // Act
-    TestValidationResult<Command> result = await _validator.TestValidateAsync(
-      command, cancellationToken: TestContext.Current.CancellationToken);
-
-    // Assert
-    result.ShouldNotHaveValidationErrorFor("Items[0].Quantity");
-  }
-
-  [Fact(DisplayName = "Does not check for duplicates when item name is empty")]
-  public async Task Validator_DoesNotCheckDuplicates_WhenItemNameIsEmpty() {
-    // Arrange
-    var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", [new("", null, 1m, false)]);
-    _shoppingRepository.CheckShoppingListExistAsync(
-      userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
-      .Returns(true);
-
-    // Act
-    await _validator.TestValidateAsync(
-      command, cancellationToken: TestContext.Current.CancellationToken);
-
-    // Assert
-    await _shoppingRepository.DidNotReceive()
-      .CheckItemExistsAsync(Arg.Any<Guid>(), Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
-  }
-
-  [Fact(DisplayName = "Fails with temporary list message when list name is null")]
-  public async Task Validator_Fails_WithTemporaryListMessage_WhenListNameIsNull() {
-    // Arrange
-    var userUid = Guid.NewGuid();
-    var command = new Command(userUid, null, [new("Milk", null, 1m, false)]);
-    _shoppingRepository
-      .CheckShoppingListExistAsync(userUid, null, TestContext.Current.CancellationToken)
+    _productRepository.CheckProductExistsAsync(10, TestContext.Current.CancellationToken)
       .Returns(false);
 
     // Act
@@ -217,9 +160,27 @@ public class AddItemsToListValidatorTest {
       command, cancellationToken: TestContext.Current.CancellationToken);
 
     // Assert
-    result.ShouldHaveValidationErrorFor(x => x.ShoppingListName)
-      .WithErrorCode("ShoppingList.NotFound")
-      .WithErrorMessage($"User {userUid} doesn't have a temporary shopping list.")
-      .WithCustomState(ErrorKind.Missing);
+    Assert.Contains(result.Errors, e =>
+      e.ErrorCode == "ShoppingList.Item.ReferenceUid.NotFound" &&
+      (ErrorKind)e.CustomState == ErrorKind.Missing);
+  }
+
+  [Fact(DisplayName = "Passes when all fields are valid")]
+  public async Task Validator_Passes_WhenAllFieldsAreValid() {
+    // Arrange
+    var userUid = Guid.NewGuid();
+    var command = new Command(userUid, "Weekly", [new(10, 1, true)]);
+    _shoppingRepository.CheckShoppingListExistAsync(
+      userUid, command.ShoppingListName, TestContext.Current.CancellationToken)
+      .Returns(true);
+    _productRepository.CheckProductExistsAsync(10, TestContext.Current.CancellationToken)
+      .Returns(true);
+
+    // Act
+    TestValidationResult<Command> result = await _validator.TestValidateAsync(
+      command, cancellationToken: TestContext.Current.CancellationToken);
+
+    // Assert
+    result.ShouldNotHaveAnyValidationErrors();
   }
 }

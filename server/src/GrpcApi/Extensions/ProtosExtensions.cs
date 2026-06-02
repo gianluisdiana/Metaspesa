@@ -80,11 +80,10 @@ internal static class ProtosExtensions {
   );
 
   public static AddItemsToList.CommandItem ToAddItemsCommand(
-    this Protos.Shopping.ShoppingItem protoItem
+    this Protos.Shopping.AShoppingItem protoItem
   ) => new(
-    GrpcTextSanitizer.SanitizeAscii(protoItem.Name),
-    protoItem.HasQuantity ? GrpcTextSanitizer.SanitizeAscii(protoItem.Quantity) : null,
-    protoItem.HasPrice ? GrpcPriceConverter.ToDecimal(protoItem.Price) : 0m,
-    protoItem.Checked
+    protoItem.ReferenceUid,
+    protoItem.Amount,
+    protoItem.IsChecked
   );
 }

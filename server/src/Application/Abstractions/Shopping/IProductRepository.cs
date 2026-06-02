@@ -9,4 +9,6 @@ public interface IProductRepository {
     Guid userUid, IReadOnlyCollection<ShoppingItem> shoppingItems);
   void RegisterItems(
     Guid userUid, IReadOnlyCollection<ShoppingItem> shoppingItems);
+  Task<bool> CheckProductExistsAsync(
+    long referenceUid, CancellationToken cancellationToken);
 }

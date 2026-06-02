@@ -6,3 +6,9 @@ public record ShoppingItem(
   Price Price,
   bool IsChecked
 ) : Product(Name, Quantity, Price);
+
+public record AShoppingItem(
+  int ReferenceUid,
+  int Amount,
+  bool IsChecked
+);

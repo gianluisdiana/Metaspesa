@@ -88,6 +88,7 @@ Table shopping.shopping_items {
   product_id integer [not null]
   product_history_id integer [not null]
   amount integer [not null, default: 1, note: 'How many units/packages of the product are planned']
+  is_checked boolean [not null, default: false]
   deleted_at timestamp
 
   indexes {

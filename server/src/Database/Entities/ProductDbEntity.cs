@@ -14,6 +14,7 @@ internal class ProductDbEntity {
   public ICollection<ProductFormatDbEntity> Formats { get; set; } = [];
   public ICollection<ProductsHistoryDbEntity> History { get; set; } = [];
   public ICollection<PurchaseDbEntity> Purchases { get; set; } = [];
+  public ICollection<ShoppingItemDbEntity> ShoppingItems { get; set; } = [];
 
   public MarketProduct MapToDomain() {
     Debug.Assert(History.Count > 0);

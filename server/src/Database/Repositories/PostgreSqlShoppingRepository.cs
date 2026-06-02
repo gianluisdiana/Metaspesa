@@ -87,7 +87,7 @@ internal partial class PostgreSqlShoppingRepository(
     }, "Couldn't update shopping list.");
 
   public void AddItemsToList(
-    Guid userUid, string? listName, IReadOnlyCollection<ShoppingItem> items
+    Guid userUid, string? listName, IReadOnlyCollection<AShoppingItem> items
   ) => PostgreSqlExceptionMapper.Map(() => {
     ShoppingListDbEntity list = context.ShoppingListOwnerships
       .Where(o => o.UserUid == userUid && (
@@ -100,16 +100,14 @@ internal partial class PostgreSqlShoppingRepository(
       .First();
 
     var productHistoryLookup = context.ProductsHistory
-      .ToDictionary(ph => ph.Product.Name, ph => new {
-        ph.Id,
-        ph.ProductId,
-      });
+      .Where(ph => items.Select(i => i.ReferenceUid).Contains(ph.Id))
+      .ToDictionary(ph => ph.Id, ph => ph.ProductId);
 
     context.ShoppingItems.AddRange(items.Select(i => new ShoppingItemDbEntity {
       ShoppingListId = list.Id,
-      ProductHistoryId = productHistoryLookup[i.Name].Id,
-      ProductId = productHistoryLookup[i.Name].ProductId,
-      Amount = 1,
+      ProductHistoryId = i.ReferenceUid,
+      ProductId = productHistoryLookup[i.ReferenceUid],
+      Amount = i.Amount,
       IsChecked = i.IsChecked,
     }));
   }, "Couldn't add items to shopping list.");
