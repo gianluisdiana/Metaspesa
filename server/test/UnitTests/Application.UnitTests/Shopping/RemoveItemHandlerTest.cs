@@ -23,7 +23,7 @@ public class RemoveItemHandlerTest {
   [Fact(DisplayName = "Returns errors when validation fails")]
   public async Task Handler_ReturnsErrors_WhenValidationFails() {
     // Arrange
-    var command = new Command(Guid.NewGuid(), "Weekly", "Milk");
+    var command = new Command(Guid.NewGuid(), "Weekly", 10);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult([new ValidationFailure()]));
 
@@ -37,7 +37,7 @@ public class RemoveItemHandlerTest {
   [Fact(DisplayName = "Does not remove item when validation fails")]
   public async Task Handler_DoesNotRemoveItem_WhenValidationFails() {
     // Arrange
-    var command = new Command(Guid.NewGuid(), "Weekly", "Milk");
+    var command = new Command(Guid.NewGuid(), "Weekly", 10);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult([new ValidationFailure()]));
 
@@ -46,14 +46,14 @@ public class RemoveItemHandlerTest {
 
     // Assert
     _shoppingRepository.DidNotReceive().RemoveItem(
-      Arg.Any<Guid>(), Arg.Any<string?>(), Arg.Any<string>());
+      Arg.Any<Guid>(), Arg.Any<string?>(), Arg.Any<int>());
   }
 
   [Fact(DisplayName = "Removes item via repository with correct arguments")]
   public async Task Handler_RemovesItem_ViaRepository() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", "Milk");
+    var command = new Command(userUid, "Weekly", 10);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
 
@@ -62,13 +62,13 @@ public class RemoveItemHandlerTest {
 
     // Assert
     _shoppingRepository.Received(1).RemoveItem(
-      userUid, command.ShoppingListName, command.ItemName);
+      userUid, command.ShoppingListName, command.ProductReferenceUid);
   }
 
   [Fact(DisplayName = "Saves changes to unit of work")]
   public async Task Handler_SavesChangesToUnitOfWork() {
     // Arrange
-    var command = new Command(Guid.NewGuid(), "Weekly", "Milk");
+    var command = new Command(Guid.NewGuid(), "Weekly", 10);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
 
@@ -79,10 +79,24 @@ public class RemoveItemHandlerTest {
     await _unitOfWork.Received(1).SaveChangesAsync(TestContext.Current.CancellationToken);
   }
 
+  [Fact(DisplayName = "Does not save changes when validation fails")]
+  public async Task Handler_DoesNotSaveChanges_WhenValidationFails() {
+    // Arrange
+    var command = new Command(Guid.NewGuid(), "Weekly", 10);
+    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
+      .Returns(new ValidationResult([new ValidationFailure()]));
+
+    // Act
+    await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+    // Assert
+    await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+  }
+
   [Fact(DisplayName = "Returns success result when handling is successful")]
   public async Task Handler_ReturnsSuccessResult_WhenHandlingIsSuccessful() {
     // Arrange
-    var command = new Command(Guid.NewGuid(), "Weekly", "Milk");
+    var command = new Command(Guid.NewGuid(), "Weekly", 10);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
 

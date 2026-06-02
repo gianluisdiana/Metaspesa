@@ -1444,7 +1444,7 @@ public static class ShoppingGrpcServiceTests {
         .Handle(Arg.Any<RemoveItem.Command>(), TestContext.Current.CancellationToken)
         .Returns(new DomainError(string.Empty, string.Empty, ErrorKind.Unexpected));
 
-      var request = new RemoveItemRequest { ShoppingListName = "Weekly", ItemName = "Milk" };
+      var request = new RemoveItemRequest { ShoppingListName = "Weekly", ProductReferenceUid = 10 };
 
       // Act
       async Task action() => await service.RemoveItem(request, CreateServerCallContext());
@@ -1460,7 +1460,7 @@ public static class ShoppingGrpcServiceTests {
         .Handle(Arg.Any<RemoveItem.Command>(), TestContext.Current.CancellationToken)
         .Returns(Result.Success());
 
-      var request = new RemoveItemRequest { ShoppingListName = "Weekly", ItemName = "Milk" };
+      var request = new RemoveItemRequest { ShoppingListName = "Weekly", ProductReferenceUid = 10 };
 
       // Act
       Empty response = await service.RemoveItem(request, CreateServerCallContext());
@@ -1469,22 +1469,39 @@ public static class ShoppingGrpcServiceTests {
       Assert.NotNull(response);
     }
 
-    [Fact(DisplayName = "Maps shopping list name and item name from request to command")]
-    public async Task Api_MapsNames_FromRequestToCommand() {
+    [Fact(DisplayName = "Maps shopping list name from request to command")]
+    public async Task Api_MapsShoppingListName_FromRequestToCommand() {
       // Arrange
       _useCaseHandler
         .Handle(Arg.Any<RemoveItem.Command>(), TestContext.Current.CancellationToken)
         .Returns(Result.Success());
 
-      var request = new RemoveItemRequest { ShoppingListName = "Weekly", ItemName = "Milk" };
+      var request = new RemoveItemRequest { ShoppingListName = "Weekly", ProductReferenceUid = 10 };
 
       // Act
       await service.RemoveItem(request, CreateServerCallContext());
 
       // Assert
       await _useCaseHandler.Received(1).Handle(
-        Arg.Is<RemoveItem.Command>(cmd =>
-          cmd.ShoppingListName == "Weekly" && cmd.ItemName == "Milk"),
+        Arg.Is<RemoveItem.Command>(cmd => cmd.ShoppingListName == "Weekly"),
+        TestContext.Current.CancellationToken);
+    }
+
+    [Fact(DisplayName = "Maps product reference UID from request to command")]
+    public async Task Api_MapsProductReferenceUid_FromRequestToCommand() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<RemoveItem.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new RemoveItemRequest { ShoppingListName = "Weekly", ProductReferenceUid = 10 };
+
+      // Act
+      await service.RemoveItem(request, CreateServerCallContext());
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<RemoveItem.Command>(cmd => cmd.ProductReferenceUid == 10),
         TestContext.Current.CancellationToken);
     }
 
@@ -1496,7 +1513,7 @@ public static class ShoppingGrpcServiceTests {
         .Handle(Arg.Any<RemoveItem.Command>(), TestContext.Current.CancellationToken)
         .Returns(Result.Success());
 
-      var request = new RemoveItemRequest { ShoppingListName = "Weekly", ItemName = "Milk" };
+      var request = new RemoveItemRequest { ShoppingListName = "Weekly", ProductReferenceUid = 10 };
 
       // Act
       await service.RemoveItem(request, CreateServerCallContext(expectedUid));

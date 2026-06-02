@@ -10,7 +10,7 @@ public static class RemoveItem {
   public record Command(
     Guid UserUid,
     string? ShoppingListName,
-    string ItemName
+    int ProductReferenceUid
   ) : ICommand;
 
   internal class Handler(
@@ -28,7 +28,7 @@ public static class RemoveItem {
       }
 
       shoppingRepository.RemoveItem(
-        command.UserUid, command.ShoppingListName, command.ItemName);
+        command.UserUid, command.ShoppingListName, command.ProductReferenceUid);
       await unitOfWork.SaveChangesAsync(cancellationToken);
 
       return Result.Success();
@@ -51,10 +51,10 @@ public static class RemoveItem {
       RuleFor(x => x)
         .MustAsync(async (command, ct) =>
           await shoppingRepository.CheckItemExistsAsync(
-            command.UserUid, command.ShoppingListName, command.ItemName, ct))
-        .WithName(nameof(Command.ItemName))
+            command.UserUid, command.ShoppingListName, command.ProductReferenceUid, ct))
+        .WithName(nameof(Command.ProductReferenceUid))
         .WithMessage(command =>
-          $"Item '{command.ItemName}' not found in the shopping list.")
+          $"Item '{command.ProductReferenceUid}' not found in the shopping list.")
         .WithErrorCode("ShoppingList.Item.NotFound")
         .WithState(_ => ErrorKind.Missing);
     }

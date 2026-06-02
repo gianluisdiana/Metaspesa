@@ -19,10 +19,13 @@ public class RemoveItemValidatorTest {
   public async Task Validator_Fails_WhenShoppingListDoesNotExist() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Nonexistent", "Milk");
+    var command = new Command(userUid, "Nonexistent", 10);
     _shoppingRepository
       .CheckShoppingListExistAsync(userUid, "Nonexistent", TestContext.Current.CancellationToken)
       .Returns(false);
+    _shoppingRepository
+      .CheckItemExistsAsync(userUid, "Nonexistent", 10, TestContext.Current.CancellationToken)
+      .Returns(true);
 
     // Act
     TestValidationResult<Command> result = await _validator.TestValidateAsync(
@@ -35,16 +38,39 @@ public class RemoveItemValidatorTest {
       .WithCustomState(ErrorKind.Missing);
   }
 
-  [Fact(DisplayName = "Fails when item does not exist in the list")]
-  public async Task Validator_Fails_WhenItemDoesNotExist() {
+  [Fact(DisplayName = "Fails with temporary list message when list name is null")]
+  public async Task Validator_Fails_WithTemporaryListMessage_WhenListNameIsNull() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", "Nonexistent");
+    var command = new Command(userUid, null, 10);
+    _shoppingRepository
+      .CheckShoppingListExistAsync(userUid, null, TestContext.Current.CancellationToken)
+      .Returns(false);
+    _shoppingRepository
+      .CheckItemExistsAsync(userUid, null, 10, TestContext.Current.CancellationToken)
+      .Returns(true);
+
+    // Act
+    TestValidationResult<Command> result = await _validator.TestValidateAsync(
+      command, cancellationToken: TestContext.Current.CancellationToken);
+
+    // Assert
+    result.ShouldHaveValidationErrorFor(x => x.ShoppingListName)
+      .WithErrorCode("ShoppingList.NotFound")
+      .WithErrorMessage($"User {userUid} doesn't have a temporary shopping list.")
+      .WithCustomState(ErrorKind.Missing);
+  }
+
+  [Fact(DisplayName = "Fails when product reference is not in the list")]
+  public async Task Validator_Fails_WhenProductReferenceIsNotInList() {
+    // Arrange
+    var userUid = Guid.NewGuid();
+    var command = new Command(userUid, "Weekly", 10);
     _shoppingRepository
       .CheckShoppingListExistAsync(userUid, "Weekly", TestContext.Current.CancellationToken)
       .Returns(true);
     _shoppingRepository
-      .CheckItemExistsAsync(userUid, "Weekly", "Nonexistent", TestContext.Current.CancellationToken)
+      .CheckItemExistsAsync(userUid, "Weekly", 10, TestContext.Current.CancellationToken)
       .Returns(false);
 
     // Act
@@ -52,22 +78,22 @@ public class RemoveItemValidatorTest {
       command, cancellationToken: TestContext.Current.CancellationToken);
 
     // Assert
-    result.ShouldHaveValidationErrorFor(x => x.ItemName)
+    result.ShouldHaveValidationErrorFor(x => x.ProductReferenceUid)
       .WithErrorCode("ShoppingList.Item.NotFound")
-      .WithErrorMessage($"Item 'Nonexistent' not found in the shopping list.")
+      .WithErrorMessage("Item '10' not found in the shopping list.")
       .WithCustomState(ErrorKind.Missing);
   }
 
-  [Fact(DisplayName = "Passes when list and item both exist")]
-  public async Task Validator_Passes_WhenListAndItemExist() {
+  [Fact(DisplayName = "Passes when list and product reference both exist")]
+  public async Task Validator_Passes_WhenListAndProductReferenceExist() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", "Milk");
+    var command = new Command(userUid, "Weekly", 10);
     _shoppingRepository
       .CheckShoppingListExistAsync(userUid, "Weekly", TestContext.Current.CancellationToken)
       .Returns(true);
     _shoppingRepository
-      .CheckItemExistsAsync(userUid, "Weekly", "Milk", TestContext.Current.CancellationToken)
+      .CheckItemExistsAsync(userUid, "Weekly", 10, TestContext.Current.CancellationToken)
       .Returns(true);
 
     // Act

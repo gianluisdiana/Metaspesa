@@ -112,10 +112,29 @@ internal partial class PostgreSqlShoppingRepository(
     }));
   }, "Couldn't add items to shopping list.");
 
+#pragma warning disable S1133 // Deprecated code should be removed
+  [Obsolete("CheckItemExistsAsync with item name should be removed in favor of the one with reference UID.")]
+#pragma warning restore S1133 // Deprecated code should be removed
   public async Task<bool> CheckItemExistsAsync(
     Guid userUid,
     string? listName,
     string itemName,
+    CancellationToken cancellationToken
+  ) => await PostgreSqlExceptionMapper.MapAsync(
+    async () => {
+      int referenceUid = await context.ProductsHistory
+        .Where(ph => EF.Functions.ILike(ph.Product.Name, itemName))
+        .Select(ph => ph.Id)
+        .FirstOrDefaultAsync(cancellationToken);
+
+      return await CheckItemExistsAsync(userUid, listName, referenceUid, cancellationToken);
+    },
+    "Couldn't check if shopping item exists.");
+
+  public async Task<bool> CheckItemExistsAsync(
+    Guid userUid,
+    string? listName,
+    int referenceUid,
     CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync(
     async () => await context.ShoppingItems
@@ -127,7 +146,7 @@ internal partial class PostgreSqlShoppingRepository(
             listName != null &&
             EF.Functions.ILike(i.ShoppingList.Name, listName)
           ) &&
-          EF.Functions.ILike(i.Product.Name, itemName),
+          i.ProductHistory.Id == referenceUid,
         cancellationToken),
     "Couldn't check if shopping item exists.");
 
@@ -171,7 +190,7 @@ internal partial class PostgreSqlShoppingRepository(
     item.IsChecked = update.IsChecked;
   }, "Couldn't update shopping item.");
 
-  public void RemoveItem(Guid userUid, string? listName, string itemName) =>
+  public void RemoveItem(Guid userUid, string? listName, int referenceUid) =>
     PostgreSqlExceptionMapper.Map(() => {
       ShoppingItemDbEntity item = context.ShoppingItems
         .Where(i => i.DeletedAt == null &&
@@ -181,7 +200,7 @@ internal partial class PostgreSqlShoppingRepository(
             listName != null &&
             EF.Functions.ILike(i.ShoppingList.Name, listName)
           ) &&
-          EF.Functions.ILike(i.Product.Name, itemName))
+          i.ProductHistory.Id == referenceUid)
         .First();
 
       item.DeletedAt = clock.GetCurrentTime();

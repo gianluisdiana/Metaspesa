@@ -147,7 +147,7 @@ internal class ShoppingGrpcService(
     var command = new RemoveItem.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
       ShoppingListName: GrpcTextSanitizer.SanitizeAscii(request.ShoppingListName),
-      ItemName: GrpcTextSanitizer.SanitizeAscii(request.ItemName));
+      ProductReferenceUid: request.ProductReferenceUid);
 
     Result result = await removeItemHandler.Handle(command, context.CancellationToken);
 
