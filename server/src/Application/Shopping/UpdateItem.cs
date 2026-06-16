@@ -12,10 +12,8 @@ public static class UpdateItem {
   public record Command(
     Guid UserUid,
     string? ShoppingListName,
-    string OriginalItemName,
-    string? NewName,
-    string? Quantity,
-    decimal? Price,
+    int ProductReferenceUid,
+    int? Amount,
     bool? IsChecked
   ) : ICommand;
 
@@ -33,35 +31,27 @@ public static class UpdateItem {
         return validationResult.ToDomainErrors();
       }
 
-      ShoppingItem? currentItem = await shoppingRepository.GetItemAsync(
+      AShoppingItem? currentItem = await shoppingRepository.GetItemAsync(
         command.UserUid,
         command.ShoppingListName,
-        command.OriginalItemName,
+        command.ProductReferenceUid,
         cancellationToken);
 
       if (currentItem is null) {
         return new DomainError(
           "ShoppingList.Item.NotFound",
-          $"Item '{command.OriginalItemName}' not found.",
+          $"Item with reference UID '{command.ProductReferenceUid}' not found.",
           ErrorKind.Missing);
       }
 
-      ShoppingItem updated = new(
-        Name: !string.IsNullOrWhiteSpace(command.NewName)
-          ? command.NewName
-          : currentItem.Name,
-        Quantity: !string.IsNullOrWhiteSpace(command.Quantity)
-          ? new Quantity(command.Quantity)
-          : currentItem.Quantity,
-        Price: command.Price.HasValue
-          ? new Price(command.Price.Value)
-          : currentItem.Price,
+      AShoppingItem updated = new(
+        ReferenceUid: currentItem.ReferenceUid,
+        Amount: command.Amount ?? currentItem.Amount,
         IsChecked: command.IsChecked ?? currentItem.IsChecked
       );
 
       shoppingRepository.UpdateItem(
-        command.UserUid, command.ShoppingListName,
-        command.OriginalItemName, updated);
+        command.UserUid, command.ShoppingListName, updated);
       await unitOfWork.SaveChangesAsync(cancellationToken);
 
       return Result.Success();
@@ -82,53 +72,17 @@ public static class UpdateItem {
         .WithState(_ => ErrorKind.Missing);
 
       RuleFor(x => x)
-        .MustAsync(async (command, ct) =>
-          !await shoppingRepository.CheckItemExistsAsync(
-            command.UserUid, command.ShoppingListName, command.NewName!, ct))
-        .When(x => x.NewName != null &&
-          !x.NewName.Equals(x.OriginalItemName, StringComparison.OrdinalIgnoreCase))
-        .WithName(nameof(Command.NewName))
-        .WithMessage(command =>
-          $"Item '{command.NewName}' already exists in the shopping list.")
-        .WithErrorCode("ShoppingList.Item.AlreadyExists")
-        .WithState(_ => ErrorKind.Conflict);
-
-      RuleFor(x => x.Price)
-        .Must(price => PricePolicy.IsValidPrice(price!.Value))
-        .When(x => x.Price.HasValue)
-        .WithMessage(DescribeInvalidPrice)
-        .WithErrorCode("ShoppingList.Items.Price.Negative");
-
-      RuleFor(x => x.Quantity)
-        .MaximumLength(Quantity.MaximumLength)
-        .When(x => x.Quantity != null)
-        .WithMessage(DescribeTooLongQuantity)
-        .WithErrorCode("ShoppingList.Items.Quantity.TooLong");
-
-      RuleFor(x => x)
         .Must(command =>
-          !string.IsNullOrWhiteSpace(command.NewName) ||
-          !string.IsNullOrWhiteSpace(command.Quantity) ||
-          command.Price.HasValue ||
+          command.Amount.HasValue ||
           command.IsChecked.HasValue)
         .WithMessage("At least one field must be provided to update the item.")
         .WithErrorCode("ShoppingList.Item.NoFieldsToUpdate");
-    }
 
-    private static string DescribeInvalidPrice(Command command) {
-      string prefix = string.IsNullOrWhiteSpace(command.OriginalItemName)
-        ? "Item price"
-        : $"Item '{command.OriginalItemName}' price";
-
-      return $"{prefix} '{command.Price!.Value.ToString(CultureInfo.InvariantCulture)}' must be greater than or equal to 0.";
-    }
-
-    private static string DescribeTooLongQuantity(Command command) {
-      string prefix = string.IsNullOrWhiteSpace(command.OriginalItemName)
-        ? "Item quantity"
-        : $"Item '{command.OriginalItemName}' quantity";
-
-      return $"{prefix} length {command.Quantity!.Length} must not exceed {Quantity.MaximumLength} characters.";
+      RuleFor(x => x.Amount)
+        .GreaterThan(0)
+        .When(x => x.Amount.HasValue)
+        .WithMessage("Amount must be greater than zero.")
+        .WithErrorCode("ShoppingList.Item.InvalidAmount");
     }
   }
 }

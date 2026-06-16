@@ -105,11 +105,9 @@ internal class ShoppingGrpcService(
     var command = new UpdateItem.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
       ShoppingListName: GrpcTextSanitizer.SanitizeAscii(request.ShoppingListName),
-      OriginalItemName: GrpcTextSanitizer.SanitizeAscii(request.OriginalItemName),
-      NewName: request.HasItemName ? GrpcTextSanitizer.SanitizeAscii(request.ItemName) : null,
-      Quantity: request.HasItemQuantity ? GrpcTextSanitizer.SanitizeAscii(request.ItemQuantity) : null,
-      Price: request.HasItemPrice ? GrpcPriceConverter.ToDecimal(request.ItemPrice) : null,
-      IsChecked: request.HasChecked ? request.Checked : null);
+      ProductReferenceUid: request.ProductReferenceUid,
+      Amount: request.HasAmount ? request.Amount : null,
+      IsChecked: request.HasIsChecked ? request.IsChecked : null);
 
     Result result = await updateItemHandler.Handle(command, context.CancellationToken);
 

@@ -1051,7 +1051,7 @@ public static class ShoppingGrpcServiceTests {
         .Returns(new DomainError(string.Empty, string.Empty, ErrorKind.Unexpected));
 
       var request = new UpdateItemRequest {
-        ShoppingListName = "Weekly", OriginalItemName = "Milk", ItemPrice = "3"
+        ShoppingListName = "Weekly", ProductReferenceUid = 10, Amount = 3
       };
 
       // Act
@@ -1069,7 +1069,7 @@ public static class ShoppingGrpcServiceTests {
         .Returns(Result.Success());
 
       var request = new UpdateItemRequest {
-        ShoppingListName = "Weekly", OriginalItemName = "Milk", ItemPrice = "3"
+        ShoppingListName = "Weekly", ProductReferenceUid = 10, Amount = 3
       };
 
       // Act
@@ -1079,15 +1079,15 @@ public static class ShoppingGrpcServiceTests {
       Assert.NotNull(response);
     }
 
-    [Fact(DisplayName = "Maps shopping list name and item name from request to command")]
-    public async Task Api_MapsNames_FromRequestToCommand() {
+    [Fact(DisplayName = "Maps shopping list name from request to command")]
+    public async Task Api_MapsShoppingListName_FromRequestToCommand() {
       // Arrange
       _useCaseHandler
         .Handle(Arg.Any<UpdateItem.Command>(), TestContext.Current.CancellationToken)
         .Returns(Result.Success());
 
       var request = new UpdateItemRequest {
-        ShoppingListName = "Weekly", OriginalItemName = "Milk"
+        ShoppingListName = "Weekly", ProductReferenceUid = 10
       };
 
       // Act
@@ -1095,60 +1095,19 @@ public static class ShoppingGrpcServiceTests {
 
       // Assert
       await _useCaseHandler.Received(1).Handle(
-        Arg.Is<UpdateItem.Command>(cmd =>
-          cmd.ShoppingListName == "Weekly" && cmd.OriginalItemName == "Milk"),
+        Arg.Is<UpdateItem.Command>(cmd => cmd.ShoppingListName == "Weekly"),
         TestContext.Current.CancellationToken);
     }
 
-    [Fact(DisplayName = "Maps price from request to command when present")]
-    public async Task Api_MapsPrice_FromRequestToCommand_WhenPresent() {
+    [Fact(DisplayName = "Maps product reference UID from request to command")]
+    public async Task Api_MapsProductReferenceUid_FromRequestToCommand() {
       // Arrange
       _useCaseHandler
         .Handle(Arg.Any<UpdateItem.Command>(), TestContext.Current.CancellationToken)
         .Returns(Result.Success());
 
       var request = new UpdateItemRequest {
-        ShoppingListName = "Weekly", OriginalItemName = "Milk", ItemPrice = "3.5"
-      };
-
-      // Act
-      await service.UpdateItem(request, CreateServerCallContext());
-
-      // Assert
-      const decimal Epsilon = 0.01m;
-      await _useCaseHandler.Received(1).Handle(
-        Arg.Is<UpdateItem.Command>(cmd =>
-          cmd.Price.HasValue && Math.Abs(cmd.Price.Value - 3.5m) < Epsilon),
-        TestContext.Current.CancellationToken);
-    }
-
-    [Fact(DisplayName = "Maps null price when request has no price")]
-    public async Task Api_MapsNullPrice_WhenRequestHasNoPrice() {
-      // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<UpdateItem.Command>(), TestContext.Current.CancellationToken)
-        .Returns(Result.Success());
-
-      var request = new UpdateItemRequest { ShoppingListName = "Weekly", OriginalItemName = "Milk" };
-
-      // Act
-      await service.UpdateItem(request, CreateServerCallContext());
-
-      // Assert
-      await _useCaseHandler.Received(1).Handle(
-        Arg.Is<UpdateItem.Command>(cmd => cmd.Price == null),
-        TestContext.Current.CancellationToken);
-    }
-
-    [Fact(DisplayName = "Maps quantity from request to command when present")]
-    public async Task Api_MapsQuantity_FromRequestToCommand_WhenPresent() {
-      // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<UpdateItem.Command>(), TestContext.Current.CancellationToken)
-        .Returns(Result.Success());
-
-      var request = new UpdateItemRequest {
-        ShoppingListName = "Weekly", OriginalItemName = "Milk", ItemQuantity = "2 litres"
+        ShoppingListName = "Weekly", ProductReferenceUid = 10
       };
 
       // Act
@@ -1156,37 +1115,19 @@ public static class ShoppingGrpcServiceTests {
 
       // Assert
       await _useCaseHandler.Received(1).Handle(
-        Arg.Is<UpdateItem.Command>(cmd => cmd.Quantity == "2 litres"),
+        Arg.Is<UpdateItem.Command>(cmd => cmd.ProductReferenceUid == 10),
         TestContext.Current.CancellationToken);
     }
 
-    [Fact(DisplayName = "Maps null quantity when request has no quantity")]
-    public async Task Api_MapsNullQuantity_WhenRequestHasNoQuantity() {
-      // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<UpdateItem.Command>(), TestContext.Current.CancellationToken)
-        .Returns(Result.Success());
-
-      var request = new UpdateItemRequest { ShoppingListName = "Weekly", OriginalItemName = "Milk" };
-
-      // Act
-      await service.UpdateItem(request, CreateServerCallContext());
-
-      // Assert
-      await _useCaseHandler.Received(1).Handle(
-        Arg.Is<UpdateItem.Command>(cmd => cmd.Quantity == null),
-        TestContext.Current.CancellationToken);
-    }
-
-    [Fact(DisplayName = "Maps new item name from request when present")]
-    public async Task Api_MapsNewItemName_FromRequest_WhenPresent() {
+    [Fact(DisplayName = "Maps amount from request to command when present")]
+    public async Task Api_MapsAmount_FromRequestToCommand_WhenPresent() {
       // Arrange
       _useCaseHandler
         .Handle(Arg.Any<UpdateItem.Command>(), TestContext.Current.CancellationToken)
         .Returns(Result.Success());
 
       var request = new UpdateItemRequest {
-        ShoppingListName = "Weekly", OriginalItemName = "Milk", ItemName = "Whole Milk"
+        ShoppingListName = "Weekly", ProductReferenceUid = 10, Amount = 3
       };
 
       // Act
@@ -1194,19 +1135,39 @@ public static class ShoppingGrpcServiceTests {
 
       // Assert
       await _useCaseHandler.Received(1).Handle(
-        Arg.Is<UpdateItem.Command>(cmd => cmd.NewName == "Whole Milk"),
+        Arg.Is<UpdateItem.Command>(cmd => cmd.Amount == 3),
         TestContext.Current.CancellationToken);
     }
 
-    [Fact(DisplayName = "Maps null new name when request has no item name")]
-    public async Task Api_MapsNullNewName_WhenRequestHasNoItemName() {
+    [Fact(DisplayName = "Maps null amount when request has no amount")]
+    public async Task Api_MapsNullAmount_WhenRequestHasNoAmount() {
+      // Arrange
+      _useCaseHandler
+        .Handle(Arg.Any<UpdateItem.Command>(), TestContext.Current.CancellationToken)
+        .Returns(Result.Success());
+
+      var request = new UpdateItemRequest { ShoppingListName = "Weekly", ProductReferenceUid = 10 };
+
+      // Act
+      await service.UpdateItem(request, CreateServerCallContext());
+
+      // Assert
+      await _useCaseHandler.Received(1).Handle(
+        Arg.Is<UpdateItem.Command>(cmd => cmd.Amount == null),
+        TestContext.Current.CancellationToken);
+    }
+
+    [Theory(DisplayName = "Maps checked from request when present")]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Api_MapsChecked_FromRequestToCommand_WhenPresent(bool isChecked) {
       // Arrange
       _useCaseHandler
         .Handle(Arg.Any<UpdateItem.Command>(), TestContext.Current.CancellationToken)
         .Returns(Result.Success());
 
       var request = new UpdateItemRequest {
-        ShoppingListName = "Weekly", OriginalItemName = "Milk"
+        ShoppingListName = "Weekly", ProductReferenceUid = 10, IsChecked = isChecked
       };
 
       // Act
@@ -1214,27 +1175,7 @@ public static class ShoppingGrpcServiceTests {
 
       // Assert
       await _useCaseHandler.Received(1).Handle(
-        Arg.Is<UpdateItem.Command>(cmd => cmd.NewName == null),
-        TestContext.Current.CancellationToken);
-    }
-
-    [Fact(DisplayName = "Maps checked from request when present")]
-    public async Task Api_MapsChecked_FromRequestToCommand_WhenPresent() {
-      // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<UpdateItem.Command>(), TestContext.Current.CancellationToken)
-        .Returns(Result.Success());
-
-      var request = new UpdateItemRequest {
-        ShoppingListName = "Weekly", OriginalItemName = "Milk", Checked = true
-      };
-
-      // Act
-      await service.UpdateItem(request, CreateServerCallContext());
-
-      // Assert
-      await _useCaseHandler.Received(1).Handle(
-        Arg.Is<UpdateItem.Command>(cmd => cmd.IsChecked == true),
+        Arg.Is<UpdateItem.Command>(cmd => cmd.IsChecked == isChecked),
         TestContext.Current.CancellationToken);
     }
 
@@ -1245,9 +1186,7 @@ public static class ShoppingGrpcServiceTests {
         .Handle(Arg.Any<UpdateItem.Command>(), TestContext.Current.CancellationToken)
         .Returns(Result.Success());
 
-      var request = new UpdateItemRequest {
-        ShoppingListName = "Weekly", OriginalItemName = "Milk"
-      };
+      var request = new UpdateItemRequest { ShoppingListName = "Weekly", ProductReferenceUid = 10 };
 
       // Act
       await service.UpdateItem(request, CreateServerCallContext());
@@ -1266,7 +1205,7 @@ public static class ShoppingGrpcServiceTests {
         .Handle(Arg.Any<UpdateItem.Command>(), TestContext.Current.CancellationToken)
         .Returns(Result.Success());
 
-      var request = new UpdateItemRequest { ShoppingListName = "Weekly", OriginalItemName = "Milk" };
+      var request = new UpdateItemRequest { ShoppingListName = "Weekly", ProductReferenceUid = 10 };
 
       // Act
       await service.UpdateItem(request, CreateServerCallContext(expectedUid));

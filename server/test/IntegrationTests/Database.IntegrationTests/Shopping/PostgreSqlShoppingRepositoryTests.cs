@@ -639,7 +639,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       var market = new SuperMarketDbEntity { Name = $"Test market {Guid.CreateVersion7()}" };
       var brand = new ProductBrandDbEntity { Name = $"Test brand {Guid.CreateVersion7()}" };
       var unit = new UnitOfMeasureDbEntity {
-        Code = $"u{Guid.NewGuid():N}"[..8],
+        Code = $"u{Guid.CreateVersion7():N}"[..16],
         Name = $"Test unit {Guid.CreateVersion7()}",
       };
       var product = new ProductDbEntity {
@@ -738,12 +738,9 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
-      ShoppingItem? item = await _repository.GetItemAsync(
-        userUid, "Weekly", "Milk", TestContext.Current.CancellationToken);
-      Assert.NotNull(item);
-      Assert.Equal("Milk", item.Name);
-      Assert.Equal("2", item.Quantity?.Value);
-      Assert.Equal(2.5m, item.Price.Value);
+      AShoppingItem? item = await _repository.GetItemAsync(
+        userUid, "Weekly", milkReferenceUid, TestContext.Current.CancellationToken);
+      Assert.Equal(milkReferenceUid, item!.ReferenceUid);
     }
 
     [Fact(
@@ -829,7 +826,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       var market = new SuperMarketDbEntity { Name = $"Test market {Guid.CreateVersion7()}" };
       var brand = new ProductBrandDbEntity { Name = $"Test brand {Guid.CreateVersion7()}" };
       var unit = new UnitOfMeasureDbEntity {
-        Code = $"u{Guid.NewGuid():N}"[..8],
+        Code = $"u{Guid.CreateVersion7():N}"[..16],
         Name = $"Test unit {Guid.CreateVersion7()}",
       };
       var product = new ProductDbEntity {
@@ -976,6 +973,36 @@ public static class PostgreSqlShoppingRepositoryTests {
       GC.SuppressFinalize(this);
     }
 
+    private async Task<int> SeedProductHistoryAsync(string productName) {
+      var market = new SuperMarketDbEntity { Name = $"Test market {Guid.CreateVersion7()}" };
+      var brand = new ProductBrandDbEntity { Name = $"Test brand {Guid.CreateVersion7()}" };
+      var unit = new UnitOfMeasureDbEntity {
+        Code = $"u{Guid.CreateVersion7():N}"[..16],
+        Name = $"Test unit {Guid.CreateVersion7()}",
+      };
+      var product = new ProductDbEntity {
+        Name = productName,
+        SuperMarket = market,
+        Brand = brand,
+      };
+      var format = new ProductFormatDbEntity {
+        Product = product,
+        Quantity = 1,
+        UnitOfMeasure = unit,
+        ImageUrl = "https://example.test/product.png",
+      };
+      var history = new ProductsHistoryDbEntity {
+        Product = product,
+        ProductFormat = format,
+        Price = 1.25m,
+        CreatedAt = DateTime.UtcNow,
+      };
+
+      _context.ProductsHistory.Add(history);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      return history.Id;
+    }
+
     [Fact(
       Explicit = true,
       DisplayName = "Returns null when item does not exist")]
@@ -990,8 +1017,8 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      ShoppingItem? result = await _repository.GetItemAsync(
-        userUid, "Weekly", "Milk", TestContext.Current.CancellationToken);
+      AShoppingItem? result = await _repository.GetItemAsync(
+        userUid, "Weekly", 10, TestContext.Current.CancellationToken);
 
       // Assert
       Assert.Null(result);
@@ -1009,18 +1036,18 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      int referenceUid = await SeedProductHistoryAsync("Milk");
       _repository.AddItemsToList(
-        userUid, "Weekly", [new AShoppingItem(1, 1, false)]);
+        userUid, "Weekly", [new AShoppingItem(referenceUid, 1, false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      ShoppingItem? result = await _repository.GetItemAsync(
-        userUid, "Weekly", "Milk", TestContext.Current.CancellationToken);
+      AShoppingItem? result = await _repository.GetItemAsync(
+        userUid, "Weekly", referenceUid, TestContext.Current.CancellationToken);
 
       // Assert
       Assert.NotNull(result);
-      Assert.Equal("Milk", result.Name);
-      Assert.Equal("2L", result.Quantity?.Value);
+      Assert.Equal(referenceUid, result.ReferenceUid);
     }
 
     [Fact(
@@ -1035,15 +1062,16 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      int referenceUid = await SeedProductHistoryAsync("Milk");
       _repository.AddItemsToList(
-        userUid, "Weekly", [new AShoppingItem(1, 1, false)]);
+        userUid, "Weekly", [new AShoppingItem(referenceUid, 1, false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      _repository.RemoveItem(userUid, "Weekly", 1);
+      _repository.RemoveItem(userUid, "Weekly", referenceUid);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      ShoppingItem? result = await _repository.GetItemAsync(
-        userUid, "Weekly", "Milk", TestContext.Current.CancellationToken);
+      AShoppingItem? result = await _repository.GetItemAsync(
+        userUid, "Weekly", referenceUid, TestContext.Current.CancellationToken);
 
       // Assert
       Assert.Null(result);
@@ -1059,15 +1087,16 @@ public static class PostgreSqlShoppingRepositoryTests {
         Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      _repository.CreateShoppingList(userUid, "Weekly");
+      _repository.CreateShoppingList(userUid, "weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      int referenceUid = await SeedProductHistoryAsync("Milk");
       _repository.AddItemsToList(
-        userUid, "Weekly", [new AShoppingItem(1, 1, false)]);
+        userUid, "weekly", [new AShoppingItem(referenceUid, 1, false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      ShoppingItem? result = await _repository.GetItemAsync(
-        userUid, "Weekly", "MILK", TestContext.Current.CancellationToken);
+      AShoppingItem? result = await _repository.GetItemAsync(
+        userUid, "WEEKLY", referenceUid, TestContext.Current.CancellationToken);
 
       // Assert
       Assert.NotNull(result);
@@ -1191,41 +1220,40 @@ public static class PostgreSqlShoppingRepositoryTests {
       GC.SuppressFinalize(this);
     }
 
-    [Fact(
-      Explicit = true,
-      DisplayName = "Updates item name")]
-    public async Task UpdateItem_UpdatesName_WhenNewNameProvided() {
-      // Arrange
-      var userUid = Guid.CreateVersion7();
-      _context.Users.Add(new UserDbEntity {
-        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
-      });
-      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      _repository.CreateShoppingList(userUid, "Weekly");
-      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      _repository.AddItemsToList(
-        userUid, "Weekly", [new AShoppingItem(1, 1, false)]);
-      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    private async Task<int> SeedProductHistoryAsync(string productName) {
+      var market = new SuperMarketDbEntity { Name = $"Test market {Guid.CreateVersion7()}" };
+      var brand = new ProductBrandDbEntity { Name = $"Test brand {Guid.CreateVersion7()}" };
+      var unit = new UnitOfMeasureDbEntity {
+        Code = $"u{Guid.CreateVersion7():N}"[..16],
+        Name = $"Test unit {Guid.CreateVersion7()}",
+      };
+      var product = new ProductDbEntity {
+        Name = productName,
+        SuperMarket = market,
+        Brand = brand,
+      };
+      var format = new ProductFormatDbEntity {
+        Product = product,
+        Quantity = 1,
+        UnitOfMeasure = unit,
+        ImageUrl = "https://example.test/product.png",
+      };
+      var history = new ProductsHistoryDbEntity {
+        Product = product,
+        ProductFormat = format,
+        Price = 1.25m,
+        CreatedAt = DateTime.UtcNow,
+      };
 
-      // Act
-      _repository.UpdateItem(
-        userUid,
-        "Weekly",
-        "Milk",
-        new ShoppingItem("Whole Milk", null, new Price(1.5m), false));
+      _context.ProductsHistory.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-      // Assert
-      ShoppingItem? result = await _repository.GetItemAsync(
-        userUid, "Weekly", "Whole Milk", TestContext.Current.CancellationToken);
-      Assert.NotNull(result);
-      Assert.Equal("Whole Milk", result.Name);
+      return history.Id;
     }
 
     [Fact(
       Explicit = true,
-      DisplayName = "Updates item price")]
-    public async Task UpdateItem_UpdatesPrice_WhenNewPriceProvided() {
+      DisplayName = "Updates item amount")]
+    public async Task UpdateItem_UpdatesAmount_WhenNewAmountProvided() {
       // Arrange
       var userUid = Guid.CreateVersion7();
       _context.Users.Add(new UserDbEntity {
@@ -1234,23 +1262,23 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      int referenceUid = await SeedProductHistoryAsync("Milk");
       _repository.AddItemsToList(
-        userUid, "Weekly", [new AShoppingItem(1, 1, false)]);
+        userUid, "Weekly", [new AShoppingItem(referenceUid, 1, false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
       _repository.UpdateItem(
         userUid,
         "Weekly",
-        "Milk",
-        new ShoppingItem("Milk", null, new Price(3.5m), false));
+        new AShoppingItem(referenceUid, 3, false));
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
-      ShoppingItem? result = await _repository.GetItemAsync(
-        userUid, "Weekly", "Milk", TestContext.Current.CancellationToken);
+      AShoppingItem? result = await _repository.GetItemAsync(
+        userUid, "Weekly", referenceUid, TestContext.Current.CancellationToken);
       Assert.NotNull(result);
-      Assert.Equal(3.5m, result.Price.Value);
+      Assert.Equal(3, result.Amount);
     }
 
     [Fact(
@@ -1265,29 +1293,29 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      int referenceUid = await SeedProductHistoryAsync("Milk");
       _repository.AddItemsToList(
-        userUid, "Weekly", [new AShoppingItem(1, 1, false)]);
+        userUid, "Weekly", [new AShoppingItem(referenceUid, 1, false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
       _repository.UpdateItem(
         userUid,
         "Weekly",
-        "Milk",
-        new ShoppingItem("Milk", null, new Price(1.5m), true));
+        new AShoppingItem(referenceUid, 1, true));
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
-      ShoppingItem? result = await _repository.GetItemAsync(
-        userUid, "Weekly", "Milk", TestContext.Current.CancellationToken);
+      AShoppingItem? result = await _repository.GetItemAsync(
+        userUid, "Weekly", referenceUid, TestContext.Current.CancellationToken);
       Assert.NotNull(result);
       Assert.True(result.IsChecked);
     }
 
     [Fact(
       Explicit = true,
-      DisplayName = "Updates item quantity")]
-    public async Task UpdateItem_UpdatesQuantity_WhenNewQuantityProvided() {
+      DisplayName = "Preserves checked state when only amount changes")]
+    public async Task UpdateItem_PreservesCheckedState_WhenOnlyAmountChanges() {
       // Arrange
       var userUid = Guid.CreateVersion7();
       _context.Users.Add(new UserDbEntity {
@@ -1296,23 +1324,60 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      int referenceUid = await SeedProductHistoryAsync("Milk");
       _repository.AddItemsToList(
-        userUid, "Weekly", [new AShoppingItem(1, 1, false)]);
+        userUid, "Weekly", [new AShoppingItem(referenceUid, 1, true)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
       _repository.UpdateItem(
         userUid,
         "Weekly",
-        "Milk",
-        new ShoppingItem("Milk", "2L", new Price(1.5m), false));
+        new AShoppingItem(referenceUid, 2, true));
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
-      ShoppingItem? result = await _repository.GetItemAsync(
-        userUid, "Weekly", "Milk", TestContext.Current.CancellationToken);
+      AShoppingItem? result = await _repository.GetItemAsync(
+        userUid, "Weekly", referenceUid, TestContext.Current.CancellationToken);
       Assert.NotNull(result);
-      Assert.Equal("2L", result.Quantity?.Value);
+      Assert.True(result.IsChecked);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Does not update matching reference from another user's list")]
+    public async Task UpdateItem_DoesNotUpdateMatchingReference_FromAnotherUsersList() {
+      // Arrange
+      var userUid = Guid.CreateVersion7();
+      var otherUid = Guid.CreateVersion7();
+      _context.Users.AddRange(
+        new UserDbEntity {
+          Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
+        },
+        new UserDbEntity {
+          Uid = otherUid, Username = otherUid.ToString(), EncryptedPassword = "x", RoleId = 1
+        });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      _repository.CreateShoppingList(userUid, "Weekly");
+      _repository.CreateShoppingList(otherUid, "Weekly");
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      int referenceUid = await SeedProductHistoryAsync("Milk");
+      _repository.AddItemsToList(userUid, "Weekly", [new AShoppingItem(referenceUid, 1, false)]);
+      _repository.AddItemsToList(otherUid, "Weekly", [new AShoppingItem(referenceUid, 1, false)]);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      _repository.UpdateItem(
+        userUid,
+        "Weekly",
+        new AShoppingItem(referenceUid, 5, false));
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Assert
+      AShoppingItem? result = await _repository.GetItemAsync(
+        otherUid, "Weekly", referenceUid, TestContext.Current.CancellationToken);
+      Assert.NotNull(result);
+      Assert.Equal(1, result.Amount);
     }
   }
 
@@ -1342,7 +1407,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       var market = new SuperMarketDbEntity { Name = $"Test market {Guid.CreateVersion7()}" };
       var brand = new ProductBrandDbEntity { Name = $"Test brand {Guid.CreateVersion7()}" };
       var unit = new UnitOfMeasureDbEntity {
-        Code = $"u{Guid.NewGuid():N}"[..8],
+        Code = $"u{Guid.CreateVersion7():N}"[..16],
         Name = $"Test unit {Guid.CreateVersion7()}",
       };
       var product = new ProductDbEntity {

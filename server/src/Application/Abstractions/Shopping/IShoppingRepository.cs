@@ -12,11 +12,11 @@ public interface IShoppingRepository {
   void CreateShoppingList(Guid userUid, string? name);
   void UpdateShoppingListName(Guid userUid, string? listName, string? newName);
   void AddItemsToList(Guid userUid, string? listName, IReadOnlyCollection<AShoppingItem> items);
-  Task<bool> CheckItemExistsAsync(Guid userUid, string? listName, string itemName, CancellationToken cancellationToken);
   Task<bool> CheckItemExistsAsync(
     Guid userUid, string? listName, int referenceUid, CancellationToken cancellationToken);
-  Task<ShoppingItem?> GetItemAsync(Guid userUid, string? listName, string itemName, CancellationToken cancellationToken);
-  void UpdateItem(Guid userUid, string? listName, string originalItemName, ShoppingItem update);
+  Task<AShoppingItem?> GetItemAsync(
+    Guid userUid, string? listName, int referenceUid, CancellationToken cancellationToken);
+  void UpdateItem(Guid userUid, string? listName, AShoppingItem update);
   void RemoveItem(Guid userUid, string? listName, int referenceUid);
   void RecordShoppingList(Guid userUid, ShoppingList shoppingList);
 }

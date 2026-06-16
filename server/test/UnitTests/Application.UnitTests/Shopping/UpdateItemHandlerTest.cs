@@ -14,7 +14,7 @@ public class UpdateItemHandlerTest {
   private readonly IUnitOfWork _unitOfWork;
   private readonly Handler _handler;
 
-  private static ShoppingItem DefaultCurrentItem => new("Milk", null, Price.Empty, false);
+  private static AShoppingItem CurrentItem => new(10, 2, false);
 
   public UpdateItemHandlerTest() {
     _validator = Substitute.For<IValidator<Command>>();
@@ -26,8 +26,7 @@ public class UpdateItemHandlerTest {
   [Fact(DisplayName = "Returns errors when validation fails")]
   public async Task Handler_ReturnsErrors_WhenValidationFails() {
     // Arrange
-    var command = new Command(
-      Guid.NewGuid(), "Weekly", "Milk", null, null, null, null);
+    var command = new Command(Guid.NewGuid(), "Weekly", 10, 3, null);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult([new ValidationFailure()]));
 
@@ -41,8 +40,7 @@ public class UpdateItemHandlerTest {
   [Fact(DisplayName = "Does not update item when validation fails")]
   public async Task Handler_DoesNotUpdateItem_WhenValidationFails() {
     // Arrange
-    var command = new Command(
-      Guid.NewGuid(), "Weekly", "Milk", null, null, null, null);
+    var command = new Command(Guid.NewGuid(), "Weekly", 10, 3, null);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult([new ValidationFailure()]));
 
@@ -51,247 +49,132 @@ public class UpdateItemHandlerTest {
 
     // Assert
     _shoppingRepository.DidNotReceive().UpdateItem(
-      Arg.Any<Guid>(), Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<ShoppingItem>());
+      Arg.Any<Guid>(), Arg.Any<string?>(), Arg.Any<AShoppingItem>());
   }
 
-  [Fact(DisplayName = "Updates item's name when new name is provided")]
-  public async Task Handler_UpdatesItemName_WhenNewNameIsProvided() {
+  [Fact(DisplayName = "Updates item amount when amount is provided")]
+  public async Task Handler_UpdatesItemAmount_WhenAmountIsProvided() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(
-      userUid, "Weekly", "Milk", "Whole Milk", null, null, null);
+    var command = new Command(userUid, "Weekly", 10, 5, null);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
     _shoppingRepository.GetItemAsync(
-        userUid,
-        command.ShoppingListName,
-        command.OriginalItemName,
+        userUid, command.ShoppingListName, command.ProductReferenceUid,
         TestContext.Current.CancellationToken)
-      .Returns(DefaultCurrentItem);
+      .Returns(CurrentItem);
 
     // Act
     await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
     _shoppingRepository.Received(1).UpdateItem(
-      Arg.Any<Guid>(),
-      Arg.Any<string?>(),
-      Arg.Any<string>(),
-      Arg.Is<ShoppingItem>(x => x.Name == command.NewName));
+      userUid,
+      "Weekly",
+      Arg.Is<AShoppingItem>(x => x.Amount == 5));
   }
 
-  [Fact(DisplayName = "Updates item's quantity when new quantity is provided")]
-  public async Task Handler_UpdatesItemQuantity_WhenNewQuantityIsProvided() {
-    // Arrange
-    var userUid = Guid.NewGuid();
-    var command = new Command(
-      userUid, "Weekly", "Milk", null, "2 litres", null, null);
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult());
-    _shoppingRepository.GetItemAsync(
-        userUid,
-        command.ShoppingListName,
-        command.OriginalItemName,
-        TestContext.Current.CancellationToken)
-      .Returns(DefaultCurrentItem);
-
-    // Act
-    await _handler.Handle(command, TestContext.Current.CancellationToken);
-
-    // Assert
-    _shoppingRepository.Received(1).UpdateItem(
-      Arg.Any<Guid>(),
-      Arg.Any<string?>(),
-      Arg.Any<string>(),
-      Arg.Is<ShoppingItem>(x => x.Quantity != null && x.Quantity.Value == command.Quantity));
-  }
-
-  [Theory(DisplayName = "Updates item's price when new price is provided")]
-  [InlineData(3.99)]
-  [InlineData(0)]
-  public async Task Handler_UpdatesItemPrice_WhenNewPriceIsProvided(double newPrice) {
-    // Arrange
-    var userUid = Guid.NewGuid();
-    var command = new Command(
-      userUid, "Weekly", "Milk", null, null, (decimal)newPrice, null);
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult());
-    _shoppingRepository.GetItemAsync(
-        userUid,
-        command.ShoppingListName,
-        command.OriginalItemName,
-        TestContext.Current.CancellationToken)
-      .Returns(DefaultCurrentItem);
-
-    // Act
-    await _handler.Handle(command, TestContext.Current.CancellationToken);
-
-    // Assert
-    _shoppingRepository.Received(1).UpdateItem(
-      Arg.Any<Guid>(),
-      Arg.Any<string?>(),
-      Arg.Any<string>(),
-      Arg.Is<ShoppingItem>(x => x.Price == new Price(command.Price!.Value)));
-  }
-
-  [Theory(DisplayName = "Updates item's checked status when new checked status is provided")]
+  [Theory(DisplayName = "Updates item checked state when checked state is provided")]
   [InlineData(true)]
   [InlineData(false)]
-  public async Task Handler_UpdatesItemCheckedStatus_WhenNewCheckedStatusIsProvided(
-    bool isChecked
-  ) {
+  public async Task Handler_UpdatesItemCheckedState_WhenCheckedStateIsProvided(bool isChecked) {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(
-      userUid, "Weekly", "Milk", null, null, null, isChecked);
+    var command = new Command(userUid, "Weekly", 10, null, isChecked);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
     _shoppingRepository.GetItemAsync(
-        userUid,
-        command.ShoppingListName,
-        command.OriginalItemName,
+        userUid, command.ShoppingListName, command.ProductReferenceUid,
         TestContext.Current.CancellationToken)
-      .Returns(DefaultCurrentItem with { IsChecked = !isChecked });
+      .Returns(CurrentItem with { IsChecked = !isChecked });
 
     // Act
     await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
     _shoppingRepository.Received(1).UpdateItem(
-      Arg.Any<Guid>(),
-      Arg.Any<string?>(),
-      Arg.Any<string>(),
-      Arg.Is<ShoppingItem>(x => x.IsChecked == command.IsChecked));
+      userUid,
+      "Weekly",
+      Arg.Is<AShoppingItem>(x => x.IsChecked == isChecked));
   }
 
-  [Theory(DisplayName = "Keeps current item name without new name")]
-  [InlineData(null)]
-  [InlineData("")]
-  [InlineData(" ")]
-  public async Task Handler_KeepsCurrentName_WithoutNewName(string? newName) {
+  [Fact(DisplayName = "Keeps current amount when amount is not provided")]
+  public async Task Handler_KeepsCurrentAmount_WhenAmountIsNotProvided() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(
-      userUid, "Weekly", "Milk", newName, null, null, null);
-    ShoppingItem currentItem = new("Milk", "1 litre", new Price(2m), true);
+    var command = new Command(userUid, "Weekly", 10, null, true);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
     _shoppingRepository.GetItemAsync(
-        userUid,
-        command.ShoppingListName,
-        command.OriginalItemName,
+        userUid, command.ShoppingListName, command.ProductReferenceUid,
         TestContext.Current.CancellationToken)
-      .Returns(currentItem);
+      .Returns(CurrentItem);
 
     // Act
     await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
     _shoppingRepository.Received(1).UpdateItem(
-      Arg.Any<Guid>(),
-      Arg.Any<string?>(),
-      Arg.Any<string>(),
-      Arg.Is<ShoppingItem>(x => x.Name == currentItem.Name));
+      userUid,
+      "Weekly",
+      Arg.Is<AShoppingItem>(x => x.Amount == CurrentItem.Amount));
   }
 
-  [Theory(DisplayName = "Keeps current item quantity without new quantity")]
-  [InlineData(null)]
-  [InlineData("")]
-  [InlineData(" ")]
-  public async Task Handler_KeepsCurrentQuantity_WithoutNewQuantity(string? newQuantity) {
+  [Fact(DisplayName = "Keeps current checked state when checked state is not provided")]
+  public async Task Handler_KeepsCurrentCheckedState_WhenCheckedStateIsNotProvided() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(
-      userUid, "Weekly", "Milk", null, newQuantity, null, null);
-    ShoppingItem currentItem = new("Milk", "1 litre", new Price(2m), true);
+    var command = new Command(userUid, "Weekly", 10, 5, null);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
     _shoppingRepository.GetItemAsync(
-        userUid,
-        command.ShoppingListName,
-        command.OriginalItemName,
+        userUid, command.ShoppingListName, command.ProductReferenceUid,
         TestContext.Current.CancellationToken)
-      .Returns(currentItem);
+      .Returns(CurrentItem);
 
     // Act
     await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
     _shoppingRepository.Received(1).UpdateItem(
-      Arg.Any<Guid>(),
-      Arg.Any<string?>(),
-      Arg.Any<string>(),
-      Arg.Is<ShoppingItem>(x => x.Quantity == currentItem.Quantity));
+      userUid,
+      "Weekly",
+      Arg.Is<AShoppingItem>(x => x.IsChecked == CurrentItem.IsChecked));
   }
 
-  [Fact(DisplayName = "Keeps current item price without new price")]
-  public async Task Handler_KeepsCurrentPrice_WithoutNewPrice() {
+  [Fact(DisplayName = "Keeps current reference UID")]
+  public async Task Handler_KeepsCurrentReferenceUid() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(
-      userUid, "Weekly", "Milk", null, null, null, null);
-    ShoppingItem currentItem = new("Milk", "1 litre", new Price(2m), true);
+    var command = new Command(userUid, "Weekly", 10, 5, true);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
     _shoppingRepository.GetItemAsync(
-        userUid,
-        command.ShoppingListName,
-        command.OriginalItemName,
+        userUid, command.ShoppingListName, command.ProductReferenceUid,
         TestContext.Current.CancellationToken)
-      .Returns(currentItem);
+      .Returns(CurrentItem);
 
     // Act
     await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
     _shoppingRepository.Received(1).UpdateItem(
-      Arg.Any<Guid>(),
-      Arg.Any<string?>(),
-      Arg.Any<string>(),
-      Arg.Is<ShoppingItem>(x => x.Price == currentItem.Price));
-  }
-
-  [Fact(DisplayName = "Keeps current item checked status without new checked status")]
-  public async Task Handler_KeepsCurrentCheckedStatus_WithoutNewCheckedStatus() {
-    // Arrange
-    var userUid = Guid.NewGuid();
-    var command = new Command(
-      userUid, "Weekly", "Milk", null, null, null, null);
-    ShoppingItem currentItem = new("Milk", "1 litre", new Price(2m), true);
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult());
-    _shoppingRepository.GetItemAsync(
-        userUid,
-        command.ShoppingListName,
-        command.OriginalItemName,
-        TestContext.Current.CancellationToken)
-      .Returns(currentItem);
-
-    // Act
-    await _handler.Handle(command, TestContext.Current.CancellationToken);
-
-    // Assert
-    _shoppingRepository.Received(1).UpdateItem(
-      Arg.Any<Guid>(),
-      Arg.Any<string?>(),
-      Arg.Any<string>(),
-      Arg.Is<ShoppingItem>(x => x.IsChecked == currentItem.IsChecked));
+      userUid,
+      "Weekly",
+      Arg.Is<AShoppingItem>(x => x.ReferenceUid == CurrentItem.ReferenceUid));
   }
 
   [Fact(DisplayName = "Saves changes to unit of work")]
   public async Task Handler_SavesChangesToUnitOfWork() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(
-      userUid, "Weekly", "Milk", null, null, null, null);
+    var command = new Command(userUid, "Weekly", 10, 5, null);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
     _shoppingRepository.GetItemAsync(
-        userUid,
-        command.ShoppingListName,
-        command.OriginalItemName,
+        userUid, command.ShoppingListName, command.ProductReferenceUid,
         TestContext.Current.CancellationToken)
-      .Returns(DefaultCurrentItem);
+      .Returns(CurrentItem);
 
     // Act
     await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -304,16 +187,13 @@ public class UpdateItemHandlerTest {
   public async Task Handler_ReturnsSuccessResult_WhenHandlingIsSuccessful() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(
-      userUid, "Weekly", "Milk", null, null, null, null);
+    var command = new Command(userUid, "Weekly", 10, 5, null);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
     _shoppingRepository.GetItemAsync(
-        userUid,
-        command.ShoppingListName,
-        command.OriginalItemName,
+        userUid, command.ShoppingListName, command.ProductReferenceUid,
         TestContext.Current.CancellationToken)
-      .Returns(DefaultCurrentItem);
+      .Returns(CurrentItem);
 
     // Act
     Result result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -322,61 +202,56 @@ public class UpdateItemHandlerTest {
     Assert.True(result.IsSuccess);
   }
 
-  [Fact(DisplayName = "Returns Missing error when item not found")]
-  public async Task Handler_ReturnsMissingError_WhenItemNotFound() {
+  [Fact(DisplayName = "Returns Missing error when item is not found")]
+  public async Task Handler_ReturnsMissingError_WhenItemIsNotFound() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(
-      userUid, "Weekly", "Nonexistent", null, null, null, null);
+    var command = new Command(userUid, "Weekly", 10, 5, null);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
-    _shoppingRepository
-      .GetItemAsync(userUid, command.ShoppingListName, "Nonexistent", TestContext.Current.CancellationToken)
-      .Returns((ShoppingItem?)null);
+    _shoppingRepository.GetItemAsync(
+        userUid, command.ShoppingListName, command.ProductReferenceUid,
+        TestContext.Current.CancellationToken)
+      .Returns((AShoppingItem?)null);
 
     // Act
     Result result = await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
-    DomainError error = result.Errors.Single();
-    var expectedError = new DomainError(
-      "ShoppingList.Item.NotFound",
-      $"Item '{command.OriginalItemName}' not found.",
-      ErrorKind.Missing);
-    Assert.Equal(expectedError, error);
+    Assert.Equal(ErrorKind.Missing, result.Errors.Single().Kind);
   }
 
-  [Fact(DisplayName = "Does not call UpdateItem when item not found")]
-  public async Task Handler_DoesNotUpdateItem_WhenItemNotFound() {
+  [Fact(DisplayName = "Does not update item when item is not found")]
+  public async Task Handler_DoesNotUpdateItem_WhenItemIsNotFound() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(
-      userUid, "Weekly", "Nonexistent", null, null, null, null);
+    var command = new Command(userUid, "Weekly", 10, 5, null);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
-    _shoppingRepository
-      .GetItemAsync(userUid, command.ShoppingListName, "Nonexistent", TestContext.Current.CancellationToken)
-      .Returns((ShoppingItem?)null);
+    _shoppingRepository.GetItemAsync(
+        userUid, command.ShoppingListName, command.ProductReferenceUid,
+        TestContext.Current.CancellationToken)
+      .Returns((AShoppingItem?)null);
 
     // Act
     await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
     _shoppingRepository.DidNotReceive().UpdateItem(
-      Arg.Any<Guid>(), Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<ShoppingItem>());
+      Arg.Any<Guid>(), Arg.Any<string?>(), Arg.Any<AShoppingItem>());
   }
 
-  [Fact(DisplayName = "Does not save changes when item not found")]
-  public async Task Handler_DoesNotSaveChanges_WhenItemNotFound() {
+  [Fact(DisplayName = "Does not save changes when item is not found")]
+  public async Task Handler_DoesNotSaveChanges_WhenItemIsNotFound() {
     // Arrange
     var userUid = Guid.NewGuid();
-    var command = new Command(
-      userUid, "Weekly", "Nonexistent", null, null, null, null);
+    var command = new Command(userUid, "Weekly", 10, 5, null);
     _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
       .Returns(new ValidationResult());
-    _shoppingRepository
-      .GetItemAsync(userUid, command.ShoppingListName, "Nonexistent", TestContext.Current.CancellationToken)
-      .Returns((ShoppingItem?)null);
+    _shoppingRepository.GetItemAsync(
+        userUid, command.ShoppingListName, command.ProductReferenceUid,
+        TestContext.Current.CancellationToken)
+      .Returns((AShoppingItem?)null);
 
     // Act
     await _handler.Handle(command, TestContext.Current.CancellationToken);

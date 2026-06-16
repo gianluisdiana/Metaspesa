@@ -112,25 +112,6 @@ internal partial class PostgreSqlShoppingRepository(
     }));
   }, "Couldn't add items to shopping list.");
 
-#pragma warning disable S1133 // Deprecated code should be removed
-  [Obsolete("CheckItemExistsAsync with item name should be removed in favor of the one with reference UID.")]
-#pragma warning restore S1133 // Deprecated code should be removed
-  public async Task<bool> CheckItemExistsAsync(
-    Guid userUid,
-    string? listName,
-    string itemName,
-    CancellationToken cancellationToken
-  ) => await PostgreSqlExceptionMapper.MapAsync(
-    async () => {
-      int referenceUid = await context.ProductsHistory
-        .Where(ph => EF.Functions.ILike(ph.Product.Name, itemName))
-        .Select(ph => ph.Id)
-        .FirstOrDefaultAsync(cancellationToken);
-
-      return await CheckItemExistsAsync(userUid, listName, referenceUid, cancellationToken);
-    },
-    "Couldn't check if shopping item exists.");
-
   public async Task<bool> CheckItemExistsAsync(
     Guid userUid,
     string? listName,
@@ -150,10 +131,10 @@ internal partial class PostgreSqlShoppingRepository(
         cancellationToken),
     "Couldn't check if shopping item exists.");
 
-  public async Task<ShoppingItem?> GetItemAsync(
+  public async Task<AShoppingItem?> GetItemAsync(
     Guid userUid,
     string? listName,
-    string itemName,
+    int referenceUid,
     CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync(
     async () => await context.ShoppingItems
@@ -164,17 +145,16 @@ internal partial class PostgreSqlShoppingRepository(
           listName != null &&
           EF.Functions.ILike(i.ShoppingList.Name, listName)
         ) &&
-        EF.Functions.ILike(i.Product.Name, itemName))
-      .Select(i => new ShoppingItem(
-        i.Product.Name,
-        new Quantity($"{i.ProductHistory.ProductFormat.Quantity}"),
-        new Price(i.ProductHistory.Price),
+        i.ProductHistory.Id == referenceUid)
+      .Select(i => new AShoppingItem(
+        i.ProductHistoryId,
+        i.Amount,
         i.IsChecked))
       .FirstOrDefaultAsync(cancellationToken),
     "Couldn't get shopping item.");
 
   public void UpdateItem(
-    Guid userUid, string? listName, string originalItemName, ShoppingItem update
+    Guid userUid, string? listName, AShoppingItem update
   ) => PostgreSqlExceptionMapper.Map(() => {
     ShoppingItemDbEntity item = context.ShoppingItems
       .Where(i => i.DeletedAt == null &&
@@ -184,10 +164,15 @@ internal partial class PostgreSqlShoppingRepository(
           listName != null &&
           EF.Functions.ILike(i.ShoppingList.Name, listName)
         ) &&
-        EF.Functions.ILike(i.Product.Name, originalItemName))
-      .First();
+        i.ProductHistory.Id == update.ReferenceUid)
+      .Single();
 
-    item.IsChecked = update.IsChecked;
+    if (item.IsChecked != update.IsChecked) {
+      item.IsChecked = update.IsChecked;
+    }
+    if (item.Amount != update.Amount) {
+      item.Amount = update.Amount;
+    }
   }, "Couldn't update shopping item.");
 
   public void RemoveItem(Guid userUid, string? listName, int referenceUid) =>
