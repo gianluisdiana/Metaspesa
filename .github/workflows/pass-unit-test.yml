@@ -67,10 +67,10 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Test backend database integration tests
-        run: dotnet test server/test/IntegrationTests/Database.IntegrationTests/Database.IntegrationTests.csproj -- --explicit on
+        run: dotnet test server/test/IntegrationTests/Database.IntegrationTests/Database.IntegrationTests.csproj
 
       - name: Test backend infrastructure integration tests
-        run: dotnet test server/test/IntegrationTests/Infrastructure.IntegrationTests/Infrastructure.IntegrationTests.csproj -- --explicit on
+        run: dotnet test server/test/IntegrationTests/Infrastructure.IntegrationTests/Infrastructure.IntegrationTests.csproj
 
   pass-frontend-unit-tests:
     name: Pass frontend unit tests on ${{matrix.os}}
