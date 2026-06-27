@@ -2,16 +2,19 @@ using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Database.Entities;
 using Metaspesa.Database.Repositories;
 using Metaspesa.Domain.Shopping;
+using Metaspesa.Domain.Users;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 
 namespace Metaspesa.Database.IntegrationTests.Shopping;
 
 public static class PostgreSqlShoppingRepositoryTests {
-  private static async ValueTask EnsureShopperRoleAsync(MainContext context, CancellationToken ct) {
-    if (!await context.UserRoles.AnyAsync(r => r.Id == 1, ct)) {
+  private static async ValueTask EnsureShopperRoleAsync(
+    MainContext context, CancellationToken ct
+  ) {
+    if (!await context.UserRoles.AnyAsync(r => r.Id == (int)Role.Shopper, ct)) {
       context.UserRoles.Add(new UserRoleDbEntity {
-        Id = 1, Name = "Shopper", Description = "Regular user who manages shopping lists"
+        Id = (int)Role.Shopper, Name = nameof(Role.Shopper), Description = "Regular user who manages shopping lists"
       });
       await context.SaveChangesAsync(ct);
     }
@@ -257,11 +260,11 @@ public static class PostgreSqlShoppingRepositoryTests {
   }
 
   [Collection("Database")]
-  public class GetCurrentShoppingListAsync : IAsyncLifetime {
+  public class GetShoppingListAsync : IAsyncLifetime {
     private readonly MainContext _context;
     private readonly PostgreSqlShoppingRepository _repository;
 
-    public GetCurrentShoppingListAsync(DatabaseFixture fixture) {
+    public GetShoppingListAsync(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       IClock _clock = Substitute.For<IClock>();
       _repository = new PostgreSqlShoppingRepository(
@@ -278,10 +281,40 @@ public static class PostgreSqlShoppingRepositoryTests {
       GC.SuppressFinalize(this);
     }
 
+    private async Task<int> SeedProductHistoryAsync(string productName) {
+      var market = new SuperMarketDbEntity { Name = $"Test market {Guid.CreateVersion7()}" };
+      var brand = new ProductBrandDbEntity { Name = $"Test brand {Guid.CreateVersion7()}" };
+      var unit = new UnitOfMeasureDbEntity {
+        Code = $"u{Guid.CreateVersion7():N}"[..16],
+        Name = $"Test unit {Guid.CreateVersion7()}",
+      };
+      var product = new ProductDbEntity {
+        Name = productName,
+        SuperMarket = market,
+        Brand = brand,
+      };
+      var format = new ProductFormatDbEntity {
+        Product = product,
+        Quantity = 1,
+        UnitOfMeasure = unit,
+        ImageUrl = "https://example.test/product.png",
+      };
+      var history = new ProductsHistoryDbEntity {
+        Product = product,
+        ProductFormat = format,
+        Price = 1.25m,
+        CreatedAt = DateTime.UtcNow,
+      };
+
+      _context.ProductsHistory.Add(history);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      return history.Id;
+    }
+
     [Fact(
       Explicit = true,
       DisplayName = "Returns null when user has no list")]
-    public async Task GetCurrentShoppingListAsync_ReturnsNull_WhenUserHasNoList() {
+    public async Task GetShoppingListAsync_ReturnsNull_WhenUserHasNoList() {
       // Arrange
       var userUid = Guid.CreateVersion7();
       _context.Users.Add(new UserDbEntity {
@@ -290,7 +323,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      ShoppingList? result = await _repository.GetShoppingListAsync(
+      AShoppingList? result = await _repository.GetShoppingListAsync(
         userUid, null, TestContext.Current.CancellationToken);
 
       // Assert
@@ -300,7 +333,7 @@ public static class PostgreSqlShoppingRepositoryTests {
     [Fact(
       Explicit = true,
       DisplayName = "Returns list when user has named list")]
-    public async Task GetCurrentShoppingListAsync_ReturnsList_WhenUserHasNamedList() {
+    public async Task GetShoppingListAsync_ReturnsList_WhenUserHasNamedList() {
       // Arrange
       var userUid = Guid.CreateVersion7();
       _context.Users.Add(new UserDbEntity {
@@ -311,7 +344,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      ShoppingList? result = await _repository.GetShoppingListAsync(
+      AShoppingList? result = await _repository.GetShoppingListAsync(
         userUid, "Groceries", TestContext.Current.CancellationToken);
 
       // Assert
@@ -321,7 +354,7 @@ public static class PostgreSqlShoppingRepositoryTests {
     [Fact(
       Explicit = true,
       DisplayName = "Returns list when user has temporary (null name) list")]
-    public async Task GetCurrentShoppingListAsync_ReturnsList_WhenUserHasTemporaryList() {
+    public async Task GetShoppingListAsync_ReturnsList_WhenUserHasTemporaryList() {
       // Arrange
       var userUid = Guid.CreateVersion7();
       _context.Users.Add(new UserDbEntity {
@@ -332,7 +365,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      ShoppingList? result = await _repository.GetShoppingListAsync(
+      AShoppingList? result = await _repository.GetShoppingListAsync(
         userUid, null, TestContext.Current.CancellationToken);
 
       // Assert
@@ -342,7 +375,7 @@ public static class PostgreSqlShoppingRepositoryTests {
     [Fact(
       Explicit = true,
       DisplayName = "Returns empty items when list has no items")]
-    public async Task GetCurrentShoppingListAsync_ReturnsEmptyItems_WhenListHasNoItems() {
+    public async Task GetShoppingListAsync_ReturnsEmptyItems_WhenListHasNoItems() {
       // Arrange
       var userUid = Guid.CreateVersion7();
       _context.Users.Add(new UserDbEntity {
@@ -353,7 +386,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      ShoppingList? result = await _repository.GetShoppingListAsync(
+      AShoppingList? result = await _repository.GetShoppingListAsync(
         userUid, "Groceries", TestContext.Current.CancellationToken);
 
       // Assert
@@ -363,7 +396,7 @@ public static class PostgreSqlShoppingRepositoryTests {
     [Fact(
       Explicit = true,
       DisplayName = "Returns items excluding soft-deleted ones")]
-    public async Task GetCurrentShoppingListAsync_ReturnsItems_ExcludingSoftDeleted() {
+    public async Task GetShoppingListAsync_ReturnsItems_ExcludingSoftDeleted() {
       // Arrange
       var userUid = Guid.CreateVersion7();
       _context.Users.Add(new UserDbEntity {
@@ -372,26 +405,28 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Groceries");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      int milkReferenceUid = await SeedProductHistoryAsync("Milk");
+      int breadReferenceUid = await SeedProductHistoryAsync("Bread");
       _repository.AddItemsToList(userUid, "Groceries", [
-        new AShoppingItem(1, 1, false),
-        new AShoppingItem(1, 1, false),
+        new AShoppingItem(milkReferenceUid, 1, false),
+        new AShoppingItem(breadReferenceUid, 1, false),
       ]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      _repository.RemoveItem(userUid, "Groceries", 1);
+      _repository.RemoveItem(userUid, "Groceries", breadReferenceUid);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      ShoppingList? result = await _repository.GetShoppingListAsync(
+      AShoppingList? result = await _repository.GetShoppingListAsync(
         userUid, "Groceries", TestContext.Current.CancellationToken);
 
       // Assert
-      Assert.Equal("Bread", result!.Items.Single().Name);
+      Assert.Equal(milkReferenceUid, result!.Items.Single().ReferenceUid);
     }
 
     [Fact(
       Explicit = true,
       DisplayName = "Returns null when list belongs to different user")]
-    public async Task GetCurrentShoppingListAsync_ReturnsNull_WhenListBelongsToDifferentUser() {
+    public async Task GetShoppingListAsync_ReturnsNull_WhenListBelongsToDifferentUser() {
       // Arrange
       var userUid = Guid.CreateVersion7();
       var otherUid = Guid.CreateVersion7();
@@ -406,7 +441,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      ShoppingList? result = await _repository.GetShoppingListAsync(
+      AShoppingList? result = await _repository.GetShoppingListAsync(
         userUid, "Other List", TestContext.Current.CancellationToken);
 
       // Assert
@@ -688,7 +723,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
-      ShoppingList? list = await _repository.GetShoppingListAsync(
+      AShoppingList? list = await _repository.GetShoppingListAsync(
         userUid, "Weekly", TestContext.Current.CancellationToken);
       Assert.Equal(2, list!.Items.Count);
     }
@@ -713,9 +748,9 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
-      ShoppingList? list = await _repository.GetShoppingListAsync(
+      AShoppingList? list = await _repository.GetShoppingListAsync(
         userUid, null, TestContext.Current.CancellationToken);
-      Assert.Equal("Butter", list!.Items.Single().Name);
+      Assert.Equal(butterReferenceUid, list!.Items.Single().ReferenceUid);
     }
 
     [Fact(
@@ -1143,7 +1178,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
-      ShoppingList? list = await _repository.GetShoppingListAsync(
+      AShoppingList? list = await _repository.GetShoppingListAsync(
         userUid, "Groceries", TestContext.Current.CancellationToken);
       Assert.NotNull(list);
     }
@@ -1192,9 +1227,9 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
-      ShoppingList? list = await _repository.GetShoppingListAsync(
+      AShoppingList? list = await _repository.GetShoppingListAsync(
         userUid, "Groceries", TestContext.Current.CancellationToken);
-      Assert.Equal("Milk", list!.Items.Single().Name);
+      Assert.Equal(1, list!.Items.Single().ReferenceUid);
     }
   }
 
@@ -1486,7 +1521,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
-      ShoppingList? list = await _repository.GetShoppingListAsync(
+      AShoppingList? list = await _repository.GetShoppingListAsync(
         userUid, "Weekly", TestContext.Current.CancellationToken);
       Assert.NotNull(list);
       Assert.Empty(list.Items);
@@ -1520,7 +1555,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
-      ShoppingList? otherList = await _repository.GetShoppingListAsync(
+      AShoppingList? otherList = await _repository.GetShoppingListAsync(
         otherUid, "Weekly", TestContext.Current.CancellationToken);
       Assert.Single(otherList!.Items);
     }

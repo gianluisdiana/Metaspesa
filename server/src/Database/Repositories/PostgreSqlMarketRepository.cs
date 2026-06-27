@@ -68,6 +68,32 @@ internal partial class PostgreSqlMarketRepository(
     return new PagedResult<Market>(MapMarkets(entities), totalCount);
   }, "Couldn't get market products.");
 
+  public async Task<IReadOnlyDictionary<int, MarketProduct>> GetProductsAsync(
+    IReadOnlyCollection<int> referencesId,
+    CancellationToken cancellationToken
+  ) => await PostgreSqlExceptionMapper.MapAsync(
+    async () => {
+      if (referencesId.Count == 0) {
+        return [];
+      }
+
+      return await context.ProductsHistory
+        .AsNoTracking()
+        .Include(h => h.Product)
+          .ThenInclude(p => p.Brand)
+        .Include(h => h.ProductFormat)
+          .ThenInclude(f => f.UnitOfMeasure)
+        .Where(h => referencesId.Contains(h.Id))
+        .ToDictionaryAsync(
+          h => h.Id,
+          h => new MarketProduct(
+            h.Product.Name,
+            new ProductBrand(h.Product.Brand.Name),
+            [h.MapToDomainFormat()]),
+          cancellationToken);
+    },
+    "Couldn't get market products by references.");
+
   private static async Task<List<ProductDbEntity>> LoadProductPageAsync(
     IQueryable<ProductDbEntity> query,
     GetMarketProductsFilter filter,

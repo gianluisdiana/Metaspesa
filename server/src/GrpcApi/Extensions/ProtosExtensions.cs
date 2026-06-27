@@ -18,6 +18,18 @@ internal static class ProtosExtensions {
     return protoShoppingList;
   }
 
+  public static Protos.Shopping.ShoppingList ToProto(
+    this GetShoppingList.Response shoppingList
+  ) {
+    var protoShoppingList = new Protos.Shopping.ShoppingList();
+    if (!string.IsNullOrWhiteSpace(shoppingList.ShoppingListName)) {
+      protoShoppingList.Name = shoppingList.ShoppingListName;
+    }
+    protoShoppingList.Items.AddRange(
+      shoppingList.Items.Select(item => item.ToProto()));
+    return protoShoppingList;
+  }
+
   public static Protos.Shopping.ShoppingListSummary ToSummaryProto(
     this ShoppingList summary
   ) {
@@ -27,6 +39,17 @@ internal static class ProtosExtensions {
     }
     return protoSummary;
   }
+
+  private static Protos.Shopping.ShoppingItem ToProto(
+    this GetShoppingList.ResponseItem item
+  ) => new() {
+    Name = item.ProductName,
+    Quantity = string.Create(
+      CultureInfo.InvariantCulture,
+      $"{item.Format.Quantity.Value:G} {item.Format.Quantity.UnitOfMeasure}"),
+    Price = GrpcPriceConverter.ToProto(item.Format.Price.Value),
+    Checked = item.IsChecked,
+  };
 
   private static Protos.Shopping.ShoppingItem ToProto(this ShoppingItem item) {
     Protos.Shopping.ShoppingItem product = ((Product)item).ToProto();

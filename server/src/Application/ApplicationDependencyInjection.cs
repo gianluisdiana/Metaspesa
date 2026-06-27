@@ -57,7 +57,7 @@ public static class ApplicationDependencyInjection {
 
     private IServiceCollection AddShoppingUseCases() {
       services.AddScoped<
-        IQueryHandler<GetShoppingList.Query, ShoppingList>,
+        IQueryHandler<GetShoppingList.Query, GetShoppingList.Response>,
         GetShoppingList.Handler>();
 
       services.AddScoped<

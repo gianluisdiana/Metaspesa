@@ -2,7 +2,6 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Shopping;
-using Metaspesa.Domain.Shopping;
 using Metaspesa.Domain.Users;
 using Metaspesa.GrpcApi.Extensions;
 using Metaspesa.GrpcApi.Protos.Shopping;
@@ -14,7 +13,7 @@ namespace Metaspesa.GrpcApi.Services;
 [Authorize(Roles = nameof(Role.Shopper))]
 internal class ShoppingGrpcService(
   IQueryHandler<GetShoppingListSummaries.Query, List<ShoppingList>> getShoppingListSummariesHandler,
-  IQueryHandler<GetShoppingList.Query, ShoppingList> getShoppingListHandler,
+  IQueryHandler<GetShoppingList.Query, GetShoppingList.Response> getShoppingListHandler,
   ICommandHandler<RecordShoppingList.Command> recordShoppingListHandler,
   ICommandHandler<CreateShoppingList.Command> createShoppingListHandler,
   ICommandHandler<AddItemsToList.Command> addItemsToListHandler,
@@ -48,15 +47,13 @@ internal class ShoppingGrpcService(
         ? GrpcTextSanitizer.SanitizeAscii(request.ShoppingListName)
         : null);
 
-    Result<ShoppingList> result = await getShoppingListHandler
+    Result<GetShoppingList.Response> result = await getShoppingListHandler
       .Handle(query, context.CancellationToken);
 
     result.ThrowRpcExceptionIfFailed();
 
-    ShoppingList shoppingList = result.Value;
-
     var response = new ShoppingListResponse {
-      ShoppingList = shoppingList.ToProto(),
+      ShoppingList = result.Value.ToProto(),
     };
 
     return response;

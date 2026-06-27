@@ -24,7 +24,7 @@ internal partial class PostgreSqlShoppingRepository(
     return [.. listNames.Select(name => new ShoppingList(name, []))];
   }, "Couldn't get shopping list summaries.");
 
-  public async Task<ShoppingList?> GetShoppingListAsync(
+  public async Task<AShoppingList?> GetShoppingListAsync(
     Guid userUid, string? shoppingListName, CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync(
     async () => await context.ShoppingListOwnerships
@@ -34,14 +34,13 @@ internal partial class PostgreSqlShoppingRepository(
         shoppingListName != null &&
         EF.Functions.ILike(sl.ShoppingList.Name, shoppingListName)
       ))
-      .Select(sl => new ShoppingList(
+      .Select(sl => new AShoppingList(
         Name: sl.ShoppingList.Name,
         Items: sl.ShoppingList.Items
           .Where(i => i.DeletedAt == null)
-          .Select(i => new ShoppingItem(
-            Name: i.Product.Name,
-            Quantity: new Quantity($"{i.ProductHistory.ProductFormat.Quantity}"),
-            Price: new Price(i.ProductHistory.Price),
+          .Select(i => new AShoppingItem(
+            i.ProductHistoryId,
+            i.Amount,
             IsChecked: i.IsChecked
           )).ToList()
       ))

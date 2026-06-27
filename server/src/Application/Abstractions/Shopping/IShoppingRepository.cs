@@ -5,7 +5,7 @@ namespace Metaspesa.Application.Abstractions.Shopping;
 public interface IShoppingRepository {
   Task<List<ShoppingList>> GetShoppingListSummariesAsync(
     Guid userUid, CancellationToken cancellationToken);
-  Task<ShoppingList?> GetShoppingListAsync(
+  Task<AShoppingList?> GetShoppingListAsync(
     Guid userUid, string? shoppingListName, CancellationToken cancellationToken);
   Task<bool> CheckShoppingListExistAsync(
     Guid userUid, string? shoppingListName, CancellationToken cancellationToken);

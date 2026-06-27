@@ -3,6 +3,11 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Metaspesa.Domain.Shopping;
 
+public record AShoppingList(
+  string? Name,
+  IReadOnlyCollection<AShoppingItem> Items
+);
+
 public record ShoppingList(
   string? Name,
   IReadOnlyCollection<ShoppingItem> Items

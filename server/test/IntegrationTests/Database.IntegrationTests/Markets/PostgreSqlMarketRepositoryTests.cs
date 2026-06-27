@@ -608,13 +608,13 @@ public static class PostgreSqlMarketRepositoryTests {
   }
 
   [Collection("Database")]
-  public class AddMarketProductsReturnsTests : IAsyncLifetime {
+  public class AddMarketProductsTests : IAsyncLifetime {
     private readonly MainContext _context;
     private readonly PostgreSqlMarketRepository _repository;
     private const string MarketName = "TestMarketForReturns";
     private const string BrandName = "TestBrandForReturns";
 
-    public AddMarketProductsReturnsTests(DatabaseFixture fixture) {
+    public AddMarketProductsTests(DatabaseFixture fixture) {
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
         _context);

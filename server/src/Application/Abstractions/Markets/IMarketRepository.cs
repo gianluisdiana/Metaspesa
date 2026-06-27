@@ -7,6 +7,8 @@ public interface IMarketRepository {
   Task<List<MarketSummary>> GetMarketSummariesAsync(CancellationToken cancellationToken);
   Task<PagedResult<Market>> GetProductsAsync(
     GetMarketProductsFilter filter, CancellationToken cancellationToken);
+  Task<IReadOnlyDictionary<int, MarketProduct>> GetProductsAsync(
+    IReadOnlyCollection<int> referencesId, CancellationToken cancellationToken);
   Task<List<Market>> GetMarketsAsync(CancellationToken cancellationToken);
   Task AddMarketsAsync(
     IReadOnlyCollection<Market> markets, CancellationToken cancellationToken);

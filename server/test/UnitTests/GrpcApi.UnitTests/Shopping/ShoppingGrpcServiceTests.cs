@@ -6,6 +6,7 @@ using Grpc.Core;
 using Grpc.Core.Testing;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Shopping;
+using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.Shopping;
 using Metaspesa.GrpcApi.Protos.Shopping;
 using Metaspesa.GrpcApi.Services;
@@ -18,12 +19,12 @@ namespace Metaspesa.GrpcApi.UnitTests.Shopping;
 
 public static class ShoppingGrpcServiceTests {
   public class GetShoppingListRpc {
-    private readonly IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList> _useCaseHandler;
+    private readonly IQueryHandler<GetShoppingList.Query, GetShoppingList.Response> _useCaseHandler;
     private readonly ShoppingGrpcService service;
 
     public GetShoppingListRpc() {
       _useCaseHandler = Substitute.For<
-      IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>();
+      IQueryHandler<GetShoppingList.Query, GetShoppingList.Response>>();
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
         _useCaseHandler,
@@ -53,11 +54,7 @@ public static class ShoppingGrpcServiceTests {
     [Fact(DisplayName = "Returns the shopping list if the query handler returns a success result")]
     public async Task Api_ReturnsShoppingList_IfQueryHandlerSucceeds() {
       // Arrange
-      var shoppingList = new Domain.Shopping.ShoppingList(
-        "Weekly Groceries", [
-          new("Product 1", null, new Price(3), true),
-          new("Product 2", null, Price.Empty, false),
-        ]);
+      GetShoppingList.Response shoppingList = MakeShoppingList("Weekly Groceries");
 
       _useCaseHandler
         .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
@@ -68,17 +65,13 @@ public static class ShoppingGrpcServiceTests {
         new GetShoppingListRequest(), CreateServerCallContext());
 
       // Assert
-      Assert.Equal(shoppingList.Name, response.ShoppingList.Name);
+      Assert.Equal(shoppingList.ShoppingListName, response.ShoppingList.Name);
     }
 
     [Fact(DisplayName = "Maps shopping list items to products in the response")]
     public async Task Api_MapsShoppingListItems_ToProductsInResponse() {
       // Arrange
-      var shoppingList = new Domain.Shopping.ShoppingList(
-        "Weekly Groceries", [
-          new("Product 1", null, new Price(3), true),
-          new("Product 2", null, Price.Empty, false),
-        ]);
+      GetShoppingList.Response shoppingList = MakeShoppingList("Weekly Groceries");
       _useCaseHandler
         .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
         .Returns(shoppingList);
@@ -94,11 +87,7 @@ public static class ShoppingGrpcServiceTests {
     [Fact(DisplayName = "Maps shopping list name to product name in the response")]
     public async Task Api_MapsShoppingListName_ToProductNameInResponse() {
       // Arrange
-      var shoppingList = new Domain.Shopping.ShoppingList(
-        "Weekly Groceries", [
-          new("Product 1", null, new Price(3), true),
-          new("Product 2", null, Price.Empty, false),
-        ]);
+      GetShoppingList.Response shoppingList = MakeShoppingList("Weekly Groceries");
 
       _useCaseHandler
         .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
@@ -111,7 +100,7 @@ public static class ShoppingGrpcServiceTests {
       // Assert
       for (int i = 0; i < shoppingList.Items.Count; i++) {
         Assert.Equal(
-          shoppingList.Items.ElementAt(i).Name,
+          shoppingList.Items.ElementAt(i).ProductName,
           response.ShoppingList.Items[i].Name);
       }
     }
@@ -119,10 +108,13 @@ public static class ShoppingGrpcServiceTests {
     [Fact(DisplayName = "Maps shopping list item quantity to product quantity in the response")]
     public async Task Api_MapsShoppingListItemQuantity_ToProductQuantityInResponse() {
       // Arrange
-      var shoppingList = new Domain.Shopping.ShoppingList(
-        "Weekly Groceries", [
-          new("Product 1", "1 litre", new Price(3), true),
-          new("Product 2", "2 kg", Price.Empty, false),
+      var shoppingList = new GetShoppingList.Response(
+        "Weekly Groceries",
+        [
+          new GetShoppingList.ResponseItem(
+            "Product 1", 1, MakeFormat(1, "litre", 3), true),
+          new GetShoppingList.ResponseItem(
+            "Product 2", 1, MakeFormat(2, "kg", 0), false),
         ]);
 
       _useCaseHandler
@@ -136,41 +128,22 @@ public static class ShoppingGrpcServiceTests {
       // Assert
       for (int i = 0; i < shoppingList.Items.Count; i++) {
         Assert.Equal(
-          shoppingList.Items.ElementAt(i).Quantity?.Value,
+          $"{shoppingList.Items.ElementAt(i).Format.Quantity.Value:G} " +
+          shoppingList.Items.ElementAt(i).Format.Quantity.UnitOfMeasure,
           response.ShoppingList.Items[i].Quantity);
-      }
-    }
-
-    [Fact(DisplayName = "Maps empty quantity to product quantity if it doesn't have it")]
-    public async Task Api_MapsEmptyQuantity_ToProductQuantityIfItDoesNotHaveIt() {
-      // Arrange
-      var shoppingList = new Domain.Shopping.ShoppingList(
-        "Weekly Groceries", [
-          new("Product 1", null, new Price(3), true),
-          new("Product 2", null, Price.Empty, false),
-        ]);
-
-      _useCaseHandler
-        .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
-        .Returns(shoppingList);
-
-      // Act
-      ShoppingListResponse response = await service.GetShoppingList(
-        new GetShoppingListRequest(), CreateServerCallContext());
-
-      // Assert
-      for (int i = 0; i < shoppingList.Items.Count; i++) {
-        Assert.Empty(response.ShoppingList.Items[i].Quantity);
       }
     }
 
     [Fact(DisplayName = "Maps shopping list item price to product price in the response")]
     public async Task Api_MapsShoppingListItemPrice_ToProductPriceInResponse() {
       // Arrange
-      var shoppingList = new Domain.Shopping.ShoppingList(
-        "Weekly Groceries", [
-          new("Product 1", null, new Price(3), true),
-          new("Product 2", null, new Price(10.3m), false),
+      var shoppingList = new GetShoppingList.Response(
+        "Weekly Groceries",
+        [
+          new GetShoppingList.ResponseItem(
+            "Product 1", 1, MakeFormat(1, "unit", 3), true),
+          new GetShoppingList.ResponseItem(
+            "Product 2", 1, MakeFormat(1, "unit", 10.3m), false),
         ]);
 
       _useCaseHandler
@@ -184,7 +157,7 @@ public static class ShoppingGrpcServiceTests {
       // Assert
       for (int i = 0; i < shoppingList.Items.Count; i++) {
         Assert.Equal(
-          shoppingList.Items.ElementAt(i).Price.Value.ToString(CultureInfo.InvariantCulture),
+          shoppingList.Items.ElementAt(i).Format.Price.Value.ToString(CultureInfo.InvariantCulture),
           response.ShoppingList.Items[i].Price);
       }
     }
@@ -192,10 +165,13 @@ public static class ShoppingGrpcServiceTests {
     [Fact(DisplayName = "Maps product price to 0 if the last price is null in shopping list items")]
     public async Task Api_MapsProductPriceToZero_IfLastPriceIsNullInShoppingListItems() {
       // Arrange
-      var shoppingList = new Domain.Shopping.ShoppingList(
-        "Weekly Groceries", [
-          new("Product 1", null, Price.Empty, true),
-          new("Product 2", null, Price.Empty, false),
+      var shoppingList = new GetShoppingList.Response(
+        "Weekly Groceries",
+        [
+          new GetShoppingList.ResponseItem(
+            "Product 1", 1, MakeFormat(1, "unit", 0), true),
+          new GetShoppingList.ResponseItem(
+            "Product 2", 1, MakeFormat(1, "unit", 0), false),
         ]);
 
       _useCaseHandler
@@ -215,11 +191,7 @@ public static class ShoppingGrpcServiceTests {
     [Fact(DisplayName = "Maps shopping list item checked state to product checked state in the response")]
     public async Task Api_MapsShoppingListItemCheckedState_ToProductCheckedStateInResponse() {
       // Arrange
-      var shoppingList = new Domain.Shopping.ShoppingList(
-        "Weekly Groceries", [
-          new("Product 1", null, new Price(3), true),
-          new("Product 2", null, Price.Empty, false),
-        ]);
+      GetShoppingList.Response shoppingList = MakeShoppingList("Weekly Groceries");
 
       _useCaseHandler
         .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
@@ -243,7 +215,7 @@ public static class ShoppingGrpcServiceTests {
       var expectedUid = Guid.CreateVersion7();
       _useCaseHandler
         .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
-        .Returns(new Domain.Shopping.ShoppingList("test", []));
+        .Returns(new GetShoppingList.Response("test", []));
 
       // Act
       await service.GetShoppingList(new GetShoppingListRequest(), CreateServerCallContext(expectedUid));
@@ -260,7 +232,7 @@ public static class ShoppingGrpcServiceTests {
       const string ListName = "Weekly";
       _useCaseHandler
         .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
-        .Returns(new Domain.Shopping.ShoppingList(ListName, []));
+        .Returns(new GetShoppingList.Response(ListName, []));
 
       // Act
       await service.GetShoppingList(
@@ -278,7 +250,7 @@ public static class ShoppingGrpcServiceTests {
       // Arrange
       _useCaseHandler
         .Handle(Arg.Any<GetShoppingList.Query>(), TestContext.Current.CancellationToken)
-        .Returns(new Domain.Shopping.ShoppingList(null, []));
+        .Returns(new GetShoppingList.Response(null, []));
 
       // Act
       await service.GetShoppingList(new GetShoppingListRequest(), CreateServerCallContext());
@@ -288,6 +260,22 @@ public static class ShoppingGrpcServiceTests {
         Arg.Is<GetShoppingList.Query>(q => q.ShoppingListName == null),
         TestContext.Current.CancellationToken);
     }
+
+    private static GetShoppingList.Response MakeShoppingList(string? name) =>
+      new(
+        name,
+        [
+          new GetShoppingList.ResponseItem(
+            "Product 1", 1, MakeFormat(1, "unit", 3), true),
+          new GetShoppingList.ResponseItem(
+            "Product 2", 1, MakeFormat(1, "unit", 0), false),
+        ]);
+
+    private static ProductFormat MakeFormat(
+      float quantity,
+      string unitOfMeasure,
+      decimal price
+    ) => new(new AQuantity(quantity, unitOfMeasure), new Price(price), null);
   }
 
   public class GetShoppingListSummariesRpc {
@@ -301,7 +289,7 @@ public static class ShoppingGrpcServiceTests {
         IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>();
       service = new ShoppingGrpcService(
         _useCaseHandler,
-        Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
+        Substitute.For<IQueryHandler<GetShoppingList.Query, GetShoppingList.Response>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
         Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
@@ -408,7 +396,7 @@ public static class ShoppingGrpcServiceTests {
       _useCaseHandler = Substitute.For<ICommandHandler<RecordShoppingList.Command>>();
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
-        Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
+        Substitute.For<IQueryHandler<GetShoppingList.Query, GetShoppingList.Response>>(),
         _useCaseHandler,
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
         Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
@@ -681,7 +669,7 @@ public static class ShoppingGrpcServiceTests {
       _useCaseHandler = Substitute.For<ICommandHandler<CreateShoppingList.Command>>();
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
-        Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
+        Substitute.For<IQueryHandler<GetShoppingList.Query, GetShoppingList.Response>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         _useCaseHandler,
         Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
@@ -816,7 +804,7 @@ public static class ShoppingGrpcServiceTests {
       _useCaseHandler = Substitute.For<ICommandHandler<AddItemsToList.Command>>();
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
-        Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
+        Substitute.For<IQueryHandler<GetShoppingList.Query, GetShoppingList.Response>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
         _useCaseHandler,
@@ -1034,7 +1022,7 @@ public static class ShoppingGrpcServiceTests {
       _useCaseHandler = Substitute.For<ICommandHandler<UpdateItem.Command>>();
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
-        Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
+        Substitute.For<IQueryHandler<GetShoppingList.Query, GetShoppingList.Response>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
         Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
@@ -1215,6 +1203,7 @@ public static class ShoppingGrpcServiceTests {
         Arg.Is<UpdateItem.Command>(cmd => cmd.UserUid == expectedUid),
         TestContext.Current.CancellationToken);
     }
+
   }
 
   public class UpdateShoppingListRpc {
@@ -1225,7 +1214,7 @@ public static class ShoppingGrpcServiceTests {
       _useCaseHandler = Substitute.For<ICommandHandler<UpdateShoppingList.Command>>();
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
-        Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
+        Substitute.For<IQueryHandler<GetShoppingList.Query, GetShoppingList.Response>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
         Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
@@ -1367,7 +1356,7 @@ public static class ShoppingGrpcServiceTests {
       _useCaseHandler = Substitute.For<ICommandHandler<RemoveItem.Command>>();
       service = new ShoppingGrpcService(
         Substitute.For<IQueryHandler<GetShoppingListSummaries.Query, List<DomainShoppingList>>>(),
-        Substitute.For<IQueryHandler<GetShoppingList.Query, Domain.Shopping.ShoppingList>>(),
+        Substitute.For<IQueryHandler<GetShoppingList.Query, GetShoppingList.Response>>(),
         Substitute.For<ICommandHandler<RecordShoppingList.Command>>(),
         Substitute.For<ICommandHandler<CreateShoppingList.Command>>(),
         Substitute.For<ICommandHandler<AddItemsToList.Command>>(),
