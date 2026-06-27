@@ -34,7 +34,8 @@ def branded_product(name: str = "Product") -> Product:
     return Product(
         name=name,
         price=1.99,
-        quantity="500g",
+        quantity=500,
+        unit_of_measure="g",
         brand="Brand",
         image_url="https://example.com/product.png",
     )
@@ -44,7 +45,8 @@ def brandless_product() -> Product:
     return Product(
         name="Brandless",
         price=2.99,
-        quantity="1kg",
+        quantity=1000,
+        unit_of_measure="g",
         brand=None,
         image_url="https://example.com/brandless.png",
     )
@@ -105,7 +107,15 @@ def test_maps_product_quantity_to_add_products_request():
     product = mapped_request().products[0]
 
     # Assert
-    assert product.quantity == "500g"
+    assert product.quantity == 500
+
+
+def test_maps_product_unit_of_measure_to_add_products_request():
+    # Arrange / Act
+    product = mapped_request().products[0]
+
+    # Assert
+    assert product.unit_of_measure == "g"
 
 
 def test_maps_market_name_to_add_products_request():

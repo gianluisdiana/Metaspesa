@@ -115,6 +115,7 @@ class AddProductsRequestMapper:
                     name=p.name,
                     price=f"{p.price}",
                     quantity=p.quantity,
+                    unit_of_measure=p.unit_of_measure,
                     market_name=market_name,
                     brand_name=p.brand,
                     image_url=p.image_url,
