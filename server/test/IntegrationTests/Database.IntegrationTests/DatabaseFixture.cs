@@ -24,4 +24,13 @@ public sealed class DatabaseFixture : IAsyncLifetime {
       .Options;
     return new MainContext(options);
   }
+
+  internal async Task DeleteShoppingProductReferencesAsync(
+    CancellationToken cancellationToken
+  ) {
+    await using MainContext context = CreateContext();
+    await context.PurchaseItems.ExecuteDeleteAsync(cancellationToken);
+    await context.ShoppingItems.ExecuteDeleteAsync(cancellationToken);
+    await context.Purchases.ExecuteDeleteAsync(cancellationToken);
+  }
 }

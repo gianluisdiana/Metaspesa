@@ -39,16 +39,19 @@ public static class PostgreSqlMarketRepositoryTests {
 
   [Collection("Database")]
   public class GetBrandsAsync : IAsyncLifetime {
+    private readonly DatabaseFixture _fixture;
     private readonly MainContext _context;
     private readonly PostgreSqlMarketRepository _repository;
 
     public GetBrandsAsync(DatabaseFixture fixture) {
+      _fixture = fixture;
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
         _context);
     }
 
     public async ValueTask InitializeAsync() {
+      await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
       await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.ProductBrands.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
@@ -105,16 +108,19 @@ public static class PostgreSqlMarketRepositoryTests {
 
   [Collection("Database")]
   public class AddBrandsTests : IAsyncLifetime {
+    private readonly DatabaseFixture _fixture;
     private readonly MainContext _context;
     private readonly PostgreSqlMarketRepository _repository;
 
     public AddBrandsTests(DatabaseFixture fixture) {
+      _fixture = fixture;
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
         _context);
     }
 
     public async ValueTask InitializeAsync() {
+      await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
       await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.ProductBrands.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
@@ -183,16 +189,19 @@ public static class PostgreSqlMarketRepositoryTests {
 
   [Collection("Database")]
   public class GetMarketsAsync : IAsyncLifetime {
+    private readonly DatabaseFixture _fixture;
     private readonly MainContext _context;
     private readonly PostgreSqlMarketRepository _repository;
 
     public GetMarketsAsync(DatabaseFixture fixture) {
+      _fixture = fixture;
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
         _context);
     }
 
     public async ValueTask InitializeAsync() {
+      await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
       await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.SuperMarkets.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
@@ -249,16 +258,19 @@ public static class PostgreSqlMarketRepositoryTests {
 
   [Collection("Database")]
   public class AddMarketsTests : IAsyncLifetime {
+    private readonly DatabaseFixture _fixture;
     private readonly MainContext _context;
     private readonly PostgreSqlMarketRepository _repository;
 
     public AddMarketsTests(DatabaseFixture fixture) {
+      _fixture = fixture;
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
         _context);
     }
 
     public async ValueTask InitializeAsync() {
+      await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
       await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.SuperMarkets.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
@@ -327,18 +339,21 @@ public static class PostgreSqlMarketRepositoryTests {
 
   [Collection("Database")]
   public class AddProductsTests : IAsyncLifetime {
+    private readonly DatabaseFixture _fixture;
     private readonly MainContext _context;
     private readonly PostgreSqlMarketRepository _repository;
     private const string MarketName = "TestMarketForProducts";
     private const string BrandName = "TestBrandForProducts";
 
     public AddProductsTests(DatabaseFixture fixture) {
+      _fixture = fixture;
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
         _context);
     }
 
     public async ValueTask InitializeAsync() {
+      await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
       await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
 
@@ -588,18 +603,21 @@ public static class PostgreSqlMarketRepositoryTests {
 
   [Collection("Database")]
   public class AddMarketProductsTests : IAsyncLifetime {
+    private readonly DatabaseFixture _fixture;
     private readonly MainContext _context;
     private readonly PostgreSqlMarketRepository _repository;
     private const string MarketName = "TestMarketForReturns";
     private const string BrandName = "TestBrandForReturns";
 
     public AddMarketProductsTests(DatabaseFixture fixture) {
+      _fixture = fixture;
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
         _context);
     }
 
     public async ValueTask InitializeAsync() {
+      await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
       await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
 
@@ -672,16 +690,19 @@ public static class PostgreSqlMarketRepositoryTests {
 
   [Collection("Database")]
   public class DeleteBrandsTests : IAsyncLifetime {
+    private readonly DatabaseFixture _fixture;
     private readonly MainContext _context;
     private readonly PostgreSqlMarketRepository _repository;
 
     public DeleteBrandsTests(DatabaseFixture fixture) {
+      _fixture = fixture;
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
         _context);
     }
 
     public async ValueTask InitializeAsync() {
+      await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
       await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.ProductBrands.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
@@ -735,16 +756,19 @@ public static class PostgreSqlMarketRepositoryTests {
 
   [Collection("Database")]
   public class DeleteMarketsTests : IAsyncLifetime {
+    private readonly DatabaseFixture _fixture;
     private readonly MainContext _context;
     private readonly PostgreSqlMarketRepository _repository;
 
     public DeleteMarketsTests(DatabaseFixture fixture) {
+      _fixture = fixture;
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
         _context);
     }
 
     public async ValueTask InitializeAsync() {
+      await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
       await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.SuperMarkets.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
@@ -798,18 +822,21 @@ public static class PostgreSqlMarketRepositoryTests {
 
   [Collection("Database")]
   public class DeleteProductsTests : IAsyncLifetime {
+    private readonly DatabaseFixture _fixture;
     private readonly MainContext _context;
     private readonly PostgreSqlMarketRepository _repository;
     private const string MarketName = "TestMarketForDeleting";
     private const string BrandName = "TestBrandForDeleting";
 
     public DeleteProductsTests(DatabaseFixture fixture) {
+      _fixture = fixture;
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
         _context);
     }
 
     public async ValueTask InitializeAsync() {
+      await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
       await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
 
@@ -892,6 +919,7 @@ public static class PostgreSqlMarketRepositoryTests {
 
   [Collection("Database")]
   public class GetProductsAsync : IAsyncLifetime {
+    private readonly DatabaseFixture _fixture;
     private readonly MainContext _context;
     private readonly PostgreSqlMarketRepository _repository;
     private const string MarketA = "GetProductsMarketA";
@@ -900,12 +928,14 @@ public static class PostgreSqlMarketRepositoryTests {
     private const string BrandB = "GetProductsBrandB";
 
     public GetProductsAsync(DatabaseFixture fixture) {
+      _fixture = fixture;
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
         _context);
     }
 
     public async ValueTask InitializeAsync() {
+      await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
       await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
 
@@ -1266,6 +1296,7 @@ public static class PostgreSqlMarketRepositoryTests {
 
   [Collection("Database")]
   public class DeleteProductsHistoryForMarketsTests : IAsyncLifetime {
+    private readonly DatabaseFixture _fixture;
     private readonly MainContext _context;
     private readonly PostgreSqlMarketRepository _repository;
     private const string MarketName = "TestMarketForHistory";
@@ -1273,12 +1304,14 @@ public static class PostgreSqlMarketRepositoryTests {
     private const string BrandName = "TestBrandForHistory";
 
     public DeleteProductsHistoryForMarketsTests(DatabaseFixture fixture) {
+      _fixture = fixture;
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
         _context);
     }
 
     public async ValueTask InitializeAsync() {
+      await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
       await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
 
@@ -1482,16 +1515,19 @@ public static class PostgreSqlMarketRepositoryTests {
 
   [Collection("Database")]
   public class GetMarketSummariesAsync : IAsyncLifetime {
+    private readonly DatabaseFixture _fixture;
     private readonly MainContext _context;
     private readonly PostgreSqlMarketRepository _repository;
 
     public GetMarketSummariesAsync(DatabaseFixture fixture) {
+      _fixture = fixture;
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
         _context);
     }
 
     public async ValueTask InitializeAsync() {
+      await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
       await _context.SuperMarkets.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
     }
 
@@ -1577,3 +1613,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
   }
 }
+
+
+

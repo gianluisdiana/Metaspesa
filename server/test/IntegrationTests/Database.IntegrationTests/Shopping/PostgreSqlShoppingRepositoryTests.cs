@@ -1125,6 +1125,36 @@ public static class PostgreSqlShoppingRepositoryTests {
       GC.SuppressFinalize(this);
     }
 
+    private async Task<int> SeedProductHistoryAsync(string productName) {
+      var market = new SuperMarketDbEntity { Name = $"Test market {Guid.CreateVersion7()}" };
+      var brand = new ProductBrandDbEntity { Name = $"Test brand {Guid.CreateVersion7()}" };
+      var unit = new UnitOfMeasureDbEntity {
+        Code = $"u{Guid.CreateVersion7():N}"[..16],
+        Name = $"Test unit {Guid.CreateVersion7()}",
+      };
+      var product = new ProductDbEntity {
+        Name = productName,
+        SuperMarket = market,
+        Brand = brand,
+      };
+      var format = new ProductFormatDbEntity {
+        Product = product,
+        Quantity = 1,
+        UnitOfMeasure = unit,
+        ImageUrl = "https://example.test/product.png",
+      };
+      var history = new ProductsHistoryDbEntity {
+        Product = product,
+        ProductFormat = format,
+        Price = 1.25m,
+        CreatedAt = DateTime.UtcNow,
+      };
+
+      _context.ProductsHistory.Add(history);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      return history.Id;
+    }
+
     [Fact(
       DisplayName = "Renames temporary list to requested name")]
     public async Task UpdateShoppingListName_RenamesTemporaryList_ToRequestedName() {
@@ -1180,8 +1210,9 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, null);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      int referenceUid = await SeedProductHistoryAsync("Milk");
       _repository.AddItemsToList(
-        userUid, null, [new AShoppingItem(1, 1, false)]);
+        userUid, null, [new AShoppingItem(referenceUid, 1, false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
@@ -1191,7 +1222,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       // Assert
       AShoppingList? list = await _repository.GetShoppingListAsync(
         userUid, "Groceries", TestContext.Current.CancellationToken);
-      Assert.Equal(1, list!.Items.Single().ReferenceUid);
+      Assert.Equal(referenceUid, list!.Items.Single().ReferenceUid);
     }
   }
 
