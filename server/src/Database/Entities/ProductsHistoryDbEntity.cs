@@ -14,6 +14,7 @@ internal class ProductsHistoryDbEntity {
   public ProductDbEntity Product { get; set; } = null!;
   public ProductFormatDbEntity ProductFormat { get; set; } = null!;
   public ICollection<ShoppingItemDbEntity> ShoppingItems { get; set; } = [];
+  public ICollection<PurchaseItemDbEntity> PurchaseItems { get; set; } = [];
 
   public ProductFormat MapToDomainFormat() {
     Debug.Assert(ProductFormat is not null);

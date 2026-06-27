@@ -7,4 +7,5 @@ internal class ShoppingListDbEntity {
 
   public ICollection<ShoppingItemDbEntity> Items { get; set; } = [];
   public ICollection<ShoppingListOwnershipDbEntity> Ownerships { get; set; } = [];
+  public ICollection<PurchaseDbEntity> Purchases { get; set; } = [];
 }

@@ -196,32 +196,15 @@ namespace Metaspesa.Database.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("PricePaid")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("price_paid");
-
-                    b.Property<int?>("ProductId")
-                        .HasColumnType("integer")
-                        .HasColumnName("product_id");
-
                     b.Property<DateTime>("PurchasedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("purchased_at")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<string>("Quantity")
-                        .HasColumnType("text")
-                        .HasColumnName("quantity");
-
-                    b.Property<int>("RegisteredItemId")
+                    b.Property<int?>("ShoppingListId")
                         .HasColumnType("integer")
-                        .HasColumnName("registered_item_id");
-
-                    b.Property<int?>("SuperMarketId")
-                        .HasColumnType("integer")
-                        .HasColumnName("super_market_id");
+                        .HasColumnName("shopping_list_id");
 
                     b.Property<Guid>("UserUid")
                         .HasColumnType("uuid")
@@ -230,25 +213,19 @@ namespace Metaspesa.Database.Migrations
                     b.HasKey("Id")
                         .HasName("pk_purchase");
 
-                    b.HasIndex(new[] { "ProductId" }, "idx_purchase_product_id");
+                    b.HasIndex(new[] { "PurchasedAt" }, "idx_purchases_purchased_at");
 
-                    b.HasIndex(new[] { "PurchasedAt" }, "idx_purchase_purchased_at");
+                    b.HasIndex(new[] { "ShoppingListId" }, "idx_purchases_shopping_list_id");
 
-                    b.HasIndex(new[] { "RegisteredItemId" }, "idx_purchase_registered_item_id");
-
-                    b.HasIndex(new[] { "SuperMarketId" }, "idx_purchase_super_market_id");
-
-                    b.HasIndex(new[] { "UserUid" }, "idx_purchase_user_uid");
+                    b.HasIndex(new[] { "UserUid" }, "idx_purchases_user_uid");
 
                     b.ToTable("purchases", "shopping", t =>
                         {
-                            t.HasComment("Records the actual act of buying an item — links shopping, registered\r\nitems, and the market. Core of savings analytics.");
-
-                            t.HasCheckConstraint("chk_positive_price_paid", "price_paid >= 0.00");
+                            t.HasComment("Purchase receipt header. It records who bought, when, and optionally which\r\nshopping list was checked out. Product lines live in purchase_items.");
                         });
                 });
 
-            modelBuilder.Entity("Metaspesa.Database.Entities.RegisteredItemDbEntity", b =>
+            modelBuilder.Entity("Metaspesa.Database.Entities.PurchaseItemDbEntity", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -257,34 +234,41 @@ namespace Metaspesa.Database.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("LastKnownPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("last_known_price");
+                    b.Property<int>("Amount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("amount")
+                        .HasComment("How many units/packages were bought");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
+                    b.Property<int>("ProductHistoryId")
+                        .HasColumnType("integer")
+                        .HasColumnName("product_history_id");
 
-                    b.Property<string>("Quantity")
-                        .HasColumnType("text")
-                        .HasColumnName("quantity");
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer")
+                        .HasColumnName("product_id");
 
-                    b.Property<Guid>("UserUid")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_uid");
+                    b.Property<int>("PurchaseId")
+                        .HasColumnType("integer")
+                        .HasColumnName("purchase_id");
 
                     b.HasKey("Id")
-                        .HasName("pk_registered_item");
+                        .HasName("pk_purchase_item");
 
-                    b.HasIndex(new[] { "UserUid" }, "idx_registered_item_user_uid");
+                    b.HasIndex("ProductHistoryId", "ProductId");
 
-                    b.ToTable("registered_items", "shopping", t =>
+                    b.HasIndex(new[] { "ProductHistoryId" }, "idx_purchase_item_product_history_id");
+
+                    b.HasIndex(new[] { "ProductId" }, "idx_purchase_item_product_id");
+
+                    b.HasIndex(new[] { "PurchaseId" }, "idx_purchase_item_purchase_id");
+
+                    b.ToTable("purchase_items", "shopping", t =>
                         {
-                            t.HasComment("Items that users have registered as purchased or planned to purchase");
+                            t.HasComment("Immutable purchase receipt lines. Each line references the exact market\r\nproduct history row used for analytics, which provides the exact price and\r\nformat paid at purchase time.");
 
-                            t.HasCheckConstraint("chk_positive_last_known_price", "last_known_price >= 0.00");
+                            t.HasCheckConstraint("chk_purchase_item_positive_amount", "amount > 0");
                         });
                 });
 
@@ -297,30 +281,30 @@ namespace Metaspesa.Database.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("Amount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("amount")
+                        .HasComment("How many units/packages of the product are planned");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<bool>("IsChecked")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
+                        .HasDefaultValue(false)
                         .HasColumnName("is_checked");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
+                    b.Property<int>("ProductHistoryId")
+                        .HasColumnType("integer")
+                        .HasColumnName("product_history_id");
 
-                    b.Property<decimal>("Price")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("price");
-
-                    b.Property<int?>("ProductsHistoryDbEntityId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Quantity")
-                        .HasColumnType("text")
-                        .HasColumnName("quantity");
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer")
+                        .HasColumnName("product_id");
 
                     b.Property<int>("ShoppingListId")
                         .HasColumnType("integer")
@@ -329,15 +313,22 @@ namespace Metaspesa.Database.Migrations
                     b.HasKey("Id")
                         .HasName("pk_shopping_item");
 
-                    b.HasIndex("ProductsHistoryDbEntityId");
+                    b.HasIndex("ProductHistoryId", "ProductId");
+
+                    b.HasIndex(new[] { "ShoppingListId", "ProductId" }, "idx_shopping_item_list_product")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "ProductHistoryId" }, "idx_shopping_item_product_history_id");
+
+                    b.HasIndex(new[] { "ProductId" }, "idx_shopping_item_product_id");
 
                     b.HasIndex(new[] { "ShoppingListId" }, "idx_shopping_item_shopping_list_id");
 
                     b.ToTable("shopping_items", "shopping", t =>
                         {
-                            t.HasComment("Items that belong to a shopping list, representing planned purchases");
+                            t.HasComment("Items that belong to a shopping list, representing planned purchases.\r\nEach line points to an existing market product and the exact product history\r\nrow used when the item was added, so price and format are explicit.");
 
-                            t.HasCheckConstraint("chk_shopping_item_positive_price", "price >= 0.00");
+                            t.HasCheckConstraint("chk_shopping_item_positive_amount", "amount > 0");
                         });
                 });
 
@@ -600,59 +591,74 @@ namespace Metaspesa.Database.Migrations
 
             modelBuilder.Entity("Metaspesa.Database.Entities.PurchaseDbEntity", b =>
                 {
-                    b.HasOne("Metaspesa.Database.Entities.ProductDbEntity", "Product")
+                    b.HasOne("Metaspesa.Database.Entities.ShoppingListDbEntity", "ShoppingList")
                         .WithMany("Purchases")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Metaspesa.Database.Entities.RegisteredItemDbEntity", "RegisteredItem")
-                        .WithMany("Purchases")
-                        .HasForeignKey("RegisteredItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Metaspesa.Database.Entities.SuperMarketDbEntity", "SuperMarket")
-                        .WithMany("Purchases")
-                        .HasForeignKey("SuperMarketId")
+                        .HasForeignKey("ShoppingListId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Metaspesa.Database.Entities.UserDbEntity", "User")
                         .WithMany("Purchases")
                         .HasForeignKey("UserUid")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ShoppingList");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Metaspesa.Database.Entities.PurchaseItemDbEntity", b =>
+                {
+                    b.HasOne("Metaspesa.Database.Entities.ProductDbEntity", "Product")
+                        .WithMany("PurchaseItems")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Metaspesa.Database.Entities.PurchaseDbEntity", "Purchase")
+                        .WithMany("Items")
+                        .HasForeignKey("PurchaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Metaspesa.Database.Entities.ProductsHistoryDbEntity", "ProductHistory")
+                        .WithMany("PurchaseItems")
+                        .HasForeignKey("ProductHistoryId", "ProductId")
+                        .HasPrincipalKey("Id", "ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Product");
 
-                    b.Navigation("RegisteredItem");
+                    b.Navigation("ProductHistory");
 
-                    b.Navigation("SuperMarket");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Metaspesa.Database.Entities.RegisteredItemDbEntity", b =>
-                {
-                    b.HasOne("Metaspesa.Database.Entities.UserDbEntity", "User")
-                        .WithMany()
-                        .HasForeignKey("UserUid")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
+                    b.Navigation("Purchase");
                 });
 
             modelBuilder.Entity("Metaspesa.Database.Entities.ShoppingItemDbEntity", b =>
                 {
-                    b.HasOne("Metaspesa.Database.Entities.ProductsHistoryDbEntity", null)
+                    b.HasOne("Metaspesa.Database.Entities.ProductDbEntity", "Product")
                         .WithMany("ShoppingItems")
-                        .HasForeignKey("ProductsHistoryDbEntityId");
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("Metaspesa.Database.Entities.ShoppingListDbEntity", "ShoppingList")
                         .WithMany("Items")
                         .HasForeignKey("ShoppingListId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("Metaspesa.Database.Entities.ProductsHistoryDbEntity", "ProductHistory")
+                        .WithMany("ShoppingItems")
+                        .HasForeignKey("ProductHistoryId", "ProductId")
+                        .HasPrincipalKey("Id", "ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("ProductHistory");
 
                     b.Navigation("ShoppingList");
                 });
@@ -698,7 +704,9 @@ namespace Metaspesa.Database.Migrations
 
                     b.Navigation("History");
 
-                    b.Navigation("Purchases");
+                    b.Navigation("PurchaseItems");
+
+                    b.Navigation("ShoppingItems");
                 });
 
             modelBuilder.Entity("Metaspesa.Database.Entities.ProductFormatDbEntity", b =>
@@ -708,12 +716,14 @@ namespace Metaspesa.Database.Migrations
 
             modelBuilder.Entity("Metaspesa.Database.Entities.ProductsHistoryDbEntity", b =>
                 {
+                    b.Navigation("PurchaseItems");
+
                     b.Navigation("ShoppingItems");
                 });
 
-            modelBuilder.Entity("Metaspesa.Database.Entities.RegisteredItemDbEntity", b =>
+            modelBuilder.Entity("Metaspesa.Database.Entities.PurchaseDbEntity", b =>
                 {
-                    b.Navigation("Purchases");
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Metaspesa.Database.Entities.ShoppingListDbEntity", b =>
@@ -721,13 +731,13 @@ namespace Metaspesa.Database.Migrations
                     b.Navigation("Items");
 
                     b.Navigation("Ownerships");
+
+                    b.Navigation("Purchases");
                 });
 
             modelBuilder.Entity("Metaspesa.Database.Entities.SuperMarketDbEntity", b =>
                 {
                     b.Navigation("Products");
-
-                    b.Navigation("Purchases");
                 });
 
             modelBuilder.Entity("Metaspesa.Database.Entities.UnitOfMeasureDbEntity", b =>

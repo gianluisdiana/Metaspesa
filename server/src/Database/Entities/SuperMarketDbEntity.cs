@@ -6,5 +6,4 @@ internal class SuperMarketDbEntity {
   public string? LogoUrl { get; set; }
 
   public ICollection<ProductDbEntity> Products { get; set; } = [];
-  public ICollection<PurchaseDbEntity> Purchases { get; set; } = [];
 }
