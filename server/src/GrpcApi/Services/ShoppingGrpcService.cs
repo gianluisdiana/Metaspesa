@@ -156,8 +156,7 @@ internal class ShoppingGrpcService(
   ) {
     var command = new RecordShoppingList.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
-      ShoppingListName: GrpcTextSanitizer.SanitizeAscii(request.ShoppingList.Name),
-      ShoppingListItems: [.. request.ShoppingList.Items.Select(p => p.ToCommand())]);
+      ShoppingListName: GrpcTextSanitizer.SanitizeAscii(request.ShoppingListName));
 
     Result result = await recordShoppingListHandler.Handle(
       command, context.CancellationToken);

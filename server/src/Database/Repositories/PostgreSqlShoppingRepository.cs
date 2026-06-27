@@ -190,29 +190,21 @@ internal partial class PostgreSqlShoppingRepository(
       item.DeletedAt = clock.GetCurrentTime();
     }, "Couldn't remove shopping item.");
 
-  public void RecordShoppingList(Guid userUid, ShoppingList shoppingList) {
-    Debug.Assert(shoppingList.HasCheckedItems());
-
+  public void RecordShoppingList(Guid userUid, AShoppingList shoppingList) {
     PostgreSqlExceptionMapper.Map(() => {
-      List<ShoppingItem> checkedItems = [.. shoppingList.Items.Where(i => i.IsChecked)];
+      List<AShoppingItem> checkedItems = [.. shoppingList.Items.Where(i => i.IsChecked)];
 
       DateTime now = clock.GetCurrentTime();
       List<PurchaseItemDbEntity> purchaseItems = [];
-      foreach (ShoppingItem ci in checkedItems) {
-        var history = context.ProductsHistory
-          .Where(ph => ph.Product.Name == ci.Name &&
-            ph.Price == ci.Price.Value &&
-            $"{ph.ProductFormat.Quantity}" == ci.Quantity!.Value)
-          .Select(ph => new {
-            ph.Id,
-            ph.ProductId,
+      foreach (AShoppingItem ci in checkedItems) {
+        PurchaseItemDbEntity item = context.ProductsHistory
+          .Where(ph => ph.Id == ci.ReferenceUid)
+          .Select(ph => new PurchaseItemDbEntity {
+            Amount = ci.Amount,
+            ProductId = ph.ProductId,
+            ProductHistoryId = ph.Id,
           })
-          .First();
-        PurchaseItemDbEntity item = new() {
-          Amount = 1,
-          ProductId = history.ProductId,
-          ProductHistoryId = history.Id,
-        };
+          .Single();
         purchaseItems.Add(item);
       }
       context.Purchases.Add(new PurchaseDbEntity {
@@ -230,5 +222,25 @@ internal partial class PostgreSqlShoppingRepository(
         Items = purchaseItems,
       });
     }, "Couldn't record shopping list.");
+  }
+
+  public void ResetShoppingList(Guid userUid, string? shoppingListName) {
+    // update all checked items to be unchecked
+    PostgreSqlExceptionMapper.Map(() => {
+      var checkedItems = context.ShoppingItems
+        .Where(i => i.DeletedAt == null &&
+          i.IsChecked &&
+          i.ShoppingList.Ownerships.Any(o => o.UserUid == userUid) && (
+            i.ShoppingList.Name == null && shoppingListName == null ||
+            i.ShoppingList.Name != null &&
+            shoppingListName != null &&
+            EF.Functions.ILike(i.ShoppingList.Name, shoppingListName)
+          ))
+        .ToList();
+
+      foreach (ShoppingItemDbEntity item in checkedItems) {
+        item.IsChecked = false;
+      }
+    }, "Couldn't reset shopping list.");
   }
 }

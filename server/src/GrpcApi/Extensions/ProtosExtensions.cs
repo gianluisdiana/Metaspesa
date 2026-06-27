@@ -75,15 +75,6 @@ internal static class ProtosExtensions {
       },
     };
 
-  public static RecordShoppingList.CommandItem ToCommand(
-    this Protos.Shopping.ShoppingItem protoProduct
-  ) => new(
-    GrpcTextSanitizer.SanitizeAscii(protoProduct.Name),
-    protoProduct.HasQuantity ? GrpcTextSanitizer.SanitizeAscii(protoProduct.Quantity) : null,
-    protoProduct.HasPrice ? GrpcPriceConverter.ToDecimal(protoProduct.Price) : 0m,
-    protoProduct.Checked
-  );
-
   public static AddItemsToList.CommandItem ToAddItemsCommand(
     this Protos.Shopping.AShoppingItem protoItem
   ) => new(

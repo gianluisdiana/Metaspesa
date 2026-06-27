@@ -1583,46 +1583,64 @@ public static class PostgreSqlShoppingRepositoryTests {
       GC.SuppressFinalize(this);
     }
 
+    private async Task<int> SeedProductHistoryAsync(string productName) {
+      var market = new SuperMarketDbEntity { Name = $"Test market {Guid.CreateVersion7()}" };
+      var brand = new ProductBrandDbEntity { Name = $"Test brand {Guid.CreateVersion7()}" };
+      var unit = new UnitOfMeasureDbEntity {
+        Code = $"u{Guid.CreateVersion7():N}"[..16],
+        Name = $"Test unit {Guid.CreateVersion7()}",
+      };
+      var product = new ProductDbEntity {
+        Name = productName,
+        SuperMarket = market,
+        Brand = brand,
+      };
+      var format = new ProductFormatDbEntity {
+        Product = product,
+        Quantity = 1,
+        UnitOfMeasure = unit,
+        ImageUrl = "https://example.test/product.png",
+      };
+      var history = new ProductsHistoryDbEntity {
+        Product = product,
+        ProductFormat = format,
+        Price = 1.25m,
+        CreatedAt = DateTime.UtcNow,
+      };
+
+      _context.ProductsHistory.Add(history);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      return history.Id;
+    }
+
     [Fact(
       Explicit = true,
-      DisplayName = "Soft-deletes checked items after recording")]
-    public async Task RecordShoppingList_SoftDeletesCheckedItems_AfterRecording() {
+      DisplayName = "Creates purchase item for checked item")]
+    public async Task RecordShoppingList_CreatesPurchaseItem_ForCheckedItem() {
       // Arrange
       var userUid = Guid.CreateVersion7();
       _context.Users.Add(new UserDbEntity {
         Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      _repository.AddItemsToList(userUid, "Weekly", [
-        new AShoppingItem(1, 1, true),
-        new AShoppingItem(2, 1, false),
-      ]);
-      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      int milkReferenceUid = await SeedProductHistoryAsync("Milk");
+      int breadReferenceUid = await SeedProductHistoryAsync("Bread");
 
       // Act
-      _repository.RecordShoppingList(userUid, new ShoppingList("Weekly", [
-        new ShoppingItem("Milk", null, new Price(1.5m), true),
-        new ShoppingItem("Bread", null, new Price(2.0m), false),
+      _repository.RecordShoppingList(userUid, new AShoppingList("Weekly", [
+        new AShoppingItem(milkReferenceUid, 2, true),
+        new AShoppingItem(breadReferenceUid, 1, false),
       ]));
-
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
-      ShoppingItemDbEntity milk = await _context.ShoppingItems
+      PurchaseItemDbEntity item = await _context.PurchaseItems
         .AsNoTracking()
-        .FirstAsync(
-          i => i.Product.Name == "Milk" && i.ShoppingList.Ownerships.Any(o => o.UserUid == userUid),
-          TestContext.Current.CancellationToken);
-      ShoppingItemDbEntity bread = await _context.ShoppingItems
-        .AsNoTracking()
-        .FirstAsync(
-          i => i.Product.Name == "Bread" && i.ShoppingList.Ownerships.Any(o => o.UserUid == userUid),
-          TestContext.Current.CancellationToken);
-      Assert.NotNull(milk.DeletedAt);
-      Assert.Null(bread.DeletedAt);
+        .SingleAsync(i => i.Purchase.UserUid == userUid, TestContext.Current.CancellationToken);
+      Assert.Equal(milkReferenceUid, item.ProductHistoryId);
+      Assert.Equal(2, item.Amount);
     }
 
     [Fact(
@@ -1635,16 +1653,13 @@ public static class PostgreSqlShoppingRepositoryTests {
         Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      _repository.AddItemsToList(
-        userUid, "Weekly", [new AShoppingItem(1, 1, true)]);
-      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      int referenceUid = await SeedProductHistoryAsync("Eggs");
 
       // Act
-      _repository.RecordShoppingList(userUid, new ShoppingList("Weekly", [
-        new ShoppingItem("Eggs", null, new Price(3.0m), true),
+      _repository.RecordShoppingList(userUid, new AShoppingList("Weekly", [
+        new AShoppingItem(referenceUid, 1, true),
       ]));
 
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1654,6 +1669,148 @@ public static class PostgreSqlShoppingRepositoryTests {
         .AsNoTracking()
         .CountAsync(p => p.UserUid == userUid, TestContext.Current.CancellationToken);
       Assert.Equal(1, count);
+    }
+  }
+
+  [Collection("Database")]
+  public class ResetShoppingList : IAsyncLifetime {
+    private readonly MainContext _context;
+    private readonly PostgreSqlShoppingRepository _repository;
+
+    public ResetShoppingList(DatabaseFixture fixture) {
+      _context = fixture.CreateContext();
+      IClock _clock = Substitute.For<IClock>();
+      _repository = new PostgreSqlShoppingRepository(
+        _context,
+        _clock);
+      _clock.GetCurrentTime().Returns(DateTime.UtcNow);
+    }
+
+    public ValueTask InitializeAsync() =>
+      EnsureShopperRoleAsync(_context, TestContext.Current.CancellationToken);
+
+    public async ValueTask DisposeAsync() {
+      await _context.DisposeAsync();
+      GC.SuppressFinalize(this);
+    }
+
+    private async Task<int> SeedProductHistoryAsync(string productName) {
+      var market = new SuperMarketDbEntity { Name = $"Test market {Guid.CreateVersion7()}" };
+      var brand = new ProductBrandDbEntity { Name = $"Test brand {Guid.CreateVersion7()}" };
+      var unit = new UnitOfMeasureDbEntity {
+        Code = $"u{Guid.CreateVersion7():N}"[..16],
+        Name = $"Test unit {Guid.CreateVersion7()}",
+      };
+      var product = new ProductDbEntity {
+        Name = productName,
+        SuperMarket = market,
+        Brand = brand,
+      };
+      var format = new ProductFormatDbEntity {
+        Product = product,
+        Quantity = 1,
+        UnitOfMeasure = unit,
+        ImageUrl = "https://example.test/product.png",
+      };
+      var history = new ProductsHistoryDbEntity {
+        Product = product,
+        ProductFormat = format,
+        Price = 1.25m,
+        CreatedAt = DateTime.UtcNow,
+      };
+
+      _context.ProductsHistory.Add(history);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      return history.Id;
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Unchecks checked items in target list")]
+    public async Task ResetShoppingList_UnchecksCheckedItems_InTargetList() {
+      // Arrange
+      var userUid = Guid.CreateVersion7();
+      _context.Users.Add(new UserDbEntity {
+        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      _repository.CreateShoppingList(userUid, "Weekly");
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      int milkReferenceUid = await SeedProductHistoryAsync("Milk");
+      int breadReferenceUid = await SeedProductHistoryAsync("Bread");
+      _repository.AddItemsToList(userUid, "Weekly", [
+        new AShoppingItem(milkReferenceUid, 1, true),
+        new AShoppingItem(breadReferenceUid, 1, false),
+      ]);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      _repository.ResetShoppingList(userUid, "Weekly");
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Assert
+      AShoppingList? list = await _repository.GetShoppingListAsync(
+        userUid, "Weekly", TestContext.Current.CancellationToken);
+      Assert.All(list!.Items, item => Assert.False(item.IsChecked));
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Does not uncheck another user's matching list")]
+    public async Task ResetShoppingList_DoesNotUncheckAnotherUsersMatchingList() {
+      // Arrange
+      var userUid = Guid.CreateVersion7();
+      var otherUid = Guid.CreateVersion7();
+      _context.Users.AddRange(
+        new UserDbEntity {
+          Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
+        },
+        new UserDbEntity {
+          Uid = otherUid, Username = otherUid.ToString(), EncryptedPassword = "x", RoleId = 1
+        });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      _repository.CreateShoppingList(userUid, "Weekly");
+      _repository.CreateShoppingList(otherUid, "Weekly");
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      int referenceUid = await SeedProductHistoryAsync("Milk");
+      _repository.AddItemsToList(userUid, "Weekly", [new AShoppingItem(referenceUid, 1, true)]);
+      _repository.AddItemsToList(otherUid, "Weekly", [new AShoppingItem(referenceUid, 1, true)]);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      _repository.ResetShoppingList(userUid, "Weekly");
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Assert
+      AShoppingList? otherList = await _repository.GetShoppingListAsync(
+        otherUid, "Weekly", TestContext.Current.CancellationToken);
+      Assert.True(otherList!.Items.Single().IsChecked);
+    }
+
+    [Fact(
+      Explicit = true,
+      DisplayName = "Resets temporary list when name is null")]
+    public async Task ResetShoppingList_ResetsTemporaryList_WhenNameIsNull() {
+      // Arrange
+      var userUid = Guid.CreateVersion7();
+      _context.Users.Add(new UserDbEntity {
+        Uid = userUid, Username = userUid.ToString(), EncryptedPassword = "x", RoleId = 1
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      _repository.CreateShoppingList(userUid, null);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      int referenceUid = await SeedProductHistoryAsync("Milk");
+      _repository.AddItemsToList(userUid, null, [new AShoppingItem(referenceUid, 1, true)]);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      _repository.ResetShoppingList(userUid, null);
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Assert
+      AShoppingList? list = await _repository.GetShoppingListAsync(
+        userUid, null, TestContext.Current.CancellationToken);
+      Assert.False(list!.Items.Single().IsChecked);
     }
   }
 }

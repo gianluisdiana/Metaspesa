@@ -108,5 +108,5 @@ message ShoppingListResponse {
 
 // Request message for recording the items in the shopping list.
 message RecordShoppingListRequest {
-  ShoppingList shopping_list = 1;
+  string shopping_list_name = 1;
 }

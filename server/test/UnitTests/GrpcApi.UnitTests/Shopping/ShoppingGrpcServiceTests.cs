@@ -412,10 +412,7 @@ public static class ShoppingGrpcServiceTests {
         .Returns(new DomainError(string.Empty, string.Empty, ErrorKind.Unexpected));
 
       var request = new RecordShoppingListRequest {
-        ShoppingList = new Protos.Shopping.ShoppingList {
-          Name = "Weekly Groceries",
-          Items = { }
-        }
+        ShoppingListName = "Weekly Groceries",
       };
 
       // Act
@@ -434,10 +431,7 @@ public static class ShoppingGrpcServiceTests {
         .Returns(Result.Success());
 
       var request = new RecordShoppingListRequest {
-        ShoppingList = new Protos.Shopping.ShoppingList {
-          Name = "Weekly Groceries",
-          Items = { }
-        }
+        ShoppingListName = "Weekly Groceries",
       };
 
       // Act
@@ -453,10 +447,7 @@ public static class ShoppingGrpcServiceTests {
       // Arrange
       const string ListName = "Weekly Groceries";
       var request = new RecordShoppingListRequest {
-        ShoppingList = new Protos.Shopping.ShoppingList {
-          Name = ListName,
-          Items = { }
-        }
+        ShoppingListName = ListName,
       };
 
       _useCaseHandler
@@ -473,171 +464,6 @@ public static class ShoppingGrpcServiceTests {
         TestContext.Current.CancellationToken);
     }
 
-    [Fact(DisplayName = "Maps product name from request to shopping list item in the command")]
-    public async Task Api_MapsProductName_FromRequestToShoppingListItemInCommand() {
-      // Arrange
-      var request = new RecordShoppingListRequest {
-        ShoppingList = new Protos.Shopping.ShoppingList {
-          Name = "Weekly Groceries",
-          Items = {
-            new Protos.Shopping.ShoppingItem {
-              Name = "Product 1",
-              Quantity = "1 litre",
-              Price = "3",
-              Checked = true,
-            },
-            new Protos.Shopping.ShoppingItem {
-              Name = "Product 2",
-              Quantity = "2 kg",
-              Price = "10.3",
-              Checked = false,
-            }
-          }
-        }
-      };
-
-      _useCaseHandler
-        .Handle(Arg.Any<RecordShoppingList.Command>(), TestContext.Current.CancellationToken)
-        .Returns(Result.Success());
-
-      // Act
-      await service.RecordShoppingList(
-        request, CreateServerCallContext());
-
-      // Assert
-      for (int i = 0; i < request.ShoppingList.Items.Count; i++) {
-        await _useCaseHandler.Received(1).Handle(
-          Arg.Is<RecordShoppingList.Command>(cmd =>
-            cmd.ShoppingListItems.ElementAt(i).Name ==
-            request.ShoppingList.Items[i].Name),
-          TestContext.Current.CancellationToken);
-      }
-    }
-
-    [Fact(DisplayName = "Maps product quantity from request to shopping list item in the command")]
-    public async Task Api_MapsProductQuantity_FromRequestToShoppingListItemInCommand() {
-      // Arrange
-      var request = new RecordShoppingListRequest {
-        ShoppingList = new Protos.Shopping.ShoppingList {
-          Name = "Weekly Groceries",
-          Items = {
-            new Protos.Shopping.ShoppingItem {
-              Name = "Product 1",
-              Quantity = "1 litre",
-              Price = "3",
-              Checked = true,
-            },
-            new Protos.Shopping.ShoppingItem {
-              Name = "Product 2",
-              Quantity = "2 kg",
-              Price = "10.3",
-              Checked = false,
-            }
-          }
-        }
-      };
-
-      _useCaseHandler
-        .Handle(Arg.Any<RecordShoppingList.Command>(), TestContext.Current.CancellationToken)
-        .Returns(Result.Success());
-
-      // Act
-      await service.RecordShoppingList(request, CreateServerCallContext());
-
-      // Assert
-      for (int i = 0; i < request.ShoppingList.Items.Count; i++) {
-        await _useCaseHandler.Received(1).Handle(
-          Arg.Is<RecordShoppingList.Command>(cmd =>
-            cmd.ShoppingListItems.ElementAt(i).Quantity ==
-            request.ShoppingList.Items[i].Quantity),
-          TestContext.Current.CancellationToken);
-      }
-    }
-
-    [Fact(DisplayName = "Maps product price from request to shopping list item in the command")]
-    public async Task Api_MapsProductPrice_FromRequestToShoppingListItemInCommand() {
-      // Arrange
-      var request = new RecordShoppingListRequest {
-        ShoppingList = new Protos.Shopping.ShoppingList {
-          Name = "Weekly Groceries",
-          Items = {
-            new Protos.Shopping.ShoppingItem {
-              Name = "Product 1",
-              Quantity = "1 litre",
-              Price = "3",
-              Checked = true,
-            },
-            new Protos.Shopping.ShoppingItem {
-              Name = "Product 2",
-              Quantity = "2 kg",
-              Price = "10.3",
-              Checked = false,
-            }
-          }
-        }
-      };
-
-      _useCaseHandler
-        .Handle(Arg.Any<RecordShoppingList.Command>(), TestContext.Current.CancellationToken)
-        .Returns(Result.Success());
-
-      // Act
-      await service.RecordShoppingList(request, CreateServerCallContext());
-
-      // Assert
-      const decimal Epsilon = 0.01m;
-      for (int i = 0; i < request.ShoppingList.Items.Count; i++) {
-        decimal price = decimal.Parse(
-          request.ShoppingList.Items[i].Price,
-          CultureInfo.InvariantCulture);
-        await _useCaseHandler.Received(1).Handle(
-          Arg.Is<RecordShoppingList.Command>(cmd => Math.Abs(
-            cmd.ShoppingListItems.ElementAt(i).Price - price
-          ) < Epsilon),
-          TestContext.Current.CancellationToken);
-      }
-    }
-
-    [Fact(DisplayName = "Maps product checked state from request to shopping list item in the command")]
-    public async Task Api_MapsProductCheckedState_FromRequestToShoppingListItemInCommand() {
-      // Arrange
-      var request = new RecordShoppingListRequest {
-        ShoppingList = new Protos.Shopping.ShoppingList {
-          Name = "Weekly Groceries",
-          Items = {
-            new Protos.Shopping.ShoppingItem {
-              Name = "Product 1",
-              Quantity = "1 litre",
-              Price = "3",
-              Checked = true,
-            },
-            new Protos.Shopping.ShoppingItem {
-              Name = "Product 2",
-              Quantity = "2 kg",
-              Price = "10.3",
-              Checked = false,
-            }
-          }
-        }
-      };
-
-      _useCaseHandler
-        .Handle(Arg.Any<RecordShoppingList.Command>(), TestContext.Current.CancellationToken)
-        .Returns(Result.Success());
-
-      // Act
-      await service.RecordShoppingList(request, CreateServerCallContext());
-
-      // Assert
-      for (int i = 0; i < request.ShoppingList.Items.Count; i++) {
-        await _useCaseHandler.Received(1).Handle(
-          Arg.Is<RecordShoppingList.Command>(cmd =>
-            cmd.ShoppingListItems.ElementAt(i).IsChecked ==
-            request.ShoppingList.Items[i].Checked),
-          TestContext.Current.CancellationToken);
-      }
-    }
-
     [Fact(DisplayName = "Passes user UID from JWT claim to command")]
     public async Task Api_PassesUserUidFromClaim_ToCommand() {
       // Arrange
@@ -647,7 +473,7 @@ public static class ShoppingGrpcServiceTests {
         .Returns(Result.Success());
 
       var request = new RecordShoppingListRequest {
-        ShoppingList = new Protos.Shopping.ShoppingList { Name = "Weekly", Items = { } }
+        ShoppingListName = "Weekly",
       };
 
       // Act

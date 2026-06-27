@@ -18,5 +18,6 @@ public interface IShoppingRepository {
     Guid userUid, string? listName, int referenceUid, CancellationToken cancellationToken);
   void UpdateItem(Guid userUid, string? listName, AShoppingItem update);
   void RemoveItem(Guid userUid, string? listName, int referenceUid);
-  void RecordShoppingList(Guid userUid, ShoppingList shoppingList);
+  void RecordShoppingList(Guid userUid, AShoppingList shoppingList);
+  void ResetShoppingList(Guid userUid, string? shoppingListName);
 }
