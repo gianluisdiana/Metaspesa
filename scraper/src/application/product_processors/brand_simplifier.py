@@ -30,6 +30,7 @@ class BrandSimplifier(ProductProcessor):
                     quantity=product.quantity,
                     brand=product.brand,
                     image_url=product.image_url,
+                    unit_of_measure=product.unit_of_measure,
                 )
 
         return product

@@ -21,12 +21,15 @@ class CsvProductRepository(FallbackProductRepository):
 
         with output_file.open("w", encoding="utf-8", newline="") as f:
             writer = csv.writer(f, delimiter=";")
-            writer.writerow(["Name", "Price", "Quantity", "Brand", "ImageURL"])
+            writer.writerow(
+                ["Name", "Price", "Quantity", "UnitOfMeasure", "Brand", "ImageURL"]
+            )
             writer.writerows(
                 [
                     product.name,
                     product.price,
                     product.quantity,
+                    product.unit_of_measure,
                     product.brand,
                     product.image_url,
                 ]
@@ -69,9 +72,10 @@ class CsvProductRepository(FallbackProductRepository):
                     Product(
                         name=row["Name"],
                         price=float(row["Price"]),
-                        quantity=row["Quantity"],
+                        quantity=float(row["Quantity"]),
                         brand=brand if brand != "" else None,
                         image_url=row["ImageURL"],
+                        unit_of_measure=row["UnitOfMeasure"],
                     )
                 )
 

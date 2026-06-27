@@ -4,12 +4,20 @@ from application.product_processors.brand_simplifier import BrandSimplifier
 from application.product_processors.quantity_redundancy_remover import (
     QuantityRedundancyRemover,
 )
+from application.product_processors.quantity_unit_of_measure_extractor import (
+    QuantityUnitOfMeasureExtractor,
+)
 from application.product_processors.string_sanitizer import StringSanitizer
+from application.product_processors.unit_of_measure_normalizer import (
+    UnitOfMeasureNormalizer,
+)
 
 __all__ = [
     "BrandExtractor",
     "BrandSimplifier",
     "ProductProcessor",
     "QuantityRedundancyRemover",
+    "QuantityUnitOfMeasureExtractor",
     "StringSanitizer",
+    "UnitOfMeasureNormalizer",
 ]

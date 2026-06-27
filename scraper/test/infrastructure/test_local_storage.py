@@ -1,17 +1,19 @@
 from datetime import date
+from pathlib import Path
 
 from domain import Product
 from infrastructure.local_storage import CsvProductRepository
 
 
-async def test_saves_and_reads_products_with_csv_escaping(tmp_path):
+async def test_saves_and_reads_products_with_csv_escaping(tmp_path: Path):
     # Arrange
     repository = CsvProductRepository(tmp_path)
     products = [
         Product(
             name='Product "Name"; Extra',
             price=1.99,
-            quantity="500g",
+            quantity=500,
+            unit_of_measure="g",
             brand=None,
             image_url="https://example.com/product.png",
         )
@@ -29,14 +31,15 @@ async def test_saves_and_reads_products_with_csv_escaping(tmp_path):
     await repository.remove_old_products("Market", today)
 
 
-async def test_preserves_image_url_when_reading_products(tmp_path):
+async def test_preserves_image_url_when_reading_products(tmp_path: Path):
     # Arrange
     repository = CsvProductRepository(tmp_path)
     products = [
         Product(
             name='Product "Name"; Extra',
             price=1.99,
-            quantity="500g",
+            quantity=500,
+            unit_of_measure="g",
             brand=None,
             image_url="https://example.com/product.png",
         )
@@ -54,7 +57,32 @@ async def test_preserves_image_url_when_reading_products(tmp_path):
     await repository.remove_old_products("Market", today)
 
 
-async def test_ignores_invalid_csv_filenames_when_getting_markets_and_dates(tmp_path):
+async def test_preserves_unit_of_measure_when_reading_products(tmp_path: Path):
+    # Arrange
+    repository = CsvProductRepository(tmp_path)
+    products = [
+        Product(
+            name="Product",
+            price=1.99,
+            quantity=1000,
+            unit_of_measure="g",
+            brand="Brand",
+            image_url="https://example.com/product.png",
+        )
+    ]
+    today = date(2026, 5, 7)
+    await repository.save("Market", today, products)
+
+    # Act
+    saved_products = await repository.get_products_by_market_and_date("Market", today)
+
+    # Assert
+    assert saved_products[0].unit_of_measure == "g"
+
+
+async def test_ignores_invalid_csv_filenames_when_getting_markets_and_dates(
+    tmp_path: Path,
+):
     # Arrange
     repository = CsvProductRepository(tmp_path)
     (tmp_path / "invalid.csv").write_text("", encoding="utf-8")
@@ -67,7 +95,7 @@ async def test_ignores_invalid_csv_filenames_when_getting_markets_and_dates(tmp_
     assert markets_and_dates == []
 
 
-async def test_ignores_malformed_dates_when_getting_markets_and_dates(tmp_path):
+async def test_ignores_malformed_dates_when_getting_markets_and_dates(tmp_path: Path):
     # Arrange
     repository = CsvProductRepository(tmp_path)
     (tmp_path / "not-a-date_market.csv").write_text("", encoding="utf-8")
@@ -79,7 +107,7 @@ async def test_ignores_malformed_dates_when_getting_markets_and_dates(tmp_path):
     assert markets_and_dates == []
 
 
-async def test_reads_empty_file_as_no_products(tmp_path):
+async def test_reads_empty_file_as_no_products(tmp_path: Path):
     # Arrange
     repository = CsvProductRepository(tmp_path)
     today = date(2026, 5, 7)
@@ -92,7 +120,7 @@ async def test_reads_empty_file_as_no_products(tmp_path):
     assert products == []
 
 
-async def test_gets_multiple_markets_and_dates(tmp_path):
+async def test_gets_multiple_markets_and_dates(tmp_path: Path):
     # Arrange
     repository = CsvProductRepository(tmp_path)
     await repository.save("Market1", date(2026, 5, 7), [])

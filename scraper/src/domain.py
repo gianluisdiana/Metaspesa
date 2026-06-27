@@ -5,9 +5,10 @@ from dataclasses import dataclass
 class Product:
     name: str
     price: float
-    quantity: str
+    quantity: float | str
     image_url: str
     brand: str | None = None
+    unit_of_measure: str = ""
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, Product):
@@ -17,6 +18,7 @@ class Product:
             self.name == value.name
             and abs(self.price - value.price) < 0.01
             and self.quantity == value.quantity
+            and self.unit_of_measure == value.unit_of_measure
             and self.brand == value.brand
         )
 
@@ -24,7 +26,9 @@ class Product:
         return not self.__eq__(value)
 
     def __hash__(self) -> int:
-        return hash((self.name, self.price, self.quantity, self.brand))
+        return hash(
+            (self.name, self.price, self.quantity, self.unit_of_measure, self.brand)
+        )
 
 
 @dataclass

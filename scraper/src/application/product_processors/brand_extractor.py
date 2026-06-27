@@ -30,6 +30,7 @@ class BrandExtractor(ProductProcessor):
                     quantity=product.quantity,
                     brand=brand,
                     image_url=product.image_url,
+                    unit_of_measure=product.unit_of_measure,
                 )
 
         self.__logger.warning(
