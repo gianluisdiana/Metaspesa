@@ -2,17 +2,17 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Shopping;
+using Metaspesa.Domain.Shopping;
 using Metaspesa.Domain.Users;
 using Metaspesa.GrpcApi.Extensions;
 using Metaspesa.GrpcApi.Protos.Shopping;
 using Microsoft.AspNetCore.Authorization;
-using ShoppingList = Metaspesa.Domain.Shopping.ShoppingList;
 
 namespace Metaspesa.GrpcApi.Services;
 
 [Authorize(Roles = nameof(Role.Shopper))]
 internal class ShoppingGrpcService(
-  IQueryHandler<GetShoppingListSummaries.Query, List<ShoppingList>> getShoppingListSummariesHandler,
+  IQueryHandler<GetShoppingListSummaries.Query, List<AShoppingList>> getShoppingListSummariesHandler,
   IQueryHandler<GetShoppingList.Query, GetShoppingList.Response> getShoppingListHandler,
   ICommandHandler<RecordShoppingList.Command> recordShoppingListHandler,
   ICommandHandler<CreateShoppingList.Command> createShoppingListHandler,
@@ -27,7 +27,7 @@ internal class ShoppingGrpcService(
     var query = new GetShoppingListSummaries.Query(
       UserUid: context.GetHttpContext().GetUserUid());
 
-    Result<List<ShoppingList>> result =
+    Result<List<AShoppingList>> result =
       await getShoppingListSummariesHandler.Handle(query, context.CancellationToken);
 
     result.ThrowRpcExceptionIfFailed();

@@ -11,9 +11,9 @@ internal partial class PostgreSqlShoppingRepository(
   MainContext context,
   IClock clock
 ) : IShoppingRepository {
-  public async Task<List<ShoppingList>> GetShoppingListSummariesAsync(
+  public async Task<List<AShoppingList>> GetShoppingListSummariesAsync(
     Guid userUid, CancellationToken cancellationToken
-  ) => await PostgreSqlExceptionMapper.MapAsync<List<ShoppingList>>(async () => {
+  ) => await PostgreSqlExceptionMapper.MapAsync<List<AShoppingList>>(async () => {
     List<string?> listNames = await context.ShoppingListOwnerships
       .Where(o => o.UserUid == userUid)
       .OrderBy(o => o.ShoppingList.Name == null)
@@ -21,7 +21,7 @@ internal partial class PostgreSqlShoppingRepository(
       .Select(o => o.ShoppingList.Name)
       .ToListAsync(cancellationToken);
 
-    return [.. listNames.Select(name => new ShoppingList(name, []))];
+    return [.. listNames.Select(name => new AShoppingList(name, []))];
   }, "Couldn't get shopping list summaries.");
 
   public async Task<AShoppingList?> GetShoppingListAsync(

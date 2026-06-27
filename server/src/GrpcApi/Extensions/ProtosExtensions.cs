@@ -7,18 +7,6 @@ namespace Metaspesa.GrpcApi.Extensions;
 
 internal static class ProtosExtensions {
   public static Protos.Shopping.ShoppingList ToProto(
-    this ShoppingList shoppingList
-  ) {
-    var protoShoppingList = new Protos.Shopping.ShoppingList();
-    if (!shoppingList.IsTemporary()) {
-      protoShoppingList.Name = shoppingList.Name;
-    }
-    protoShoppingList.Items.AddRange(
-      shoppingList.Select(item => item.ToProto()));
-    return protoShoppingList;
-  }
-
-  public static Protos.Shopping.ShoppingList ToProto(
     this GetShoppingList.Response shoppingList
   ) {
     var protoShoppingList = new Protos.Shopping.ShoppingList();
@@ -31,7 +19,7 @@ internal static class ProtosExtensions {
   }
 
   public static Protos.Shopping.ShoppingListSummary ToSummaryProto(
-    this ShoppingList summary
+    this AShoppingList summary
   ) {
     var protoSummary = new Protos.Shopping.ShoppingListSummary();
     if (!string.IsNullOrWhiteSpace(summary.Name)) {
@@ -50,12 +38,6 @@ internal static class ProtosExtensions {
     Price = GrpcPriceConverter.ToProto(item.Format.Price.Value),
     Checked = item.IsChecked,
   };
-
-  private static Protos.Shopping.ShoppingItem ToProto(this ShoppingItem item) {
-    Protos.Shopping.ShoppingItem product = ((Product)item).ToProto();
-    product.Checked = item.IsChecked;
-    return product;
-  }
 
   public static Protos.Shopping.ShoppingItem ToProto(this Product item) {
     var product = new Protos.Shopping.ShoppingItem {

@@ -12,8 +12,7 @@ using Metaspesa.GrpcApi.Protos.Shopping;
 using Metaspesa.GrpcApi.Services;
 using Microsoft.AspNetCore.Http;
 using NSubstitute;
-using DomainShoppingList = Metaspesa.Domain.Shopping.ShoppingList;
-using Product = Metaspesa.Domain.Shopping.Product;
+using DomainShoppingList = Metaspesa.Domain.Shopping.AShoppingList;
 
 namespace Metaspesa.GrpcApi.UnitTests.Shopping;
 

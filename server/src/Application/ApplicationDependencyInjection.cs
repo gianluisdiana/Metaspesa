@@ -61,7 +61,7 @@ public static class ApplicationDependencyInjection {
         GetShoppingList.Handler>();
 
       services.AddScoped<
-        IQueryHandler<GetShoppingListSummaries.Query, List<ShoppingList>>,
+        IQueryHandler<GetShoppingListSummaries.Query, List<AShoppingList>>,
         GetShoppingListSummaries.Handler>();
 
       services.AddScoped<

@@ -54,7 +54,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      List<ShoppingList> result =
+      List<AShoppingList> result =
         await _repository.GetShoppingListSummariesAsync(
           userUid, TestContext.Current.CancellationToken);
 
@@ -77,7 +77,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      List<ShoppingList> result =
+      List<AShoppingList> result =
         await _repository.GetShoppingListSummariesAsync(
           userUid, TestContext.Current.CancellationToken);
 
@@ -100,7 +100,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      List<ShoppingList> result =
+      List<AShoppingList> result =
         await _repository.GetShoppingListSummariesAsync(
           userUid, TestContext.Current.CancellationToken);
 
@@ -123,7 +123,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      List<ShoppingList> result =
+      List<AShoppingList> result =
         await _repository.GetShoppingListSummariesAsync(
           userUid, TestContext.Current.CancellationToken);
 
@@ -146,7 +146,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      List<ShoppingList> result =
+      List<AShoppingList> result =
         await _repository.GetShoppingListSummariesAsync(
           userUid, TestContext.Current.CancellationToken);
 
@@ -169,7 +169,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      List<ShoppingList> result =
+      List<AShoppingList> result =
         await _repository.GetShoppingListSummariesAsync(
           userUid, TestContext.Current.CancellationToken);
 
@@ -196,7 +196,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      List<ShoppingList> result =
+      List<AShoppingList> result =
         await _repository.GetShoppingListSummariesAsync(
           userUid, TestContext.Current.CancellationToken);
 
@@ -223,7 +223,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      List<ShoppingList> result =
+      List<AShoppingList> result =
         await _repository.GetShoppingListSummariesAsync(
           userUid, TestContext.Current.CancellationToken);
 
@@ -250,7 +250,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      List<ShoppingList> result =
+      List<AShoppingList> result =
         await _repository.GetShoppingListSummariesAsync(
           userUid, TestContext.Current.CancellationToken);
 

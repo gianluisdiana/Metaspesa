@@ -20,7 +20,7 @@ public class GetShoppingListSummariesHandlerTest {
   public async Task Handler_ReturnsShoppingListSummaries_FromRepository() {
     // Arrange
     var userUid = Guid.NewGuid();
-    List<ShoppingList> expectedSummaries = [
+    List<AShoppingList> expectedSummaries = [
       new("Groceries", []),
       new(null, []),
     ];
@@ -29,7 +29,7 @@ public class GetShoppingListSummariesHandlerTest {
       .Returns(expectedSummaries);
 
     // Act
-    Result<List<ShoppingList>> result = await handler.Handle(
+    Result<List<AShoppingList>> result = await handler.Handle(
       new Query(userUid), TestContext.Current.CancellationToken);
 
     // Assert
@@ -40,7 +40,7 @@ public class GetShoppingListSummariesHandlerTest {
   public async Task Handler_ReturnsSummaries_WithoutShoppingListItems() {
     // Arrange
     var userUid = Guid.NewGuid();
-    List<ShoppingList> expectedSummaries = [
+    List<AShoppingList> expectedSummaries = [
       new("Groceries", []),
       new(null, []),
     ];
@@ -49,7 +49,7 @@ public class GetShoppingListSummariesHandlerTest {
       .Returns(expectedSummaries);
 
     // Act
-    Result<List<ShoppingList>> result = await handler.Handle(
+    Result<List<AShoppingList>> result = await handler.Handle(
       new Query(userUid), TestContext.Current.CancellationToken);
 
     // Assert
@@ -65,7 +65,7 @@ public class GetShoppingListSummariesHandlerTest {
       .Returns([]);
 
     // Act
-    Result<List<ShoppingList>> result = await handler.Handle(
+    Result<List<AShoppingList>> result = await handler.Handle(
       new Query(userUid), TestContext.Current.CancellationToken);
 
     // Assert

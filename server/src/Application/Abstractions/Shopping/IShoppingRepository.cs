@@ -3,7 +3,7 @@ using Metaspesa.Domain.Shopping;
 namespace Metaspesa.Application.Abstractions.Shopping;
 
 public interface IShoppingRepository {
-  Task<List<ShoppingList>> GetShoppingListSummariesAsync(
+  Task<List<AShoppingList>> GetShoppingListSummariesAsync(
     Guid userUid, CancellationToken cancellationToken);
   Task<AShoppingList?> GetShoppingListAsync(
     Guid userUid, string? shoppingListName, CancellationToken cancellationToken);
