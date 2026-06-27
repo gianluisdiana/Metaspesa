@@ -53,7 +53,6 @@ public static class PostgreSqlProductRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns true when product history reference exists")]
     public async Task CheckProductExistsAsync_ReturnsTrue_WhenProductHistoryReferenceExists() {
       // Arrange
@@ -68,7 +67,6 @@ public static class PostgreSqlProductRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns false when product history reference does not exist")]
     public async Task CheckProductExistsAsync_ReturnsFalse_WhenProductHistoryReferenceDoesNotExist() {
       // Arrange

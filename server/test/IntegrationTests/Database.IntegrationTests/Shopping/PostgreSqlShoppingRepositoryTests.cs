@@ -43,7 +43,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns empty summaries when user has no lists")]
     public async Task GetShoppingListSummariesAsync_ReturnsEmpty_WhenUserHasNoLists() {
       // Arrange
@@ -63,7 +62,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns two summaries when user owns named and temporary lists")]
     public async Task GetShoppingListSummariesAsync_ReturnsTwoSummaries_WhenUserOwnsNamedAndTemporaryLists() {
       // Arrange
@@ -86,7 +84,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns named list summary before temporary list summary")]
     public async Task GetShoppingListSummariesAsync_ReturnsNamedListSummaryBeforeTemporaryListSummary() {
       // Arrange
@@ -109,7 +106,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns temporary list summary with null name")]
     public async Task GetShoppingListSummariesAsync_ReturnsTemporaryListSummaryWithNullName() {
       // Arrange
@@ -132,7 +128,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns named list summary without items")]
     public async Task GetShoppingListSummariesAsync_ReturnsNamedListSummaryWithoutItems() {
       // Arrange
@@ -155,7 +150,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns temporary list summary without items")]
     public async Task GetShoppingListSummariesAsync_ReturnsTemporaryListSummaryWithoutItems() {
       // Arrange
@@ -178,7 +172,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Does not return summaries owned by another user")]
     public async Task GetShoppingListSummariesAsync_DoesNotReturnOtherUserLists() {
       // Arrange
@@ -205,7 +198,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns owned list summary name when another user owns a list")]
     public async Task GetShoppingListSummariesAsync_ReturnsOwnedListSummaryName_WhenAnotherUserOwnsAList() {
       // Arrange
@@ -232,7 +224,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns owned list summary without items when another user owns a list")]
     public async Task GetShoppingListSummariesAsync_ReturnsOwnedListSummaryWithoutItems_WhenAnotherUserOwnsAList() {
       // Arrange
@@ -312,7 +303,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns null when user has no list")]
     public async Task GetShoppingListAsync_ReturnsNull_WhenUserHasNoList() {
       // Arrange
@@ -331,7 +321,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns list when user has named list")]
     public async Task GetShoppingListAsync_ReturnsList_WhenUserHasNamedList() {
       // Arrange
@@ -352,7 +341,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns list when user has temporary (null name) list")]
     public async Task GetShoppingListAsync_ReturnsList_WhenUserHasTemporaryList() {
       // Arrange
@@ -373,7 +361,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns empty items when list has no items")]
     public async Task GetShoppingListAsync_ReturnsEmptyItems_WhenListHasNoItems() {
       // Arrange
@@ -394,7 +381,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns items excluding soft-deleted ones")]
     public async Task GetShoppingListAsync_ReturnsItems_ExcludingSoftDeleted() {
       // Arrange
@@ -424,7 +410,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns null when list belongs to different user")]
     public async Task GetShoppingListAsync_ReturnsNull_WhenListBelongsToDifferentUser() {
       // Arrange
@@ -472,7 +457,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns false when user has no lists")]
     public async Task CheckShoppingListExistAsync_ReturnsFalse_WhenUserHasNoLists() {
       // Arrange
@@ -491,7 +475,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns true when named list exists")]
     public async Task CheckShoppingListExistAsync_ReturnsTrue_WhenNamedListExists() {
       // Arrange
@@ -512,7 +495,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns true case-insensitively")]
     public async Task CheckShoppingListExistAsync_ReturnsTrue_CaseInsensitively() {
       // Arrange
@@ -533,7 +515,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns true when null name matches temporary list")]
     public async Task CheckShoppingListExistAsync_ReturnsTrue_WhenNullNameMatchesTemporaryList() {
       // Arrange
@@ -554,7 +535,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns false when list belongs to different user")]
     public async Task CheckShoppingListExistAsync_ReturnsFalse_WhenListBelongsToDifferentUser() {
       // Arrange
@@ -602,7 +582,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Creates named list owned by user")]
     public async Task CreateShoppingList_CreatesNamedList_OwnedByUser() {
       // Arrange
@@ -623,7 +602,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Creates temporary list when name is null")]
     public async Task CreateShoppingList_CreatesTemporaryList_WhenNameIsNull() {
       // Arrange
@@ -701,7 +679,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Adds items to existing named list")]
     public async Task AddItemsToList_AddsItems_ToExistingNamedList() {
       // Arrange
@@ -729,7 +706,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Adds items to temporary list")]
     public async Task AddItemsToList_AddsItems_ToTemporaryList() {
       // Arrange
@@ -754,7 +730,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Persists item name, quantity and price correctly")]
     public async Task AddItemsToList_PersistsItemFields_Correctly() {
       // Arrange
@@ -779,7 +754,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Persists requested item amount")]
     public async Task AddItemsToList_PersistsRequestedItemAmount() {
       // Arrange
@@ -807,7 +781,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Persists requested checked state")]
     public async Task AddItemsToList_PersistsRequestedCheckedState() {
       // Arrange
@@ -888,7 +861,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns false when item does not exist")]
     public async Task CheckItemExistsAsync_ReturnsFalse_WhenItemDoesNotExist() {
       // Arrange
@@ -909,7 +881,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns true when item exists")]
     public async Task CheckItemExistsAsync_ReturnsTrue_WhenItemExists() {
       // Arrange
@@ -934,7 +905,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns true case-insensitively")]
     public async Task CheckItemExistsAsync_ReturnsTrue_CaseInsensitively() {
       // Arrange
@@ -959,7 +929,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns false for soft-deleted item")]
     public async Task CheckItemExistsAsync_ReturnsFalse_ForSoftDeletedItem() {
       // Arrange
@@ -1039,7 +1008,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns null when item does not exist")]
     public async Task GetItemAsync_ReturnsNull_WhenItemDoesNotExist() {
       // Arrange
@@ -1060,7 +1028,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns item when it exists")]
     public async Task GetItemAsync_ReturnsItem_WhenItExists() {
       // Arrange
@@ -1086,7 +1053,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns null for soft-deleted item")]
     public async Task GetItemAsync_ReturnsNull_ForSoftDeletedItem() {
       // Arrange
@@ -1113,7 +1079,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns item case-insensitively")]
     public async Task GetItemAsync_ReturnsItem_CaseInsensitively() {
       // Arrange
@@ -1161,7 +1126,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Renames temporary list to requested name")]
     public async Task UpdateShoppingListName_RenamesTemporaryList_ToRequestedName() {
       // Arrange
@@ -1184,7 +1148,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Removes temporary list identity after renaming")]
     public async Task UpdateShoppingListName_RemovesTemporaryListIdentity_AfterRenaming() {
       // Arrange
@@ -1207,7 +1170,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Preserves items when temporary list is renamed")]
     public async Task UpdateShoppingListName_PreservesItems_WhenTemporaryListIsRenamed() {
       // Arrange
@@ -1286,7 +1248,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Updates item amount")]
     public async Task UpdateItem_UpdatesAmount_WhenNewAmountProvided() {
       // Arrange
@@ -1317,7 +1278,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Updates item checked state to true")]
     public async Task UpdateItem_UpdatesCheckedState_ToTrue() {
       // Arrange
@@ -1348,7 +1308,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Preserves checked state when only amount changes")]
     public async Task UpdateItem_PreservesCheckedState_WhenOnlyAmountChanges() {
       // Arrange
@@ -1379,7 +1338,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Does not update matching reference from another user's list")]
     public async Task UpdateItem_DoesNotUpdateMatchingReference_FromAnotherUsersList() {
       // Arrange
@@ -1469,7 +1427,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Soft-deletes item by setting DeletedAt")]
     public async Task RemoveItem_SoftDeletesItem_BySettingDeletedAt() {
       // Arrange
@@ -1500,7 +1457,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Item is no longer returned after removal")]
     public async Task RemoveItem_ItemIsNoLongerReturned_AfterRemoval() {
       // Arrange
@@ -1528,7 +1484,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Does not remove matching reference from another user's list")]
     public async Task RemoveItem_DoesNotRemoveMatchingReference_FromAnotherUsersList() {
       // Arrange
@@ -1614,7 +1569,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Creates purchase item for checked item")]
     public async Task RecordShoppingList_CreatesPurchaseItem_ForCheckedItem() {
       // Arrange
@@ -1644,7 +1598,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Creates purchase records for checked items")]
     public async Task RecordShoppingList_CreatesPurchaseRecords_ForCheckedItems() {
       // Arrange
@@ -1725,7 +1678,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Unchecks checked items in target list")]
     public async Task ResetShoppingList_UnchecksCheckedItems_InTargetList() {
       // Arrange
@@ -1755,7 +1707,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Does not uncheck another user's matching list")]
     public async Task ResetShoppingList_DoesNotUncheckAnotherUsersMatchingList() {
       // Arrange
@@ -1788,7 +1739,6 @@ public static class PostgreSqlShoppingRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Resets temporary list when name is null")]
     public async Task ResetShoppingList_ResetsTemporaryList_WhenNameIsNull() {
       // Arrange

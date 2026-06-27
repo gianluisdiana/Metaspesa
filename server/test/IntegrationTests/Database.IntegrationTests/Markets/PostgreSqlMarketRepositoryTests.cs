@@ -60,7 +60,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns empty list when no brands exist")]
     public async Task Repository_ReturnsEmptyList_WhenNoBrandsExist() {
       // Arrange & Act
@@ -72,7 +71,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns all brands")]
     public async Task Repository_ReturnsAllBrands() {
       // Arrange
@@ -89,7 +87,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Maps brand name correctly")]
     public async Task Repository_MapsBrandName_Correctly() {
       // Arrange
@@ -129,7 +126,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Persists new brands to the database")]
     public async Task Repository_PersistsNewBrands_ToDatabase() {
       // Act
@@ -147,7 +143,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Persists brand name correctly")]
     public async Task Repository_PersistsBrandName_Correctly() {
       // Act
@@ -165,7 +160,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Persists multiple brands in single call")]
     public async Task Repository_PersistsMultipleBrands_InSingleCall() {
       // Act
@@ -210,7 +204,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns empty list when no markets exist")]
     public async Task Repository_ReturnsEmptyList_WhenNoMarketsExist() {
       // Arrange & Act
@@ -222,7 +215,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns all markets")]
     public async Task Repository_ReturnsAllMarkets() {
       // Arrange
@@ -239,7 +231,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Maps market name correctly")]
     public async Task Repository_MapsMarketName_Correctly() {
       // Arrange
@@ -279,7 +270,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Persists new markets to the database")]
     public async Task Repository_PersistsNewMarkets_ToDatabase() {
       // Act
@@ -297,7 +287,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Persists market name correctly")]
     public async Task Repository_PersistsMarketName_Correctly() {
       // Act
@@ -315,7 +304,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Persists multiple markets in single call")]
     public async Task Repository_PersistsMultipleMarkets_InSingleCall() {
       // Act
@@ -396,7 +384,6 @@ public static class PostgreSqlMarketRepositoryTests {
       ]);
 
     [Fact(
-      Explicit = true,
       DisplayName = "Creates new product when it does not exist")]
     public async Task Repository_CreatesNewProduct_WhenItDoesNotExist() {
       // Act
@@ -415,7 +402,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Adds history entry for product")]
     public async Task Repository_AddsHistoryEntry_ForProduct() {
       // Act
@@ -434,7 +420,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Stores product format quantity separately from unit")]
     public async Task Repository_StoresProductFormatQuantity_SeparatelyFromUnit() {
       // Act
@@ -453,7 +438,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Stores product format unit of measure by code")]
     public async Task Repository_StoresProductFormatUnitOfMeasure_ByCode() {
       // Act
@@ -472,7 +456,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Links history entry to stored product format")]
     public async Task Repository_LinksHistoryEntry_ToStoredProductFormat() {
       // Act
@@ -497,7 +480,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Uses provided registered_at for history entry")]
     public async Task Repository_UsesProvidedRegisteredAt_ForHistoryEntry() {
       // Arrange
@@ -520,7 +502,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Reuses existing product and adds new history entry")]
     public async Task Repository_ReusesExistingProduct_AddsNewHistoryEntry() {
       // Arrange
@@ -549,7 +530,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Reuses product format when quantity and unit are unchanged")]
     public async Task Repository_ReusesProductFormat_WhenQuantityAndUnitAreUnchanged() {
       // Arrange
@@ -574,7 +554,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Creates distinct product formats for different quantity or unit")]
     public async Task Repository_CreatesDistinctFormats_ForDifferentQuantityOrUnit() {
       // Arrange
@@ -658,7 +637,6 @@ public static class PostgreSqlMarketRepositoryTests {
       ]);
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns IDs of newly created products")]
     public async Task Repository_ReturnsNewProductIds_WhenProductsAreNew() {
       // Act
@@ -673,7 +651,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns empty collection when all products already exist")]
     public async Task Repository_ReturnsEmptyCollection_WhenAllProductsAlreadyExist() {
       // Arrange — seed the product first
@@ -716,7 +693,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Deletes specified brands")]
     public async Task Repository_DeletesSpecifiedBrands() {
       // Arrange
@@ -737,7 +713,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Does not delete other brands")]
     public async Task Repository_DoesNotDeleteOtherBrands() {
       // Arrange
@@ -781,7 +756,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Deletes specified markets")]
     public async Task Repository_DeletesSpecifiedMarkets() {
       // Arrange
@@ -802,7 +776,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Does not delete other markets")]
     public async Task Repository_DoesNotDeleteOtherMarkets() {
       // Arrange
@@ -874,7 +847,6 @@ public static class PostgreSqlMarketRepositoryTests {
       ]);
 
     [Fact(
-      Explicit = true,
       DisplayName = "Deletes specified products")]
     public async Task Repository_DeletesSpecifiedProducts() {
       // Arrange
@@ -895,7 +867,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Does not delete other products")]
     public async Task Repository_DoesNotDeleteOtherProducts() {
       // Arrange
@@ -1039,7 +1010,6 @@ public static class PostgreSqlMarketRepositoryTests {
     ) => new(market, brandSegment, segment, new Pagination(page, pageSize));
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns empty values when no products exist")]
     public async Task Repository_ReturnsEmptyValues_WhenNoProductsExist() {
       // Arrange & Act
@@ -1051,7 +1021,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns zero total count when no products exist")]
     public async Task Repository_ReturnsZeroTotalCount_WhenNoProductsExist() {
       // Arrange & Act
@@ -1063,7 +1032,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns products without filter")]
     public async Task Repository_ReturnsProducts_WithoutFilter() {
       // Arrange
@@ -1080,7 +1048,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns total count without filter")]
     public async Task Repository_ReturnsTotalCount_WithoutFilter() {
       // Arrange
@@ -1097,7 +1064,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Groups products under their market")]
     public async Task Repository_GroupsProducts_UnderTheirMarket() {
       // Arrange
@@ -1115,7 +1081,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Filters by market name returns only matching market (case-insensitive)")]
     public async Task Repository_FiltersByMarketName_ReturnsOnlyMatchingMarket() {
       // Arrange
@@ -1132,7 +1097,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Filters by market name returns correct market name (case-insensitive)")]
     public async Task Repository_FiltersByMarketName_ReturnsCorrectMarketName() {
       // Arrange
@@ -1149,7 +1113,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Filters by brand name segment (case-insensitive contains)")]
     public async Task Repository_FiltersByBrandNameSegment_CaseInsensitiveContains() {
       // Arrange
@@ -1167,7 +1130,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Filters by brand name segment (case-insensitive partial match)")]
     public async Task Repository_FiltersByBrandNameSegment_CaseInsensitivePartialMatch() {
       // Arrange
@@ -1185,7 +1147,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Filters by name segment (case-insensitive contains)")]
     public async Task Repository_FiltersByNameSegment_CaseInsensitiveContains() {
       // Arrange
@@ -1203,7 +1164,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns only one format from the latest history date per product")]
     public async Task Repository_ReturnsOnlyOneFormat_FromLatestHistoryDate() {
       // Arrange
@@ -1222,7 +1182,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns format with price from the latest history date per product")]
     public async Task Repository_ReturnsLatestPrice_PerProduct() {
       // Arrange
@@ -1241,7 +1200,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Excludes products with no history")]
     public async Task Repository_ExcludesProducts_WithNoHistory() {
       // Arrange
@@ -1270,7 +1228,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Respects pagination — total count reflects all matching products")]
     public async Task Repository_Pagination_TotalCountReflectsAllMatches() {
       // Arrange
@@ -1289,7 +1246,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Respects pagination — returns single product on page 2 with page size 1")]
     public async Task Repository_Pagination_ReturnsSingleProductOnSecondPage() {
       // Arrange
@@ -1362,7 +1318,6 @@ public static class PostgreSqlMarketRepositoryTests {
       ]);
 
     [Fact(
-      Explicit = true,
       DisplayName = "Deletes history for specified markets at specified date")]
     public async Task Repository_DeletesHistory_ForSpecifiedMarketsAtDate() {
       // Arrange
@@ -1389,7 +1344,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Does not delete history for other markets")]
     public async Task Repository_DoesNotDeleteHistory_ForOtherMarkets() {
       // Arrange
@@ -1420,7 +1374,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Does not delete history for same market at different date")]
     public async Task Repository_DoesNotDeleteHistory_ForSameMarketAtDifferentDate() {
       // Arrange
@@ -1485,7 +1438,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns true when unit code exists")]
     public async Task Repository_ReturnsTrue_WhenUnitCodeExists() {
       // Arrange
@@ -1501,7 +1453,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns false when unit code does not exist")]
     public async Task Repository_ReturnsFalse_WhenUnitCodeDoesNotExist() {
       // Act
@@ -1514,7 +1465,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Matches unit code ignoring case")]
     public async Task Repository_MatchesUnitCode_IgnoringCase() {
       // Arrange
@@ -1551,7 +1501,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns empty list when no markets exist")]
     public async Task Repository_ReturnsEmptyList_WhenNoMarketsExist() {
       // Act
@@ -1563,7 +1512,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns all markets")]
     public async Task Repository_ReturnsAllMarkets() {
       // Arrange
@@ -1581,7 +1529,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Maps name correctly")]
     public async Task Repository_MapsName_Correctly() {
       // Arrange
@@ -1597,7 +1544,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Maps logo_url when set")]
     public async Task Repository_MapsLogoUrl_WhenSet() {
       // Arrange
@@ -1616,7 +1562,6 @@ public static class PostgreSqlMarketRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Maps null logo_url when not set")]
     public async Task Repository_MapsNullLogoUrl_WhenNotSet() {
       // Arrange

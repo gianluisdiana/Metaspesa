@@ -33,7 +33,6 @@ public static class PostgreSqlUserRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns false when username does not exist")]
     public async Task CheckUsernameExistsAsync_ReturnsFalse_WhenUsernameDoesNotExist() {
       // Act
@@ -45,7 +44,6 @@ public static class PostgreSqlUserRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns true when username exists")]
     public async Task CheckUsernameExistsAsync_ReturnsTrue_WhenUsernameExists() {
       // Arrange
@@ -64,7 +62,6 @@ public static class PostgreSqlUserRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns true case-insensitively")]
     public async Task CheckUsernameExistsAsync_ReturnsTrue_CaseInsensitively() {
       // Arrange
@@ -105,7 +102,6 @@ public static class PostgreSqlUserRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Persists user so username can be found afterwards")]
     public async Task SaveUser_PersistsUser_SoUsernameCanBeFound() {
       // Arrange
@@ -128,7 +124,6 @@ public static class PostgreSqlUserRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Persists encrypted password correctly")]
     public async Task SaveUser_PersistsEncryptedPassword_Correctly() {
       // Arrange
@@ -153,7 +148,6 @@ public static class PostgreSqlUserRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Persists Shopper role correctly")]
     public async Task SaveUser_PersistsShopperRole_Correctly() {
       // Arrange
@@ -199,7 +193,6 @@ public static class PostgreSqlUserRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns null when user does not exist")]
     public async Task GetUserByUsernameAsync_ReturnsNull_WhenUserDoesNotExist() {
       // Act
@@ -211,7 +204,6 @@ public static class PostgreSqlUserRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns user when username matches")]
     public async Task GetUserByUsernameAsync_ReturnsUser_WhenUsernameMatches() {
       // Arrange
@@ -236,7 +228,6 @@ public static class PostgreSqlUserRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns user case-insensitively")]
     public async Task GetUserByUsernameAsync_ReturnsUser_CaseInsensitively() {
       // Arrange
@@ -260,7 +251,6 @@ public static class PostgreSqlUserRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns correct role for user")]
     public async Task GetUserByUsernameAsync_ReturnsCorrectRole_ForUser() {
       // Arrange
@@ -284,7 +274,6 @@ public static class PostgreSqlUserRepositoryTests {
     }
 
     [Fact(
-      Explicit = true,
       DisplayName = "Returns correct Uid for saved user")]
     public async Task GetUserByUsernameAsync_ReturnsCorrectUid_ForSavedUser() {
       // Arrange
