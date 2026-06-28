@@ -86,7 +86,7 @@ Table shopping.shopping_items {
   id integer [pk, increment]
   shopping_list_id integer [not null]
   product_id integer [not null]
-  product_history_id integer [not null]
+  product_format_id integer [not null]
   amount integer [not null, default: 1, note: 'How many units/packages of the product are planned']
   is_checked boolean [not null, default: false]
   deleted_at timestamp
@@ -94,10 +94,10 @@ Table shopping.shopping_items {
   indexes {
     shopping_list_id [name: 'idx_shopping_item_shopping_list_id']
     product_id [name: 'idx_shopping_item_product_id']
-    product_history_id [name: 'idx_shopping_item_product_history_id']
-    (shopping_list_id, product_id) [
+    product_format_id [name: 'idx_shopping_item_product_format_id']
+    (shopping_list_id, product_format_id) [
       unique,
-      name: 'idx_shopping_item_list_product'
+      name: 'idx_shopping_item_list_product_format'
     ]
   }
 
@@ -112,7 +112,7 @@ Ref: shopping.shopping_lists.id < shopping.shopping_items.shopping_list_id [
 Ref: shopping.shopping_items.product_id > market.products.id [
   delete: restrict
 ]
-Ref: shopping.shopping_items.product_history_id > market.products_history.id [
+Ref: shopping.shopping_items.product_format_id > market.product_formats.id [
   delete: restrict
 ]
 Ref: shopping.shopping_items.product_id > market.products_history.product_id [
