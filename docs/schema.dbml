@@ -23,7 +23,7 @@ Table identity.roles {
 }
 
 Table identity.users {
-  note: 'Registered users of the shopping application'
+  note: 'Registered users of the shopping application. Each user currently has exactly one role.'
 
   uid guid [pk]
   username varchar(255) [not null, unique]
@@ -45,14 +45,25 @@ Ref: identity.users.role_id > identity.roles.id [
 // ─────────────────────────────────────────
 
 Table shopping.shopping_lists {
-  note: 'Shopping lists created by users, can be shared among multiple users'
+  note: '''
+  Shopping lists created by users.
+  Temporary lists are explicit through is_temporary.
+  Saved lists must have a name.
+  Temporary lists may have no name and cannot be soft-deleted.
+  '''
 
   id integer [pk, increment]
-  name varchar [note: 'Missing name indicates a temporary shopping list, not saved by the user']
+  name varchar
+  is_temporary boolean [not null, default: false]
   deleted_at timestamp
 
+  indexes {
+    deleted_at [name: 'idx_shopping_list_deleted_at']
+  }
+
   checks {
-    `name IS NOT NULL OR deleted_at IS NULL` [name: 'chk_shopping_list_temporary_cannot_be_soft_deleted']
+    `is_temporary = true OR name IS NOT NULL` [name: 'chk_saved_shopping_list_requires_name']
+    `is_temporary = false OR deleted_at IS NULL` [name: 'chk_temporary_shopping_list_cannot_be_soft_deleted']
   }
 }
 
@@ -72,20 +83,20 @@ Table shopping.shopping_list_ownerships {
 Ref: shopping.shopping_list_ownerships.user_uid > identity.users.uid [
   delete: cascade
 ]
+
 Ref: shopping.shopping_list_ownerships.shopping_list_id > shopping.shopping_lists.id [
   delete: cascade
 ]
 
 Table shopping.shopping_items {
   note: '''
-  Items that belong to a shopping list, representing planned purchases.
-  Each line points to an existing market product and the exact product history
-  row used when the item was added, so price and format are explicit.
+  Items that belong to a shopping list.
+  A shopping item is only a planned product format, not a historical price.
+  The exact price is resolved later when creating a purchase.
   '''
 
   id integer [pk, increment]
   shopping_list_id integer [not null]
-  product_id integer [not null]
   product_format_id integer [not null]
   amount integer [not null, default: 1, note: 'How many units/packages of the product are planned']
   is_checked boolean [not null, default: false]
@@ -93,12 +104,15 @@ Table shopping.shopping_items {
 
   indexes {
     shopping_list_id [name: 'idx_shopping_item_shopping_list_id']
-    product_id [name: 'idx_shopping_item_product_id']
     product_format_id [name: 'idx_shopping_item_product_format_id']
-    (shopping_list_id, product_format_id) [
-      unique,
-      name: 'idx_shopping_item_list_product_format'
-    ]
+    deleted_at [name: 'idx_shopping_item_deleted_at']
+    (shopping_list_id, product_format_id) [name: 'idx_shopping_item_list_product_format']
+    /*
+      Additional partial unique index:
+      CREATE UNIQUE INDEX idx_shopping_item_list_product_format_active
+      ON shopping.shopping_items (shopping_list_id, product_format_id)
+      WHERE deleted_at IS NULL;
+    */
   }
 
   checks {
@@ -109,24 +123,24 @@ Table shopping.shopping_items {
 Ref: shopping.shopping_lists.id < shopping.shopping_items.shopping_list_id [
   delete: cascade
 ]
-Ref: shopping.shopping_items.product_id > market.products.id [
-  delete: restrict
-]
+
 Ref: shopping.shopping_items.product_format_id > market.product_formats.id [
   delete: restrict
 ]
-Ref: shopping.shopping_items.product_id > market.products_history.product_id [
-  delete: restrict
-]
 
-Table shopping.purchases {
+// ─────────────────────────────────────────
+// PURCHASING SCHEMA
+// ─────────────────────────────────────────
+
+Table purchasing.purchases {
   note: '''
-  Purchase receipt header. It records who bought, when, and optionally which
-  shopping list was checked out. Product lines live in purchase_items.
+  Purchase receipt header.
+  Records when a purchase happened, who bought it if the user still exists,
+  and optionally which shopping list was checked out.
   '''
 
   id integer [pk, increment]
-  user_uid guid [not null]
+  user_uid guid
   shopping_list_id integer
   purchased_at timestamp [not null, default: `now()`]
 
@@ -137,30 +151,29 @@ Table shopping.purchases {
   }
 }
 
-Ref: shopping.purchases.user_uid > identity.users.uid [
-  delete: cascade
-]
-Ref: shopping.purchases.shopping_list_id > shopping.shopping_lists.id [
+Ref: purchasing.purchases.user_uid > identity.users.uid [
   delete: set null
 ]
 
-Table shopping.purchase_items {
+Ref: purchasing.purchases.shopping_list_id > shopping.shopping_lists.id [
+  delete: set null
+]
+
+Table purchasing.purchase_items {
   note: '''
-  Immutable purchase receipt lines. Each line references the exact market
-  product history row used for analytics, which provides the exact price and
-  format paid at purchase time.
+  Immutable purchase receipt lines.
+  Each line references the exact price snapshot used at purchase time.
+  The price snapshot determines the product format and price paid.
   '''
 
   id integer [pk, increment]
   purchase_id integer [not null]
-  product_id integer [not null]
-  product_history_id integer [not null]
+  price_snapshot_id integer [not null]
   amount integer [not null, default: 1, note: 'How many units/packages were bought']
 
   indexes {
     purchase_id [name: 'idx_purchase_item_purchase_id']
-    product_id [name: 'idx_purchase_item_product_id']
-    product_history_id [name: 'idx_purchase_item_product_history_id']
+    price_snapshot_id [name: 'idx_purchase_item_price_snapshot_id']
   }
 
   checks {
@@ -168,19 +181,13 @@ Table shopping.purchase_items {
   }
 }
 
-Ref: shopping.purchase_items.purchase_id > shopping.purchases.id [
+Ref: purchasing.purchase_items.purchase_id > purchasing.purchases.id [
   delete: cascade
 ]
-Ref: shopping.purchase_items.product_id > market.products.id [
-  delete: restrict
-]
-Ref: shopping.purchase_items.product_history_id > market.products_history.id [
-  delete: restrict
-]
-Ref: shopping.purchase_items.product_id > market.products_history.product_id [
-  delete: restrict
-]
 
+Ref: purchasing.purchase_items.price_snapshot_id > market.price_snapshots.id [
+  delete: restrict
+]
 
 // ─────────────────────────────────────────
 // MARKET SCHEMA
@@ -243,17 +250,17 @@ Table market.products {
 }
 
 Ref: market.products.super_market_id > market.super_markets.id [
-  delete: cascade
+  delete: restrict
 ]
+
 Ref: market.products.brand_id > market.product_brands.id [
-  delete: cascade
+  delete: restrict
 ]
 
 Table market.product_formats {
   note: '''
-  Different package formats for the same product. For example, a soda can be sold
-  in 330 ml cans, 500 ml bottles, or 1 l bottles. Each format has its own price
-  history in products_history.
+  Different package formats for the same product.
+  For example, a soda can be sold in 330 ml cans, 500 ml bottles, or 1 l bottles.
   '''
 
   id integer [pk, increment]
@@ -265,49 +272,51 @@ Table market.product_formats {
   indexes {
     product_id [name: 'idx_product_format_product_id']
     unit_of_measure_id [name: 'idx_product_format_unit_of_measure_id']
-    (product_id, quantity, unit_of_measure_id) [unique, name: 'idx_product_format_identity']
+    (product_id, quantity, unit_of_measure_id) [
+      unique,
+      name: 'idx_product_format_identity'
+    ]
   }
 
   checks {
     `quantity > 0.000` [name: 'chk_product_format_positive_quantity']
   }
 }
+
 Ref: market.product_formats.product_id > market.products.id [
-  delete: cascade
-]
-Ref: market.product_formats.unit_of_measure_id > market.units_of_measure.id [
-  delete: cascade
+  delete: restrict
 ]
 
-Table market.products_history {
+Ref: market.product_formats.unit_of_measure_id > market.units_of_measure.id [
+  delete: restrict
+]
+
+Table market.price_snapshots {
   note: '''
-  Historical price and format data for products, tracking changes over time.
+  Historical price observations for product formats.
+  This replaces market.products_history.
   '''
 
   id integer [pk, increment]
-  product_id integer [not null]
   product_format_id integer [not null]
-  price decimal(10, 2) [not null]
-  created_at timestamp [not null, default: `now()`]
-
-  checks {
-    `price > 0.00` [name: 'chk_positive_price']
-  }
+  price_amount decimal(10, 2) [not null]
+  currency_code char(3) [not null, default: 'EUR']
+  observed_at timestamp [not null, default: `now()`]
 
   indexes {
-    product_id [name: 'idx_product_history_product_id']
-    product_format_id [name: 'idx_product_history_product_format_id']
-    created_at [name: 'idx_product_history_created_at']
-    (id, product_id) [
-      unique,
-      name: 'idx_product_history_id_product_id'
+    product_format_id [name: 'idx_price_snapshot_product_format_id']
+    observed_at [name: 'idx_price_snapshot_observed_at']
+    (product_format_id, observed_at) [
+      name: 'idx_price_snapshot_format_observed_at'
     ]
+  }
+
+  checks {
+    `price_amount > 0.00` [name: 'chk_price_snapshot_positive_price']
+    `currency_code ~ '^[A-Z]{3}$'` [name: 'chk_price_snapshot_currency_code']
   }
 }
 
-Ref: market.products_history.product_id > market.products.id [
-  delete: cascade
-]
-Ref: market.products_history.product_format_id > market.product_formats.id [
-  delete: cascade
+Ref: market.price_snapshots.product_format_id > market.product_formats.id [
+  delete: restrict
 ]
