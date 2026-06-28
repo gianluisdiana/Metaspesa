@@ -9,7 +9,7 @@ internal partial class PostgreSqlProductRepository(
   public Task<bool> CheckProductExistsAsync(
     long referenceUid, CancellationToken cancellationToken
   ) => PostgreSqlExceptionMapper.MapAsync(async () =>
-      await context.ProductsHistory.AnyAsync(
+      await context.ProductFormats.AnyAsync(
         p => p.Id == referenceUid, cancellationToken),
     "Couldn't check if product exists.");
 }

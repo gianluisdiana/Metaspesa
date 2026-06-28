@@ -1613,6 +1613,3 @@ public static class PostgreSqlMarketRepositoryTests {
     }
   }
 }
-
-
-

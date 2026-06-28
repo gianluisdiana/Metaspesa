@@ -39,7 +39,7 @@ internal partial class PostgreSqlShoppingRepository(
         Items: sl.ShoppingList.Items
           .Where(i => i.DeletedAt == null)
           .Select(i => new AShoppingItem(
-            i.ProductHistoryId,
+            i.ProductFormatId,
             i.Amount,
             IsChecked: i.IsChecked
           )).ToList()
@@ -98,14 +98,14 @@ internal partial class PostgreSqlShoppingRepository(
       .Select(o => o.ShoppingList)
       .First();
 
-    var productHistoryLookup = context.ProductsHistory
-      .Where(ph => items.Select(i => i.ReferenceUid).Contains(ph.Id))
-      .ToDictionary(ph => ph.Id, ph => ph.ProductId);
+    var productFormatLookup = context.ProductFormats
+      .Where(pf => items.Select(i => i.ReferenceUid).Contains(pf.Id))
+      .ToDictionary(pf => pf.Id, pf => pf.ProductId);
 
     context.ShoppingItems.AddRange(items.Select(i => new ShoppingItemDbEntity {
       ShoppingListId = list.Id,
-      ProductHistoryId = i.ReferenceUid,
-      ProductId = productHistoryLookup[i.ReferenceUid],
+      ProductFormatId = i.ReferenceUid,
+      ProductId = productFormatLookup[i.ReferenceUid],
       Amount = i.Amount,
       IsChecked = i.IsChecked,
     }));
@@ -126,7 +126,7 @@ internal partial class PostgreSqlShoppingRepository(
             listName != null &&
             EF.Functions.ILike(i.ShoppingList.Name, listName)
           ) &&
-          i.ProductHistory.Id == referenceUid,
+          i.ProductFormatId == referenceUid,
         cancellationToken),
     "Couldn't check if shopping item exists.");
 
@@ -144,9 +144,9 @@ internal partial class PostgreSqlShoppingRepository(
           listName != null &&
           EF.Functions.ILike(i.ShoppingList.Name, listName)
         ) &&
-        i.ProductHistory.Id == referenceUid)
+        i.ProductFormatId == referenceUid)
       .Select(i => new AShoppingItem(
-        i.ProductHistoryId,
+        i.ProductFormatId,
         i.Amount,
         i.IsChecked))
       .FirstOrDefaultAsync(cancellationToken),
@@ -163,7 +163,7 @@ internal partial class PostgreSqlShoppingRepository(
           listName != null &&
           EF.Functions.ILike(i.ShoppingList.Name, listName)
         ) &&
-        i.ProductHistory.Id == update.ReferenceUid)
+        i.ProductFormatId == update.ReferenceUid)
       .Single();
 
     if (item.IsChecked != update.IsChecked) {
@@ -184,7 +184,7 @@ internal partial class PostgreSqlShoppingRepository(
             listName != null &&
             EF.Functions.ILike(i.ShoppingList.Name, listName)
           ) &&
-          i.ProductHistory.Id == referenceUid)
+          i.ProductFormatId == referenceUid)
         .First();
 
       item.DeletedAt = clock.GetCurrentTime();
@@ -198,7 +198,9 @@ internal partial class PostgreSqlShoppingRepository(
       List<PurchaseItemDbEntity> purchaseItems = [];
       foreach (AShoppingItem ci in checkedItems) {
         PurchaseItemDbEntity item = context.ProductsHistory
-          .Where(ph => ph.Id == ci.ReferenceUid)
+          .Where(ph => ph.ProductFormatId == ci.ReferenceUid)
+          .OrderByDescending(ph => ph.CreatedAt)
+          .ThenByDescending(ph => ph.Id)
           .Select(ph => new PurchaseItemDbEntity {
             Amount = ci.Amount,
             ProductId = ph.ProductId,

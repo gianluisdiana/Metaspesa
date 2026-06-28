@@ -2,6 +2,7 @@ using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Database.Entities;
 using Metaspesa.Domain.Markets;
+using Metaspesa.Domain.Shopping;
 using Microsoft.EntityFrameworkCore;
 
 namespace Metaspesa.Database.Repositories;
@@ -79,17 +80,23 @@ internal partial class PostgreSqlMarketRepository(
 
       return await context.ProductsHistory
         .AsNoTracking()
-        .Include(h => h.Product)
-          .ThenInclude(p => p.Brand)
-        .Include(h => h.ProductFormat)
-          .ThenInclude(f => f.UnitOfMeasure)
-        .Where(h => referencesId.Contains(h.Id))
+        .Where(h => referencesId.Contains(h.ProductFormatId))
+        .GroupBy(h => h.ProductFormatId)
+        .Select(g => g
+          .OrderByDescending(h => h.CreatedAt)
+          .ThenByDescending(h => h.Id)
+          .First())
         .ToDictionaryAsync(
-          h => h.Id,
+          h => h.ProductFormatId,
           h => new MarketProduct(
             h.Product.Name,
             new ProductBrand(h.Product.Brand.Name),
-            [h.MapToDomainFormat()]),
+            [new ProductFormat(
+              new AQuantity(
+                (float)h.ProductFormat.Quantity,
+                h.ProductFormat.UnitOfMeasure.Code),
+              new Price(h.Price),
+              new Uri(h.ProductFormat.ImageUrl, UriKind.Absolute))]),
           cancellationToken);
     },
     "Couldn't get market products by references.");

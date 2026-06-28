@@ -298,9 +298,9 @@ namespace Metaspesa.Database.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("is_checked");
 
-                    b.Property<int>("ProductHistoryId")
+                    b.Property<int>("ProductFormatId")
                         .HasColumnType("integer")
-                        .HasColumnName("product_history_id");
+                        .HasColumnName("product_format_id");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("integer")
@@ -313,12 +313,12 @@ namespace Metaspesa.Database.Migrations
                     b.HasKey("Id")
                         .HasName("pk_shopping_item");
 
-                    b.HasIndex("ProductHistoryId", "ProductId");
+                    b.HasIndex("ProductFormatId", "ProductId");
 
-                    b.HasIndex(new[] { "ShoppingListId", "ProductId" }, "idx_shopping_item_list_product")
+                    b.HasIndex(new[] { "ShoppingListId", "ProductFormatId" }, "idx_shopping_item_list_product_format")
                         .IsUnique();
 
-                    b.HasIndex(new[] { "ProductHistoryId" }, "idx_shopping_item_product_history_id");
+                    b.HasIndex(new[] { "ProductFormatId" }, "idx_shopping_item_product_format_id");
 
                     b.HasIndex(new[] { "ProductId" }, "idx_shopping_item_product_id");
 
@@ -326,7 +326,7 @@ namespace Metaspesa.Database.Migrations
 
                     b.ToTable("shopping_items", "shopping", t =>
                         {
-                            t.HasComment("Items that belong to a shopping list, representing planned purchases.\r\nEach line points to an existing market product and the exact product history\r\nrow used when the item was added, so price and format are explicit.");
+                            t.HasComment("Items that belong to a shopping list, representing planned purchases.\r\nEach line points to an existing product format. Price resolves from the\r\nlatest product history row for that format when the list is read or bought.");
 
                             t.HasCheckConstraint("chk_shopping_item_positive_amount", "amount > 0");
                         });
@@ -649,16 +649,16 @@ namespace Metaspesa.Database.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Metaspesa.Database.Entities.ProductsHistoryDbEntity", "ProductHistory")
+                    b.HasOne("Metaspesa.Database.Entities.ProductFormatDbEntity", "ProductFormat")
                         .WithMany("ShoppingItems")
-                        .HasForeignKey("ProductHistoryId", "ProductId")
+                        .HasForeignKey("ProductFormatId", "ProductId")
                         .HasPrincipalKey("Id", "ProductId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Product");
 
-                    b.Navigation("ProductHistory");
+                    b.Navigation("ProductFormat");
 
                     b.Navigation("ShoppingList");
                 });
@@ -712,13 +712,13 @@ namespace Metaspesa.Database.Migrations
             modelBuilder.Entity("Metaspesa.Database.Entities.ProductFormatDbEntity", b =>
                 {
                     b.Navigation("History");
+
+                    b.Navigation("ShoppingItems");
                 });
 
             modelBuilder.Entity("Metaspesa.Database.Entities.ProductsHistoryDbEntity", b =>
                 {
                     b.Navigation("PurchaseItems");
-
-                    b.Navigation("ShoppingItems");
                 });
 
             modelBuilder.Entity("Metaspesa.Database.Entities.PurchaseDbEntity", b =>

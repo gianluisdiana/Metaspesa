@@ -9,8 +9,8 @@ internal class ShoppingItemConfiguration : IEntityTypeConfiguration<ShoppingItem
     builder.ToTable("shopping_items", "shopping", t =>
       t.HasComment("""
       Items that belong to a shopping list, representing planned purchases.
-      Each line points to an existing market product and the exact product history
-      row used when the item was added, so price and format are explicit.
+      Each line points to an existing product format. Price resolves from the
+      latest product history row for that format when the list is read or bought.
       """));
 
     builder.HasKey(e => e.Id).HasName("pk_shopping_item");
@@ -27,8 +27,8 @@ internal class ShoppingItemConfiguration : IEntityTypeConfiguration<ShoppingItem
       .HasColumnName("product_id")
       .IsRequired();
 
-    builder.Property(e => e.ProductHistoryId)
-      .HasColumnName("product_history_id")
+    builder.Property(e => e.ProductFormatId)
+      .HasColumnName("product_format_id")
       .IsRequired();
 
     builder.Property(e => e.Amount)
@@ -48,10 +48,10 @@ internal class ShoppingItemConfiguration : IEntityTypeConfiguration<ShoppingItem
 
     builder.HasIndex(e => e.ShoppingListId, "idx_shopping_item_shopping_list_id");
     builder.HasIndex(e => e.ProductId, "idx_shopping_item_product_id");
-    builder.HasIndex(e => e.ProductHistoryId, "idx_shopping_item_product_history_id");
+    builder.HasIndex(e => e.ProductFormatId, "idx_shopping_item_product_format_id");
     builder.HasIndex(
-        e => new { e.ShoppingListId, e.ProductId },
-        "idx_shopping_item_list_product")
+        e => new { e.ShoppingListId, e.ProductFormatId },
+        "idx_shopping_item_list_product_format")
       .IsUnique();
 
     builder.ToTable(t => t.HasCheckConstraint(
@@ -67,9 +67,9 @@ internal class ShoppingItemConfiguration : IEntityTypeConfiguration<ShoppingItem
       .HasForeignKey(e => e.ProductId)
       .OnDelete(DeleteBehavior.Restrict);
 
-    builder.HasOne(e => e.ProductHistory)
+    builder.HasOne(e => e.ProductFormat)
       .WithMany(e => e.ShoppingItems)
-      .HasForeignKey(e => new { e.ProductHistoryId, e.ProductId })
+      .HasForeignKey(e => new { e.ProductFormatId, e.ProductId })
       .HasPrincipalKey(e => new { e.Id, e.ProductId })
       .OnDelete(DeleteBehavior.Restrict);
   }

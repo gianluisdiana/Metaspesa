@@ -299,7 +299,7 @@ public static class PostgreSqlShoppingRepositoryTests {
 
       _context.ProductsHistory.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      return history.Id;
+      return format.Id;
     }
 
     [Fact(
@@ -675,7 +675,7 @@ public static class PostgreSqlShoppingRepositoryTests {
 
       _context.ProductsHistory.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      return history.Id;
+      return format.Id;
     }
 
     [Fact(
@@ -857,7 +857,7 @@ public static class PostgreSqlShoppingRepositoryTests {
 
       _context.ProductsHistory.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      return history.Id;
+      return format.Id;
     }
 
     [Fact(
@@ -1004,7 +1004,7 @@ public static class PostgreSqlShoppingRepositoryTests {
 
       _context.ProductsHistory.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      return history.Id;
+      return format.Id;
     }
 
     [Fact(
@@ -1152,7 +1152,7 @@ public static class PostgreSqlShoppingRepositoryTests {
 
       _context.ProductsHistory.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      return history.Id;
+      return format.Id;
     }
 
     [Fact(
@@ -1275,7 +1275,7 @@ public static class PostgreSqlShoppingRepositoryTests {
 
       _context.ProductsHistory.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      return history.Id;
+      return format.Id;
     }
 
     [Fact(
@@ -1454,7 +1454,7 @@ public static class PostgreSqlShoppingRepositoryTests {
 
       _context.ProductsHistory.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      return history.Id;
+      return format.Id;
     }
 
     [Fact(
@@ -1596,7 +1596,7 @@ public static class PostgreSqlShoppingRepositoryTests {
 
       _context.ProductsHistory.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      return history.Id;
+      return format.Id;
     }
 
     [Fact(
@@ -1624,7 +1624,11 @@ public static class PostgreSqlShoppingRepositoryTests {
       PurchaseItemDbEntity item = await _context.PurchaseItems
         .AsNoTracking()
         .SingleAsync(i => i.Purchase.UserUid == userUid, TestContext.Current.CancellationToken);
-      Assert.Equal(milkReferenceUid, item.ProductHistoryId);
+      int expectedHistoryId = await _context.ProductsHistory
+        .Where(h => h.ProductFormatId == milkReferenceUid)
+        .Select(h => h.Id)
+        .SingleAsync(TestContext.Current.CancellationToken);
+      Assert.Equal(expectedHistoryId, item.ProductHistoryId);
       Assert.Equal(2, item.Amount);
     }
 
@@ -1705,7 +1709,7 @@ public static class PostgreSqlShoppingRepositoryTests {
 
       _context.ProductsHistory.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      return history.Id;
+      return format.Id;
     }
 
     [Fact(

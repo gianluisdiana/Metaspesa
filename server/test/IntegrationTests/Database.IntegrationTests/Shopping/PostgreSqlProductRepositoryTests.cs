@@ -49,12 +49,12 @@ public static class PostgreSqlProductRepositoryTests {
 
       _context.ProductsHistory.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      return history.Id;
+      return format.Id;
     }
 
     [Fact(
-      DisplayName = "Returns true when product history reference exists")]
-    public async Task CheckProductExistsAsync_ReturnsTrue_WhenProductHistoryReferenceExists() {
+      DisplayName = "Returns true when product format reference exists")]
+    public async Task CheckProductExistsAsync_ReturnsTrue_WhenProductFormatReferenceExists() {
       // Arrange
       int referenceUid = await SeedProductHistoryAsync();
 
@@ -67,8 +67,8 @@ public static class PostgreSqlProductRepositoryTests {
     }
 
     [Fact(
-      DisplayName = "Returns false when product history reference does not exist")]
-    public async Task CheckProductExistsAsync_ReturnsFalse_WhenProductHistoryReferenceDoesNotExist() {
+      DisplayName = "Returns false when product format reference does not exist")]
+    public async Task CheckProductExistsAsync_ReturnsFalse_WhenProductFormatReferenceDoesNotExist() {
       // Arrange
       const int MissingReferenceUid = -1;
 
