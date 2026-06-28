@@ -1,39 +1,84 @@
 @startuml metaspesa_domain
 
-package Shopping {
-  class Quantity {
-    + Amount: float
-    + Unit: string?
+title Metaspesa real-world domain
+
+
+package Market {
+  class PriceSnapshot {
+    + price
+    + observedDate
   }
+
+  class Brand {
+    + name
+  }
+
+  class ProductFormat {
+    + quantity
+    + unit
+    + image
+  }
+  ProductFormat *--> "*" PriceSnapshot : price history
 
   class Product {
-    + Name: string
-    + Price: decimal?
-    + Image: Uri?
-    + Description: string?
-    + IsChecked: bool = false
+    + name
   }
-  Product *--> Quantity
+  Product "*" --> Brand : branded as
+  Product *--> "*" ProductFormat : offered in
 
-  class ShoppingList {
-    + ExpensesHistory: Dict<DateTime, decimal>
-    + Price: decimal = Products.Sum(p => p.Price)
-    + CheckedPrice: decimal = Products.Where(p => p.IsChecked).Sum(p => p.Price)
-    + CompletePurchase(): void
+  class Category {
+    + name
   }
-  ShoppingList o--> "*" Product
+  Category o--> "*" Product : groups
+
+  class Supermarket {
+    + name
+    + logo
+  }
+  Supermarket o--> "*" Product : sells
 }
 
-package Users {
-  class User {
-    + Id: Guid
-    + Name: string
-    + Email: string
-    + Dict<string, ShoppingList> SavedShoppingLists
+package Planning {
+  class ShoppingItem {
+    + amount
+    + isChecked
   }
-  User *--> ShoppingList : CurrentShoppingList
-  User o--> "*" ShoppingList : SavedShoppingLists
-  User o--> "*" Product : RegisteredProducts
+  ShoppingItem "*" --> ProductFormat : plans package
+  ShoppingItem "*" --> PriceSnapshot : chosen price
+
+  class ShoppingList {
+    + name
+    + isTemporary()
+  }
+  ShoppingList *--> "*" ShoppingItem : contains
+}
+
+package Purchase {
+  class PurchasedItem {
+    + amount
+  }
+  PurchasedItem "*" --> ProductFormat : bought package
+  PurchasedItem "*" --> PriceSnapshot : paid price
+
+  class Purchase {
+    + bought at
+  }
+  Purchase "?" --> ShoppingList : completes
+  Purchase *--> "*" PurchasedItem : contains
+}
+
+package Identity {
+  class Role {
+    + name
+    + description
+  }
+
+  class Shopper {
+    + username
+  }
+  Shopper --> "*" Purchase : makes
+  Shopper --> Role : has
+  Shopper "+" --> "+" ShoppingList : owns or shares
 }
 
 @enduml
