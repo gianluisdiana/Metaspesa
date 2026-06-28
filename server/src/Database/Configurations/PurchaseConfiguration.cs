@@ -6,7 +6,7 @@ namespace Metaspesa.Database.Configurations;
 
 internal class PurchaseConfiguration : IEntityTypeConfiguration<PurchaseDbEntity> {
   public void Configure(EntityTypeBuilder<PurchaseDbEntity> builder) {
-    builder.ToTable("purchases", "shopping", t =>
+    builder.ToTable("purchases", "purchasing", t =>
       t.HasComment("""
       Purchase receipt header. It records who bought, when, and optionally which
       shopping list was checked out. Product lines live in purchase_items.
@@ -20,7 +20,7 @@ internal class PurchaseConfiguration : IEntityTypeConfiguration<PurchaseDbEntity
 
     builder.Property(e => e.UserUid)
       .HasColumnName("user_uid")
-      .IsRequired();
+      .IsRequired(false);
 
     builder.Property(e => e.ShoppingListId)
       .HasColumnName("shopping_list_id")
@@ -38,7 +38,7 @@ internal class PurchaseConfiguration : IEntityTypeConfiguration<PurchaseDbEntity
     builder.HasOne(e => e.User)
       .WithMany(e => e.Purchases)
       .HasForeignKey(e => e.UserUid)
-      .OnDelete(DeleteBehavior.Cascade);
+      .OnDelete(DeleteBehavior.SetNull);
 
     builder.HasOne(e => e.ShoppingList)
       .WithMany(e => e.Purchases)

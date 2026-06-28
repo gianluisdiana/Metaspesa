@@ -272,7 +272,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       GC.SuppressFinalize(this);
     }
 
-    private async Task<int> SeedProductHistoryAsync(string productName) {
+    private async Task<int> SeedPriceSnapshotAsync(string productName) {
       var market = new SuperMarketDbEntity { Name = $"Test market {Guid.CreateVersion7()}" };
       var brand = new ProductBrandDbEntity { Name = $"Test brand {Guid.CreateVersion7()}" };
       var unit = new UnitOfMeasureDbEntity {
@@ -290,14 +290,13 @@ public static class PostgreSqlShoppingRepositoryTests {
         UnitOfMeasure = unit,
         ImageUrl = "https://example.test/product.png",
       };
-      var history = new ProductsHistoryDbEntity {
-        Product = product,
+      var history = new PriceSnapshotDbEntity {
         ProductFormat = format,
-        Price = 1.25m,
-        CreatedAt = DateTime.UtcNow,
+        PriceAmount = 1.25m,
+        ObservedAt = DateTime.UtcNow,
       };
 
-      _context.ProductsHistory.Add(history);
+      _context.PriceSnapshots.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       return format.Id;
     }
@@ -391,8 +390,8 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Groceries");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int milkReferenceUid = await SeedProductHistoryAsync("Milk");
-      int breadReferenceUid = await SeedProductHistoryAsync("Bread");
+      int milkReferenceUid = await SeedPriceSnapshotAsync("Milk");
+      int breadReferenceUid = await SeedPriceSnapshotAsync("Bread");
       _repository.AddItemsToList(userUid, "Groceries", [
         new AShoppingItem(milkReferenceUid, 1, false),
         new AShoppingItem(breadReferenceUid, 1, false),
@@ -644,7 +643,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       GC.SuppressFinalize(this);
     }
 
-    private async Task<int> SeedProductHistoryAsync(
+    private async Task<int> SeedPriceSnapshotAsync(
       string productName,
       decimal price = 2.5m,
       decimal quantity = 2m
@@ -666,14 +665,13 @@ public static class PostgreSqlShoppingRepositoryTests {
         UnitOfMeasure = unit,
         ImageUrl = "https://example.test/product.png",
       };
-      var history = new ProductsHistoryDbEntity {
-        Product = product,
+      var history = new PriceSnapshotDbEntity {
         ProductFormat = format,
-        Price = price,
-        CreatedAt = DateTime.UtcNow,
+        PriceAmount = price,
+        ObservedAt = DateTime.UtcNow,
       };
 
-      _context.ProductsHistory.Add(history);
+      _context.PriceSnapshots.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       return format.Id;
     }
@@ -689,8 +687,8 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int milkReferenceUid = await SeedProductHistoryAsync("Milk");
-      int breadReferenceUid = await SeedProductHistoryAsync("Bread");
+      int milkReferenceUid = await SeedPriceSnapshotAsync("Milk");
+      int breadReferenceUid = await SeedPriceSnapshotAsync("Bread");
 
       // Act
       _repository.AddItemsToList(userUid, "Weekly", [
@@ -716,7 +714,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, null);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int butterReferenceUid = await SeedProductHistoryAsync("Butter");
+      int butterReferenceUid = await SeedPriceSnapshotAsync("Butter");
 
       // Act
       _repository.AddItemsToList(
@@ -740,7 +738,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int milkReferenceUid = await SeedProductHistoryAsync("Milk");
+      int milkReferenceUid = await SeedPriceSnapshotAsync("Milk");
 
       // Act
       _repository.AddItemsToList(
@@ -764,7 +762,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int referenceUid = await SeedProductHistoryAsync("Milk");
+      int referenceUid = await SeedPriceSnapshotAsync("Milk");
 
       // Act
       _repository.AddItemsToList(
@@ -791,7 +789,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int referenceUid = await SeedProductHistoryAsync("Milk");
+      int referenceUid = await SeedPriceSnapshotAsync("Milk");
 
       // Act
       _repository.AddItemsToList(
@@ -830,7 +828,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       GC.SuppressFinalize(this);
     }
 
-    private async Task<int> SeedProductHistoryAsync(string productName) {
+    private async Task<int> SeedPriceSnapshotAsync(string productName) {
       var market = new SuperMarketDbEntity { Name = $"Test market {Guid.CreateVersion7()}" };
       var brand = new ProductBrandDbEntity { Name = $"Test brand {Guid.CreateVersion7()}" };
       var unit = new UnitOfMeasureDbEntity {
@@ -848,14 +846,13 @@ public static class PostgreSqlShoppingRepositoryTests {
         UnitOfMeasure = unit,
         ImageUrl = "https://example.test/product.png",
       };
-      var history = new ProductsHistoryDbEntity {
-        Product = product,
+      var history = new PriceSnapshotDbEntity {
         ProductFormat = format,
-        Price = 1.25m,
-        CreatedAt = DateTime.UtcNow,
+        PriceAmount = 1.25m,
+        ObservedAt = DateTime.UtcNow,
       };
 
-      _context.ProductsHistory.Add(history);
+      _context.PriceSnapshots.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       return format.Id;
     }
@@ -891,7 +888,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int referenceUid = await SeedProductHistoryAsync("Milk");
+      int referenceUid = await SeedPriceSnapshotAsync("Milk");
       _repository.AddItemsToList(
         userUid, "Weekly", [new AShoppingItem(referenceUid, 1, false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -915,7 +912,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int referenceUid = await SeedProductHistoryAsync("Milk");
+      int referenceUid = await SeedPriceSnapshotAsync("Milk");
       _repository.AddItemsToList(
         userUid, "Weekly", [new AShoppingItem(referenceUid, 1, false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -939,7 +936,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int referenceUid = await SeedProductHistoryAsync("Milk");
+      int referenceUid = await SeedPriceSnapshotAsync("Milk");
       _repository.AddItemsToList(
         userUid, "Weekly", [new AShoppingItem(referenceUid, 1, false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -977,7 +974,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       GC.SuppressFinalize(this);
     }
 
-    private async Task<int> SeedProductHistoryAsync(string productName) {
+    private async Task<int> SeedPriceSnapshotAsync(string productName) {
       var market = new SuperMarketDbEntity { Name = $"Test market {Guid.CreateVersion7()}" };
       var brand = new ProductBrandDbEntity { Name = $"Test brand {Guid.CreateVersion7()}" };
       var unit = new UnitOfMeasureDbEntity {
@@ -995,14 +992,13 @@ public static class PostgreSqlShoppingRepositoryTests {
         UnitOfMeasure = unit,
         ImageUrl = "https://example.test/product.png",
       };
-      var history = new ProductsHistoryDbEntity {
-        Product = product,
+      var history = new PriceSnapshotDbEntity {
         ProductFormat = format,
-        Price = 1.25m,
-        CreatedAt = DateTime.UtcNow,
+        PriceAmount = 1.25m,
+        ObservedAt = DateTime.UtcNow,
       };
 
-      _context.ProductsHistory.Add(history);
+      _context.PriceSnapshots.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       return format.Id;
     }
@@ -1038,7 +1034,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int referenceUid = await SeedProductHistoryAsync("Milk");
+      int referenceUid = await SeedPriceSnapshotAsync("Milk");
       _repository.AddItemsToList(
         userUid, "Weekly", [new AShoppingItem(referenceUid, 1, false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1063,7 +1059,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int referenceUid = await SeedProductHistoryAsync("Milk");
+      int referenceUid = await SeedPriceSnapshotAsync("Milk");
       _repository.AddItemsToList(
         userUid, "Weekly", [new AShoppingItem(referenceUid, 1, false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1089,7 +1085,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int referenceUid = await SeedProductHistoryAsync("Milk");
+      int referenceUid = await SeedPriceSnapshotAsync("Milk");
       _repository.AddItemsToList(
         userUid, "weekly", [new AShoppingItem(referenceUid, 1, false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1125,7 +1121,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       GC.SuppressFinalize(this);
     }
 
-    private async Task<int> SeedProductHistoryAsync(string productName) {
+    private async Task<int> SeedPriceSnapshotAsync(string productName) {
       var market = new SuperMarketDbEntity { Name = $"Test market {Guid.CreateVersion7()}" };
       var brand = new ProductBrandDbEntity { Name = $"Test brand {Guid.CreateVersion7()}" };
       var unit = new UnitOfMeasureDbEntity {
@@ -1143,14 +1139,13 @@ public static class PostgreSqlShoppingRepositoryTests {
         UnitOfMeasure = unit,
         ImageUrl = "https://example.test/product.png",
       };
-      var history = new ProductsHistoryDbEntity {
-        Product = product,
+      var history = new PriceSnapshotDbEntity {
         ProductFormat = format,
-        Price = 1.25m,
-        CreatedAt = DateTime.UtcNow,
+        PriceAmount = 1.25m,
+        ObservedAt = DateTime.UtcNow,
       };
 
-      _context.ProductsHistory.Add(history);
+      _context.PriceSnapshots.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       return format.Id;
     }
@@ -1210,7 +1205,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, null);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int referenceUid = await SeedProductHistoryAsync("Milk");
+      int referenceUid = await SeedPriceSnapshotAsync("Milk");
       _repository.AddItemsToList(
         userUid, null, [new AShoppingItem(referenceUid, 1, false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1248,7 +1243,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       GC.SuppressFinalize(this);
     }
 
-    private async Task<int> SeedProductHistoryAsync(string productName) {
+    private async Task<int> SeedPriceSnapshotAsync(string productName) {
       var market = new SuperMarketDbEntity { Name = $"Test market {Guid.CreateVersion7()}" };
       var brand = new ProductBrandDbEntity { Name = $"Test brand {Guid.CreateVersion7()}" };
       var unit = new UnitOfMeasureDbEntity {
@@ -1266,14 +1261,13 @@ public static class PostgreSqlShoppingRepositoryTests {
         UnitOfMeasure = unit,
         ImageUrl = "https://example.test/product.png",
       };
-      var history = new ProductsHistoryDbEntity {
-        Product = product,
+      var history = new PriceSnapshotDbEntity {
         ProductFormat = format,
-        Price = 1.25m,
-        CreatedAt = DateTime.UtcNow,
+        PriceAmount = 1.25m,
+        ObservedAt = DateTime.UtcNow,
       };
 
-      _context.ProductsHistory.Add(history);
+      _context.PriceSnapshots.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       return format.Id;
     }
@@ -1289,7 +1283,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int referenceUid = await SeedProductHistoryAsync("Milk");
+      int referenceUid = await SeedPriceSnapshotAsync("Milk");
       _repository.AddItemsToList(
         userUid, "Weekly", [new AShoppingItem(referenceUid, 1, false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1319,7 +1313,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int referenceUid = await SeedProductHistoryAsync("Milk");
+      int referenceUid = await SeedPriceSnapshotAsync("Milk");
       _repository.AddItemsToList(
         userUid, "Weekly", [new AShoppingItem(referenceUid, 1, false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1349,7 +1343,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int referenceUid = await SeedProductHistoryAsync("Milk");
+      int referenceUid = await SeedPriceSnapshotAsync("Milk");
       _repository.AddItemsToList(
         userUid, "Weekly", [new AShoppingItem(referenceUid, 1, true)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1385,7 +1379,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       _repository.CreateShoppingList(userUid, "Weekly");
       _repository.CreateShoppingList(otherUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int referenceUid = await SeedProductHistoryAsync("Milk");
+      int referenceUid = await SeedPriceSnapshotAsync("Milk");
       _repository.AddItemsToList(userUid, "Weekly", [new AShoppingItem(referenceUid, 1, false)]);
       _repository.AddItemsToList(otherUid, "Weekly", [new AShoppingItem(referenceUid, 1, false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1427,7 +1421,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       GC.SuppressFinalize(this);
     }
 
-    private async Task<int> SeedProductHistoryAsync(string productName) {
+    private async Task<int> SeedPriceSnapshotAsync(string productName) {
       var market = new SuperMarketDbEntity { Name = $"Test market {Guid.CreateVersion7()}" };
       var brand = new ProductBrandDbEntity { Name = $"Test brand {Guid.CreateVersion7()}" };
       var unit = new UnitOfMeasureDbEntity {
@@ -1445,14 +1439,13 @@ public static class PostgreSqlShoppingRepositoryTests {
         UnitOfMeasure = unit,
         ImageUrl = "https://example.test/product.png",
       };
-      var history = new ProductsHistoryDbEntity {
-        Product = product,
+      var history = new PriceSnapshotDbEntity {
         ProductFormat = format,
-        Price = 1.25m,
-        CreatedAt = DateTime.UtcNow,
+        PriceAmount = 1.25m,
+        ObservedAt = DateTime.UtcNow,
       };
 
-      _context.ProductsHistory.Add(history);
+      _context.PriceSnapshots.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       return format.Id;
     }
@@ -1468,7 +1461,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int referenceUid = await SeedProductHistoryAsync("Milk");
+      int referenceUid = await SeedPriceSnapshotAsync("Milk");
       _repository.AddItemsToList(
         userUid, "Weekly", [new AShoppingItem(referenceUid, 1, false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1481,7 +1474,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       ShoppingItemDbEntity? dbEntity = await _context.ShoppingItems
         .AsNoTracking()
         .FirstOrDefaultAsync(
-          i => i.Product.Name == "Milk" && i.ShoppingList.Ownerships.Any(o => o.UserUid == userUid),
+          i => i.ProductFormat.Product.Name == "Milk" && i.ShoppingList.Ownerships.Any(o => o.UserUid == userUid),
           TestContext.Current.CancellationToken);
       Assert.NotNull(dbEntity);
       Assert.NotNull(dbEntity.DeletedAt);
@@ -1498,7 +1491,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int referenceUid = await SeedProductHistoryAsync("Milk");
+      int referenceUid = await SeedPriceSnapshotAsync("Milk");
       _repository.AddItemsToList(
         userUid, "Weekly", [new AShoppingItem(referenceUid, 1, false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1531,7 +1524,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       _repository.CreateShoppingList(userUid, "Weekly");
       _repository.CreateShoppingList(otherUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int referenceUid = await SeedProductHistoryAsync("Milk");
+      int referenceUid = await SeedPriceSnapshotAsync("Milk");
       _repository.AddItemsToList(userUid, "Weekly", [new AShoppingItem(referenceUid, 1, false)]);
       _repository.AddItemsToList(otherUid, "Weekly", [new AShoppingItem(referenceUid, 1, false)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1569,7 +1562,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       GC.SuppressFinalize(this);
     }
 
-    private async Task<int> SeedProductHistoryAsync(string productName) {
+    private async Task<int> SeedPriceSnapshotAsync(string productName) {
       var market = new SuperMarketDbEntity { Name = $"Test market {Guid.CreateVersion7()}" };
       var brand = new ProductBrandDbEntity { Name = $"Test brand {Guid.CreateVersion7()}" };
       var unit = new UnitOfMeasureDbEntity {
@@ -1587,14 +1580,13 @@ public static class PostgreSqlShoppingRepositoryTests {
         UnitOfMeasure = unit,
         ImageUrl = "https://example.test/product.png",
       };
-      var history = new ProductsHistoryDbEntity {
-        Product = product,
+      var history = new PriceSnapshotDbEntity {
         ProductFormat = format,
-        Price = 1.25m,
-        CreatedAt = DateTime.UtcNow,
+        PriceAmount = 1.25m,
+        ObservedAt = DateTime.UtcNow,
       };
 
-      _context.ProductsHistory.Add(history);
+      _context.PriceSnapshots.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       return format.Id;
     }
@@ -1610,8 +1602,8 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int milkReferenceUid = await SeedProductHistoryAsync("Milk");
-      int breadReferenceUid = await SeedProductHistoryAsync("Bread");
+      int milkReferenceUid = await SeedPriceSnapshotAsync("Milk");
+      int breadReferenceUid = await SeedPriceSnapshotAsync("Bread");
 
       // Act
       _repository.RecordShoppingList(userUid, new AShoppingList("Weekly", [
@@ -1624,11 +1616,11 @@ public static class PostgreSqlShoppingRepositoryTests {
       PurchaseItemDbEntity item = await _context.PurchaseItems
         .AsNoTracking()
         .SingleAsync(i => i.Purchase.UserUid == userUid, TestContext.Current.CancellationToken);
-      int expectedHistoryId = await _context.ProductsHistory
+      int expectedHistoryId = await _context.PriceSnapshots
         .Where(h => h.ProductFormatId == milkReferenceUid)
         .Select(h => h.Id)
         .SingleAsync(TestContext.Current.CancellationToken);
-      Assert.Equal(expectedHistoryId, item.ProductHistoryId);
+      Assert.Equal(expectedHistoryId, item.PriceSnapshotId);
       Assert.Equal(2, item.Amount);
     }
 
@@ -1643,7 +1635,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int referenceUid = await SeedProductHistoryAsync("Eggs");
+      int referenceUid = await SeedPriceSnapshotAsync("Eggs");
 
       // Act
       _repository.RecordShoppingList(userUid, new AShoppingList("Weekly", [
@@ -1682,7 +1674,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       GC.SuppressFinalize(this);
     }
 
-    private async Task<int> SeedProductHistoryAsync(string productName) {
+    private async Task<int> SeedPriceSnapshotAsync(string productName) {
       var market = new SuperMarketDbEntity { Name = $"Test market {Guid.CreateVersion7()}" };
       var brand = new ProductBrandDbEntity { Name = $"Test brand {Guid.CreateVersion7()}" };
       var unit = new UnitOfMeasureDbEntity {
@@ -1700,14 +1692,13 @@ public static class PostgreSqlShoppingRepositoryTests {
         UnitOfMeasure = unit,
         ImageUrl = "https://example.test/product.png",
       };
-      var history = new ProductsHistoryDbEntity {
-        Product = product,
+      var history = new PriceSnapshotDbEntity {
         ProductFormat = format,
-        Price = 1.25m,
-        CreatedAt = DateTime.UtcNow,
+        PriceAmount = 1.25m,
+        ObservedAt = DateTime.UtcNow,
       };
 
-      _context.ProductsHistory.Add(history);
+      _context.PriceSnapshots.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       return format.Id;
     }
@@ -1723,8 +1714,8 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int milkReferenceUid = await SeedProductHistoryAsync("Milk");
-      int breadReferenceUid = await SeedProductHistoryAsync("Bread");
+      int milkReferenceUid = await SeedPriceSnapshotAsync("Milk");
+      int breadReferenceUid = await SeedPriceSnapshotAsync("Bread");
       _repository.AddItemsToList(userUid, "Weekly", [
         new AShoppingItem(milkReferenceUid, 1, true),
         new AShoppingItem(breadReferenceUid, 1, false),
@@ -1758,7 +1749,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       _repository.CreateShoppingList(userUid, "Weekly");
       _repository.CreateShoppingList(otherUid, "Weekly");
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int referenceUid = await SeedProductHistoryAsync("Milk");
+      int referenceUid = await SeedPriceSnapshotAsync("Milk");
       _repository.AddItemsToList(userUid, "Weekly", [new AShoppingItem(referenceUid, 1, true)]);
       _repository.AddItemsToList(otherUid, "Weekly", [new AShoppingItem(referenceUid, 1, true)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1784,7 +1775,7 @@ public static class PostgreSqlShoppingRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       _repository.CreateShoppingList(userUid, null);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-      int referenceUid = await SeedProductHistoryAsync("Milk");
+      int referenceUid = await SeedPriceSnapshotAsync("Milk");
       _repository.AddItemsToList(userUid, null, [new AShoppingItem(referenceUid, 1, true)]);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

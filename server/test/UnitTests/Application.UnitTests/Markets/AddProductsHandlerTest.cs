@@ -489,7 +489,7 @@ public class AddMarketProductsHandlerTest {
   }
 
   [Fact(DisplayName = "Deletes product history for completed markets if command is cancelled adding later products")]
-  public async Task Handler_DeletesProductHistoryForCompletedMarkets_IfCancelledAddingLaterProducts() {
+  public async Task Handler_DeletesPriceSnapshotForCompletedMarkets_IfCancelledAddingLaterProducts() {
     // Arrange
     var registeredAt = new DateOnly(2024, 1, 15);
     var command = new Command(
@@ -522,7 +522,7 @@ public class AddMarketProductsHandlerTest {
       .ThrowsAsync<OperationCanceledException>();
 
     TaskCompletionSource rollbackSignal = CreateRollbackSignal();
-    _marketRepository.DeleteProductsHistoryForMarketsAsync(
+    _marketRepository.DeletePriceSnapshotsForMarketsAsync(
         Arg.Any<IReadOnlyCollection<string>>(),
         Arg.Any<DateOnly>(),
         Arg.Any<CancellationToken>())
@@ -540,7 +540,7 @@ public class AddMarketProductsHandlerTest {
 
     // Assert
     await WaitForRollback(rollbackSignal.Task);
-    await _marketRepository.Received(1).DeleteProductsHistoryForMarketsAsync(
+    await _marketRepository.Received(1).DeletePriceSnapshotsForMarketsAsync(
       Arg.Is<IReadOnlyCollection<string>>(m => m.Single() == "Walmart"),
       Arg.Is<DateOnly>(d => d == registeredAt),
       Arg.Any<CancellationToken>());

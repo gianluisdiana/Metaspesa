@@ -41,7 +41,7 @@ internal class UserConfiguration : IEntityTypeConfiguration<UserDbEntity> {
     builder.HasMany(e => e.Purchases)
       .WithOne(e => e.User)
       .HasForeignKey(e => e.UserUid)
-      .OnDelete(DeleteBehavior.Cascade);
+      .OnDelete(DeleteBehavior.SetNull);
 
     builder.HasMany(e => e.Ownerships)
       .WithOne(e => e.Owner)

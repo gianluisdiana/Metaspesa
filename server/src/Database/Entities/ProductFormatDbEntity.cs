@@ -9,6 +9,6 @@ internal class ProductFormatDbEntity {
 
   public ProductDbEntity Product { get; set; } = null!;
   public UnitOfMeasureDbEntity UnitOfMeasure { get; set; } = null!;
-  public ICollection<ProductsHistoryDbEntity> History { get; set; } = [];
+  public ICollection<PriceSnapshotDbEntity> PriceSnapshots { get; set; } = [];
   public ICollection<ShoppingItemDbEntity> ShoppingItems { get; set; } = [];
 }

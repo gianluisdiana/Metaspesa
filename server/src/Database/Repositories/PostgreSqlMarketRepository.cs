@@ -59,7 +59,7 @@ internal partial class PostgreSqlMarketRepository(
     IQueryable<ProductDbEntity> query = context.Products
       .Include(p => p.Brand)
       .Include(p => p.SuperMarket)
-      .Where(p => p.History.Any())
+      .Where(p => p.Formats.Any(f => f.PriceSnapshots.Count > 0))
       .ApplyFilter(filter);
 
     int totalCount = await query.CountAsync(cancellationToken);
@@ -78,25 +78,24 @@ internal partial class PostgreSqlMarketRepository(
         return [];
       }
 
-      return await context.ProductsHistory
+      return await context.ProductFormats
         .AsNoTracking()
-        .Where(h => referencesId.Contains(h.ProductFormatId))
-        .GroupBy(h => h.ProductFormatId)
-        .Select(g => g
-          .OrderByDescending(h => h.CreatedAt)
-          .ThenByDescending(h => h.Id)
-          .First())
+        .Where(f => referencesId.Contains(f.Id) && f.PriceSnapshots.Any())
         .ToDictionaryAsync(
-          h => h.ProductFormatId,
-          h => new MarketProduct(
-            h.Product.Name,
-            new ProductBrand(h.Product.Brand.Name),
+          f => f.Id,
+          f => new MarketProduct(
+            f.Product.Name,
+            new ProductBrand(f.Product.Brand.Name),
             [new ProductFormat(
               new AQuantity(
-                (float)h.ProductFormat.Quantity,
-                h.ProductFormat.UnitOfMeasure.Code),
-              new Price(h.Price),
-              new Uri(h.ProductFormat.ImageUrl, UriKind.Absolute))]),
+                (float)f.Quantity,
+                f.UnitOfMeasure.Code),
+              new Price(f.PriceSnapshots
+                .OrderByDescending(s => s.ObservedAt)
+                .ThenByDescending(s => s.Id)
+                .First()
+                .PriceAmount),
+              new Uri(f.ImageUrl, UriKind.Absolute))]),
           cancellationToken);
     },
     "Couldn't get market products by references.");
@@ -107,9 +106,10 @@ internal partial class PostgreSqlMarketRepository(
     CancellationToken cancellationToken
   ) {
     IQueryable<ProductDbEntity> orderedQuery = query
-      .Include(p => p.History)
-      .ThenInclude(h => h.ProductFormat)
+      .Include(p => p.Formats)
       .ThenInclude(f => f.UnitOfMeasure)
+      .Include(p => p.Formats)
+      .ThenInclude(f => f.PriceSnapshots)
       .OrderBy(p => p.SuperMarket.Name)
       .ThenBy(p => p.Name);
 
@@ -189,9 +189,9 @@ internal partial class PostgreSqlMarketRepository(
       productSources, unitLookup, cancellationToken);
 
     var now = registeredAt.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-    List<ProductsHistoryDbEntity> history = BuildProductHistory(
+    List<PriceSnapshotDbEntity> history = BuildPriceSnapshot(
       productSources, unitLookup, formatLookup, now);
-    await AddProductHistoryAsync(history, cancellationToken);
+    await AddPriceSnapshotAsync(history, cancellationToken);
 
     return addedProductIds;
   }, "Couldn't add market products.");
@@ -363,21 +363,21 @@ internal partial class PostgreSqlMarketRepository(
     return newFormatLookup;
   }
 
-  private static List<ProductsHistoryDbEntity> BuildProductHistory(
+  private static List<PriceSnapshotDbEntity> BuildPriceSnapshot(
     IEnumerable<ProductSource> productSources,
     IReadOnlyDictionary<string, int> unitLookup,
     IReadOnlyDictionary<ProductFormatKey, int> formatLookup,
-    DateTime createdAt
+    DateTime observedAt
   ) => [.. productSources.SelectMany(productSource =>
     productSource.Source.Formats.Select(format => {
       ProductFormatKey key = ToProductFormatKey(
         productSource.ProductId, format, unitLookup);
 
-      return new ProductsHistoryDbEntity {
-        ProductId = productSource.ProductId,
+      return new PriceSnapshotDbEntity {
         ProductFormatId = formatLookup[key],
-        Price = format.Price.Value,
-        CreatedAt = createdAt
+        PriceAmount = format.Price.Value,
+        CurrencyCode = "EUR",
+        ObservedAt = observedAt
       };
     }))];
 
@@ -390,12 +390,12 @@ internal partial class PostgreSqlMarketRepository(
     (decimal)format.Quantity.Value,
     unitLookup[format.Quantity.UnitOfMeasure.Trim()]);
 
-  private async Task AddProductHistoryAsync(
-    List<ProductsHistoryDbEntity> history,
+  private async Task AddPriceSnapshotAsync(
+    List<PriceSnapshotDbEntity> history,
     CancellationToken cancellationToken
   ) {
-    foreach (ProductsHistoryDbEntity[] batch in history.Chunk(BatchSize)) {
-      await context.ProductsHistory.AddRangeAsync(batch, cancellationToken);
+    foreach (PriceSnapshotDbEntity[] batch in history.Chunk(BatchSize)) {
+      await context.PriceSnapshots.AddRangeAsync(batch, cancellationToken);
       await context.SaveChangesAsync(cancellationToken);
       context.ChangeTracker.Clear();
     }
@@ -403,47 +403,68 @@ internal partial class PostgreSqlMarketRepository(
 
   public async Task DeleteProductsAsync(
     IReadOnlyCollection<int> productIds, CancellationToken cancellationToken
-  ) => await PostgreSqlExceptionMapper.MapAsync(async () =>
+  ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
+    await context.PriceSnapshots
+      .Where(s => productIds.Contains(s.ProductFormat.ProductId))
+      .ExecuteDeleteAsync(cancellationToken);
+    await context.ProductFormats
+      .Where(f => productIds.Contains(f.ProductId))
+      .ExecuteDeleteAsync(cancellationToken);
     await context.Products
       .Where(p => productIds.Contains(p.Id))
-      .ExecuteDeleteAsync(cancellationToken),
+      .ExecuteDeleteAsync(cancellationToken);
+  },
     "Couldn't delete products.");
 
-  public async Task DeleteProductsHistoryForMarketsAsync(
+  public async Task DeletePriceSnapshotsForMarketsAsync(
     IReadOnlyCollection<string> marketNames,
     DateOnly registeredAt,
     CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
     var date = registeredAt.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
-    IQueryable<ProductsHistoryDbEntity> productsHistoryDbEntities =
-      from h in context.ProductsHistory
+    IQueryable<PriceSnapshotDbEntity> priceSnapshotDbEntities =
+      from h in context.PriceSnapshots
+      join pf in context.ProductFormats
+        on h.ProductFormatId equals pf.Id
       join p in context.Products
-        on h.ProductId equals p.Id
+        on pf.ProductId equals p.Id
       join sm in context.SuperMarkets
         on p.SuperMarketId equals sm.Id
       where marketNames.Contains(sm.Name) &&
-        h.CreatedAt == date
+        h.ObservedAt == date
       select h;
 
-    await productsHistoryDbEntities
+    await priceSnapshotDbEntities
       .ExecuteDeleteAsync(cancellationToken);
-  }, "Couldn't delete product history.");
+  }, "Couldn't delete price snapshots.");
 
   public async Task DeleteMarketsAsync(
     IReadOnlyCollection<string> marketNames, CancellationToken cancellationToken
-  ) => await PostgreSqlExceptionMapper.MapAsync(async () =>
+  ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
+    List<int> productIds = await context.Products
+      .Where(p => marketNames.Contains(p.SuperMarket.Name))
+      .Select(p => p.Id)
+      .ToListAsync(cancellationToken);
+    await DeleteProductsAsync(productIds, cancellationToken);
     await context.SuperMarkets
       .Where(m => marketNames.Contains(m.Name))
-      .ExecuteDeleteAsync(cancellationToken),
+      .ExecuteDeleteAsync(cancellationToken);
+  },
     "Couldn't delete markets.");
 
   public async Task DeleteBrandsAsync(
     IReadOnlyCollection<string> brandNames, CancellationToken cancellationToken
-  ) => await PostgreSqlExceptionMapper.MapAsync(async () =>
+  ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
+    List<int> productIds = await context.Products
+      .Where(p => brandNames.Contains(p.Brand.Name))
+      .Select(p => p.Id)
+      .ToListAsync(cancellationToken);
+    await DeleteProductsAsync(productIds, cancellationToken);
     await context.ProductBrands
       .Where(b => brandNames.Contains(b.Name))
-      .ExecuteDeleteAsync(cancellationToken),
+      .ExecuteDeleteAsync(cancellationToken);
+  },
     "Couldn't delete brands.");
 
   public Task<bool> CheckUnitOfMeasureIsSupportedAsync(

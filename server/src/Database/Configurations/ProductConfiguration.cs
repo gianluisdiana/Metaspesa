@@ -37,11 +37,11 @@ internal class ProductConfiguration : IEntityTypeConfiguration<ProductDbEntity> 
     builder.HasOne(e => e.SuperMarket)
       .WithMany(e => e.Products)
       .HasForeignKey(e => e.SuperMarketId)
-      .OnDelete(DeleteBehavior.Cascade);
+      .OnDelete(DeleteBehavior.Restrict);
 
     builder.HasOne(e => e.Brand)
       .WithMany(e => e.Products)
       .HasForeignKey(e => e.BrandId)
-      .OnDelete(DeleteBehavior.Cascade);
+      .OnDelete(DeleteBehavior.Restrict);
   }
 }

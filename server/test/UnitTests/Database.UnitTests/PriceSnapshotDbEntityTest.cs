@@ -3,11 +3,11 @@ using Metaspesa.Domain.Markets;
 
 namespace Metaspesa.Database.UnitTests;
 
-public class ProductsHistoryDbEntityTest {
+public class PriceSnapshotDbEntityTest {
   [Fact(DisplayName = "Maps format quantity value to domain format")]
   public void Entity_MapsToDomainFormat_WithQuantityValue() {
     // Arrange
-    ProductsHistoryDbEntity entity = History(quantity: 500);
+    PriceSnapshotDbEntity entity = History(quantity: 500);
 
     // Act
     ProductFormat result = entity.MapToDomainFormat();
@@ -19,7 +19,7 @@ public class ProductsHistoryDbEntityTest {
   [Fact(DisplayName = "Maps format unit of measure to domain format")]
   public void Entity_MapsToDomainFormat_WithUnitOfMeasure() {
     // Arrange
-    ProductsHistoryDbEntity entity = History(unitOfMeasure: "ml");
+    PriceSnapshotDbEntity entity = History(unitOfMeasure: "ml");
 
     // Act
     ProductFormat result = entity.MapToDomainFormat();
@@ -31,7 +31,7 @@ public class ProductsHistoryDbEntityTest {
   [Fact(DisplayName = "Maps history price to domain format")]
   public void Entity_MapsToDomainFormat_WithPrice() {
     // Arrange
-    ProductsHistoryDbEntity entity = History(price: 2.49m);
+    PriceSnapshotDbEntity entity = History(price: 2.49m);
 
     // Act
     ProductFormat result = entity.MapToDomainFormat();
@@ -44,7 +44,7 @@ public class ProductsHistoryDbEntityTest {
   public void Entity_MapsToDomainFormat_WithImageUrl() {
     // Arrange
     var imageUrl = new Uri("https://example.com/milk.png");
-    ProductsHistoryDbEntity entity = History(imageUrl: imageUrl.ToString());
+    PriceSnapshotDbEntity entity = History(imageUrl: imageUrl.ToString());
 
     // Act
     ProductFormat result = entity.MapToDomainFormat();
@@ -53,13 +53,13 @@ public class ProductsHistoryDbEntityTest {
     Assert.Equal(imageUrl, result.ImageUrl);
   }
 
-  private static ProductsHistoryDbEntity History(
+  private static PriceSnapshotDbEntity History(
     decimal price = 1.99m,
     decimal quantity = 1,
     string unitOfMeasure = "L",
     string imageUrl = "https://example.com/product.png"
   ) => new() {
-    Price = price,
+    PriceAmount = price,
     ProductFormat = new ProductFormatDbEntity {
       Quantity = quantity,
       ImageUrl = imageUrl,

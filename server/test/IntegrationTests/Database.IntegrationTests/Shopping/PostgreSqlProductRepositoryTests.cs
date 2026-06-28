@@ -22,7 +22,7 @@ public static class PostgreSqlProductRepositoryTests {
       GC.SuppressFinalize(this);
     }
 
-    private async Task<int> SeedProductHistoryAsync() {
+    private async Task<int> SeedPriceSnapshotAsync() {
       var market = new SuperMarketDbEntity { Name = $"Test market {Guid.CreateVersion7()}" };
       var brand = new ProductBrandDbEntity { Name = $"Test brand {Guid.CreateVersion7()}" };
       var unit = new UnitOfMeasureDbEntity {
@@ -40,14 +40,13 @@ public static class PostgreSqlProductRepositoryTests {
         UnitOfMeasure = unit,
         ImageUrl = "https://example.test/product.png",
       };
-      var history = new ProductsHistoryDbEntity {
-        Product = product,
+      var history = new PriceSnapshotDbEntity {
         ProductFormat = format,
-        Price = 1.25m,
-        CreatedAt = DateTime.UtcNow,
+        PriceAmount = 1.25m,
+        ObservedAt = DateTime.UtcNow,
       };
 
-      _context.ProductsHistory.Add(history);
+      _context.PriceSnapshots.Add(history);
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       return format.Id;
     }
@@ -56,7 +55,7 @@ public static class PostgreSqlProductRepositoryTests {
       DisplayName = "Returns true when product format reference exists")]
     public async Task CheckProductExistsAsync_ReturnsTrue_WhenProductFormatReferenceExists() {
       // Arrange
-      int referenceUid = await SeedProductHistoryAsync();
+      int referenceUid = await SeedPriceSnapshotAsync();
 
       // Act
       bool result = await _repository.CheckProductExistsAsync(

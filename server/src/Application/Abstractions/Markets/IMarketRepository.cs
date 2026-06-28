@@ -23,7 +23,7 @@ public interface IMarketRepository {
     IReadOnlyCollection<string> brandNames, CancellationToken cancellationToken);
   Task DeleteProductsAsync(
     IReadOnlyCollection<int> productIds, CancellationToken cancellationToken);
-  Task DeleteProductsHistoryForMarketsAsync(
+  Task DeletePriceSnapshotsForMarketsAsync(
     IReadOnlyCollection<string> marketNames,
     DateOnly registeredAt,
     CancellationToken cancellationToken);

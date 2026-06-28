@@ -4,14 +4,13 @@ using Metaspesa.Domain.Shopping;
 
 namespace Metaspesa.Database.Entities;
 
-internal class ProductsHistoryDbEntity {
+internal class PriceSnapshotDbEntity {
   public int Id { get; set; }
-  public int ProductId { get; set; }
   public int ProductFormatId { get; set; }
-  public decimal Price { get; set; }
-  public DateTime CreatedAt { get; set; }
+  public decimal PriceAmount { get; set; }
+  public string CurrencyCode { get; set; } = "EUR";
+  public DateTime ObservedAt { get; set; }
 
-  public ProductDbEntity Product { get; set; } = null!;
   public ProductFormatDbEntity ProductFormat { get; set; } = null!;
   public ICollection<PurchaseItemDbEntity> PurchaseItems { get; set; } = [];
 
@@ -22,7 +21,7 @@ internal class ProductsHistoryDbEntity {
       Quantity: new AQuantity(
         value: (float)ProductFormat.Quantity,
         unitOfMeasure: ProductFormat.UnitOfMeasure.Code),
-      Price: new Price(Price),
+      Price: new Price(PriceAmount),
       ImageUrl: new Uri(ProductFormat.ImageUrl, UriKind.Absolute)
   );
   }

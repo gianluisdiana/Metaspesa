@@ -12,21 +12,20 @@ internal class ProductDbEntity {
   public SuperMarketDbEntity SuperMarket { get; set; } = null!;
   public ProductBrandDbEntity Brand { get; set; } = null!;
   public ICollection<ProductFormatDbEntity> Formats { get; set; } = [];
-  public ICollection<ProductsHistoryDbEntity> History { get; set; } = [];
-  public ICollection<ShoppingItemDbEntity> ShoppingItems { get; set; } = [];
-  public ICollection<PurchaseItemDbEntity> PurchaseItems { get; set; } = [];
 
   public MarketProduct MapToDomain() {
-    Debug.Assert(History.Count > 0);
+    Debug.Assert(Formats.Any(f => f.PriceSnapshots.Count > 0));
     Debug.Assert(Brand is not null);
-
-    DateTime latestHistoryDate = History.Max(h => h.CreatedAt);
 
     return new MarketProduct(
       Name: Name,
       Brand: new ProductBrand(Brand.Name),
-      Formats: [.. History
-        .Where(h => h.CreatedAt == latestHistoryDate)
-        .Select(h => h.MapToDomainFormat())]);
+      Formats: [.. Formats
+        .Where(f => f.PriceSnapshots.Count > 0)
+        .Select(f => f.PriceSnapshots
+          .OrderByDescending(s => s.ObservedAt)
+          .ThenByDescending(s => s.Id)
+          .First()
+          .MapToDomainFormat())]);
   }
 }

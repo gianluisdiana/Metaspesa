@@ -52,7 +52,8 @@ public static class PostgreSqlMarketRepositoryTests {
 
     public async ValueTask InitializeAsync() {
       await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
-      await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.PriceSnapshots.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.ProductFormats.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.ProductBrands.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
     }
@@ -121,7 +122,8 @@ public static class PostgreSqlMarketRepositoryTests {
 
     public async ValueTask InitializeAsync() {
       await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
-      await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.PriceSnapshots.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.ProductFormats.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.ProductBrands.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
     }
@@ -202,7 +204,8 @@ public static class PostgreSqlMarketRepositoryTests {
 
     public async ValueTask InitializeAsync() {
       await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
-      await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.PriceSnapshots.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.ProductFormats.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.SuperMarkets.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
     }
@@ -271,7 +274,8 @@ public static class PostgreSqlMarketRepositoryTests {
 
     public async ValueTask InitializeAsync() {
       await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
-      await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.PriceSnapshots.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.ProductFormats.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.SuperMarkets.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
     }
@@ -354,7 +358,8 @@ public static class PostgreSqlMarketRepositoryTests {
 
     public async ValueTask InitializeAsync() {
       await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
-      await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.PriceSnapshots.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.ProductFormats.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
 
       bool marketExists = await _context.SuperMarkets
@@ -426,10 +431,10 @@ public static class PostgreSqlMarketRepositoryTests {
         TestContext.Current.CancellationToken);
 
       // Assert
-      int historyCount = await _context.ProductsHistory
+      int historyCount = await _context.PriceSnapshots
         .AsNoTracking()
         .CountAsync(
-          h => h.Product.Name == "IntegrationProduct2",
+          h => h.ProductFormat.Product.Name == "IntegrationProduct2",
           TestContext.Current.CancellationToken);
       Assert.Equal(1, historyCount);
     }
@@ -475,19 +480,19 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_LinksHistoryEntry_ToStoredProductFormat() {
       // Act
       await _repository.AddMarketProductsAsync(
-        MakeMarket("IntegrationProductHistoryFormat", 2.50m, 500, "ml"),
+        MakeMarket("IntegrationPriceSnapshotFormat", 2.50m, 500, "ml"),
         DateOnly.FromDateTime(DateTime.Today),
         TestContext.Current.CancellationToken);
 
       // Assert
       int productFormatId = await _context.ProductFormats
         .AsNoTracking()
-        .Where(f => f.Product.Name == "IntegrationProductHistoryFormat")
+        .Where(f => f.Product.Name == "IntegrationPriceSnapshotFormat")
         .Select(f => f.Id)
         .SingleAsync(TestContext.Current.CancellationToken);
-      int historyFormatId = await _context.ProductsHistory
+      int historyFormatId = await _context.PriceSnapshots
         .AsNoTracking()
-        .Where(h => h.Product.Name == "IntegrationProductHistoryFormat")
+        .Where(h => h.ProductFormat.Product.Name == "IntegrationPriceSnapshotFormat")
         .Select(h => h.ProductFormatId)
         .SingleAsync(
           TestContext.Current.CancellationToken);
@@ -499,7 +504,7 @@ public static class PostgreSqlMarketRepositoryTests {
     public async Task Repository_UsesProvidedRegisteredAt_ForHistoryEntry() {
       // Arrange
       var registeredAt = new DateOnly(2024, 1, 15);
-      var expectedCreatedAt = registeredAt.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+      var expectedObservedAt = registeredAt.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
       // Act
       await _repository.AddMarketProductsAsync(
@@ -508,12 +513,12 @@ public static class PostgreSqlMarketRepositoryTests {
         TestContext.Current.CancellationToken);
 
       // Assert
-      ProductsHistoryDbEntity history = await _context.ProductsHistory
+      PriceSnapshotDbEntity history = await _context.PriceSnapshots
         .AsNoTracking()
         .FirstAsync(
-          h => h.Product.Name == "IntegrationProduct3",
+          h => h.ProductFormat.Product.Name == "IntegrationProduct3",
           TestContext.Current.CancellationToken);
-      Assert.Equal(expectedCreatedAt, history.CreatedAt);
+      Assert.Equal(expectedObservedAt, history.ObservedAt);
     }
 
     [Fact(
@@ -535,10 +540,10 @@ public static class PostgreSqlMarketRepositoryTests {
       int productCount = await _context.Products
         .AsNoTracking()
         .CountAsync(p => p.Name == "IntegrationProduct4", TestContext.Current.CancellationToken);
-      int historyCount = await _context.ProductsHistory
+      int historyCount = await _context.PriceSnapshots
         .AsNoTracking()
         .CountAsync(
-          h => h.Product.Name == "IntegrationProduct4",
+          h => h.ProductFormat.Product.Name == "IntegrationProduct4",
           TestContext.Current.CancellationToken);
       Assert.Equal(1, productCount);
       Assert.Equal(2, historyCount);
@@ -560,9 +565,9 @@ public static class PostgreSqlMarketRepositoryTests {
         TestContext.Current.CancellationToken);
 
       // Assert
-      List<int> formatIds = await _context.ProductsHistory
+      List<int> formatIds = await _context.PriceSnapshots
         .AsNoTracking()
-        .Where(h => h.Product.Name == "IntegrationProductFormatReuse")
+        .Where(h => h.ProductFormat.Product.Name == "IntegrationProductFormatReuse")
         .Select(h => h.ProductFormatId)
         .ToListAsync(TestContext.Current.CancellationToken);
       Assert.Single(formatIds.Distinct());
@@ -618,7 +623,8 @@ public static class PostgreSqlMarketRepositoryTests {
 
     public async ValueTask InitializeAsync() {
       await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
-      await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.PriceSnapshots.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.ProductFormats.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
 
       bool marketExists = await _context.SuperMarkets
@@ -703,7 +709,8 @@ public static class PostgreSqlMarketRepositoryTests {
 
     public async ValueTask InitializeAsync() {
       await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
-      await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.PriceSnapshots.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.ProductFormats.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.ProductBrands.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
     }
@@ -769,7 +776,8 @@ public static class PostgreSqlMarketRepositoryTests {
 
     public async ValueTask InitializeAsync() {
       await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
-      await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.PriceSnapshots.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.ProductFormats.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.SuperMarkets.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
     }
@@ -837,7 +845,8 @@ public static class PostgreSqlMarketRepositoryTests {
 
     public async ValueTask InitializeAsync() {
       await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
-      await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.PriceSnapshots.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.ProductFormats.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
 
       bool marketExists = await _context.SuperMarkets
@@ -936,7 +945,8 @@ public static class PostgreSqlMarketRepositoryTests {
 
     public async ValueTask InitializeAsync() {
       await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
-      await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.PriceSnapshots.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.ProductFormats.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
 
       foreach (string name in new[] { MarketA, MarketB }) {
@@ -970,7 +980,7 @@ public static class PostgreSqlMarketRepositoryTests {
 
     private async Task SeedProductWithHistoryAsync(
       string marketName, string brandName, string productName,
-      decimal price, float quantity, string unitOfMeasure, DateTime createdAt
+      decimal price, float quantity, string unitOfMeasure, DateTime ObservedAt
     ) {
       int marketId = await _context.SuperMarkets
         .Where(m => m.Name == marketName)
@@ -1020,11 +1030,10 @@ public static class PostgreSqlMarketRepositoryTests {
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
       }
 
-      _context.ProductsHistory.Add(new ProductsHistoryDbEntity {
-        ProductId = existing.Id,
+      _context.PriceSnapshots.Add(new PriceSnapshotDbEntity {
         ProductFormatId = productFormat.Id,
-        Price = price,
-        CreatedAt = createdAt,
+        PriceAmount = price,
+        ObservedAt = ObservedAt,
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -1295,7 +1304,7 @@ public static class PostgreSqlMarketRepositoryTests {
   }
 
   [Collection("Database")]
-  public class DeleteProductsHistoryForMarketsTests : IAsyncLifetime {
+  public class DeletePriceSnapshotsForMarketsTests : IAsyncLifetime {
     private readonly DatabaseFixture _fixture;
     private readonly MainContext _context;
     private readonly PostgreSqlMarketRepository _repository;
@@ -1303,7 +1312,7 @@ public static class PostgreSqlMarketRepositoryTests {
     private const string OtherMarketName = "OtherMarketForHistory";
     private const string BrandName = "TestBrandForHistory";
 
-    public DeleteProductsHistoryForMarketsTests(DatabaseFixture fixture) {
+    public DeletePriceSnapshotsForMarketsTests(DatabaseFixture fixture) {
       _fixture = fixture;
       _context = fixture.CreateContext();
       _repository = new PostgreSqlMarketRepository(
@@ -1312,7 +1321,8 @@ public static class PostgreSqlMarketRepositoryTests {
 
     public async ValueTask InitializeAsync() {
       await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
-      await _context.ProductsHistory.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.PriceSnapshots.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.ProductFormats.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
 
       foreach (string name in new[] { MarketName, OtherMarketName }) {
@@ -1361,17 +1371,17 @@ public static class PostgreSqlMarketRepositoryTests {
         TestContext.Current.CancellationToken);
 
       // Act
-      await _repository.DeleteProductsHistoryForMarketsAsync(
+      await _repository.DeletePriceSnapshotsForMarketsAsync(
         [MarketName],
         date,
         TestContext.Current.CancellationToken);
 
       // Assert
       var expectedDate = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-      bool historyExists = await _context.ProductsHistory
+      bool historyExists = await _context.PriceSnapshots
         .AsNoTracking()
         .AnyAsync(
-          h => h.Product.SuperMarket.Name == MarketName && h.CreatedAt == expectedDate,
+          h => h.ProductFormat.Product.SuperMarket.Name == MarketName && h.ObservedAt == expectedDate,
           TestContext.Current.CancellationToken);
       Assert.False(historyExists);
     }
@@ -1391,17 +1401,17 @@ public static class PostgreSqlMarketRepositoryTests {
         TestContext.Current.CancellationToken);
 
       // Act
-      await _repository.DeleteProductsHistoryForMarketsAsync(
+      await _repository.DeletePriceSnapshotsForMarketsAsync(
         [MarketName],
         date,
         TestContext.Current.CancellationToken);
 
       // Assert
       var expectedDate = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-      bool otherHistoryExists = await _context.ProductsHistory
+      bool otherHistoryExists = await _context.PriceSnapshots
         .AsNoTracking()
         .AnyAsync(
-          h => h.Product.SuperMarket.Name == OtherMarketName && h.CreatedAt == expectedDate,
+          h => h.ProductFormat.Product.SuperMarket.Name == OtherMarketName && h.ObservedAt == expectedDate,
           TestContext.Current.CancellationToken);
       Assert.True(otherHistoryExists);
     }
@@ -1422,17 +1432,17 @@ public static class PostgreSqlMarketRepositoryTests {
         TestContext.Current.CancellationToken);
 
       // Act
-      await _repository.DeleteProductsHistoryForMarketsAsync(
+      await _repository.DeletePriceSnapshotsForMarketsAsync(
         [MarketName],
         targetDate,
         TestContext.Current.CancellationToken);
 
       // Assert
       var otherExpectedDate = otherDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-      bool otherHistoryExists = await _context.ProductsHistory
+      bool otherHistoryExists = await _context.PriceSnapshots
         .AsNoTracking()
         .AnyAsync(
-          h => h.Product.SuperMarket.Name == MarketName && h.CreatedAt == otherExpectedDate,
+          h => h.ProductFormat.Product.SuperMarket.Name == MarketName && h.ObservedAt == otherExpectedDate,
           TestContext.Current.CancellationToken);
       Assert.True(otherHistoryExists);
     }
@@ -1528,6 +1538,9 @@ public static class PostgreSqlMarketRepositoryTests {
 
     public async ValueTask InitializeAsync() {
       await _fixture.DeleteShoppingProductReferencesAsync(TestContext.Current.CancellationToken);
+      await _context.PriceSnapshots.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.ProductFormats.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+      await _context.Products.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
       await _context.SuperMarkets.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
     }
 

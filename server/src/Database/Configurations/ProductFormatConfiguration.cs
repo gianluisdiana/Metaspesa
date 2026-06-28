@@ -50,11 +50,11 @@ internal class ProductFormatConfiguration : IEntityTypeConfiguration<ProductForm
     builder.HasOne(e => e.Product)
       .WithMany(e => e.Formats)
       .HasForeignKey(e => e.ProductId)
-      .OnDelete(DeleteBehavior.Cascade);
+      .OnDelete(DeleteBehavior.Restrict);
 
     builder.HasOne(e => e.UnitOfMeasure)
       .WithMany(e => e.ProductFormats)
       .HasForeignKey(e => e.UnitOfMeasureId)
-      .OnDelete(DeleteBehavior.Cascade);
+      .OnDelete(DeleteBehavior.Restrict);
   }
 }

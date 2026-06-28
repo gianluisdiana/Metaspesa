@@ -133,7 +133,7 @@ public static class AddMarketProducts {
       IMarketRepository repo = services.GetRequiredService<IMarketRepository>();
 
       if (_completedMarketNames.Count > 0) {
-        await repo.DeleteProductsHistoryForMarketsAsync(
+        await repo.DeletePriceSnapshotsForMarketsAsync(
           _completedMarketNames, command.RegisteredAt, cancellationToken);
       }
       if (_addedProductIds.Count > 0) {

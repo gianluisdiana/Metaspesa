@@ -62,7 +62,10 @@ internal partial class PostgreSqlShoppingRepository(
     "Couldn't check if shopping list exists.");
 
   public void CreateShoppingList(Guid userUid, string? name) {
-    var list = new ShoppingListDbEntity { Name = name };
+    var list = new ShoppingListDbEntity {
+      Name = name,
+      IsTemporary = name is null,
+    };
     context.ShoppingLists.Add(list);
     context.ShoppingListOwnerships.Add(new ShoppingListOwnershipDbEntity {
       UserUid = userUid,
@@ -83,6 +86,7 @@ internal partial class PostgreSqlShoppingRepository(
         .First();
 
       list.Name = newName;
+      list.IsTemporary = newName is null;
     }, "Couldn't update shopping list.");
 
   public void AddItemsToList(
@@ -98,14 +102,9 @@ internal partial class PostgreSqlShoppingRepository(
       .Select(o => o.ShoppingList)
       .First();
 
-    var productFormatLookup = context.ProductFormats
-      .Where(pf => items.Select(i => i.ReferenceUid).Contains(pf.Id))
-      .ToDictionary(pf => pf.Id, pf => pf.ProductId);
-
     context.ShoppingItems.AddRange(items.Select(i => new ShoppingItemDbEntity {
       ShoppingListId = list.Id,
       ProductFormatId = i.ReferenceUid,
-      ProductId = productFormatLookup[i.ReferenceUid],
       Amount = i.Amount,
       IsChecked = i.IsChecked,
     }));
@@ -197,14 +196,13 @@ internal partial class PostgreSqlShoppingRepository(
       DateTime now = clock.GetCurrentTime();
       List<PurchaseItemDbEntity> purchaseItems = [];
       foreach (AShoppingItem ci in checkedItems) {
-        PurchaseItemDbEntity item = context.ProductsHistory
-          .Where(ph => ph.ProductFormatId == ci.ReferenceUid)
-          .OrderByDescending(ph => ph.CreatedAt)
-          .ThenByDescending(ph => ph.Id)
-          .Select(ph => new PurchaseItemDbEntity {
+        PurchaseItemDbEntity item = context.PriceSnapshots
+          .Where(ps => ps.ProductFormatId == ci.ReferenceUid)
+          .OrderByDescending(ps => ps.ObservedAt)
+          .ThenByDescending(ps => ps.Id)
+          .Select(ps => new PurchaseItemDbEntity {
             Amount = ci.Amount,
-            ProductId = ph.ProductId,
-            ProductHistoryId = ph.Id,
+            PriceSnapshotId = ps.Id,
           })
           .Single();
         purchaseItems.Add(item);
