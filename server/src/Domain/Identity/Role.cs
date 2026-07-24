@@ -1,4 +1,4 @@
-namespace Metaspesa.Domain.Users;
+namespace Metaspesa.Domain.Identity;
 
 public enum Role {
   None,
