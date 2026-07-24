@@ -4,9 +4,9 @@ using Testcontainers.PostgreSql;
 namespace Metaspesa.Database.IntegrationTests;
 
 [CollectionDefinition("Database")]
-public sealed class DatabaseCollectionFixture : ICollectionFixture<DatabaseFixture>;
+public class DatabaseCollectionFixture : ICollectionFixture<DatabaseFixture>;
 
-public sealed class DatabaseFixture : IAsyncLifetime {
+public class DatabaseFixture : IAsyncLifetime {
   private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:17-alpine")
     .Build();
 
@@ -16,7 +16,10 @@ public sealed class DatabaseFixture : IAsyncLifetime {
     await context.Database.MigrateAsync();
   }
 
-  public async ValueTask DisposeAsync() => await _container.DisposeAsync();
+  public async ValueTask DisposeAsync() {
+    await _container.DisposeAsync();
+    GC.SuppressFinalize(this);
+  }
 
   internal MainContext CreateContext() {
     DbContextOptions<MainContext> options = new DbContextOptionsBuilder<MainContext>()

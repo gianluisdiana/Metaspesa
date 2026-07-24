@@ -1,5 +1,5 @@
 using Metaspesa.Database.Entities;
-using Metaspesa.Domain.Users;
+using Metaspesa.Domain.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

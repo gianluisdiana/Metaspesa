@@ -3,7 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Users;
-using Metaspesa.Domain.Users;
+using Metaspesa.Domain.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using NSubstitute;
@@ -36,7 +36,11 @@ public static class JwtTokenProviderTests {
     }
 
     private static User TestUser(Role role = Role.Shopper) =>
-      new(Guid.CreateVersion7(), "testuser", "hashed", role);
+      User.Rehydrate(
+        new UserId(Guid.CreateVersion7()),
+        new Username("testuser"),
+        new PasswordHash("hashed"),
+        role);
 
     private static JwtSecurityToken ParseToken(string tokenValue) =>
       new JwtSecurityTokenHandler().ReadJwtToken(tokenValue);
@@ -63,7 +67,7 @@ public static class JwtTokenProviderTests {
 
       // Assert
       string? uid = jwt.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)?.Value;
-      Assert.Equal(user.Uid.ToString(), uid);
+      Assert.Equal(user.Id.Value.ToString(), uid);
     }
 
     [Fact(DisplayName = "Includes Name claim with username")]
@@ -77,7 +81,7 @@ public static class JwtTokenProviderTests {
 
       // Assert
       string? name = jwt.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Name)?.Value;
-      Assert.Equal(user.Username, name);
+      Assert.Equal(user.Username.Value, name);
     }
 
     [Fact(DisplayName = "Includes Role claim with user role")]

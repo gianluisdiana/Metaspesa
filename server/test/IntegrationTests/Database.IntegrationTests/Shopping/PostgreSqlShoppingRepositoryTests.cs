@@ -2,7 +2,7 @@ using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Database.Entities;
 using Metaspesa.Database.Repositories;
 using Metaspesa.Domain.Shopping;
-using Metaspesa.Domain.Users;
+using Metaspesa.Domain.Identity;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 
