@@ -1,4 +1,4 @@
-using Metaspesa.Domain.Users;
+using Metaspesa.Domain.Identity;
 
 namespace Metaspesa.Application.Abstractions.Users;
 

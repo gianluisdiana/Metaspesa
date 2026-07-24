@@ -1,68 +1,67 @@
-using FluentValidation;
-using FluentValidation.Results;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Users;
-using Metaspesa.Domain.Users;
+using Metaspesa.Domain.Identity;
+using Metaspesa.Domain.Identity.Errors;
 using NSubstitute;
-using static Metaspesa.Application.Auth.RegisterUser;
+using static Metaspesa.Application.Identity.RegisterUser;
 
-namespace Metaspesa.Application.UnitTests.Auth;
+namespace Metaspesa.Application.UnitTests.Identity;
 
 public class RegisterUserHandlerTest {
-  private readonly IValidator<Command> _validator;
   private readonly IHasher _hasher;
   private readonly IUserRepository _userRepository;
   private readonly IUnitOfWork _unitOfWork;
   private readonly Handler _handler;
 
   public RegisterUserHandlerTest() {
-    _validator = Substitute.For<IValidator<Command>>();
     _hasher = Substitute.For<IHasher>();
     _userRepository = Substitute.For<IUserRepository>();
     _unitOfWork = Substitute.For<IUnitOfWork>();
-    _handler = new Handler(_validator, _hasher, _userRepository, _unitOfWork);
+    _hasher.Hash(Arg.Any<string>()).Returns("hashed");
+    _handler = new Handler(_hasher, _userRepository, _unitOfWork);
   }
 
-  [Fact(DisplayName = "Returns errors when validation fails")]
-  public async Task Handler_ReturnsErrors_WhenValidationFails() {
+  [Fact(DisplayName = "Throws password validation exception when password is invalid")]
+  public async Task Handler_ThrowsPasswordValidationException_WhenPasswordIsInvalid() {
     // Arrange
     var command = new Command("user", "password");
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult([new ValidationFailure()]));
 
     // Act
-    Result result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+    async Task action() => await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
-    Assert.False(result.IsSuccess);
+    await Assert.ThrowsAsync<PasswordTooShortException>(action);
   }
 
   [Fact(DisplayName = "Does not hash password when validation fails")]
   public async Task Handler_DoesNotHashPassword_WhenValidationFails() {
     // Arrange
     var command = new Command("user", "password");
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult([new ValidationFailure()]));
 
     // Act
-    await _handler.Handle(command, TestContext.Current.CancellationToken);
+    await Assert.ThrowsAsync<PasswordTooShortException>(
+      async () => await _handler.Handle(command, TestContext.Current.CancellationToken));
 
     // Assert
     _hasher.DidNotReceive().Hash(Arg.Any<string>());
   }
 
-  [Fact(DisplayName = "Does not save user when validation fails")]
-  public async Task Handler_DoesNotSaveUser_WhenValidationFails() {
+  [Fact(DisplayName = "Throws conflict exception when username already exists")]
+  public async Task Handler_ThrowsUsernameAlreadyExistsException_WhenUsernameAlreadyExists() {
     // Arrange
-    var command = new Command("user", "password");
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult([new ValidationFailure()]));
+    const string Username = "estela";
+    var command = new Command(Username, "SecurePass1!");
+    _userRepository
+      .CheckUsernameExistsAsync(
+        Arg.Is<Username>(u => u.Value == Username),
+        TestContext.Current.CancellationToken)
+      .Returns(true);
 
     // Act
-    await _handler.Handle(command, TestContext.Current.CancellationToken);
+    async Task action() => await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
-    _userRepository.DidNotReceive().SaveUser(Arg.Any<User>());
+    await Assert.ThrowsAsync<UsernameAlreadyExistsException>(action);
   }
 
   [Fact(DisplayName = "Hashes password when validation passes")]
@@ -70,8 +69,6 @@ public class RegisterUserHandlerTest {
     // Arrange
     const string Password = "SecurePass1!";
     var command = new Command("estela", Password);
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult());
 
     // Act
     await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -85,8 +82,6 @@ public class RegisterUserHandlerTest {
     // Arrange
     const string HashedPassword = "hashed_value";
     var command = new Command("estela", "SecurePass1!");
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult());
     _hasher.Hash(Arg.Any<string>()).Returns(HashedPassword);
 
     // Act
@@ -94,15 +89,13 @@ public class RegisterUserHandlerTest {
 
     // Assert
     _userRepository.Received(1).SaveUser(
-      Arg.Is<User>(u => u.HashedPassword == HashedPassword));
+      Arg.Is<User>(u => u.PasswordHash.Value == HashedPassword));
   }
 
   [Fact(DisplayName = "Saves user as Shopper role via repository")]
   public async Task Handler_SavesUserAsShopperRole_ViaRepository() {
     // Arrange
     var command = new Command("estela", "SecurePass1!");
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult());
 
     // Act
     await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -116,8 +109,6 @@ public class RegisterUserHandlerTest {
   public async Task Handler_SavesChangesToUnitOfWork() {
     // Arrange
     var command = new Command("estela", "SecurePass1!");
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult());
 
     // Act
     await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -126,17 +117,16 @@ public class RegisterUserHandlerTest {
     await _unitOfWork.Received(1).SaveChangesAsync(TestContext.Current.CancellationToken);
   }
 
-  [Fact(DisplayName = "Returns success result when handling is successful")]
-  public async Task Handler_ReturnsSuccessResult_WhenHandlingIsSuccessful() {
+  [Fact(DisplayName = "Completes when handling is successful")]
+  public async Task Handler_Completes_WhenHandlingIsSuccessful() {
     // Arrange
     var command = new Command("estela", "SecurePass1!");
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult());
 
     // Act
-    Result result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+    Exception? exception = await Record.ExceptionAsync(
+      async () => await _handler.Handle(command, TestContext.Current.CancellationToken));
 
     // Assert
-    Assert.True(result.IsSuccess);
+    Assert.Null(exception);
   }
 }

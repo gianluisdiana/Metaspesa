@@ -1,8 +1,7 @@
 using System.Diagnostics;
 using FluentValidation;
 using Metaspesa.Application.Abstractions.Core;
-using Metaspesa.Application.Abstractions.Users;
-using Metaspesa.Application.Auth;
+using Metaspesa.Application.Identity;
 using Metaspesa.Application.Markets;
 using Metaspesa.Application.Shopping;
 using Metaspesa.Domain.Markets;
@@ -18,7 +17,7 @@ public static class ApplicationDependencyInjection {
     public IServiceCollection AddApplication() {
       Debug.Assert(services != null);
 
-      services.AddAuthUseCases();
+      services.AddIdentityUseCases();
       services.AddMarketUseCases();
       services.AddShoppingUseCases();
 
@@ -27,14 +26,9 @@ public static class ApplicationDependencyInjection {
       return services;
     }
 
-    private IServiceCollection AddAuthUseCases() {
-      services.AddScoped<
-        ICommandHandler<RegisterUser.Command>,
-        RegisterUser.Handler>();
-
-      services.AddScoped<
-        IQueryHandler<LoginUser.Query, Token>,
-        LoginUser.Handler>();
+    private IServiceCollection AddIdentityUseCases() {
+      services.AddScoped<RegisterUser.Handler>();
+      services.AddScoped<LoginUser.Handler>();
 
       return services;
     }
