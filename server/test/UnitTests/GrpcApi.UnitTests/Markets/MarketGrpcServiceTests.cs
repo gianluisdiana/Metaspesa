@@ -4,7 +4,7 @@ using Grpc.Core.Testing;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Markets;
 using Metaspesa.Domain.Markets;
-using Metaspesa.Domain.Users;
+using Metaspesa.Domain.Identity;
 using Metaspesa.GrpcApi.Protos.Markets;
 using Metaspesa.GrpcApi.Services;
 using Microsoft.AspNetCore.Authorization;

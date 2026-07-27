@@ -3,7 +3,7 @@ using Grpc.Core;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Markets;
-using Metaspesa.Domain.Users;
+using Metaspesa.Domain.Identity;
 using Metaspesa.GrpcApi.Extensions;
 using Metaspesa.GrpcApi.Protos.Markets;
 using Microsoft.AspNetCore.Authorization;

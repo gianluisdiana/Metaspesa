@@ -1,6 +1,8 @@
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Metaspesa.Database.Exceptions;
+using Metaspesa.Domain.Identity.Errors;
+using Metaspesa.GrpcApi.Extensions;
 
 namespace Metaspesa.GrpcApi.Interceptors;
 
@@ -27,6 +29,9 @@ internal partial class ExceptionInterceptor(
     } catch (DatabaseException ex) {
       LogDatabaseException(context.Method, ex);
       throw new RpcException(new Status(StatusCode.Internal, "database error"));
+    } catch (IdentityDomainException ex) {
+      LogIdentityDomainException(context.Method, ex);
+      throw ex.ToRpcException();
     } catch (Exception ex) {
       LogUnhandledException(context.Method, ex);
       throw new RpcException(new Status(StatusCode.Internal, "internal server error"));
@@ -38,6 +43,9 @@ internal partial class ExceptionInterceptor(
 
   [LoggerMessage(LogLevel.Error, "Database exception while handling {Method}")]
   private partial void LogDatabaseException(string method, Exception ex);
+
+  [LoggerMessage(LogLevel.Error, "Identity domain exception while handling {Method}")]
+  private partial void LogIdentityDomainException(string method, IdentityDomainException ex);
 
   [LoggerMessage(LogLevel.Error, "Unhandled exception while handling {Method}")]
   private partial void LogUnhandledException(string method, Exception ex);

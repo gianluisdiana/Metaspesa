@@ -3,7 +3,7 @@ using Grpc.Core;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Shopping;
 using Metaspesa.Domain.Shopping;
-using Metaspesa.Domain.Users;
+using Metaspesa.Domain.Identity;
 using Metaspesa.GrpcApi.Extensions;
 using Metaspesa.GrpcApi.Protos.Shopping;
 using Microsoft.AspNetCore.Authorization;
