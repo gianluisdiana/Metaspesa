@@ -1,0 +1,31 @@
+using Metaspesa.Application.Abstractions.Markets;
+using Metaspesa.Domain.Identity;
+using Metaspesa.Domain.Markets;
+using Metaspesa.Domain.SharedKernel;
+using Metaspesa.Domain.Shopping;
+
+namespace Metaspesa.Application.UnitTests.Shopping;
+
+internal static class ShoppingTestData {
+  public static ShoppingList List(
+    Guid ownerId,
+    string? name = "Weekly",
+    params ShoppingItem[] items
+  ) => ShoppingList.Rehydrate(
+    new ShoppingListId(1),
+    [new UserId(ownerId)],
+    name is null ? null : new ShoppingListName(name),
+    null,
+    items);
+
+  public static ShoppingItem Item(int formatId, int amount = 1, bool isChecked = false) =>
+    new(new ProductFormatId(formatId), new PositiveAmount(amount), isChecked);
+
+  public static MarketProduct MarketProduct(int formatId) => new(
+    "Milk",
+    "Brand",
+    [new MarketProductFormat(
+      new Quantity(1, new UnitOfMeasure("l")),
+      new Money(1.25m),
+      new Uri($"https://example.test/{formatId}"))]);
+}

@@ -1,68 +1,38 @@
-using FluentValidation;
-using FluentValidation.Results;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Shopping;
-using Metaspesa.Application.Extensions;
+using Metaspesa.Domain.Identity;
+using Metaspesa.Domain.Shopping;
+using Metaspesa.Domain.Shopping.Errors;
 
 namespace Metaspesa.Application.Shopping;
 
 public static class UpdateShoppingList {
-  public record Command(Guid UserUid, string? ShoppingListName, string? NewName) : ICommand;
+  public record Command(Guid UserUid, string? ShoppingListName, string? NewName);
 
-  internal class Handler(
-    IValidator<Command> validator,
-    IShoppingRepository shoppingRepository,
+  public class Handler(
+    IShoppingListRepository shoppingListRepository,
     IUnitOfWork unitOfWork
-  ) : ICommandHandler<Command> {
-    public async Task<Result> Handle(
+  ) {
+    public async Task Handle(
       Command command, CancellationToken cancellationToken = default
     ) {
-      ValidationResult validationResult = await validator.ValidateAsync(
-        command, cancellationToken);
-      if (!validationResult.IsValid) {
-        return validationResult.ToDomainErrors();
+      ArgumentNullException.ThrowIfNull(command);
+
+      UserId ownerId = ShoppingListRequest.Owner(command.UserUid);
+      ShoppingListName? currentName = ShoppingListRequest.Name(command.ShoppingListName);
+      var newName = new ShoppingListName(command.NewName ?? string.Empty);
+      ShoppingList shoppingList = await shoppingListRepository.GetAsync(
+        ownerId, currentName, cancellationToken) ??
+        throw ShoppingListRequest.NotFound();
+
+      if (newName != currentName &&
+        await shoppingListRepository.ExistsAsync(ownerId, newName, cancellationToken)) {
+        throw new ShoppingListAlreadyExistsException();
       }
 
-      shoppingRepository.UpdateShoppingListName(
-        command.UserUid,
-        command.ShoppingListName,
-        command.NewName);
+      shoppingList.Rename(newName);
+      await shoppingListRepository.UpdateAsync(shoppingList, cancellationToken);
       await unitOfWork.SaveChangesAsync(cancellationToken);
-
-      return Result.Success();
-    }
-  }
-
-  internal class Validator : AbstractValidator<Command> {
-    public Validator(IShoppingRepository shoppingRepository) {
-      RuleFor(x => x)
-        .MustAsync(async (command, ct) =>
-          await shoppingRepository.CheckShoppingListExistAsync(
-            command.UserUid, command.ShoppingListName, ct))
-        .WithName(nameof(Command.ShoppingListName))
-        .WithMessage(command => string.IsNullOrWhiteSpace(command.ShoppingListName)
-          ? $"User {command.UserUid} doesn't have a temporary shopping list."
-          : $"User {command.UserUid} doesn't have a shopping list named '{command.ShoppingListName}'.")
-        .WithErrorCode("ShoppingList.NotFound")
-        .WithState(_ => ErrorKind.Missing);
-
-      RuleFor(x => x)
-        .Must(command => !string.IsNullOrWhiteSpace(command.NewName))
-        .WithName(nameof(Command.NewName))
-        .WithMessage("At least one field must be provided to update the shopping list.")
-        .WithErrorCode("ShoppingList.NoFieldsToUpdate");
-
-      RuleFor(x => x)
-        .MustAsync(async (command, ct) =>
-          !await shoppingRepository.CheckShoppingListExistAsync(
-            command.UserUid, command.NewName, ct))
-        .When(x => !string.IsNullOrWhiteSpace(x.NewName) &&
-          !x.NewName.Equals(x.ShoppingListName, StringComparison.OrdinalIgnoreCase))
-        .WithName(nameof(Command.NewName))
-        .WithMessage(command =>
-          $"User {command.UserUid} already has a shopping list named '{command.NewName}'.")
-        .WithErrorCode("ShoppingList.AlreadyExists")
-        .WithState(_ => ErrorKind.Conflict);
     }
   }
 }

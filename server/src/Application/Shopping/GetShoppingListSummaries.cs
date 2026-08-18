@@ -1,23 +1,24 @@
-using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Shopping;
+using Metaspesa.Domain.Identity;
 using Metaspesa.Domain.Shopping;
 
 namespace Metaspesa.Application.Shopping;
 
 public static class GetShoppingListSummaries {
-  public record Query(Guid UserUid) : IQuery<List<AShoppingList>>;
+  public record Query(Guid UserUid);
+  public record Response(string? Name);
 
-  internal class Handler(
-    IShoppingRepository shoppingRepository
-  ) : IQueryHandler<Query, List<AShoppingList>> {
-    public async Task<Result<List<AShoppingList>>> Handle(
+  public class Handler(IShoppingListRepository shoppingListRepository) {
+    public async Task<IReadOnlyCollection<Response>> Handle(
       Query query, CancellationToken cancellationToken = default
     ) {
-      List<AShoppingList> summaries =
-        await shoppingRepository.GetShoppingListSummariesAsync(
-          query.UserUid, cancellationToken);
+      ArgumentNullException.ThrowIfNull(query);
 
-      return summaries;
+      UserId ownerId = ShoppingListRequest.Owner(query.UserUid);
+      IReadOnlyCollection<ShoppingList> lists =
+        await shoppingListRepository.GetByOwnerAsync(ownerId, cancellationToken);
+
+      return [.. lists.Select(list => new Response(list.Name?.Value))];
     }
   }
 }

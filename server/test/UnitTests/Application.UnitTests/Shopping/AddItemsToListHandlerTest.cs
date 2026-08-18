@@ -1,171 +1,77 @@
-using FluentValidation;
-using FluentValidation.Results;
 using Metaspesa.Application.Abstractions.Core;
+using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Abstractions.Shopping;
+using Metaspesa.Domain.Identity;
 using Metaspesa.Domain.Shopping;
+using Metaspesa.Domain.Shopping.Errors;
 using NSubstitute;
 using static Metaspesa.Application.Shopping.AddItemsToList;
 
 namespace Metaspesa.Application.UnitTests.Shopping;
 
 public class AddItemsToListHandlerTest {
-  private readonly IValidator<Command> _validator;
-  private readonly IShoppingRepository _shoppingRepository;
-  private readonly IUnitOfWork _unitOfWork;
-  private readonly Handler _handler;
+  private readonly IShoppingListRepository _repository =
+    Substitute.For<IShoppingListRepository>();
+  private readonly IProductRepository _productRepository =
+    Substitute.For<IProductRepository>();
+  private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
 
-  public AddItemsToListHandlerTest() {
-    _validator = Substitute.For<IValidator<Command>>();
-    _shoppingRepository = Substitute.For<IShoppingRepository>();
-    _unitOfWork = Substitute.For<IUnitOfWork>();
-    _handler = new Handler(_validator, _shoppingRepository, _unitOfWork);
+  [Fact(DisplayName = "Adds validated formats through aggregate")]
+  public async Task Handle_AddsItemsAndCommits_WhenFormatsExist() {
+    var ownerId = Guid.CreateVersion7();
+    ShoppingList list = ShoppingTestData.List(ownerId);
+    _repository.GetAsync(
+      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      .Returns(list);
+    _productRepository.GetProductsAsync(
+      Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>())
+      .Returns(new Dictionary<int, MarketProduct> {
+        [10] = ShoppingTestData.MarketProduct(10),
+      });
+    var handler = new Handler(_repository, _productRepository, _unitOfWork);
+
+    await handler.Handle(
+      new Command(ownerId, "Weekly", [new CommandItem(10, 2, true)]),
+      TestContext.Current.CancellationToken);
+
+    ShoppingItem item = Assert.Single(list.Items);
+    Assert.Equal(10, item.ProductFormatId.Value);
+    Assert.Equal(2, item.Amount.Value);
+    Assert.True(item.IsChecked);
+    await _repository.Received(1).UpdateAsync(list, TestContext.Current.CancellationToken);
+    await _unitOfWork.Received(1).SaveChangesAsync(
+      TestContext.Current.CancellationToken);
   }
 
-  [Fact(DisplayName = "Returns errors when validation fails")]
-  public async Task Handler_ReturnsErrors_WhenValidationFails() {
-    // Arrange
-    var command = new Command(Guid.NewGuid(), "My List", []);
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult([new ValidationFailure()]));
+  [Fact(DisplayName = "Rejects empty additions without commit")]
+  public async Task Handle_ThrowsExactException_WhenItemsAreEmpty() {
+    var handler = new Handler(_repository, _productRepository, _unitOfWork);
 
-    // Act
-    Result result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+    await Assert.ThrowsAsync<EmptyShoppingItemsException>(() => handler.Handle(
+      new Command(Guid.CreateVersion7(), "Weekly", []),
+      TestContext.Current.CancellationToken));
 
-    // Assert
-    Assert.False(result.IsSuccess);
-  }
-
-  [Fact(DisplayName = "Does not add items when validation fails")]
-  public async Task Handler_DoesNotAddItems_WhenValidationFails() {
-    // Arrange
-    var command = new Command(Guid.NewGuid(), "My List", []);
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult([new ValidationFailure()]));
-
-    // Act
-    await _handler.Handle(command, TestContext.Current.CancellationToken);
-
-    // Assert
-    _shoppingRepository.DidNotReceive().AddItemsToList(
-      Arg.Any<Guid>(), Arg.Any<string?>(), Arg.Any<IReadOnlyCollection<AShoppingItem>>());
-  }
-
-  [Fact(DisplayName = "Adds items to list via repository")]
-  public async Task Handler_AddsItemsToList_ViaRepository() {
-    // Arrange
-    var userUid = Guid.NewGuid();
-    const string ListName = "Weekly";
-    List<CommandItem> items = [
-      new(10, 2, false),
-      new(11, 1, true),
-    ];
-    var command = new Command(userUid, ListName, items);
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult());
-
-    // Act
-    await _handler.Handle(command, TestContext.Current.CancellationToken);
-
-    // Assert
-    _shoppingRepository.Received(1).AddItemsToList(
-      userUid,
-      ListName,
-      Arg.Is<IReadOnlyCollection<AShoppingItem>>(x => x.Count == items.Count));
-  }
-
-  [Fact(DisplayName = "Maps item reference UIDs to shopping items")]
-  public async Task Handler_MapsItemReferenceUids_ToShoppingItems() {
-    // Arrange
-    var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", [new(42, 2, false)]);
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult());
-
-    // Act
-    await _handler.Handle(command, TestContext.Current.CancellationToken);
-
-    // Assert
-    _shoppingRepository.Received(1).AddItemsToList(
-      userUid,
-      "Weekly",
-      Arg.Is<IReadOnlyCollection<AShoppingItem>>(x => x.Single().ReferenceUid == 42));
-  }
-
-  [Fact(DisplayName = "Maps item amounts to shopping items")]
-  public async Task Handler_MapsItemAmounts_ToShoppingItems() {
-    // Arrange
-    var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", [new(42, 3, false)]);
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult());
-
-    // Act
-    await _handler.Handle(command, TestContext.Current.CancellationToken);
-
-    // Assert
-    _shoppingRepository.Received(1).AddItemsToList(
-      userUid,
-      "Weekly",
-      Arg.Is<IReadOnlyCollection<AShoppingItem>>(x => x.Single().Amount == 3));
-  }
-
-  [Fact(DisplayName = "Maps item IsChecked to shopping items")]
-  public async Task Handler_MapsItemIsChecked_ToShoppingItems() {
-    // Arrange
-    var userUid = Guid.NewGuid();
-    var command = new Command(userUid, "Weekly", [new(42, 1, true)]);
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult());
-
-    // Act
-    await _handler.Handle(command, TestContext.Current.CancellationToken);
-
-    // Assert
-    _shoppingRepository.Received(1).AddItemsToList(
-      userUid,
-      "Weekly",
-      Arg.Is<IReadOnlyCollection<AShoppingItem>>(x => x.Single().IsChecked));
-  }
-
-  [Fact(DisplayName = "Saves changes to unit of work")]
-  public async Task Handler_SavesChangesToUnitOfWork() {
-    // Arrange
-    var command = new Command(Guid.NewGuid(), "Weekly", [new(42, 1, false)]);
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult());
-
-    // Act
-    await _handler.Handle(command, TestContext.Current.CancellationToken);
-
-    // Assert
-    await _unitOfWork.Received(1).SaveChangesAsync(TestContext.Current.CancellationToken);
-  }
-
-  [Fact(DisplayName = "Does not save changes when validation fails")]
-  public async Task Handler_DoesNotSaveChanges_WhenValidationFails() {
-    // Arrange
-    var command = new Command(Guid.NewGuid(), "Weekly", []);
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult([new ValidationFailure()]));
-
-    // Act
-    await _handler.Handle(command, TestContext.Current.CancellationToken);
-
-    // Assert
     await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
   }
 
-  [Fact(DisplayName = "Returns success result when handling is successful")]
-  public async Task Handler_ReturnsSuccessResult_WhenHandlingIsSuccessful() {
-    // Arrange
-    var command = new Command(Guid.NewGuid(), "Weekly", [new(42, 1, false)]);
-    _validator.ValidateAsync(command, TestContext.Current.CancellationToken)
-      .Returns(new ValidationResult());
+  [Fact(DisplayName = "Rejects missing format without mutating list")]
+  public async Task Handle_ThrowsExactException_WhenFormatIsMissing() {
+    var ownerId = Guid.CreateVersion7();
+    ShoppingList list = ShoppingTestData.List(ownerId);
+    _repository.GetAsync(
+      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      .Returns(list);
+    _productRepository.GetProductsAsync(
+      Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>())
+      .Returns(new Dictionary<int, MarketProduct>());
+    var handler = new Handler(_repository, _productRepository, _unitOfWork);
 
-    // Act
-    Result result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+    await Assert.ThrowsAsync<ShoppingProductFormatNotFoundException>(() => handler.Handle(
+      new Command(ownerId, "Weekly", [new CommandItem(10, 2, false)]),
+      TestContext.Current.CancellationToken));
 
-    // Assert
-    Assert.True(result.IsSuccess);
+    Assert.Empty(list.Items);
+    await _repository.DidNotReceive().UpdateAsync(
+      Arg.Any<ShoppingList>(), Arg.Any<CancellationToken>());
   }
 }

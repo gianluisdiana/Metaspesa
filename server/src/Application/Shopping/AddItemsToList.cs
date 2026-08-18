@@ -1,101 +1,64 @@
-using System.Globalization;
-using FluentValidation;
-using FluentValidation.Results;
 using Metaspesa.Application.Abstractions.Core;
+using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Abstractions.Shopping;
-using Metaspesa.Application.Extensions;
+using Metaspesa.Domain.Identity;
+using Metaspesa.Domain.Markets;
+using Metaspesa.Domain.SharedKernel;
 using Metaspesa.Domain.Shopping;
+using Metaspesa.Domain.Shopping.Errors;
+using MarketProductRepository = Metaspesa.Application.Abstractions.Markets.IProductRepository;
 
 namespace Metaspesa.Application.Shopping;
 
 public static class AddItemsToList {
-  public record CommandItem(
-    int ReferenceUid,
-    int Amount,
-    bool IsChecked
-  );
-
+  public record CommandItem(int ReferenceUid, int Amount, bool IsChecked);
   public record Command(
     Guid UserUid,
     string? ShoppingListName,
     IReadOnlyCollection<CommandItem> Items
-  ) : ICommand {
-    internal IReadOnlyCollection<AShoppingItem> ToShoppingItems() => [..
-      Items.Select(i => new AShoppingItem(
-        ReferenceUid: i.ReferenceUid,
-        Amount: i.Amount,
-        IsChecked: i.IsChecked
-      ))
-    ];
-  }
+  );
 
-  internal class Handler(
-    IValidator<Command> validator,
-    IShoppingRepository shoppingRepository,
+  public class Handler(
+    IShoppingListRepository shoppingListRepository,
+    MarketProductRepository productRepository,
     IUnitOfWork unitOfWork
-  ) : ICommandHandler<Command> {
-    public async Task<Result> Handle(
+  ) {
+    public async Task Handle(
       Command command, CancellationToken cancellationToken = default
     ) {
-      ValidationResult validationResult = await validator.ValidateAsync(
-        command, cancellationToken);
-      if (!validationResult.IsValid) {
-        return validationResult.ToDomainErrors();
+      ArgumentNullException.ThrowIfNull(command);
+
+      if (command.Items.Count == 0) {
+        throw new EmptyShoppingItemsException();
       }
 
-      shoppingRepository.AddItemsToList(
-        command.UserUid, command.ShoppingListName, command.ToShoppingItems());
+      UserId ownerId = ShoppingListRequest.Owner(command.UserUid);
+      ShoppingListName? name = ShoppingListRequest.Name(command.ShoppingListName);
+      ShoppingList shoppingList = await shoppingListRepository.GetAsync(
+        ownerId, name, cancellationToken) ??
+        throw ShoppingListRequest.NotFound();
+
+      var items = command.Items.Select(item => new ShoppingItem(
+        new ProductFormatId(item.ReferenceUid),
+        new PositiveAmount(item.Amount),
+        item.IsChecked)).ToList();
+      IReadOnlyCollection<int> formatIds = [
+        .. items.Select(item => item.ProductFormatId.Value).Distinct()
+      ];
+      IReadOnlyDictionary<int, MarketProduct> products =
+        await productRepository.GetProductsAsync(formatIds, cancellationToken);
+
+      ProductFormatId? missingFormat = items
+        .Where(item => !products.ContainsKey(item.ProductFormatId.Value))
+        .Select(item => (ProductFormatId?)item.ProductFormatId)
+        .FirstOrDefault();
+      if (missingFormat.HasValue) {
+        throw new ShoppingProductFormatNotFoundException(missingFormat.Value);
+      }
+
+      shoppingList.AddItems(items);
+      await shoppingListRepository.UpdateAsync(shoppingList, cancellationToken);
       await unitOfWork.SaveChangesAsync(cancellationToken);
-
-      return Result.Success();
-    }
-  }
-
-  internal class Validator : AbstractValidator<Command> {
-    public Validator(
-      IShoppingRepository shoppingRepository,
-      IProductRepository productRepository
-    ) {
-      RuleFor(x => x)
-        .MustAsync(async (command, ct) =>
-          await shoppingRepository.CheckShoppingListExistAsync(
-            command.UserUid, command.ShoppingListName, ct))
-        .WithName(nameof(Command.ShoppingListName))
-        .WithMessage(command => string.IsNullOrWhiteSpace(command.ShoppingListName)
-          ? $"User {command.UserUid} doesn't have a temporary shopping list."
-          : $"User {command.UserUid} doesn't have a shopping list named '{command.ShoppingListName}'.")
-        .WithErrorCode("ShoppingList.NotFound")
-        .WithState(_ => ErrorKind.Missing);
-
-      RuleFor(x => x.Items)
-        .NotEmpty()
-        .WithMessage("At least one item must be provided.")
-        .WithErrorCode("ShoppingList.Items.Empty");
-
-      RuleFor(x => x.Items)
-        .Must(items => items.Select(i => i.ReferenceUid).Distinct().Count() == items.Count)
-        .WithName("ShoppingList.Items[].ReferenceUid")
-        .WithMessage("Duplicate product reference UIDs are not allowed.")
-        .WithErrorCode("ShoppingList.Items.DuplicateReferenceUid")
-        .WithState(_ => ErrorKind.Validation);
-
-      RuleForEach(x => x.Items)
-        .ChildRules(item => {
-          item.RuleFor(i => i.Amount)
-          .GreaterThan(0)
-          .WithMessage(i =>
-            $"Item with reference UID {i.ReferenceUid} must have an amount greater than zero.")
-          .WithErrorCode("ShoppingList.Item.Amount.Invalid")
-          .WithState(_ => ErrorKind.Validation);
-
-          item.RuleFor(i => i)
-            .MustAsync(async (item, ct) =>
-              await productRepository.CheckProductExistsAsync(item.ReferenceUid, ct))
-            .WithMessage(i =>
-              $"Product reference with UID {i.ReferenceUid} does not exist.")
-            .WithErrorCode("ShoppingList.Item.ReferenceUid.NotFound")
-            .WithState(_ => ErrorKind.Missing);
-        });
     }
   }
 }

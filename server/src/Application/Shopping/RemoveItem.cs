@@ -1,62 +1,32 @@
-using FluentValidation;
-using FluentValidation.Results;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Shopping;
-using Metaspesa.Application.Extensions;
+using Metaspesa.Domain.Identity;
+using Metaspesa.Domain.Markets;
+using Metaspesa.Domain.Shopping;
 
 namespace Metaspesa.Application.Shopping;
 
 public static class RemoveItem {
-  public record Command(
-    Guid UserUid,
-    string? ShoppingListName,
-    int ProductReferenceUid
-  ) : ICommand;
+  public record Command(Guid UserUid, string? ShoppingListName, int ProductReferenceUid);
 
-  internal class Handler(
-    IValidator<Command> validator,
-    IShoppingRepository shoppingRepository,
+  public class Handler(
+    IShoppingListRepository shoppingListRepository,
     IUnitOfWork unitOfWork
-  ) : ICommandHandler<Command> {
-    public async Task<Result> Handle(
+  ) {
+    public async Task Handle(
       Command command, CancellationToken cancellationToken = default
     ) {
-      ValidationResult validationResult = await validator.ValidateAsync(
-        command, cancellationToken);
-      if (!validationResult.IsValid) {
-        return validationResult.ToDomainErrors();
-      }
+      ArgumentNullException.ThrowIfNull(command);
 
-      shoppingRepository.RemoveItem(
-        command.UserUid, command.ShoppingListName, command.ProductReferenceUid);
+      UserId ownerId = ShoppingListRequest.Owner(command.UserUid);
+      ShoppingListName? name = ShoppingListRequest.Name(command.ShoppingListName);
+      ShoppingList shoppingList = await shoppingListRepository.GetAsync(
+        ownerId, name, cancellationToken) ??
+        throw ShoppingListRequest.NotFound();
+
+      shoppingList.RemoveItem(new ProductFormatId(command.ProductReferenceUid));
+      await shoppingListRepository.UpdateAsync(shoppingList, cancellationToken);
       await unitOfWork.SaveChangesAsync(cancellationToken);
-
-      return Result.Success();
-    }
-  }
-
-  internal class Validator : AbstractValidator<Command> {
-    public Validator(IShoppingRepository shoppingRepository) {
-      RuleFor(x => x)
-        .MustAsync(async (command, ct) =>
-          await shoppingRepository.CheckShoppingListExistAsync(
-            command.UserUid, command.ShoppingListName, ct))
-        .WithName(nameof(Command.ShoppingListName))
-        .WithMessage(command => string.IsNullOrWhiteSpace(command.ShoppingListName)
-          ? $"User {command.UserUid} doesn't have a temporary shopping list."
-          : $"User {command.UserUid} doesn't have a shopping list named '{command.ShoppingListName}'.")
-        .WithErrorCode("ShoppingList.NotFound")
-        .WithState(_ => ErrorKind.Missing);
-
-      RuleFor(x => x)
-        .MustAsync(async (command, ct) =>
-          await shoppingRepository.CheckItemExistsAsync(
-            command.UserUid, command.ShoppingListName, command.ProductReferenceUid, ct))
-        .WithName(nameof(Command.ProductReferenceUid))
-        .WithMessage(command =>
-          $"Item '{command.ProductReferenceUid}' not found in the shopping list.")
-        .WithErrorCode("ShoppingList.Item.NotFound")
-        .WithState(_ => ErrorKind.Missing);
     }
   }
 }

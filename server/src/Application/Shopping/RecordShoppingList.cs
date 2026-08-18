@@ -1,46 +1,43 @@
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Shopping;
+using Metaspesa.Domain.Identity;
 using Metaspesa.Domain.Shopping;
 
 namespace Metaspesa.Application.Shopping;
 
 public static class RecordShoppingList {
-  public record Command(
-    Guid UserUid,
-    string? ShoppingListName
-  ) : ICommand;
+  public record Command(Guid UserUid, string? ShoppingListName) : ICommand;
 
-  internal class Handler(
-    IShoppingRepository shoppingRepository,
+  public class Handler(
+    IShoppingPurchaseRepository shoppingPurchaseRepository,
     IUnitOfWork unitOfWork
   ) : ICommandHandler<Command> {
     public async Task<Result> Handle(
       Command command, CancellationToken cancellationToken = default
     ) {
-      Guid userUid = command.UserUid;
-      AShoppingList? shoppingList = await shoppingRepository
-        .GetShoppingListAsync(userUid, command.ShoppingListName, cancellationToken);
+      ArgumentNullException.ThrowIfNull(command);
+
+      UserId ownerId = ShoppingListRequest.Owner(command.UserUid);
+      ShoppingListName? name = ShoppingListRequest.Name(command.ShoppingListName);
+      ShoppingList? shoppingList = await shoppingPurchaseRepository.GetAsync(
+        ownerId, name, cancellationToken);
 
       if (shoppingList is null) {
         return new DomainError(
-          Code: "ShoppingList.NotFound",
-          Description: string.IsNullOrWhiteSpace(command.ShoppingListName)
-            ? $"User {userUid} doesn't have a temporary shopping list."
-            : $"User {userUid} doesn't have a shopping list named '{command.ShoppingListName}'.",
-          Kind: ErrorKind.Missing);
+          "ShoppingList.NotFound",
+          "Shopping list was not found.",
+          ErrorKind.Missing);
       }
 
-      if (!shoppingList.HasCheckedItems()) {
+      if (shoppingList.CheckedItems().Count == 0) {
         return new DomainError(
-          Code: "ShoppingList.MissingCheckedItems",
-          Description: "Shopping list must contain at least one checked item.",
-          Kind: ErrorKind.Validation);
+          "ShoppingList.MissingCheckedItems",
+          "Shopping list must contain at least one checked item.",
+          ErrorKind.Validation);
       }
 
-      AShoppingList checkedList = shoppingList.OnlyWithCheckedItems();
-      shoppingRepository.RecordShoppingList(userUid, checkedList);
-      shoppingRepository.ResetShoppingList(userUid, command.ShoppingListName);
-
+      shoppingPurchaseRepository.Record(ownerId, shoppingList);
+      shoppingPurchaseRepository.Reset(ownerId, name);
       await unitOfWork.SaveChangesAsync(cancellationToken);
 
       return Result.Success();

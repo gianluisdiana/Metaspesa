@@ -1,5 +1,5 @@
-using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Shopping;
+using Metaspesa.Domain.Identity;
 using Metaspesa.Domain.Shopping;
 using NSubstitute;
 using static Metaspesa.Application.Shopping.GetShoppingListSummaries;
@@ -7,68 +7,34 @@ using static Metaspesa.Application.Shopping.GetShoppingListSummaries;
 namespace Metaspesa.Application.UnitTests.Shopping;
 
 public class GetShoppingListSummariesHandlerTest {
-  private readonly IShoppingRepository _shoppingRepository;
+  [Fact(DisplayName = "Returns application summary read models")]
+  public async Task Handle_ReturnsReadModels() {
+    var ownerId = Guid.CreateVersion7();
+    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
+    repository.GetByOwnerAsync(Arg.Any<UserId>(), Arg.Any<CancellationToken>())
+      .Returns([
+        ShoppingTestData.List(ownerId, "Weekly"),
+        ShoppingTestData.List(ownerId, null),
+      ]);
+    var handler = new Handler(repository);
 
-  private readonly Handler handler;
+    IReadOnlyCollection<Response> result = await handler.Handle(
+      new Query(ownerId), TestContext.Current.CancellationToken);
 
-  public GetShoppingListSummariesHandlerTest() {
-    _shoppingRepository = Substitute.For<IShoppingRepository>();
-    handler = new Handler(_shoppingRepository);
+    Assert.Collection(result,
+      summary => Assert.Equal("Weekly", summary.Name),
+      summary => Assert.Null(summary.Name));
   }
 
-  [Fact(DisplayName = "Returns shopping list summaries from repository")]
-  public async Task Handler_ReturnsShoppingListSummaries_FromRepository() {
-    // Arrange
-    var userUid = Guid.NewGuid();
-    List<AShoppingList> expectedSummaries = [
-      new("Groceries", []),
-      new(null, []),
-    ];
-    _shoppingRepository
-      .GetShoppingListSummariesAsync(userUid, TestContext.Current.CancellationToken)
-      .Returns(expectedSummaries);
+  [Fact(DisplayName = "Propagates cancellation")]
+  public async Task Handle_PropagatesCancellation() {
+    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
+    repository.GetByOwnerAsync(Arg.Any<UserId>(), Arg.Any<CancellationToken>())
+      .Returns<Task<IReadOnlyCollection<ShoppingList>>>(_ =>
+        throw new OperationCanceledException());
+    var handler = new Handler(repository);
 
-    // Act
-    Result<List<AShoppingList>> result = await handler.Handle(
-      new Query(userUid), TestContext.Current.CancellationToken);
-
-    // Assert
-    Assert.Equal(expectedSummaries, result.Value);
-  }
-
-  [Fact(DisplayName = "Returns summaries without shopping list items")]
-  public async Task Handler_ReturnsSummaries_WithoutShoppingListItems() {
-    // Arrange
-    var userUid = Guid.NewGuid();
-    List<AShoppingList> expectedSummaries = [
-      new("Groceries", []),
-      new(null, []),
-    ];
-    _shoppingRepository
-      .GetShoppingListSummariesAsync(userUid, TestContext.Current.CancellationToken)
-      .Returns(expectedSummaries);
-
-    // Act
-    Result<List<AShoppingList>> result = await handler.Handle(
-      new Query(userUid), TestContext.Current.CancellationToken);
-
-    // Assert
-    Assert.True(result.Value.All(shoppingList => shoppingList.Items.Count == 0));
-  }
-
-  [Fact(DisplayName = "Returns empty summaries when repository returns none")]
-  public async Task Handler_ReturnsEmptySummaries_WhenRepositoryReturnsNone() {
-    // Arrange
-    var userUid = Guid.NewGuid();
-    _shoppingRepository
-      .GetShoppingListSummariesAsync(userUid, TestContext.Current.CancellationToken)
-      .Returns([]);
-
-    // Act
-    Result<List<AShoppingList>> result = await handler.Handle(
-      new Query(userUid), TestContext.Current.CancellationToken);
-
-    // Assert
-    Assert.Empty(result.Value);
+    await Assert.ThrowsAsync<OperationCanceledException>(() => handler.Handle(
+      new Query(Guid.CreateVersion7()), TestContext.Current.CancellationToken));
   }
 }

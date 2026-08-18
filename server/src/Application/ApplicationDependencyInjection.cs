@@ -5,7 +5,6 @@ using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Identity;
 using Metaspesa.Application.Markets;
 using Metaspesa.Application.Shopping;
-using Metaspesa.Domain.Shopping;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Metaspesa.Application;
@@ -42,37 +41,18 @@ public static class ApplicationDependencyInjection {
     }
 
     private IServiceCollection AddShoppingUseCases() {
-      services.AddScoped<
-        IQueryHandler<GetShoppingList.Query, GetShoppingList.Response>,
-        GetShoppingList.Handler>();
-
-      services.AddScoped<
-        IQueryHandler<GetShoppingListSummaries.Query, List<AShoppingList>>,
-        GetShoppingListSummaries.Handler>();
+      services.AddScoped<GetShoppingList.Handler>();
+      services.AddScoped<GetShoppingListSummaries.Handler>();
 
       services.AddScoped<
         ICommandHandler<RecordShoppingList.Command>,
         RecordShoppingList.Handler>();
 
-      services.AddScoped<
-        ICommandHandler<CreateShoppingList.Command>,
-        CreateShoppingList.Handler>();
-
-      services.AddScoped<
-        ICommandHandler<AddItemsToList.Command>,
-        AddItemsToList.Handler>();
-
-      services.AddScoped<
-        ICommandHandler<UpdateItem.Command>,
-        UpdateItem.Handler>();
-
-      services.AddScoped<
-        ICommandHandler<UpdateShoppingList.Command>,
-        UpdateShoppingList.Handler>();
-
-      services.AddScoped<
-        ICommandHandler<RemoveItem.Command>,
-        RemoveItem.Handler>();
+      services.AddScoped<CreateShoppingList.Handler>();
+      services.AddScoped<AddItemsToList.Handler>();
+      services.AddScoped<UpdateItem.Handler>();
+      services.AddScoped<UpdateShoppingList.Handler>();
+      services.AddScoped<RemoveItem.Handler>();
 
       return services;
     }

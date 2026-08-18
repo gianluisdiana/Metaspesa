@@ -1,7 +1,9 @@
-using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Abstractions.Shopping;
+using Metaspesa.Domain.Identity;
+using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.Shopping;
+using Metaspesa.Domain.Shopping.Errors;
 using MarketProductRepository = Metaspesa.Application.Abstractions.Markets.IProductRepository;
 
 namespace Metaspesa.Application.Shopping;
@@ -13,43 +15,43 @@ public static class GetShoppingList {
     string? ShoppingListName,
     IReadOnlyCollection<ResponseItem> Items
   );
-  public record Query(Guid UserUid, string? ShoppingListName) : IQuery<Response>;
+  public record Query(Guid UserUid, string? ShoppingListName);
 
-  internal class Handler(
-    IShoppingRepository shoppingRepository,
+  public class Handler(
+    IShoppingListRepository shoppingListRepository,
     MarketProductRepository productRepository
-  ) : IQueryHandler<Query, Response> {
-    public async Task<Result<Response>> Handle(
+  ) {
+    public async Task<Response> Handle(
       Query query, CancellationToken cancellationToken = default
     ) {
-      AShoppingList? shoppingList = await shoppingRepository.GetShoppingListAsync(
-        query.UserUid, query.ShoppingListName, cancellationToken);
+      ArgumentNullException.ThrowIfNull(query);
 
-      if (shoppingList is null) {
-        return new DomainError(
-          "ShoppingList.NotFound",
-          string.IsNullOrWhiteSpace(query.ShoppingListName)
-            ? $"User {query.UserUid} doesn't have a temporary shopping list."
-            : $"User {query.UserUid} doesn't have a shopping list named '{query.ShoppingListName}'.",
-          ErrorKind.Missing);
+      UserId ownerId = ShoppingListRequest.Owner(query.UserUid);
+      ShoppingListName? name = ShoppingListRequest.Name(query.ShoppingListName);
+      ShoppingList shoppingList = await shoppingListRepository.GetAsync(
+        ownerId, name, cancellationToken) ??
+        throw ShoppingListRequest.NotFound();
+
+      IReadOnlyCollection<int> formatIds = [
+        .. shoppingList.Items.Select(item => item.ProductFormatId.Value)
+      ];
+      IReadOnlyDictionary<int, MarketProduct> products =
+        await productRepository.GetProductsAsync(formatIds, cancellationToken);
+
+      List<ResponseItem> items = [];
+      foreach (ShoppingItem item in shoppingList.Items) {
+        if (!products.TryGetValue(item.ProductFormatId.Value, out MarketProduct? product)) {
+          throw new ShoppingProductFormatNotFoundException(item.ProductFormatId);
+        }
+
+        items.Add(new ResponseItem(
+          product.Name,
+          item.Amount.Value,
+          product.Formats.First(),
+          item.IsChecked));
       }
 
-      IReadOnlyCollection<int> referencesId = [
-        ..shoppingList.Items.Select(i => i.ReferenceUid)
-      ];
-
-      IReadOnlyDictionary<int, MarketProduct> marketProducts = await productRepository
-        .GetProductsAsync(referencesId, cancellationToken);
-
-      var items = shoppingList.Items.Select(i => new ResponseItem(
-         ProductName: marketProducts[i.ReferenceUid].Name,
-         Amount: i.Amount,
-         Format: marketProducts[i.ReferenceUid].Formats.First(),
-         IsChecked: i.IsChecked
-       ))
-       .ToList();
-
-      return new Response(shoppingList.Name, items);
+      return new Response(shoppingList.Name?.Value, items);
     }
   }
 }

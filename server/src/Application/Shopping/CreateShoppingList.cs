@@ -1,47 +1,32 @@
-using FluentValidation;
-using FluentValidation.Results;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Shopping;
-using Metaspesa.Application.Extensions;
+using Metaspesa.Domain.Identity;
+using Metaspesa.Domain.Shopping;
+using Metaspesa.Domain.Shopping.Errors;
 
 namespace Metaspesa.Application.Shopping;
 
 public static class CreateShoppingList {
-  public record Command(Guid UserUid, string? ShoppingListName) : ICommand;
+  public record Command(Guid UserUid, string? ShoppingListName);
 
-  internal class Handler(
-    IValidator<Command> validator,
-    IShoppingRepository shoppingRepository,
+  public class Handler(
+    IShoppingListRepository shoppingListRepository,
     IUnitOfWork unitOfWork
-  ) : ICommandHandler<Command> {
-    public async Task<Result> Handle(
+  ) {
+    public async Task Handle(
       Command command, CancellationToken cancellationToken = default
     ) {
-      ValidationResult validationResult = await validator.ValidateAsync(
-        command, cancellationToken);
-      if (!validationResult.IsValid) {
-        return validationResult.ToDomainErrors();
+      ArgumentNullException.ThrowIfNull(command);
+
+      UserId ownerId = ShoppingListRequest.Owner(command.UserUid);
+      ShoppingListName? name = ShoppingListRequest.Name(command.ShoppingListName);
+
+      if (await shoppingListRepository.ExistsAsync(ownerId, name, cancellationToken)) {
+        throw new ShoppingListAlreadyExistsException();
       }
 
-      shoppingRepository.CreateShoppingList(command.UserUid, command.ShoppingListName);
+      shoppingListRepository.Add(ShoppingList.Create(ownerId, name));
       await unitOfWork.SaveChangesAsync(cancellationToken);
-
-      return Result.Success();
-    }
-  }
-
-  internal class Validator : AbstractValidator<Command> {
-    public Validator(IShoppingRepository shoppingRepository) {
-      RuleFor(x => x)
-        .MustAsync(async (command, ct) =>
-          !await shoppingRepository.CheckShoppingListExistAsync(
-            command.UserUid, command.ShoppingListName, ct))
-        .WithName(nameof(Command.ShoppingListName))
-        .WithMessage(command => string.IsNullOrWhiteSpace(command.ShoppingListName)
-          ? $"User {command.UserUid} already has a temporary shopping list."
-          : $"User {command.UserUid} already has a shopping list named '{command.ShoppingListName}'.")
-        .WithErrorCode("ShoppingList.AlreadyExists")
-        .WithState(_ => ErrorKind.Conflict);
     }
   }
 }
