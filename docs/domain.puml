@@ -1,84 +1,153 @@
-@startuml metaspesa_domain
+@startuml metaspesa_server_domain_ddd
+skinparam packageStyle rectangle
+hide empty members
 
-title Metaspesa real-world domain
-
-
-package Market {
-  class PriceSnapshot {
-    + price
-    + observedDate
+package "Shared Kernel" {
+  class Money <<value object>> {
+    + Amount: decimal
   }
 
-  class Brand {
-    + name
+  class Quantity <<value object>> {
+    + Value: decimal
   }
 
-  class ProductFormat {
-    + quantity
-    + unit
-    + image
-  }
-  ProductFormat *--> "*" PriceSnapshot : price history
+  class UnitOfMeasureCode <<value object>>
 
-  class Product {
-    + name
+  class PositiveAmount <<value object>> {
+    + Value: int
   }
-  Product "*" --> Brand : branded as
-  Product *--> "*" ProductFormat : offered in
 
-  class Category {
-    + name
-  }
-  Category o--> "*" Product : groups
-
-  class Supermarket {
-    + name
-    + logo
-  }
-  Supermarket o--> "*" Product : sells
+  Quantity *-- UnitOfMeasureCode : Unit
 }
 
-package Planning {
-  class ShoppingItem {
-    + amount
-    + isChecked
+package "Identity Module" {
+  class User <<aggregate root>> {
+    + ChangePassword(hash)
+    + ChangeRole(role)
   }
-  ShoppingItem "*" --> ProductFormat : plans package
-  ShoppingItem "*" --> PriceSnapshot : chosen price
 
-  class ShoppingList {
-    + name
-    + isTemporary()
+  class UserId <<value object>>
+  class Username <<value object>>
+  class PasswordHash <<value object>>
+
+  enum Role {
+    Shopper
+    ProductManager
   }
-  ShoppingList *--> "*" ShoppingItem : contains
+
+  User *-- UserId : Id
+  User *-- Username
+  User *-- PasswordHash
+  User *-- Role
 }
 
-package Purchase {
-  class PurchasedItem {
-    + amount
-  }
-  PurchasedItem "*" --> ProductFormat : bought package
-  PurchasedItem "*" --> PriceSnapshot : paid price
+package "Markets Module" {
+  class Market <<aggregate root>>
+  class MarketId <<value object>>
+  class MarketName <<value object>>
 
-  class Purchase {
-    + bought at
+  class Product <<aggregate root>> {
+    + AddFormat(quantity, imageUrl)
+    + UpdateFormat(formatId, quantity, imageUrl)
   }
-  Purchase "?" --> ShoppingList : completes
-  Purchase *--> "*" PurchasedItem : contains
+
+  class ProductFormat <<entity>>
+
+  class PriceSnapshot <<entity>> {
+    + ObservedAt: DateTime
+  }
+
+  class ProductId <<value object>>
+  class ProductFormatId <<value object>>
+  class PriceSnapshotId <<value object>>
+  class ProductName <<value object>>
+  class BrandName <<value object>>
+  class ImageUrl <<value object>>
+
+  Market *--> MarketId : Id
+  Market *--> MarketName : Name
+  Market *--> "?" ImageUrl : LogoUrl
+
+  Product *--> ProductId : Id
+  Product *--> ProductName : Name
+  Product *--> BrandName : Brand
+  Product --> MarketId
+  Product *-- ProductFormat : Formats
+
+  ProductFormat *--> ProductFormatId : Id
+  ProductFormat *--> Quantity
+  ProductFormat *--> ImageUrl
+
+  PriceSnapshot *--> PriceSnapshotId : Id
+  PriceSnapshot --> ProductFormatId
+  PriceSnapshot *--> Money : Price
+
+  note right of PriceSnapshot
+    Append-only market price observation.
+    Do not load price history as part of the Product aggregate.
+  end note
 }
 
-package Identity {
-  class Role {
-    + name
-    + description
+package "Shopping Module" {
+  class ShoppingList <<aggregate root>> {
+    + IsTemporary: bool
+    + DeletedAt: DateTime?
+    + AddItem(productFormatId, amount)
+    + UpdateItem(productFormatId, amount?, checked?)
+    + RemoveItem(productFormatId)
+    + Rename(name)
+    + MarkAsTemporary()
+    + SoftDelete()
+    + CheckedItems()
+    + ResetCheckedItems()
   }
 
-  class Shopper {
-    + username
+  class ShoppingItem <<entity>> {
+    + IsChecked: bool
   }
-  Shopper --> "*" Purchase : makes
-  Shopper --> Role : has
-  Shopper "+" --> "+" ShoppingList : owns or shares
+
+  class ShoppingListId <<value object>>
+  class ShoppingListName <<value object>>
+
+  ShoppingList *-- ShoppingListId : Id
+  ShoppingList *-- "?" ShoppingListName : Name
+  ShoppingList *-- "+" UserId : OwnerIds
+  ShoppingList *-- "+" ShoppingItem : Items
+
+  ShoppingItem --> ProductFormatId : PlannedFormat
+  ShoppingItem *--> PositiveAmount : Amount
+
+  note right of ShoppingItem
+    Shopping items are planned products only.
+    They do not reference PriceSnapshotId.
+    Price is resolved during checkout.
+  end note
 }
 
+package "Purchasing Module" {
+  class Purchase <<aggregate root>> {
+    + PurchasedAt: DateTime
+    + Create(userId?, shoppingListId?, lines, purchasedAt)
+  }
+
+  class PurchaseItem <<entity>>
+  class PurchaseId <<value object>>
+
+  Purchase *--> PurchaseId : Id
+  Purchase --> "?" UserId : BuyerId
+  Purchase --> "?" ShoppingListId
+  Purchase *-- "+" PurchaseItem : Items
+
+  PurchaseItem --> PriceSnapshotId : PaidPriceSnapshot
+  PurchaseItem *--> PositiveAmount : Amount
+
+  note right of Purchase
+    UserId is optional because deleting a user sets purchases.user_uid to null.
+  end note
+
+  note right of PurchaseItem
+    For now, purchase lines reference the exact PriceSnapshotId
+    but do not duplicate product/brand/market package data.
+  end note
+}
 @enduml
