@@ -3,6 +3,7 @@ using Grpc.Core;
 using Grpc.Core.Testing;
 using Metaspesa.Database.Exceptions;
 using Metaspesa.Domain.Identity.Errors;
+using Metaspesa.Domain.Markets.Errors;
 using Metaspesa.GrpcApi.Interceptors;
 using Metaspesa.GrpcApi.Protos.Auth;
 using Microsoft.Extensions.Logging;
@@ -77,6 +78,24 @@ public class ExceptionInterceptorTests {
     Assert.Equal(StatusCode.Internal, exception.StatusCode);
   }
 
+  [Fact(DisplayName = "Maps argument-out-of-range exception to invalid argument")]
+  public async Task UnaryServerHandler_MapsArgumentOutOfRange_ToInvalidArgument() {
+    var request = new RegisterRequest();
+    static Task<Empty> continuation(
+      RegisterRequest invalidRequest,
+      ServerCallContext _
+    ) {
+      ArgumentNullException.ThrowIfNull(invalidRequest);
+      throw new ArgumentOutOfRangeException(nameof(invalidRequest));
+    }
+
+    RpcException exception = await Assert.ThrowsAsync<RpcException>(() =>
+      _interceptor.UnaryServerHandler(
+        request, CreateServerCallContext(), continuation));
+
+    Assert.Equal(StatusCode.InvalidArgument, exception.StatusCode);
+  }
+
   private sealed class IdentityDomainExceptions() : TheoryData<IdentityDomainException, StatusCode>([
     (new UsernameAlreadyExistsException(), StatusCode.AlreadyExists),
     (new InvalidCredentialsException(), StatusCode.Unauthenticated),
@@ -111,6 +130,24 @@ public class ExceptionInterceptorTests {
 
     // Assert
     Assert.Equal(expectedStatusCode, exception.StatusCode);
+  }
+
+  [Fact(DisplayName = "Maps market domain exception to invalid argument with error metadata")]
+  public async Task UnaryServerHandler_MapsMarketDomainException_ToRpcException() {
+    var request = new RegisterRequest();
+    var domainException = new InvalidProductNameException("");
+    Task<Empty> continuation(RegisterRequest _, ServerCallContext __) =>
+      throw domainException;
+
+    RpcException exception = await Assert.ThrowsAsync<RpcException>(() =>
+      _interceptor.UnaryServerHandler(
+        request, CreateServerCallContext(), continuation));
+
+    Assert.Equal(StatusCode.InvalidArgument, exception.StatusCode);
+    Assert.Equal(domainException.Code, exception.Status.Detail);
+    Assert.Equal(
+      domainException.Message,
+      exception.Trailers.GetValue(domainException.Code));
   }
 
   [Fact(DisplayName = "Throws internal RpcException when unhandled exception is thrown")]

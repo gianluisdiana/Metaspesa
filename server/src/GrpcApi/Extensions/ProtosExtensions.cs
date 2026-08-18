@@ -1,6 +1,6 @@
 using System.Globalization;
+using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Shopping;
-using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.Shopping;
 
 namespace Metaspesa.GrpcApi.Extensions;
@@ -34,8 +34,8 @@ internal static class ProtosExtensions {
     Name = item.ProductName,
     Quantity = string.Create(
       CultureInfo.InvariantCulture,
-      $"{item.Format.Quantity.Value:G} {item.Format.Quantity.UnitOfMeasure}"),
-    Price = GrpcPriceConverter.ToProto(item.Format.Price.Value),
+      $"{item.Format.Quantity.Amount:G} {item.Format.Quantity.UnitOfMeasure.Value}"),
+    Price = GrpcPriceConverter.ToProto(item.Format.Price.Amount),
     Checked = item.IsChecked,
   };
 
@@ -54,7 +54,7 @@ internal static class ProtosExtensions {
   public static Protos.Markets.MarketSummary ToProto(this MarketSummary summary) =>
     new() { Name = summary.Name, LogoUrl = summary.LogoUrl?.ToString() ?? string.Empty };
 
-  public static Protos.Markets.Market ToProto(this Market market) =>
+  public static Protos.Markets.Market ToProto(this MarketCatalog market) =>
     new() {
       Name = market.Name,
       Products = { market.Products.Select(p => p.ToProto()) },
@@ -63,13 +63,13 @@ internal static class ProtosExtensions {
   private static Protos.Markets.MarketProduct ToProto(this MarketProduct product) =>
     new() {
       Name = product.Name,
-      BrandName = product.Brand.Name,
+      BrandName = product.BrandName,
       Formats = {
         product.Formats.Select(f => new Protos.Markets.MarketProductFormat {
           Quantity = string.Create(
             CultureInfo.InvariantCulture,
-            $"{f.Quantity.Value:G} {f.Quantity.UnitOfMeasure}"),
-          Price = GrpcPriceConverter.ToProto(f.Price.Value),
+            $"{f.Quantity.Amount:G} {f.Quantity.UnitOfMeasure.Value}"),
+          Price = GrpcPriceConverter.ToProto(f.Price.Amount),
           ImageUrl = f.ImageUrl?.ToString() ?? string.Empty,
         }),
       },

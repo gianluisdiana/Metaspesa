@@ -2,17 +2,21 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Grpc.Core.Testing;
 using Metaspesa.Application.Abstractions.Core;
+using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Markets;
-using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.Identity;
+using Metaspesa.Domain.Markets.Errors;
+using Metaspesa.Domain.SharedKernel;
 using Metaspesa.GrpcApi.Protos.Markets;
 using Metaspesa.GrpcApi.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
-using DomainMarket = Metaspesa.Domain.Markets.Market;
-using DomainMarketProduct = Metaspesa.Domain.Markets.MarketProduct;
-using DomainMarketSummary = Metaspesa.Domain.Markets.MarketSummary;
-using DomainPrice = Metaspesa.Domain.Shopping.Price;
+using DomainMarket = Metaspesa.Application.Abstractions.Markets.MarketCatalog;
+using DomainMarketProduct = Metaspesa.Application.Abstractions.Markets.MarketProduct;
+using DomainMarketSummary = Metaspesa.Application.Abstractions.Markets.MarketSummary;
+using DomainPrice = Metaspesa.Domain.SharedKernel.Money;
 
 namespace Metaspesa.GrpcApi.UnitTests.Markets;
 
@@ -67,31 +71,49 @@ public static class MarketGrpcServiceTests {
   }
 
   public class AddProductsRpc {
-    private readonly ICommandHandler<AddMarketProducts.Command> _useCaseHandler;
+    private readonly IMarketRepository _marketRepository;
+    private readonly IProductRepository _productRepository;
     private readonly MarketGrpcService _service;
 
     public AddProductsRpc() {
-      _useCaseHandler = Substitute.For<ICommandHandler<AddMarketProducts.Command>>();
+      _marketRepository = Substitute.For<IMarketRepository>();
+      _productRepository = Substitute.For<IProductRepository>();
+      IPriceSnapshotRepository snapshotRepository =
+        Substitute.For<IPriceSnapshotRepository>();
+      _marketRepository.GetMarketsAsync(Arg.Any<CancellationToken>())
+        .Returns([]);
+      _marketRepository
+        .CheckUnitOfMeasureIsSupportedAsync(
+          Arg.Any<string>(),
+          Arg.Any<CancellationToken>())
+        .Returns(true);
+      _productRepository.GetBrandsAsync(Arg.Any<CancellationToken>())
+        .Returns([]);
+      _productRepository.ResolveProductsAsync(
+          Arg.Any<MarketImport>(),
+          Arg.Any<DateTime>(),
+          Arg.Any<CancellationToken>())
+        .Returns(new ProductImportResult([], [], []));
+      IServiceScopeFactory scopeFactory = new ServiceCollection()
+        .AddSingleton(_marketRepository)
+        .AddSingleton(_productRepository)
+        .AddSingleton(snapshotRepository)
+        .BuildServiceProvider()
+        .GetRequiredService<IServiceScopeFactory>();
       _service = new MarketGrpcService(
-        _useCaseHandler,
-        Substitute.For<IQueryHandler<GetMarketProducts.Query, PagedResult<DomainMarket>>>(),
-        Substitute.For<IQueryHandler<GetMarkets.Query, IReadOnlyCollection<DomainMarketSummary>>>());
+        new AddMarketProducts.Handler(
+          _marketRepository,
+          _productRepository,
+          snapshotRepository,
+          scopeFactory,
+          Substitute.For<ILogger<AddMarketProducts.Handler>>()),
+        new GetMarketProducts.Handler(Substitute.For<IProductRepository>()),
+        new GetMarkets.Handler(Substitute.For<IMarketRepository>()));
     }
 
-    [Fact(DisplayName = "Throws RpcException if the command handler returns a failure result")]
-    public async Task Api_ThrowsRpcException_IfCommandHandlerFails() {
-      // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<AddMarketProducts.Command>(), TestContext.Current.CancellationToken)
-        .Returns(new DomainError(string.Empty, string.Empty, ErrorKind.Unexpected));
-
+    [Fact(DisplayName = "Propagates domain exception from command handler")]
+    public async Task Api_ThrowsDomainException_IfCommandIsInvalid() {
       var request = new AddProductsRequest {
-        Products = {
-          new Product {
-            Name = "Milk", Price = "1.99", Quantity = 1, UnitOfMeasure = "L",
-            MarketName = "Walmart", BrandName = "Nike"
-          }
-        },
         RegisteredAt = Timestamp.FromDateTime(DateTime.UtcNow),
       };
 
@@ -99,16 +121,12 @@ public static class MarketGrpcServiceTests {
       async Task action() => await _service.AddProducts(request, CreateServerCallContext());
 
       // Assert
-      await Assert.ThrowsAsync<RpcException>(action);
+      await Assert.ThrowsAsync<EmptyMarketProductsException>(action);
     }
 
     [Fact(DisplayName = "Returns empty when handler succeeds")]
     public async Task Api_ReturnsEmpty_WhenHandlerSucceeds() {
       // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<AddMarketProducts.Command>(), TestContext.Current.CancellationToken)
-        .Returns(Result.Success());
-
       var request = new AddProductsRequest {
         Products = {
           new Product {
@@ -129,10 +147,6 @@ public static class MarketGrpcServiceTests {
     [Fact(DisplayName = "Maps products count from request to command")]
     public async Task Api_MapsProductsCount_FromRequestToCommand() {
       // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<AddMarketProducts.Command>(), TestContext.Current.CancellationToken)
-        .Returns(Result.Success());
-
       var request = new AddProductsRequest {
         Products = {
           new Product {
@@ -151,18 +165,15 @@ public static class MarketGrpcServiceTests {
       await _service.AddProducts(request, CreateServerCallContext());
 
       // Assert
-      await _useCaseHandler.Received(1).Handle(
-        Arg.Is<AddMarketProducts.Command>(cmd => cmd.Products.Count == 2),
+      await _productRepository.Received(2).ResolveProductsAsync(
+        Arg.Any<MarketImport>(),
+        Arg.Any<DateTime>(),
         TestContext.Current.CancellationToken);
     }
 
     [Fact(DisplayName = "Sanitizes non-ASCII product text before creating command")]
     public async Task Api_SanitizesNonAsciiProductText_BeforeCreatingCommand() {
       // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<AddMarketProducts.Command>(), TestContext.Current.CancellationToken)
-        .Returns(Result.Success());
-
       var request = new AddProductsRequest {
         Products = {
           new Product {
@@ -181,22 +192,20 @@ public static class MarketGrpcServiceTests {
       await _service.AddProducts(request, CreateServerCallContext());
 
       // Assert
-      await _useCaseHandler.Received(1).Handle(
-        Arg.Is<AddMarketProducts.Command>(cmd =>
-          cmd.Products.Single().Name == "Cafe " &&
-          cmd.Products.Single().UnitOfMeasure == "g " &&
-          cmd.Products.Single().MarketName == "Mercadona" &&
-          cmd.Products.Single().BrandName == "Nino"),
+      await _productRepository.Received(1).ResolveProductsAsync(
+        Arg.Is<MarketImport>(market =>
+          market.Name.Value == "Mercadona" &&
+          market.Products.Single().Name.Value == "Cafe" &&
+          market.Products.Single().Brand.Value == "Nino" &&
+          market.Products.Single().Formats.Single()
+            .Quantity.UnitOfMeasure.Value == "g"),
+        Arg.Any<DateTime>(),
         TestContext.Current.CancellationToken);
     }
 
     [Fact(DisplayName = "Maps quantity and unit of measure from request to command")]
     public async Task Api_MapsQuantityAndUnitOfMeasure_FromRequestToCommand() {
       // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<AddMarketProducts.Command>(), TestContext.Current.CancellationToken)
-        .Returns(Result.Success());
-
       var request = new AddProductsRequest {
         Products = {
           new Product {
@@ -211,20 +220,18 @@ public static class MarketGrpcServiceTests {
       await _service.AddProducts(request, CreateServerCallContext());
 
       // Assert
-      await _useCaseHandler.Received(1).Handle(
-        Arg.Is<AddMarketProducts.Command>(cmd =>
-          Math.Abs(cmd.Products.Single().Quantity - 1.5F) < 0.001F &&
-          cmd.Products.Single().UnitOfMeasure == "L"),
+      await _productRepository.Received(1).ResolveProductsAsync(
+        Arg.Is<MarketImport>(market =>
+          market.Products.Single().Formats.Single().Quantity.Amount == 1.5m &&
+          market.Products.Single().Formats.Single()
+            .Quantity.UnitOfMeasure.Value == "l"),
+        Arg.Any<DateTime>(),
         TestContext.Current.CancellationToken);
     }
 
     [Fact(DisplayName = "Maps registered_at from request when provided")]
     public async Task Api_MapsRegisteredAt_WhenProvided() {
       // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<AddMarketProducts.Command>(), TestContext.Current.CancellationToken)
-        .Returns(Result.Success());
-
       var expectedTime = new DateTime(2024, 6, 15, 12, 0, 0, DateTimeKind.Utc);
       var request = new AddProductsRequest {
         Products = {
@@ -240,47 +247,54 @@ public static class MarketGrpcServiceTests {
       await _service.AddProducts(request, CreateServerCallContext());
 
       // Assert
-      await _useCaseHandler.Received(1).Handle(
-        Arg.Is<AddMarketProducts.Command>(cmd =>
-          cmd.RegisteredAt == DateOnly.FromDateTime(expectedTime)),
+      await _productRepository.Received(1).ResolveProductsAsync(
+        Arg.Any<MarketImport>(),
+        Arg.Is<DateTime>(observedAt =>
+          observedAt == DateOnly.FromDateTime(expectedTime).ToDateTime(
+            TimeOnly.MinValue,
+            DateTimeKind.Utc)),
         TestContext.Current.CancellationToken);
     }
   }
 
   public class GetMarketProductsRpc {
-    private readonly IQueryHandler<GetMarketProducts.Query, PagedResult<DomainMarket>> _useCaseHandler;
+    private readonly IProductRepository _productRepository;
     private readonly MarketGrpcService _service;
 
     public GetMarketProductsRpc() {
-      _useCaseHandler = Substitute.For<IQueryHandler<GetMarketProducts.Query, PagedResult<DomainMarket>>>();
+      _productRepository = Substitute.For<IProductRepository>();
+      _productRepository
+        .GetProductsAsync(
+          Arg.Any<GetMarketProductsFilter>(),
+          Arg.Any<CancellationToken>())
+        .Returns(EmptyPagedResult());
       _service = new MarketGrpcService(
-        Substitute.For<ICommandHandler<AddMarketProducts.Command>>(),
-        _useCaseHandler,
-        Substitute.For<IQueryHandler<GetMarkets.Query, IReadOnlyCollection<DomainMarketSummary>>>());
+        CreateUnusedAddProductsHandler(),
+        new GetMarketProducts.Handler(_productRepository),
+        new GetMarkets.Handler(Substitute.For<IMarketRepository>()));
     }
 
     private static PagedResult<DomainMarket> EmptyPagedResult() => new([], 0);
 
-    [Fact(DisplayName = "Throws RpcException if the query handler returns a failure result")]
-    public async Task Api_ThrowsRpcException_IfQueryHandlerFails() {
-      // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<GetMarketProducts.Query>(), TestContext.Current.CancellationToken)
-        .Returns(new DomainError(string.Empty, string.Empty, ErrorKind.Unexpected));
+    [Fact(DisplayName = "Throws when request contains invalid finite pagination")]
+    public async Task Api_Throws_WhenPaginationIsInvalid() {
+      var request = new GetMarketProductsRequest { Page = 0, PageSize = 10 };
 
       // Act
       async Task action() =>
-        await _service.GetMarketProducts(new GetMarketProductsRequest(), CreateServerCallContext());
+        await _service.GetMarketProducts(request, CreateServerCallContext());
 
       // Assert
-      await Assert.ThrowsAsync<RpcException>(action);
+      await Assert.ThrowsAsync<ArgumentOutOfRangeException>(action);
     }
 
     [Fact(DisplayName = "Returns market count from handler result")]
     public async Task Api_ReturnsMarketCount_FromHandlerResult() {
       // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<GetMarketProducts.Query>(), TestContext.Current.CancellationToken)
+      _productRepository
+        .GetProductsAsync(
+          Arg.Any<GetMarketProductsFilter>(),
+          TestContext.Current.CancellationToken)
         .Returns(new PagedResult<DomainMarket>([
           new DomainMarket("Mercadona", []),
           new DomainMarket("Alcampo", []),
@@ -297,12 +311,17 @@ public static class MarketGrpcServiceTests {
     [Fact(DisplayName = "Maps format quantity and unit of measure to quantity text")]
     public async Task Api_MapsFormatQuantityAndUnitOfMeasure_ToQuantityText() {
       // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<GetMarketProducts.Query>(), TestContext.Current.CancellationToken)
+      _productRepository
+        .GetProductsAsync(
+          Arg.Any<GetMarketProductsFilter>(),
+          TestContext.Current.CancellationToken)
         .Returns(new PagedResult<DomainMarket>([
           new DomainMarket("Mercadona", [
-            new DomainMarketProduct("Leche", new ProductBrand("H"), [
-              new ProductFormat(new AQuantity(1.5F, "L"), new DomainPrice(0.89m), null)
+            new DomainMarketProduct("Leche", "H", [
+              new Metaspesa.Application.Abstractions.Markets.MarketProductFormat(
+                new Quantity(1.5m, new UnitOfMeasure("L")),
+                new DomainPrice(0.89m),
+                null)
             ])
           ]),
         ], 1));
@@ -312,14 +331,16 @@ public static class MarketGrpcServiceTests {
         await _service.GetMarketProducts(new GetMarketProductsRequest(), CreateServerCallContext());
 
       // Assert
-      Assert.Equal("1.5 L", response.Markets.Single().Products.Single().Formats.Single().Quantity);
+      Assert.Equal("1.5 l", response.Markets.Single().Products.Single().Formats.Single().Quantity);
     }
 
     [Fact(DisplayName = "Returns total_products from handler result")]
     public async Task Api_ReturnsTotalProducts_FromHandlerResult() {
       // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<GetMarketProducts.Query>(), TestContext.Current.CancellationToken)
+      _productRepository
+        .GetProductsAsync(
+          Arg.Any<GetMarketProductsFilter>(),
+          TestContext.Current.CancellationToken)
         .Returns(new PagedResult<DomainMarket>([], 57));
 
       // Act
@@ -332,187 +353,166 @@ public static class MarketGrpcServiceTests {
 
     [Fact(DisplayName = "Passes null market_name to filter when not set in request")]
     public async Task Api_PassesNullMarketName_WhenNotSetInRequest() {
-      // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<GetMarketProducts.Query>(), TestContext.Current.CancellationToken)
-        .Returns(EmptyPagedResult());
-
       // Act
       await _service.GetMarketProducts(new GetMarketProductsRequest(), CreateServerCallContext());
 
       // Assert
-      await _useCaseHandler.Received(1).Handle(
-        Arg.Is<GetMarketProducts.Query>(q => q.Filter.MarketName == null),
+      await _productRepository.Received(1).GetProductsAsync(
+        Arg.Is<GetMarketProductsFilter>(filter => filter.MarketName == null),
         TestContext.Current.CancellationToken);
     }
 
     [Fact(DisplayName = "Passes market_name to filter when set in request")]
     public async Task Api_PassesMarketName_WhenSetInRequest() {
       // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<GetMarketProducts.Query>(), TestContext.Current.CancellationToken)
-        .Returns(EmptyPagedResult());
       var request = new GetMarketProductsRequest { MarketName = "Mercadona" };
 
       // Act
       await _service.GetMarketProducts(request, CreateServerCallContext());
 
       // Assert
-      await _useCaseHandler.Received(1).Handle(
-        Arg.Is<GetMarketProducts.Query>(q => q.Filter.MarketName == "Mercadona"),
+      await _productRepository.Received(1).GetProductsAsync(
+        Arg.Is<GetMarketProductsFilter>(filter =>
+          filter.MarketName == "Mercadona"),
         TestContext.Current.CancellationToken);
     }
 
     [Fact(DisplayName = "Passes brand_name_segment to filter when set in request")]
     public async Task Api_PassesBrandNameSegment_WhenSetInRequest() {
       // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<GetMarketProducts.Query>(), TestContext.Current.CancellationToken)
-        .Returns(EmptyPagedResult());
       var request = new GetMarketProductsRequest { BrandNameSegment = "Hacendado" };
 
       // Act
       await _service.GetMarketProducts(request, CreateServerCallContext());
 
       // Assert
-      await _useCaseHandler.Received(1).Handle(
-        Arg.Is<GetMarketProducts.Query>(q => q.Filter.BrandNameSegment == "Hacendado"),
+      await _productRepository.Received(1).GetProductsAsync(
+        Arg.Is<GetMarketProductsFilter>(filter =>
+          filter.BrandNameSegment == "Hacendado"),
         TestContext.Current.CancellationToken);
     }
 
     [Fact(DisplayName = "Passes name_segment to filter when set in request")]
     public async Task Api_PassesNameSegment_WhenSetInRequest() {
       // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<GetMarketProducts.Query>(), TestContext.Current.CancellationToken)
-        .Returns(EmptyPagedResult());
       var request = new GetMarketProductsRequest { NameSegment = "leche" };
 
       // Act
       await _service.GetMarketProducts(request, CreateServerCallContext());
 
       // Assert
-      await _useCaseHandler.Received(1).Handle(
-        Arg.Is<GetMarketProducts.Query>(q => q.Filter.NameSegment == "leche"),
+      await _productRepository.Received(1).GetProductsAsync(
+        Arg.Is<GetMarketProductsFilter>(filter =>
+          filter.NameSegment == "leche"),
         TestContext.Current.CancellationToken);
     }
 
-    [Fact(DisplayName = "Passes null pagination when neither page nor page_size is set")]
-    public async Task Api_PassesNullPagination_WhenNeitherPageNorSizeSet() {
-      // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<GetMarketProducts.Query>(), TestContext.Current.CancellationToken)
-        .Returns(EmptyPagedResult());
-
+    [Fact(DisplayName = "Passes infinite pagination when neither page nor page_size is set")]
+    public async Task Api_PassesInfinitePagination_WhenNeitherPageNorSizeSet() {
       // Act
       await _service.GetMarketProducts(new GetMarketProductsRequest(), CreateServerCallContext());
 
       // Assert
-      await _useCaseHandler.Received(1).Handle(
-        Arg.Is<GetMarketProducts.Query>(q => q.Filter.Pagination == null),
+      await _productRepository.Received(1).GetProductsAsync(
+        Arg.Is<GetMarketProductsFilter>(filter =>
+          filter.Pagination != null && filter.Pagination.IsInfinite),
         TestContext.Current.CancellationToken);
     }
 
-    [Fact(DisplayName = "Passes null pagination when only page is set")]
-    public async Task Api_PassesNullPagination_WhenOnlyPageSet() {
-      // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<GetMarketProducts.Query>(), TestContext.Current.CancellationToken)
-        .Returns(EmptyPagedResult());
+    [Fact(DisplayName = "Passes infinite pagination when only page is set")]
+    public async Task Api_PassesInfinitePagination_WhenOnlyPageSet() {
       var request = new GetMarketProductsRequest { Page = 2 };
 
       // Act
       await _service.GetMarketProducts(request, CreateServerCallContext());
 
       // Assert
-      await _useCaseHandler.Received(1).Handle(
-        Arg.Is<GetMarketProducts.Query>(q => q.Filter.Pagination == null),
+      await _productRepository.Received(1).GetProductsAsync(
+        Arg.Is<GetMarketProductsFilter>(filter =>
+          filter.Pagination != null && filter.Pagination.IsInfinite),
         TestContext.Current.CancellationToken);
     }
 
-    [Fact(DisplayName = "Passes null pagination when only page_size is set")]
-    public async Task Api_PassesNullPagination_WhenOnlyPageSizeSet() {
-      // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<GetMarketProducts.Query>(), TestContext.Current.CancellationToken)
-        .Returns(EmptyPagedResult());
+    [Fact(DisplayName = "Passes infinite pagination when only page_size is set")]
+    public async Task Api_PassesInfinitePagination_WhenOnlyPageSizeSet() {
       var request = new GetMarketProductsRequest { PageSize = 15 };
 
       // Act
       await _service.GetMarketProducts(request, CreateServerCallContext());
 
       // Assert
-      await _useCaseHandler.Received(1).Handle(
-        Arg.Is<GetMarketProducts.Query>(q => q.Filter.Pagination == null),
+      await _productRepository.Received(1).GetProductsAsync(
+        Arg.Is<GetMarketProductsFilter>(filter =>
+          filter.Pagination != null && filter.Pagination.IsInfinite),
         TestContext.Current.CancellationToken);
     }
 
     [Fact(DisplayName = "Passes explicit page index to filter when both page and page_size are set")]
     public async Task Api_PassesExplicitPageIndex_WhenBothSet() {
       // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<GetMarketProducts.Query>(), TestContext.Current.CancellationToken)
-        .Returns(EmptyPagedResult());
       var request = new GetMarketProductsRequest { Page = 3, PageSize = 10 };
 
       // Act
       await _service.GetMarketProducts(request, CreateServerCallContext());
 
       // Assert
-      await _useCaseHandler.Received(1).Handle(
-        Arg.Is<GetMarketProducts.Query>(q => q.Filter.Pagination!.Index == 3),
+      await _productRepository.Received(1).GetProductsAsync(
+        Arg.Is<GetMarketProductsFilter>(filter =>
+          filter.Pagination!.Index == 3),
         TestContext.Current.CancellationToken);
     }
 
     [Fact(DisplayName = "Passes explicit page size to filter when both page and page_size are set")]
     public async Task Api_PassesExplicitPageSize_WhenBothSet() {
       // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<GetMarketProducts.Query>(), TestContext.Current.CancellationToken)
-        .Returns(EmptyPagedResult());
       var request = new GetMarketProductsRequest { Page = 3, PageSize = 10 };
 
       // Act
       await _service.GetMarketProducts(request, CreateServerCallContext());
 
       // Assert
-      await _useCaseHandler.Received(1).Handle(
-        Arg.Is<GetMarketProducts.Query>(q => q.Filter.Pagination!.Size == 10),
+      await _productRepository.Received(1).GetProductsAsync(
+        Arg.Is<GetMarketProductsFilter>(filter =>
+          filter.Pagination!.Size == 10),
         TestContext.Current.CancellationToken);
     }
   }
 
   public class GetMarketsRpc {
-    private readonly IQueryHandler<GetMarkets.Query, IReadOnlyCollection<DomainMarketSummary>> _useCaseHandler;
+    private readonly IMarketRepository _marketRepository;
     private readonly MarketGrpcService _service;
 
     public GetMarketsRpc() {
-      _useCaseHandler = Substitute.For<IQueryHandler<GetMarkets.Query, IReadOnlyCollection<DomainMarketSummary>>>();
+      _marketRepository = Substitute.For<IMarketRepository>();
+      _marketRepository
+        .GetMarketSummariesAsync(Arg.Any<CancellationToken>())
+        .Returns([]);
       _service = new MarketGrpcService(
-        Substitute.For<ICommandHandler<AddMarketProducts.Command>>(),
-        Substitute.For<IQueryHandler<GetMarketProducts.Query, PagedResult<DomainMarket>>>(),
-        _useCaseHandler);
+        CreateUnusedAddProductsHandler(),
+        new GetMarketProducts.Handler(Substitute.For<IProductRepository>()),
+        new GetMarkets.Handler(_marketRepository));
     }
 
-    [Fact(DisplayName = "Throws RpcException if the query handler returns a failure result")]
-    public async Task Api_ThrowsRpcException_IfQueryHandlerFails() {
+    [Fact(DisplayName = "Propagates repository exceptions")]
+    public async Task Api_Throws_WhenRepositoryFails() {
       // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<GetMarkets.Query>(), TestContext.Current.CancellationToken)
-        .Returns(new DomainError(string.Empty, string.Empty, ErrorKind.Unexpected));
+      _marketRepository
+        .GetMarketSummariesAsync(TestContext.Current.CancellationToken)
+        .Returns<Task<IReadOnlyCollection<DomainMarketSummary>>>(
+          _ => throw new InvalidOperationException());
 
       // Act
       async Task action() => await _service.GetMarkets(new Empty(), CreateServerCallContext());
 
       // Assert
-      await Assert.ThrowsAsync<RpcException>(action);
+      await Assert.ThrowsAsync<InvalidOperationException>(action);
     }
 
     [Fact(DisplayName = "Returns market count from handler result")]
     public async Task Api_ReturnsMarketCount_FromHandlerResult() {
       // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<GetMarkets.Query>(), TestContext.Current.CancellationToken)
+      _marketRepository
+        .GetMarketSummariesAsync(TestContext.Current.CancellationToken)
         .Returns(new List<DomainMarketSummary> {
           new("Mercadona", new Uri("https://example.com/mercadona.png")),
           new("Alcampo", null),
@@ -528,8 +528,8 @@ public static class MarketGrpcServiceTests {
     [Fact(DisplayName = "Returns market names from handler result")]
     public async Task Api_ReturnsMarketNames_FromHandlerResult() {
       // Arrange
-      _useCaseHandler
-        .Handle(Arg.Any<GetMarkets.Query>(), TestContext.Current.CancellationToken)
+      _marketRepository
+        .GetMarketSummariesAsync(TestContext.Current.CancellationToken)
         .Returns(new List<DomainMarketSummary> { new("Mercadona", null) });
 
       // Act
@@ -538,6 +538,26 @@ public static class MarketGrpcServiceTests {
       // Assert
       Assert.Equal("Mercadona", response.Markets.Single().Name);
     }
+  }
+
+  private static AddMarketProducts.Handler CreateUnusedAddProductsHandler() {
+    IMarketRepository marketRepository = Substitute.For<IMarketRepository>();
+    IProductRepository productRepository = Substitute.For<IProductRepository>();
+    IPriceSnapshotRepository snapshotRepository =
+      Substitute.For<IPriceSnapshotRepository>();
+    IServiceScopeFactory scopeFactory = new ServiceCollection()
+      .AddSingleton(marketRepository)
+      .AddSingleton(productRepository)
+      .AddSingleton(snapshotRepository)
+      .BuildServiceProvider()
+      .GetRequiredService<IServiceScopeFactory>();
+
+    return new AddMarketProducts.Handler(
+      marketRepository,
+      productRepository,
+      snapshotRepository,
+      scopeFactory,
+      Substitute.For<ILogger<AddMarketProducts.Handler>>());
   }
 
   private static ServerCallContext CreateServerCallContext() => TestServerCallContext.Create(

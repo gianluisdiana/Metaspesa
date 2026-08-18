@@ -5,8 +5,9 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Grpc.Core.Testing;
 using Metaspesa.Application.Abstractions.Core;
+using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Shopping;
-using Metaspesa.Domain.Markets;
+using Metaspesa.Domain.SharedKernel;
 using Metaspesa.Domain.Shopping;
 using Metaspesa.GrpcApi.Protos.Shopping;
 using Metaspesa.GrpcApi.Services;
@@ -111,7 +112,7 @@ public static class ShoppingGrpcServiceTests {
         "Weekly Groceries",
         [
           new GetShoppingList.ResponseItem(
-            "Product 1", 1, MakeFormat(1, "litre", 3), true),
+            "Product 1", 1, MakeFormat(1, "l", 3), true),
           new GetShoppingList.ResponseItem(
             "Product 2", 1, MakeFormat(2, "kg", 0), false),
         ]);
@@ -127,8 +128,8 @@ public static class ShoppingGrpcServiceTests {
       // Assert
       for (int i = 0; i < shoppingList.Items.Count; i++) {
         Assert.Equal(
-          $"{shoppingList.Items.ElementAt(i).Format.Quantity.Value:G} " +
-          shoppingList.Items.ElementAt(i).Format.Quantity.UnitOfMeasure,
+          $"{shoppingList.Items.ElementAt(i).Format.Quantity.Amount:G} " +
+          shoppingList.Items.ElementAt(i).Format.Quantity.UnitOfMeasure.Value,
           response.ShoppingList.Items[i].Quantity);
       }
     }
@@ -156,7 +157,8 @@ public static class ShoppingGrpcServiceTests {
       // Assert
       for (int i = 0; i < shoppingList.Items.Count; i++) {
         Assert.Equal(
-          shoppingList.Items.ElementAt(i).Format.Price.Value.ToString(CultureInfo.InvariantCulture),
+          shoppingList.Items.ElementAt(i).Format.Price.Amount.ToString(
+            CultureInfo.InvariantCulture),
           response.ShoppingList.Items[i].Price);
       }
     }
@@ -270,11 +272,15 @@ public static class ShoppingGrpcServiceTests {
             "Product 2", 1, MakeFormat(1, "unit", 0), false),
         ]);
 
-    private static ProductFormat MakeFormat(
-      float quantity,
+    private static MarketProductFormat MakeFormat(
+      decimal quantity,
       string unitOfMeasure,
       decimal price
-    ) => new(new AQuantity(quantity, unitOfMeasure), new Price(price), null);
+    ) => new(
+      new Metaspesa.Domain.SharedKernel.Quantity(
+        quantity, new UnitOfMeasure(unitOfMeasure)),
+      new Money(price),
+      null);
   }
 
   public class GetShoppingListSummariesRpc {

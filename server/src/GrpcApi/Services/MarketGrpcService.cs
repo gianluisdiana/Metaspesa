@@ -7,16 +7,15 @@ using Metaspesa.Domain.Identity;
 using Metaspesa.GrpcApi.Extensions;
 using Metaspesa.GrpcApi.Protos.Markets;
 using Microsoft.AspNetCore.Authorization;
-using DomainMarket = Metaspesa.Domain.Markets.Market;
-using DomainMarketSummary = Metaspesa.Domain.Markets.MarketSummary;
+using MarketSummaryModel = Metaspesa.Application.Abstractions.Markets.MarketSummary;
 
 namespace Metaspesa.GrpcApi.Services;
 
 [Authorize]
 internal class MarketGrpcService(
-  ICommandHandler<AddMarketProducts.Command> addProductsHandler,
-  IQueryHandler<GetMarketProducts.Query, PagedResult<DomainMarket>> getProductsHandler,
-  IQueryHandler<GetMarkets.Query, IReadOnlyCollection<DomainMarketSummary>> getMarketsHandler
+  AddMarketProducts.Handler addProductsHandler,
+  GetMarketProducts.Handler getProductsHandler,
+  GetMarkets.Handler getMarketsHandler
 ) : MarketService.MarketServiceBase {
   [Authorize(Roles = nameof(Role.ProductManager))]
   public override async Task<Empty> AddProducts(
@@ -35,9 +34,7 @@ internal class MarketGrpcService(
         string.IsNullOrEmpty(p.ImageUrl) ? null : new Uri(p.ImageUrl)))],
       registeredAt);
 
-    Result result = await addProductsHandler.Handle(command, context.CancellationToken);
-
-    result.ThrowRpcExceptionIfFailed();
+    await addProductsHandler.Handle(command, context.CancellationToken);
 
     return new Empty();
   }
@@ -56,16 +53,14 @@ internal class MarketGrpcService(
       request.HasNameSegment ? request.NameSegment : null,
       pagination);
 
-    Result<PagedResult<DomainMarket>> result =
+    PagedResult<MarketCatalog> result =
       await getProductsHandler.Handle(
         new GetMarketProducts.Query(filter), context.CancellationToken);
 
-    result.ThrowRpcExceptionIfFailed();
-
     var response = new GetMarketProductsResponse {
-      TotalProducts = result.Value.TotalCount,
+      TotalProducts = result.TotalCount,
     };
-    response.Markets.AddRange(result.Value.Values.Select(m => m.ToProto()));
+    response.Markets.AddRange(result.Values.Select(m => m.ToProto()));
     return response;
   }
 
@@ -73,13 +68,11 @@ internal class MarketGrpcService(
   public override async Task<GetMarketsResponse> GetMarkets(
     Empty request, ServerCallContext context
   ) {
-    Result<IReadOnlyCollection<DomainMarketSummary>> result =
+    IReadOnlyCollection<MarketSummaryModel> result =
       await getMarketsHandler.Handle(new GetMarkets.Query(), context.CancellationToken);
 
-    result.ThrowRpcExceptionIfFailed();
-
     var response = new GetMarketsResponse();
-    response.Markets.AddRange(result.Value.Select(m => m.ToProto()));
+    response.Markets.AddRange(result.Select(m => m.ToProto()));
     return response;
   }
 }
