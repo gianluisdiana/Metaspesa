@@ -1,3 +1,9 @@
 namespace Metaspesa.Domain.Markets;
 
-public record Market(string Name, IReadOnlyCollection<MarketProduct> Products);
+public sealed class Market(
+  MarketId id, MarketName name, ImageUrl? logoUrl = null
+) {
+  public MarketId Id { get; } = id;
+  public MarketName Name { get; } = name;
+  public ImageUrl? LogoUrl { get; } = logoUrl;
+}
