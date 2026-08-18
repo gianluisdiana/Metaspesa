@@ -1,10 +1,10 @@
 using System.Diagnostics;
 using FluentValidation;
 using Metaspesa.Application.Abstractions.Core;
+using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Identity;
 using Metaspesa.Application.Markets;
 using Metaspesa.Application.Shopping;
-using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.Shopping;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -34,17 +34,9 @@ public static class ApplicationDependencyInjection {
     }
 
     private IServiceCollection AddMarketUseCases() {
-      services.AddScoped<
-        ICommandHandler<AddMarketProducts.Command>,
-        AddMarketProducts.Handler>();
-
-      services.AddScoped<
-        IQueryHandler<GetMarketProducts.Query, PagedResult<Market>>,
-        GetMarketProducts.Handler>();
-
-      services.AddScoped<
-        IQueryHandler<GetMarkets.Query, IReadOnlyCollection<MarketSummary>>,
-        GetMarkets.Handler>();
+      services.AddScoped<AddMarketProducts.Handler>();
+      services.AddScoped<GetMarketProducts.Handler>();
+      services.AddScoped<GetMarkets.Handler>();
 
       return services;
     }

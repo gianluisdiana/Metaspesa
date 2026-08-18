@@ -6,24 +6,20 @@ namespace Metaspesa.Application.Abstractions.Core;
 public abstract partial class CancellableCommandHandler<TRequest>(
   IServiceScopeFactory scopeFactory,
   ILogger logger
-) : ICommandHandler<TRequest> where TRequest : ICommand {
+) {
 
-  public async Task<Result> Handle(
+  public async Task Handle(
     TRequest command, CancellationToken cancellationToken = default
   ) {
     try {
-      Result result = await ExecuteAsync(command, cancellationToken);
-      if (!result.IsSuccess) {
-        QueueRollback(command);
-      }
-      return result;
-    } catch (OperationCanceledException) {
+      await ExecuteAsync(command, cancellationToken);
+    } catch {
       QueueRollback(command);
       throw;
     }
   }
 
-  protected abstract Task<Result> ExecuteAsync(
+  protected abstract Task ExecuteAsync(
     TRequest command, CancellationToken cancellationToken);
 
   protected abstract Task RollbackAsync(

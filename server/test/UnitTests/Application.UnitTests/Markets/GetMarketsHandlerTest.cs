@@ -1,7 +1,5 @@
-using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Markets;
-using Metaspesa.Domain.Markets;
 using NSubstitute;
 
 namespace Metaspesa.Application.UnitTests.Markets;
@@ -27,11 +25,11 @@ public class GetMarketsHandlerTest {
       .Returns(summaries);
 
     // Act
-    Result<IReadOnlyCollection<MarketSummary>> result =
+    IReadOnlyCollection<MarketSummary> result =
       await _handler.Handle(new GetMarkets.Query(), TestContext.Current.CancellationToken);
 
     // Assert
-    Assert.Equal(2, result.Value.Count);
+    Assert.Equal(2, result.Count);
   }
 
   [Fact(DisplayName = "Returns empty when repository returns nothing")]
@@ -42,11 +40,11 @@ public class GetMarketsHandlerTest {
       .Returns([]);
 
     // Act
-    Result<IReadOnlyCollection<MarketSummary>> result =
+    IReadOnlyCollection<MarketSummary> result =
       await _handler.Handle(new GetMarkets.Query(), TestContext.Current.CancellationToken);
 
     // Assert
-    Assert.Empty(result.Value);
+    Assert.Empty(result);
   }
 
   [Fact(DisplayName = "Calls repository once")]

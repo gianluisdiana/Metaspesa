@@ -1,11 +1,8 @@
-using System.Globalization;
-using FluentValidation;
-using FluentValidation.Results;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Markets;
-using Metaspesa.Application.Extensions;
 using Metaspesa.Domain.Markets;
-using Metaspesa.Domain.Shopping;
+using Metaspesa.Domain.Markets.Errors;
+using Metaspesa.Domain.SharedKernel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -25,70 +22,127 @@ public static class AddMarketProducts {
   public record Command(
     IReadOnlyCollection<CommandProduct> Products,
     DateOnly RegisteredAt
-  ) : ICommand {
-    internal List<Market> ToMarkets() => [
-      ..Products.GroupBy(p => p.MarketName!)
-        .Select(g => new Market(
-          Name: g.Key,
-          Products: [
-            ..g.GroupBy(p => (p.Name, p.BrandName))
-              .Select(gg => new MarketProduct(
-                Name: gg.Key.Name!,
-                Brand: new ProductBrand(gg.Key.BrandName!),
-                Formats: [
-                  ..gg.Select(p => new ProductFormat(
-                    new AQuantity(p.Quantity, p.UnitOfMeasure!),
-                    new Price(p.Price),
-                    p.ImageUrl!))
-                ]
-              ))
-          ]
-        ))
+  ) {
+    internal List<MarketImport> ToMarkets() => [
+      ..Products.GroupBy(product => new MarketName(product.MarketName!))
+        .Select(marketGroup => new MarketImport(
+          marketGroup.Key,
+          [
+            ..marketGroup.GroupBy(product => (
+              Name: new ProductName(product.Name!),
+              Brand: new BrandName(product.BrandName!)))
+              .Select(productGroup => new ProductImport(
+                productGroup.Key.Name,
+                productGroup.Key.Brand,
+                [
+                  ..productGroup.Select(product => new ProductFormatImport(
+                    new Quantity(
+                      (decimal)product.Quantity,
+                      new UnitOfMeasure(product.UnitOfMeasure!)),
+                    new Money(product.Price),
+                    product.ImageUrl is null ? null : new ImageUrl(product.ImageUrl)))
+                ]))
+          ]))
     ];
   }
 
-  internal class Handler(
-    IValidator<Command> validator,
+  public class Handler(
     IMarketRepository marketRepository,
+    IProductRepository productRepository,
+    IPriceSnapshotRepository priceSnapshotRepository,
     IServiceScopeFactory scopeFactory,
     ILogger<Handler> logger
   ) : CancellableCommandHandler<Command>(scopeFactory, logger) {
-    private List<Market> _addedMarkets = [];
-    private List<ProductBrand> _addedBrands = [];
-    private readonly List<int> _addedProductIds = [];
-    private readonly List<string> _completedMarketNames = [];
+    private List<MarketName> _addedMarkets = [];
+    private List<BrandName> _addedBrands = [];
+    private readonly List<ProductId> _addedProductIds = [];
+    private readonly List<ProductFormatId> _addedProductFormatIds = [];
+    private readonly List<MarketName> _completedMarkets = [];
 
     protected override bool HasRollbackWork =>
-      _completedMarketNames.Count > 0 ||
+      _completedMarkets.Count > 0 ||
       _addedProductIds.Count > 0 ||
+      _addedProductFormatIds.Count > 0 ||
       _addedBrands.Count > 0 ||
       _addedMarkets.Count > 0;
 
-    protected override async Task<Result> ExecuteAsync(
-      Command command, CancellationToken cancellationToken
+    protected override async Task ExecuteAsync(
+      Command command,
+      CancellationToken cancellationToken
     ) {
-      ValidationResult validationResult = await validator.ValidateAsync(command, cancellationToken);
-      if (!validationResult.IsValid) {
-        return validationResult.ToDomainErrors();
+      ArgumentNullException.ThrowIfNull(command);
+      ArgumentNullException.ThrowIfNull(command.Products);
+
+      if (command.Products.Count == 0) {
+        throw new EmptyMarketProductsException();
+      }
+      if (command.RegisteredAt < new DateOnly(2023, 1, 1)) {
+        throw new InvalidMarketProductsRegisteredAtException(
+          command.RegisteredAt);
       }
 
-      List<Market> markets = command.ToMarkets();
+      List<MarketImport> markets = command.ToMarkets();
+      EnsureProductsAreUnique(command.Products);
+      await EnsureUnitsAreSupportedAsync(markets, cancellationToken);
 
       await AddMarketsAsync(markets, cancellationToken);
       await AddBrandsAsync(markets, cancellationToken);
-      await AddProductsAsync(command, markets, cancellationToken);
+      await AddProductsAndSnapshotsAsync(command, markets, cancellationToken);
+    }
 
-      return Result.Success();
+    private static void EnsureProductsAreUnique(
+      IReadOnlyCollection<CommandProduct> products
+    ) {
+      CommandProduct? duplicate = products
+        .GroupBy(product => (
+          product.Name,
+          product.MarketName,
+          product.BrandName))
+        .Where(group => group.Count() > 1)
+        .Select(group => group.First())
+        .FirstOrDefault();
+
+      if (duplicate is not null) {
+        throw new DuplicateMarketProductException(
+          duplicate.Name,
+          duplicate.MarketName,
+          duplicate.BrandName);
+      }
+    }
+
+    private async Task EnsureUnitsAreSupportedAsync(
+      IEnumerable<MarketImport> markets,
+      CancellationToken cancellationToken
+    ) {
+      IEnumerable<string> units = markets
+        .SelectMany(market => market.Products)
+        .SelectMany(product => product.Formats)
+        .Select(format => format.Quantity.UnitOfMeasure.Value)
+        .Distinct(StringComparer.OrdinalIgnoreCase);
+
+      foreach (string unit in units) {
+        if (!await marketRepository.CheckUnitOfMeasureIsSupportedAsync(
+          unit,
+          cancellationToken)) {
+          throw new UnsupportedUnitOfMeasureException(unit);
+        }
+      }
     }
 
     private async Task AddMarketsAsync(
-      List<Market> markets, CancellationToken cancellationToken
+      IReadOnlyCollection<MarketImport> markets,
+      CancellationToken cancellationToken
     ) {
       List<Market> existingMarkets = await marketRepository.GetMarketsAsync(
         cancellationToken);
-      var newMarkets = markets.Where(m =>
-        !existingMarkets.Any(em => em.Name.Equals(m.Name, StringComparison.OrdinalIgnoreCase)))
-        .ToList();
+      List<MarketName> newMarkets = [
+        ..markets.Select(market => market.Name)
+          .Where(name => !existingMarkets.Any(existing =>
+            string.Equals(
+              existing.Name.Value,
+              name.Value,
+              StringComparison.OrdinalIgnoreCase)))
+      ];
 
       if (newMarkets.Count != 0) {
         await marketRepository.AddMarketsAsync(newMarkets, cancellationToken);
@@ -97,159 +151,95 @@ public static class AddMarketProducts {
     }
 
     private async Task AddBrandsAsync(
-      List<Market> markets, CancellationToken cancellationToken
+      IReadOnlyCollection<MarketImport> markets,
+      CancellationToken cancellationToken
     ) {
-      var brands = markets.SelectMany(m => m.Products)
-        .Select(p => p.Brand)
-        .DistinctBy(b => b.Name)
-        .ToList();
+      List<BrandName> brands = [
+        ..markets.SelectMany(market => market.Products)
+          .Select(product => product.Brand)
+          .DistinctBy(brand => brand.Value, StringComparer.OrdinalIgnoreCase)
+      ];
 
-      List<ProductBrand> existingBrands = await marketRepository.GetBrandsAsync(
-        cancellationToken);
-      var newBrands = brands.Where(b =>
-        !existingBrands.Any(eb => eb.Name.Equals(b.Name, StringComparison.OrdinalIgnoreCase)))
-        .ToList();
+      IReadOnlyCollection<BrandName> existingBrands =
+        await productRepository.GetBrandsAsync(cancellationToken);
+      List<BrandName> newBrands = [
+        ..brands.Where(brand => !existingBrands.Any(existing =>
+          string.Equals(
+            existing.Value,
+            brand.Value,
+            StringComparison.OrdinalIgnoreCase)))
+      ];
 
       if (newBrands.Count != 0) {
-        await marketRepository.AddBrandsAsync(newBrands, cancellationToken);
+        await productRepository.AddBrandsAsync(newBrands, cancellationToken);
         _addedBrands = newBrands;
       }
     }
 
-    private async Task AddProductsAsync(
-      Command command, List<Market> markets, CancellationToken cancellationToken
+    private async Task AddProductsAndSnapshotsAsync(
+      Command command,
+      IReadOnlyCollection<MarketImport> markets,
+      CancellationToken cancellationToken
     ) {
-      foreach (Market market in markets) {
-        IReadOnlyCollection<int> addedIds = await marketRepository
-          .AddMarketProductsAsync(market, command.RegisteredAt, cancellationToken);
-        _addedProductIds.AddRange(addedIds);
-        _completedMarketNames.Add(market.Name);
+      var observedAt = command.RegisteredAt.ToDateTime(
+        TimeOnly.MinValue,
+        DateTimeKind.Utc);
+
+      foreach (MarketImport market in markets) {
+        ProductImportResult result = await productRepository.ResolveProductsAsync(
+          market,
+          observedAt,
+          cancellationToken);
+        _addedProductIds.AddRange(result.AddedProductIds);
+        _addedProductFormatIds.AddRange(result.AddedProductFormatIds);
+        _completedMarkets.Add(market.Name);
+        await priceSnapshotRepository.AppendAsync(
+          result.PriceObservations,
+          cancellationToken);
       }
     }
 
     protected override async Task RollbackAsync(
-      Command command, IServiceProvider services, CancellationToken cancellationToken
+      Command command,
+      IServiceProvider services,
+      CancellationToken cancellationToken
     ) {
-      IMarketRepository repo = services.GetRequiredService<IMarketRepository>();
+      ArgumentNullException.ThrowIfNull(command);
 
-      if (_completedMarketNames.Count > 0) {
-        await repo.DeletePriceSnapshotsForMarketsAsync(
-          _completedMarketNames, command.RegisteredAt, cancellationToken);
+      IMarketRepository marketRepo = services.GetRequiredService<IMarketRepository>();
+      IProductRepository productRepo = services.GetRequiredService<IProductRepository>();
+      IPriceSnapshotRepository snapshotRepo =
+        services.GetRequiredService<IPriceSnapshotRepository>();
+
+      if (_completedMarkets.Count > 0) {
+        var observedAt = command.RegisteredAt.ToDateTime(
+          TimeOnly.MinValue,
+          DateTimeKind.Utc);
+        await snapshotRepo.DeleteForMarketsAsync(
+          _completedMarkets,
+          observedAt,
+          cancellationToken);
+      }
+      if (_addedProductFormatIds.Count > 0) {
+        await productRepo.DeleteProductFormatsAsync(
+          _addedProductFormatIds,
+          cancellationToken);
       }
       if (_addedProductIds.Count > 0) {
-        await repo.DeleteProductsAsync(_addedProductIds, cancellationToken);
+        await productRepo.DeleteProductsAsync(
+          _addedProductIds,
+          cancellationToken);
       }
       if (_addedBrands.Count > 0) {
-        await repo.DeleteBrandsAsync(
-          [.. _addedBrands.Select(b => b.Name)], cancellationToken);
+        await productRepo.DeleteBrandsAsync(
+          _addedBrands,
+          cancellationToken);
       }
       if (_addedMarkets.Count > 0) {
-        await repo.DeleteMarketsAsync(
-          [.. _addedMarkets.Select(m => m.Name)], cancellationToken);
+        await marketRepo.DeleteMarketsAsync(
+          _addedMarkets,
+          cancellationToken);
       }
     }
-  }
-
-  internal class Validator : AbstractValidator<Command> {
-    public Validator(IMarketRepository marketRepository) {
-      RuleFor(x => x.Products)
-        .NotEmpty()
-        .WithMessage("At least one product must be provided.")
-        .WithErrorCode("Market.Products.Empty");
-
-      RuleFor(x => x.RegisteredAt)
-        .Must(registeredAt => registeredAt >= DateOnly.FromDateTime(
-          new DateTime(2023, 1, 1, 0, 0, 0, DateTimeKind.Utc)))
-        .WithMessage(command =>
-          $"RegisteredAt '{command.RegisteredAt:yyyy-MM-dd}' must be on or after January 1, 2023.")
-        .WithErrorCode("Market.RegisteredAt.TooOld");
-
-      RuleForEach(x => x.Products)
-        .ChildRules(product => {
-          product.RuleFor(x => x.Name)
-            .NotEmpty()
-            .WithMessage("Product name must not be empty.")
-            .WithErrorCode("Market.Product.Name.Empty");
-
-          product.RuleFor(x => x.MarketName)
-            .NotEmpty()
-            .WithMessage("Market name must not be empty.")
-            .WithErrorCode("Market.Product.MarketName.Empty");
-
-          product.RuleFor(x => x.BrandName)
-            .NotEmpty()
-            .WithMessage("Brand name must not be empty.")
-            .WithErrorCode("Market.Product.BrandName.Empty");
-
-          product.RuleFor(x => x.UnitOfMeasure)
-            .NotEmpty()
-            .WithMessage("Product unit of measure must not be empty.")
-            .WithErrorCode("Market.Product.UnitOfMeasure.Empty");
-
-          product.RuleFor(x => x.Quantity)
-            .GreaterThan(0)
-            .WithMessage(command =>
-              $"Product quantity '{command.Quantity}' must be greater than 0.")
-            .WithErrorCode("Market.Product.Quantity.NonPositive");
-
-          product.RuleFor(x => x.Price)
-            .Must(PricePolicy.IsValidPrice)
-            .WithMessage((_, price) =>
-              $"Product price '{price.ToString(CultureInfo.InvariantCulture)}' must be greater than or equal to 0.")
-            .WithErrorCode("Market.Product.Price.Negative");
-        });
-
-      RuleForEach(x => x.Products)
-        .Where(HasProductIdentity)
-        .Must((command, product) => !command.Products.Any(p =>
-          p != product &&
-          HasProductIdentity(p) &&
-          p.Name == product.Name &&
-          p.MarketName == product.MarketName &&
-          p.BrandName == product.BrandName
-        ))
-        .WithMessage((_, product) =>
-          "Each product must be unique in name, market and brand combination. " +
-          $"Repeated product: {DescribeProduct(product)}.")
-        .WithErrorCode("Market.Product.Duplicate");
-
-      // Check if unique unit of measures are supported
-      RuleFor(x => x.Products)
-        .MustAsync(async (products, cancellationToken) => {
-          IEnumerable<string> uniqueUnits = products
-            .Select(p => p.UnitOfMeasure)
-            .Where(u => !string.IsNullOrWhiteSpace(u))
-            .Select(u => u!.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase);
-
-          foreach (string unit in uniqueUnits) {
-            if (!await marketRepository.CheckUnitOfMeasureIsSupportedAsync(unit, cancellationToken)) {
-              return false;
-            }
-          }
-          return true;
-        })
-        .WithMessage(command => {
-          IEnumerable<string> uniqueUnits = command.Products
-            .Select(p => p.UnitOfMeasure)
-            .Where(u => !string.IsNullOrWhiteSpace(u))
-            .Select(u => u!.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase);
-
-          return $"The following units of measure are not supported: " +
-                 $"{string.Join(", ", uniqueUnits)}.";
-        })
-        .WithErrorCode("Market.Product.UnitOfMeasure.Unsupported");
-
-    }
-
-    private static bool HasProductIdentity(CommandProduct product) =>
-      !string.IsNullOrWhiteSpace(product.Name) &&
-      !string.IsNullOrWhiteSpace(product.MarketName) &&
-      !string.IsNullOrWhiteSpace(product.BrandName);
-
-    private static string DescribeProduct(CommandProduct product) =>
-      $"name '{product.Name}', market '{product.MarketName}', " +
-      $"brand '{product.BrandName}'";
   }
 }

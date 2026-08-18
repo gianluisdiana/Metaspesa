@@ -1,14 +1,14 @@
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Abstractions.Shopping;
-using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.Shopping;
+using MarketProductRepository = Metaspesa.Application.Abstractions.Markets.IProductRepository;
 
 namespace Metaspesa.Application.Shopping;
 
 public static class GetShoppingList {
   public record ResponseItem(
-    string ProductName, int Amount, ProductFormat Format, bool IsChecked);
+    string ProductName, int Amount, MarketProductFormat Format, bool IsChecked);
   public record Response(
     string? ShoppingListName,
     IReadOnlyCollection<ResponseItem> Items
@@ -17,7 +17,7 @@ public static class GetShoppingList {
 
   internal class Handler(
     IShoppingRepository shoppingRepository,
-    IMarketRepository marketRepository
+    MarketProductRepository productRepository
   ) : IQueryHandler<Query, Response> {
     public async Task<Result<Response>> Handle(
       Query query, CancellationToken cancellationToken = default
@@ -38,7 +38,7 @@ public static class GetShoppingList {
         ..shoppingList.Items.Select(i => i.ReferenceUid)
       ];
 
-      IReadOnlyDictionary<int, MarketProduct> marketProducts = await marketRepository
+      IReadOnlyDictionary<int, MarketProduct> marketProducts = await productRepository
         .GetProductsAsync(referencesId, cancellationToken);
 
       var items = shoppingList.Items.Select(i => new ResponseItem(
