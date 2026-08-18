@@ -1,69 +1,41 @@
 using Metaspesa.Database.Entities;
 using Metaspesa.Domain.Markets;
+using Metaspesa.Domain.Markets.Errors;
+using Metaspesa.Domain.SharedKernel;
 
 namespace Metaspesa.Database.UnitTests;
 
-public class PriceSnapshotDbEntityTest {
-  [Fact(DisplayName = "Maps format quantity value to domain format")]
-  public void Entity_MapsToDomainFormat_WithQuantityValue() {
-    // Arrange
-    PriceSnapshotDbEntity entity = History(quantity: 500);
+public static class PriceSnapshotDbEntityTest {
+  [Fact(DisplayName = "Maps persisted price snapshot to immutable domain observation")]
+  public static void Entity_MapsToPriceSnapshot() {
+    var observedAt = new DateTime(
+      2026, 7, 28, 12, 0, 0, DateTimeKind.Unspecified);
+    var entity = new PriceSnapshotDbEntity {
+      Id = 5,
+      ProductFormatId = 7,
+      PriceAmount = 1.99m,
+      ObservedAt = observedAt,
+    };
 
-    // Act
-    ProductFormat result = entity.MapToDomainFormat();
+    PriceSnapshot snapshot = entity.MapToDomain();
 
-    // Assert
-    Assert.Equal(500, result.Quantity.Value);
+    Assert.Equal(new PriceSnapshotId(5), snapshot.Id);
+    Assert.Equal(new ProductFormatId(7), snapshot.ProductFormatId);
+    Assert.Equal(new Money(1.99m), snapshot.Price);
+    Assert.Equal(DateTimeKind.Utc, snapshot.ObservedAt.Kind);
+    Assert.Equal(observedAt, snapshot.ObservedAt);
   }
 
-  [Fact(DisplayName = "Maps format unit of measure to domain format")]
-  public void Entity_MapsToDomainFormat_WithUnitOfMeasure() {
-    // Arrange
-    PriceSnapshotDbEntity entity = History(unitOfMeasure: "ml");
+  [Fact(DisplayName = "Throws specific exception for invalid persisted snapshot id")]
+  public static void Entity_ThrowsSpecificException_WhenSnapshotIdIsInvalid() {
+    var entity = new PriceSnapshotDbEntity {
+      Id = 0,
+      ProductFormatId = 7,
+      PriceAmount = 1.99m,
+      ObservedAt = new DateTime(
+        2026, 7, 28, 0, 0, 0, DateTimeKind.Unspecified),
+    };
 
-    // Act
-    ProductFormat result = entity.MapToDomainFormat();
-
-    // Assert
-    Assert.Equal("ml", result.Quantity.UnitOfMeasure);
+    Assert.Throws<InvalidPriceSnapshotIdException>(entity.MapToDomain);
   }
-
-  [Fact(DisplayName = "Maps history price to domain format")]
-  public void Entity_MapsToDomainFormat_WithPrice() {
-    // Arrange
-    PriceSnapshotDbEntity entity = History(price: 2.49m);
-
-    // Act
-    ProductFormat result = entity.MapToDomainFormat();
-
-    // Assert
-    Assert.Equal(2.49m, result.Price.Value);
-  }
-
-  [Fact(DisplayName = "Maps format image URL to domain format")]
-  public void Entity_MapsToDomainFormat_WithImageUrl() {
-    // Arrange
-    var imageUrl = new Uri("https://example.com/milk.png");
-    PriceSnapshotDbEntity entity = History(imageUrl: imageUrl.ToString());
-
-    // Act
-    ProductFormat result = entity.MapToDomainFormat();
-
-    // Assert
-    Assert.Equal(imageUrl, result.ImageUrl);
-  }
-
-  private static PriceSnapshotDbEntity History(
-    decimal price = 1.99m,
-    decimal quantity = 1,
-    string unitOfMeasure = "L",
-    string imageUrl = "https://example.com/product.png"
-  ) => new() {
-    PriceAmount = price,
-    ProductFormat = new ProductFormatDbEntity {
-      Quantity = quantity,
-      ImageUrl = imageUrl,
-      UnitOfMeasure = new UnitOfMeasureDbEntity { Code = unitOfMeasure }
-    }
-  };
 }

@@ -1,0 +1,147 @@
+using Metaspesa.Application.Abstractions.Markets;
+using Metaspesa.Database.Entities;
+using Metaspesa.Database.Repositories;
+using Metaspesa.Domain.Markets;
+using Metaspesa.Domain.SharedKernel;
+using Microsoft.EntityFrameworkCore;
+
+namespace Metaspesa.Database.IntegrationTests.Markets;
+
+[Collection("Database")]
+public class PostgreSqlPriceSnapshotRepositoryTest : IAsyncLifetime {
+  private readonly DatabaseFixture _fixture;
+  private readonly MainContext _context;
+  private readonly PostgreSqlMarketProductRepository _productRepository;
+  private readonly PostgreSqlPriceSnapshotRepository _snapshotRepository;
+
+  public PostgreSqlPriceSnapshotRepositoryTest(DatabaseFixture fixture) {
+    _fixture = fixture;
+    _context = fixture.CreateContext();
+    _productRepository = new PostgreSqlMarketProductRepository(_context);
+    _snapshotRepository = new PostgreSqlPriceSnapshotRepository(_context);
+  }
+
+  public async ValueTask InitializeAsync() {
+    CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+    await _fixture.DeleteShoppingProductReferencesAsync(cancellationToken);
+    await _context.PriceSnapshots.ExecuteDeleteAsync(cancellationToken);
+    await _context.ProductFormats.ExecuteDeleteAsync(cancellationToken);
+    await _context.Products.ExecuteDeleteAsync(cancellationToken);
+    await _context.ProductBrands.ExecuteDeleteAsync(cancellationToken);
+    await _context.SuperMarkets.ExecuteDeleteAsync(cancellationToken);
+    await EnsureUnitOfMeasureAsync("l");
+    await EnsureUnitOfMeasureAsync("kg");
+  }
+
+  public async ValueTask DisposeAsync() {
+    await _context.DisposeAsync();
+    GC.SuppressFinalize(this);
+  }
+
+  [Fact(DisplayName = "Loads immutable price snapshot by typed id")]
+  public async Task Repository_LoadsPriceSnapshot_ByTypedId() {
+    await ResolveAndAppendAsync();
+    int snapshotId = await _context.PriceSnapshots
+      .Select(snapshot => snapshot.Id)
+      .SingleAsync(TestContext.Current.CancellationToken);
+
+    PriceSnapshot? snapshot = await _snapshotRepository.GetByIdAsync(
+      new PriceSnapshotId(snapshotId),
+      TestContext.Current.CancellationToken);
+
+    Assert.NotNull(snapshot);
+    Assert.Equal(new PriceSnapshotId(snapshotId), snapshot.Id);
+    Assert.Equal(new Money(1.99m), snapshot.Price);
+    Assert.Equal(DateTimeKind.Utc, snapshot.ObservedAt.Kind);
+  }
+
+
+  [Fact(DisplayName = "Appends every observation as a new snapshot")]
+  public async Task Repository_AppendsSnapshots_WithoutUpdatingExistingRows() {
+    ProductImportResult result = await ResolveAndAppendAsync();
+    ProductFormatId formatId = Assert.Single(result.PriceObservations).ProductFormatId;
+
+    await _snapshotRepository.AppendAsync(
+      [new PriceObservation(
+        formatId,
+        new Money(2.49m),
+        UtcDate(2026, 7, 29))],
+      TestContext.Current.CancellationToken);
+
+    List<decimal> prices = await _context.PriceSnapshots
+      .OrderBy(snapshot => snapshot.ObservedAt)
+      .Select(snapshot => snapshot.PriceAmount)
+      .ToListAsync(TestContext.Current.CancellationToken);
+    Assert.Equal([1.99m, 2.49m], prices);
+  }
+
+  [Fact(DisplayName = "Deletes only snapshots for matching market and observation")]
+  public async Task Repository_DeletesSnapshots_ForMatchingOperationOnly() {
+    ProductImportResult result = await ResolveAndAppendAsync();
+    ProductFormatId formatId = Assert.Single(result.PriceObservations).ProductFormatId;
+    await _snapshotRepository.AppendAsync(
+      [new PriceObservation(
+        formatId,
+        new Money(2.49m),
+        UtcDate(2026, 7, 29))],
+      TestContext.Current.CancellationToken);
+
+    await _snapshotRepository.DeleteForMarketsAsync(
+      [new MarketName("Mercadona")],
+      UtcDate(2026, 7, 28),
+      TestContext.Current.CancellationToken);
+
+    PriceSnapshotDbEntity remaining = await _context.PriceSnapshots
+      .AsNoTracking()
+      .SingleAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(2.49m, remaining.PriceAmount);
+    Assert.Equal(UtcDate(2026, 7, 29), remaining.ObservedAt);
+  }
+
+  private async Task<ProductImportResult> ResolveAndAppendAsync() {
+    MarketImport market = await CreateMarketImportAsync();
+    ProductImportResult result =
+      await _productRepository.ResolveProductsAsync(
+      market,
+      UtcDate(2026, 7, 28),
+      TestContext.Current.CancellationToken);
+    await _snapshotRepository.AppendAsync(
+      result.PriceObservations,
+      TestContext.Current.CancellationToken);
+    return result;
+  }
+
+  private async Task<MarketImport> CreateMarketImportAsync() {
+    _context.SuperMarkets.Add(new SuperMarketDbEntity { Name = "Mercadona" });
+    _context.ProductBrands.Add(new ProductBrandDbEntity { Name = "Brand" });
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+    return new MarketImport(
+      new MarketName("Mercadona"),
+      [new ProductImport(
+        new ProductName("Milk"),
+        new BrandName("Brand"),
+        [new ProductFormatImport(
+          new Quantity(1, new UnitOfMeasure("l")),
+          new Money(1.99m),
+          new ImageUrl(new Uri("https://example.com/milk.png")))])]);
+  }
+
+  private async Task EnsureUnitOfMeasureAsync(string code) {
+    bool exists = await _context.UnitsOfMeasure.AnyAsync(
+      unit => unit.Code == code,
+      TestContext.Current.CancellationToken);
+    if (exists) {
+      return;
+    }
+
+    _context.UnitsOfMeasure.Add(new UnitOfMeasureDbEntity {
+      Code = code,
+      Name = $"Test unit {code}",
+    });
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+  }
+
+  private static DateTime UtcDate(int year, int month, int day) =>
+    new(year, month, day, 0, 0, 0, DateTimeKind.Utc);
+}

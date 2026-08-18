@@ -1,0 +1,273 @@
+using Metaspesa.Application.Abstractions.Core;
+using Metaspesa.Application.Abstractions.Markets;
+using Metaspesa.Database.Entities;
+using Metaspesa.Database.Repositories;
+using Metaspesa.Domain.Markets;
+using Metaspesa.Domain.SharedKernel;
+using Microsoft.EntityFrameworkCore;
+
+namespace Metaspesa.Database.IntegrationTests.Markets;
+
+[Collection("Database")]
+public class PostgreSqlMarketProductRepositoryTests : IAsyncLifetime {
+  private readonly DatabaseFixture _fixture;
+  private readonly MainContext _context;
+  private readonly PostgreSqlMarketProductRepository _productRepository;
+  private readonly PostgreSqlPriceSnapshotRepository _snapshotRepository;
+
+  public PostgreSqlMarketProductRepositoryTests(DatabaseFixture fixture) {
+    _fixture = fixture;
+    _context = fixture.CreateContext();
+    _productRepository = new PostgreSqlMarketProductRepository(_context);
+    _snapshotRepository = new PostgreSqlPriceSnapshotRepository(_context);
+  }
+
+  public async ValueTask InitializeAsync() {
+    CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+    await _fixture.DeleteShoppingProductReferencesAsync(cancellationToken);
+    await _context.PriceSnapshots.ExecuteDeleteAsync(cancellationToken);
+    await _context.ProductFormats.ExecuteDeleteAsync(cancellationToken);
+    await _context.Products.ExecuteDeleteAsync(cancellationToken);
+    await _context.ProductBrands.ExecuteDeleteAsync(cancellationToken);
+    await _context.SuperMarkets.ExecuteDeleteAsync(cancellationToken);
+    await EnsureUnitOfMeasureAsync("l");
+    await EnsureUnitOfMeasureAsync("kg");
+  }
+
+  public async ValueTask DisposeAsync() {
+    await _context.DisposeAsync();
+    GC.SuppressFinalize(this);
+  }
+
+  [Fact(DisplayName = "Persists and returns typed brand names")]
+  public async Task Repository_PersistsAndLoads_BrandNames() {
+    await _productRepository.AddBrandsAsync(
+      [new BrandName("Brand")],
+      TestContext.Current.CancellationToken);
+
+    IReadOnlyCollection<BrandName> brands =
+      await _productRepository.GetBrandsAsync(
+      TestContext.Current.CancellationToken);
+
+    Assert.Equal(new BrandName("Brand"), Assert.Single(brands));
+  }
+
+  [Fact(DisplayName = "Resolves products before appending snapshots")]
+  public async Task Repository_ResolvesProducts_SeparatelyFromSnapshots() {
+    MarketImport market = await CreateMarketImportAsync();
+    DateTime observedAt = UtcDate(2026, 7, 28);
+
+    ProductImportResult result = await _productRepository.ResolveProductsAsync(
+      market, observedAt, TestContext.Current.CancellationToken);
+
+    ProductId productId = Assert.Single(result.AddedProductIds);
+    Assert.Single(result.AddedProductFormatIds);
+    PriceObservation observation = Assert.Single(result.PriceObservations);
+    Assert.Equal(new Money(1.99m), observation.Price);
+    Assert.Equal(observedAt, observation.ObservedAt);
+    Assert.Equal(0, await _context.PriceSnapshots.CountAsync(
+      TestContext.Current.CancellationToken));
+    Assert.True(await _context.Products.AnyAsync(
+      product => product.Id == productId.Value,
+      TestContext.Current.CancellationToken));
+
+    await _snapshotRepository.AppendAsync(
+      result.PriceObservations,
+      TestContext.Current.CancellationToken);
+
+    PriceSnapshotDbEntity snapshot = await _context.PriceSnapshots
+      .AsNoTracking()
+      .SingleAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(observation.ProductFormatId.Value, snapshot.ProductFormatId);
+    Assert.Equal(1.99m, snapshot.PriceAmount);
+    Assert.Equal("EUR", snapshot.CurrencyCode);
+    Assert.Equal(observedAt, snapshot.ObservedAt);
+  }
+
+  [Fact(DisplayName = "Loads product aggregate without price history")]
+  public async Task Repository_LoadsProduct_WithoutPriceSnapshots() {
+    ProductImportResult result = await ResolveAndAppendAsync();
+
+    Product? product = await _productRepository.GetByIdAsync(
+      Assert.Single(result.AddedProductIds),
+      TestContext.Current.CancellationToken);
+
+    Assert.NotNull(product);
+    Assert.Equal(new ProductName("Milk"), product.Name);
+    Assert.Equal(new BrandName("Brand"), product.Brand);
+    ProductFormat format = Assert.Single(product.Formats);
+    Assert.Equal(new Quantity(1, new UnitOfMeasure("l")), format.Quantity);
+    Assert.DoesNotContain(
+      typeof(Product).GetProperties(),
+      property => property.PropertyType == typeof(PriceSnapshot));
+    Assert.DoesNotContain(
+      typeof(ProductFormat).GetProperties(),
+      property => property.PropertyType == typeof(PriceSnapshot));
+  }
+
+  [Fact(DisplayName = "Catalog returns latest snapshot without adding it to product")]
+  public async Task Repository_ProjectsLatestSnapshot_InCatalog() {
+    ProductImportResult result = await ResolveAndAppendAsync();
+    ProductFormatId formatId = Assert.Single(result.PriceObservations).ProductFormatId;
+    await _snapshotRepository.AppendAsync(
+      [new PriceObservation(
+        formatId,
+        new Money(2.49m),
+        UtcDate(2026, 7, 29))],
+      TestContext.Current.CancellationToken);
+
+    PagedResult<MarketCatalog> resultPage =
+      await _productRepository.GetProductsAsync(
+      new GetMarketProductsFilter(null, null, null, Pagination.Infinite),
+      TestContext.Current.CancellationToken);
+
+    MarketCatalog catalog = Assert.Single(resultPage.Values);
+    MarketProduct product = Assert.Single(catalog.Products);
+    MarketProductFormat format = Assert.Single(product.Formats);
+    Assert.Equal("Mercadona", catalog.Name);
+    Assert.Equal("Milk", product.Name);
+    Assert.Equal("Brand", product.BrandName);
+    Assert.Equal(new Money(2.49m), format.Price);
+    Assert.Equal(1, resultPage.TotalCount);
+  }
+
+  [Fact(DisplayName = "Catalog applies market, brand, name, and pagination filters")]
+  public async Task Repository_AppliesCatalogFilters_AndPagination() {
+    await ResolveAndAppendAsync();
+
+    PagedResult<MarketCatalog> matching =
+      await _productRepository.GetProductsAsync(
+      new GetMarketProductsFilter(
+        "Mercadona",
+        "ran",
+        "Mil",
+        new Pagination(1, 1)),
+      TestContext.Current.CancellationToken);
+    PagedResult<MarketCatalog> missing =
+      await _productRepository.GetProductsAsync(
+      new GetMarketProductsFilter(
+        "Other",
+        null,
+        null,
+        Pagination.Infinite),
+      TestContext.Current.CancellationToken);
+
+    Assert.Single(matching.Values);
+    Assert.Equal(1, matching.TotalCount);
+    Assert.Empty(missing.Values);
+    Assert.Equal(0, missing.TotalCount);
+  }
+
+  [Fact(DisplayName = "Returns shopping enrichment model by product format id")]
+  public async Task Repository_ReturnsReadModel_ByProductFormatId() {
+    ProductImportResult result = await ResolveAndAppendAsync();
+    ProductFormatId formatId = Assert.Single(result.PriceObservations).ProductFormatId;
+
+    IReadOnlyDictionary<int, MarketProduct> products =
+      await _productRepository.GetProductsAsync(
+        [formatId.Value],
+        TestContext.Current.CancellationToken);
+
+    MarketProduct product = products[formatId.Value];
+    Assert.Equal("Milk", product.Name);
+    Assert.Equal("Brand", product.BrandName);
+    Assert.Equal(new Money(1.99m), Assert.Single(product.Formats).Price);
+  }
+
+  [Fact(DisplayName = "Deletes product formats and snapshots created by import")]
+  public async Task Repository_DeletesProductGraph_ByTypedProductId() {
+    ProductImportResult result = await ResolveAndAppendAsync();
+
+    await _productRepository.DeleteProductsAsync(
+      result.AddedProductIds,
+      TestContext.Current.CancellationToken);
+
+    Assert.Equal(0, await _context.Products.CountAsync(
+      TestContext.Current.CancellationToken));
+    Assert.Equal(0, await _context.ProductFormats.CountAsync(
+      TestContext.Current.CancellationToken));
+    Assert.Equal(0, await _context.PriceSnapshots.CountAsync(
+      TestContext.Current.CancellationToken));
+  }
+
+  [Fact(DisplayName = "Deletes new format without deleting existing product")]
+  public async Task Repository_DeletesNewFormat_WithoutDeletingExistingProduct() {
+    await ResolveAndAppendAsync();
+    var secondImport = new MarketImport(
+      new MarketName("Mercadona"),
+      [new ProductImport(
+        new ProductName("Milk"),
+        new BrandName("Brand"),
+        [new ProductFormatImport(
+          new Quantity(2, new UnitOfMeasure("kg")),
+          new Money(3.49m),
+          null)])]);
+    ProductImportResult secondResult =
+      await _productRepository.ResolveProductsAsync(
+      secondImport,
+      UtcDate(2026, 7, 29),
+      TestContext.Current.CancellationToken);
+
+    Assert.Empty(secondResult.AddedProductIds);
+    ProductFormatId addedFormatId = Assert.Single(
+      secondResult.AddedProductFormatIds);
+    await _productRepository.DeleteProductFormatsAsync(
+      [addedFormatId],
+      TestContext.Current.CancellationToken);
+
+    Assert.Equal(1, await _context.Products.CountAsync(
+      TestContext.Current.CancellationToken));
+    Assert.Equal(1, await _context.ProductFormats.CountAsync(
+      TestContext.Current.CancellationToken));
+  }
+
+  private async Task<ProductImportResult> ResolveAndAppendAsync() {
+    MarketImport market = await CreateMarketImportAsync();
+    ProductImportResult result =
+      await _productRepository.ResolveProductsAsync(
+      market,
+      UtcDate(2026, 7, 28),
+      TestContext.Current.CancellationToken);
+    await _snapshotRepository.AppendAsync(
+      result.PriceObservations,
+      TestContext.Current.CancellationToken);
+    return result;
+  }
+
+  private async Task<MarketImport> CreateMarketImportAsync() {
+    _context.SuperMarkets.Add(new SuperMarketDbEntity { Name = "Mercadona" });
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+    await _productRepository.AddBrandsAsync(
+      [new BrandName("Brand")],
+      TestContext.Current.CancellationToken);
+
+    return new MarketImport(
+      new MarketName("Mercadona"),
+      [new ProductImport(
+        new ProductName("Milk"),
+        new BrandName("Brand"),
+        [new ProductFormatImport(
+          new Quantity(1, new UnitOfMeasure("l")),
+          new Money(1.99m),
+          new ImageUrl(new Uri("https://example.com/milk.png")))])]);
+  }
+
+  private async Task EnsureUnitOfMeasureAsync(string code) {
+    bool exists = await _context.UnitsOfMeasure.AnyAsync(
+      unit => unit.Code == code,
+      TestContext.Current.CancellationToken);
+    if (exists) {
+      return;
+    }
+
+    _context.UnitsOfMeasure.Add(new UnitOfMeasureDbEntity {
+      Code = code,
+      Name = $"Test unit {code}",
+    });
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+  }
+
+  private static DateTime UtcDate(int year, int month, int day) =>
+    new(year, month, day, 0, 0, 0, DateTimeKind.Utc);
+}

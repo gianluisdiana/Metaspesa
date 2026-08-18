@@ -6,6 +6,8 @@ using Metaspesa.Database.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using MarketProductRepository = Metaspesa.Application.Abstractions.Markets.IProductRepository;
+using ShoppingProductRepository = Metaspesa.Application.Abstractions.Shopping.IProductRepository;
 
 namespace Metaspesa.Database;
 
@@ -34,7 +36,13 @@ public static class DatabaseDependencyInjection {
 
     services.AddScoped<IUserRepository, PostgreSqlUserRepository>();
     services.AddScoped<IMarketRepository, PostgreSqlMarketRepository>();
-    services.AddScoped<IProductRepository, PostgreSqlProductRepository>();
+    services.AddScoped<
+      MarketProductRepository,
+      PostgreSqlMarketProductRepository>();
+    services.AddScoped<
+      IPriceSnapshotRepository,
+      PostgreSqlPriceSnapshotRepository>();
+    services.AddScoped<ShoppingProductRepository, PostgreSqlProductRepository>();
     services.AddScoped<IShoppingRepository, PostgreSqlShoppingRepository>();
 
     return services;
