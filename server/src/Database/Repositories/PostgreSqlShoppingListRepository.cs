@@ -12,7 +12,7 @@ namespace Metaspesa.Database.Repositories;
 internal class PostgreSqlShoppingListRepository(
   MainContext context,
   IClock clock
-) : IShoppingListRepository, IShoppingPurchaseRepository {
+) : IShoppingListRepository {
   public async Task<IReadOnlyCollection<ShoppingList>> GetByOwnerAsync(
     UserId ownerId, CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync<IReadOnlyCollection<ShoppingList>>(
@@ -116,50 +116,6 @@ internal class PostgreSqlShoppingListRepository(
       entity.Items.Add(ToEntity(addition));
     }
   }, "Couldn't update shopping list.");
-
-  public void Record(UserId ownerId, ShoppingList shoppingList) =>
-    PostgreSqlExceptionMapper.Map(() => {
-      var purchaseItems = shoppingList.CheckedItems().Select(checkedItem =>
-        context.PriceSnapshots
-          .Where(snapshot =>
-            snapshot.ProductFormatId == checkedItem.ProductFormatId.Value)
-          .OrderByDescending(snapshot => snapshot.ObservedAt)
-          .ThenByDescending(snapshot => snapshot.Id)
-          .Select(snapshot => new PurchaseItemDbEntity {
-            Amount = checkedItem.Amount.Value,
-            PriceSnapshotId = snapshot.Id,
-          })
-          .First()).ToList();
-
-      context.Purchases.Add(new PurchaseDbEntity {
-        UserUid = ownerId.Value,
-        ShoppingListId = shoppingList.Id?.Value ??
-          throw new InvalidOperationException(
-            "Cannot record an unpersisted shopping list."),
-        PurchasedAt = clock.GetCurrentTime(),
-        Items = purchaseItems,
-      });
-    }, "Couldn't record shopping list.");
-
-  public void Reset(UserId ownerId, ShoppingListName? name) =>
-    PostgreSqlExceptionMapper.Map(() => {
-      string? nameValue = name?.Value;
-      var checkedItems = context.ShoppingItems
-        .Where(item => item.DeletedAt == null &&
-          item.IsChecked &&
-          item.ShoppingList.Ownerships.Any(
-            ownership => ownership.UserUid == ownerId.Value) && (
-            item.ShoppingList.Name == null && nameValue == null ||
-            item.ShoppingList.Name != null &&
-            nameValue != null &&
-            EF.Functions.ILike(item.ShoppingList.Name, nameValue)
-          ))
-        .ToList();
-
-      foreach (ShoppingItemDbEntity item in checkedItems) {
-        item.IsChecked = false;
-      }
-    }, "Couldn't reset shopping list.");
 
   private static ShoppingList ToDomain(ShoppingListDbEntity entity) =>
     ShoppingList.Rehydrate(

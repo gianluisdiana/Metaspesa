@@ -1,5 +1,6 @@
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Markets;
+using Metaspesa.Application.Abstractions.Purchasing;
 using Metaspesa.Application.Abstractions.Shopping;
 using Metaspesa.Application.Abstractions.Users;
 using Metaspesa.Database.Repositories;
@@ -41,8 +42,10 @@ public static class DatabaseDependencyInjection {
     services.AddScoped<PostgreSqlShoppingListRepository>();
     services.AddScoped<IShoppingListRepository>(sp =>
       sp.GetRequiredService<PostgreSqlShoppingListRepository>());
-    services.AddScoped<IShoppingPurchaseRepository>(sp =>
-      sp.GetRequiredService<PostgreSqlShoppingListRepository>());
+    services.AddScoped<IPurchaseRepository, PostgreSqlPurchaseRepository>();
+    services.AddScoped<
+      IPurchasePriceSnapshotReader,
+      PostgreSqlPurchasePriceSnapshotReader>();
 
     return services;
   }
