@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const FILTER_DEBOUNCE_MS = 350;
 
@@ -71,41 +71,21 @@ function BrandFilter({
   );
 }
 
-export default function FilterHeader({ marketNames }: Readonly<Props>) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const nameSegment = searchParams.get('name_segment') ?? '';
-  const marketName = searchParams.get('market_name') ?? '';
-  const brandName = searchParams.get('brand_name') ?? '';
+function FilterControls({
+  brandName,
+  marketName,
+  marketNames,
+  nameSegment,
+  replaceParams,
+}: Readonly<{
+  brandName: string;
+  marketName: string;
+  marketNames: string[];
+  nameSegment: string;
+  replaceParams: (values: Readonly<Record<string, string>>) => void;
+}>) {
   const [pendingNameSegment, setPendingNameSegment] = useState(nameSegment);
   const [pendingBrandName, setPendingBrandName] = useState(brandName);
-
-  const replaceParams = useCallback(
-    (values: Readonly<Record<string, string>>) => {
-      const params = new URLSearchParams(searchParams.toString());
-      Object.entries(values).forEach(([key, value]) => {
-        if (value) {
-          params.set(key, value);
-        } else {
-          params.delete(key);
-        }
-      });
-      const queryString = params.toString();
-      const nextUrl = queryString ? `${pathname}?${queryString}` : pathname;
-      router.replace(nextUrl);
-    },
-    [pathname, router, searchParams],
-  );
-
-  useEffect(() => {
-    setPendingNameSegment(nameSegment);
-  }, [nameSegment]);
-
-  useEffect(() => {
-    setPendingBrandName(brandName);
-  }, [brandName]);
 
   useEffect(() => {
     const timeoutId = globalThis.setTimeout(() => {
@@ -130,24 +110,56 @@ export default function FilterHeader({ marketNames }: Readonly<Props>) {
   ]);
 
   return (
+    <div className="flex flex-wrap gap-unit mt-unit items-center">
+      <SearchBar value={pendingNameSegment} onChange={setPendingNameSegment} />
+      <MarketSelect
+        value={marketName}
+        options={marketNames}
+        onChange={value => replaceParams({ market_name: value })}
+      />
+      <BrandFilter value={pendingBrandName} onChange={setPendingBrandName} />
+    </div>
+  );
+}
+
+export default function FilterHeader({ marketNames }: Readonly<Props>) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const nameSegment = searchParams.get('name_segment') ?? '';
+  const marketName = searchParams.get('market_name') ?? '';
+  const brandName = searchParams.get('brand_name') ?? '';
+
+  function replaceParams(values: Readonly<Record<string, string>>) {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(values).forEach(([key, value]) => {
+      if (value) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+    });
+    const queryString = params.toString();
+    const nextUrl = queryString ? `${pathname}?${queryString}` : pathname;
+    router.replace(nextUrl);
+  }
+
+  return (
     <div className="sticky top-16 z-30 bg-surface/90 backdrop-blur-md border-b border-surface-variant px-container-margin py-stack-md flex flex-col gap-stack-sm shadow-sm shadow-secondary/5">
       <div className="flex items-center justify-between">
         <h1 className="font-headline-lg text-headline-lg text-on-surface">
           {marketName || 'All markets'}
         </h1>
       </div>
-      <div className="flex flex-wrap gap-unit mt-unit items-center">
-        <SearchBar
-          value={pendingNameSegment}
-          onChange={setPendingNameSegment}
-        />
-        <MarketSelect
-          value={marketName}
-          options={marketNames}
-          onChange={v => replaceParams({ market_name: v })}
-        />
-        <BrandFilter value={pendingBrandName} onChange={setPendingBrandName} />
-      </div>
+      <FilterControls
+        key={JSON.stringify([nameSegment, brandName])}
+        brandName={brandName}
+        marketName={marketName}
+        marketNames={marketNames}
+        nameSegment={nameSegment}
+        replaceParams={replaceParams}
+      />
     </div>
   );
 }

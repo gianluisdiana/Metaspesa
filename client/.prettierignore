@@ -3,5 +3,6 @@ coverage
 next-env.d.ts
 node_modules
 playwright-report
+pnpm-lock.yaml
 src/infrastructure/protos_generated
 test-results

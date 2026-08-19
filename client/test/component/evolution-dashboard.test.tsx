@@ -22,16 +22,16 @@ describe('evolution dashboard components', () => {
     expect(screen.getByText('Price & Volume Trend')).toBeVisible();
   });
 
-  it('renders historical data table heading', () => {
+  it('renders price history table heading', () => {
     renderEvolutionDashboard();
 
-    expect(screen.getByText('Historical Data Points')).toBeVisible();
+    expect(screen.getByText('Price History')).toBeVisible();
   });
 
   it('renders historical market row', () => {
     renderEvolutionDashboard();
 
-    expect(screen.getByText("Trader Joe's")).toBeVisible();
+    expect(screen.getByText('Hypermarket B')).toBeVisible();
   });
 
   it('renders export action', () => {

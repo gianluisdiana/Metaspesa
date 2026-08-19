@@ -24,9 +24,14 @@ export class GrpcClientFactory {
   }
 
   public createAuthServiceClient(): AuthServiceClient {
-    const { AuthService } = this.loadPackage<AuthProtoGrpcType>(
-      'src/infrastructure/protos/Auth/auth_service.proto',
-    ).Metaspesa.Protos.Auth;
+    const definition = protoLoader.loadSync(
+      path.join(
+        process.cwd(),
+        'src/infrastructure/protos/Auth/auth_service.proto',
+      ),
+    );
+    const { AuthService } =
+      this.loadPackage<AuthProtoGrpcType>(definition).Metaspesa.Protos.Auth;
 
     return new AuthService(this.config.serverUrl, this.credentials);
   }
@@ -36,18 +41,30 @@ export class GrpcClientFactory {
   }
 
   public createMarketServiceClient(): MarketServiceClient {
-    const { MarketService } = this.loadPackage<MarketsProtoGrpcType>(
-      'src/infrastructure/protos/Markets/markets_service.proto',
-    ).Metaspesa.Protos.Markets;
+    const definition = protoLoader.loadSync(
+      path.join(
+        process.cwd(),
+        'src/infrastructure/protos/Markets/markets_service.proto',
+      ),
+    );
+    const { MarketService } =
+      this.loadPackage<MarketsProtoGrpcType>(definition).Metaspesa.Protos
+        .Markets;
 
     return new MarketService(this.config.serverUrl, this.credentials);
   }
 
   public createShoppingServiceClient(): ShoppingServiceClient {
-    const { ShoppingService } = this.loadPackage<ShoppingProtoGrpcType>(
-      'src/infrastructure/protos/Shopping/shopping_service.proto',
+    const definition = protoLoader.loadSync(
+      path.join(
+        process.cwd(),
+        'src/infrastructure/protos/Shopping/shopping_service.proto',
+      ),
       { defaults: true },
-    ).Metaspesa.Protos.Shopping;
+    );
+    const { ShoppingService } =
+      this.loadPackage<ShoppingProtoGrpcType>(definition).Metaspesa.Protos
+        .Shopping;
 
     return new ShoppingService(this.config.serverUrl, this.credentials);
   }
@@ -58,11 +75,7 @@ export class GrpcClientFactory {
       : grpc.credentials.createInsecure();
   }
 
-  private loadPackage<T>(protoPath: string, options?: protoLoader.Options): T {
-    const packageDefinition = protoLoader.loadSync(
-      path.resolve(process.cwd(), protoPath),
-      options,
-    );
-    return grpc.loadPackageDefinition(packageDefinition) as unknown as T;
+  private loadPackage<T>(definition: protoLoader.PackageDefinition): T {
+    return grpc.loadPackageDefinition(definition) as unknown as T;
   }
 }

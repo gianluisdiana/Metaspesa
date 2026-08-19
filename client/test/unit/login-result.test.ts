@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-magic-numbers */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { LoginResult } from '@/lib/auth-domain';

@@ -40,6 +40,11 @@ export default async function MarketsPage({
         <FilterHeader marketNames={markets.map(m => m.name)} />
       </Suspense>
       <ProductGrid
+        key={JSON.stringify([
+          filter.brandNameSegment,
+          filter.marketName,
+          filter.nameSegment,
+        ])}
         filter={filter}
         initialMarkets={result.markets}
         initialTotalProducts={result.totalProducts}

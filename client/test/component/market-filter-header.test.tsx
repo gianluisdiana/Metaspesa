@@ -21,7 +21,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 function renderFilterHeader() {
-  render(<FilterHeader marketNames={['Mercadona', 'Hiperdino']} />);
+  return render(<FilterHeader marketNames={['Mercadona', 'Hiperdino']} />);
 }
 
 describe('market filter header component', () => {
@@ -74,5 +74,27 @@ describe('market filter header component', () => {
     expect(navigationMocks.replace).toHaveBeenLastCalledWith(
       '/markets?market_name=Mercadona',
     );
+  });
+
+  it('reflects product name from URL navigation', () => {
+    const { rerender } = renderFilterHeader();
+    navigationMocks.searchParams = new URLSearchParams(
+      'name_segment=olive%20oil',
+    );
+
+    rerender(<FilterHeader marketNames={['Mercadona', 'Hiperdino']} />);
+
+    expect(screen.getByPlaceholderText('Search products...')).toHaveValue(
+      'olive oil',
+    );
+  });
+
+  it('reflects brand name from URL navigation', () => {
+    const { rerender } = renderFilterHeader();
+    navigationMocks.searchParams = new URLSearchParams('brand_name=Pascual');
+
+    rerender(<FilterHeader marketNames={['Mercadona', 'Hiperdino']} />);
+
+    expect(screen.getByPlaceholderText('Brand...')).toHaveValue('Pascual');
   });
 });

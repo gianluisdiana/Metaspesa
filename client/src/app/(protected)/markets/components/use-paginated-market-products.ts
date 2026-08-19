@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { MarketFilter } from '@/lib/market-api-service';
 import {
@@ -121,18 +121,6 @@ export function usePaginatedMarketProducts({
   const [hasFailed, setHasFailed] = useState(false);
   const isLoadingRef = useRef(false);
   const hasMore = useMemo(() => pagination.hasMore, [pagination]);
-
-  useEffect(() => {
-    setPagination(
-      PaginatedMarketProductsState.initial(
-        initialMarkets,
-        initialTotalProducts,
-      ),
-    );
-    isLoadingRef.current = false;
-    setIsLoading(false);
-    setHasFailed(false);
-  }, [initialMarkets, initialTotalProducts]);
 
   const loadNextPage = useCallback(async () => {
     if (isLoadingRef.current || !hasMore) {
