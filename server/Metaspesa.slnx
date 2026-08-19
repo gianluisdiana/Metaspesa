@@ -8,6 +8,9 @@
     <Project Path="src/MigrationService/MigrationService.csproj" />
     <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />
   </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/ArchitectureTests/ArchitectureTests.csproj" />
+  </Folder>
   <Folder Name="/test/IntegrationTests/">
     <Project Path="test/IntegrationTests/Database.IntegrationTests/Database.IntegrationTests.csproj" />
     <Project Path="test/IntegrationTests/Infrastructure.IntegrationTests/Infrastructure.IntegrationTests.csproj" />

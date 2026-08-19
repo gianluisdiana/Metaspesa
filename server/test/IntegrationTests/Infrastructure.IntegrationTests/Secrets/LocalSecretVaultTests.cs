@@ -15,7 +15,7 @@ public static class LocalSecretVaultTests {
     }
 
     [Fact(
-      Explicit = true,
+      Skip = "Requires /run/secrets mount to be present in the container",
       DisplayName = "Returns file content when secret exists (requires /run/secrets mount)")]
     public async Task ReadAsync_ReturnsContent_WhenFileExists() {
       // Act
@@ -28,7 +28,7 @@ public static class LocalSecretVaultTests {
     }
 
     [Fact(
-      Explicit = true,
+      Skip = "Requires /run/secrets mount to be present in the container",
       DisplayName = "Trims whitespace from file content (requires /run/secrets mount)")]
     public async Task ReadAsync_TrimsWhitespace_FromContent() {
       // Act
