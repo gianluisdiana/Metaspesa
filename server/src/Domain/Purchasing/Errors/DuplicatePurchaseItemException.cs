@@ -1,0 +1,14 @@
+using Metaspesa.Domain.Markets;
+
+namespace Metaspesa.Domain.Purchasing.Errors;
+
+public class DuplicatePurchaseItemException : PurchaseDomainException {
+  public DuplicatePurchaseItemException() { }
+  public DuplicatePurchaseItemException(PriceSnapshotId priceSnapshotId)
+    : base(
+      "Purchase.Item.DuplicatePriceSnapshot",
+      $"Price snapshot '{priceSnapshotId}' appears more than once.") { }
+  public DuplicatePurchaseItemException(string message) : base(message) { }
+  public DuplicatePurchaseItemException(string message, Exception innerException)
+    : base(message, innerException) { }
+}
