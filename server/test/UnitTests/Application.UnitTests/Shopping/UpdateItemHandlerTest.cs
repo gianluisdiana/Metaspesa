@@ -49,4 +49,24 @@ public class UpdateItemHandlerTest {
 
     await unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
   }
+
+  [Fact(DisplayName = "Rejects missing item without persistence")]
+  public async Task Handle_DoesNotPersist_WhenItemIsMissing() {
+    var ownerId = Guid.CreateVersion7();
+    ShoppingList list = ShoppingTestData.List(ownerId, "Weekly");
+    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
+    repository.GetAsync(
+      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      .Returns(list);
+    IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
+    var handler = new Handler(repository, unitOfWork);
+
+    await Assert.ThrowsAsync<ShoppingItemNotFoundException>(() => handler.Handle(
+      new Command(ownerId, "Weekly", 3, 4, null),
+      TestContext.Current.CancellationToken));
+
+    await repository.DidNotReceive().UpdateAsync(
+      Arg.Any<ShoppingList>(), Arg.Any<CancellationToken>());
+    await unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+  }
 }

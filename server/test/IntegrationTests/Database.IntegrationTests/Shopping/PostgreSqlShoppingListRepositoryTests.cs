@@ -99,6 +99,65 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
     Assert.Equal(new ShoppingListName("Mine"), list.Name);
   }
 
+  [Fact(DisplayName = "Does not load another owner's matching list")]
+  public async Task GetAsync_IsolatesOwners() {
+    UserId ownerId = await SeedUserAsync();
+    UserId otherOwnerId = await SeedUserAsync();
+    _repository.Add(ShoppingList.Create(
+      otherOwnerId, new ShoppingListName("Weekly")));
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+    ShoppingList? result = await _repository.GetAsync(
+      ownerId,
+      new ShoppingListName("Weekly"),
+      TestContext.Current.CancellationToken);
+
+    Assert.Null(result);
+  }
+
+  [Fact(DisplayName = "Orders named lists before temporary list")]
+  public async Task GetByOwnerAsync_OrdersNamedListsBeforeTemporaryList() {
+    UserId ownerId = await SeedUserAsync();
+    _repository.Add(ShoppingList.Create(ownerId, null));
+    _repository.Add(ShoppingList.Create(ownerId, new ShoppingListName("Weekly")));
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+    IReadOnlyCollection<ShoppingList> result = await _repository.GetByOwnerAsync(
+      ownerId, TestContext.Current.CancellationToken);
+
+    Assert.Collection(
+      result,
+      list => Assert.Equal(new ShoppingListName("Weekly"), list.Name),
+      list => Assert.True(list.IsTemporary));
+  }
+
+  [Fact(DisplayName = "Finds named list case-insensitively")]
+  public async Task ExistsAsync_MatchesNamedList_IgnoringCase() {
+    UserId ownerId = await SeedUserAsync();
+    _repository.Add(ShoppingList.Create(ownerId, new ShoppingListName("Weekly")));
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+    bool exists = await _repository.ExistsAsync(
+      ownerId,
+      new ShoppingListName("WEEKLY"),
+      TestContext.Current.CancellationToken);
+
+    Assert.True(exists);
+  }
+
+  [Fact(DisplayName = "Does not find another owner's matching list")]
+  public async Task ExistsAsync_IsolatesOwners() {
+    UserId ownerId = await SeedUserAsync();
+    UserId otherOwnerId = await SeedUserAsync();
+    _repository.Add(ShoppingList.Create(otherOwnerId, null));
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+    bool exists = await _repository.ExistsAsync(
+      ownerId, null, TestContext.Current.CancellationToken);
+
+    Assert.False(exists);
+  }
+
   [Fact(DisplayName = "Updates aggregate state")]
   public async Task UpdateAsync_PersistsRenameAddAndUpdate() {
     UserId ownerId = await SeedUserAsync();
@@ -159,6 +218,38 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
     Assert.Empty(result.Items);
   }
 
+  [Fact(DisplayName = "Re-adding removed format creates active replacement")]
+  public async Task UpdateAsync_ReaddsPreviouslyRemovedFormat() {
+    UserId ownerId = await SeedUserAsync();
+    ProductFormatId formatId = await SeedProductFormatAsync("Milk");
+    var list = ShoppingList.Create(ownerId, new ShoppingListName("Weekly"));
+    list.AddItem(formatId, new PositiveAmount(1), false);
+    _repository.Add(list);
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    ShoppingList persisted = (await _repository.GetAsync(
+      ownerId,
+      new ShoppingListName("Weekly"),
+      TestContext.Current.CancellationToken))!;
+    persisted.RemoveItem(formatId);
+    await _repository.UpdateAsync(persisted, TestContext.Current.CancellationToken);
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+    persisted.AddItem(formatId, new PositiveAmount(4), true);
+    await _repository.UpdateAsync(persisted, TestContext.Current.CancellationToken);
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+    ShoppingList result = (await _repository.GetAsync(
+      ownerId,
+      new ShoppingListName("Weekly"),
+      TestContext.Current.CancellationToken))!;
+    ShoppingItem item = Assert.Single(result.Items);
+    Assert.Equal(4, item.Amount.Value);
+    Assert.True(item.IsChecked);
+    Assert.Equal(2, await _context.ShoppingItems.CountAsync(
+      row => row.ProductFormatId == formatId.Value,
+      TestContext.Current.CancellationToken));
+  }
+
   [Fact(DisplayName = "Throws exact exception for invalid persisted name")]
   public async Task GetAsync_ThrowsExactException_WhenPersistedNameIsInvalid() {
     UserId ownerId = await SeedUserAsync();
@@ -212,6 +303,81 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
       new ShoppingListName("Weekly"),
       TestContext.Current.CancellationToken))!;
     Assert.False(reset.Items.Single().IsChecked);
+  }
+
+  [Fact(DisplayName = "Records checked items using latest price snapshot")]
+  public async Task Record_UsesLatestSnapshot_AndExcludesUncheckedItems() {
+    UserId ownerId = await SeedUserAsync();
+    ProductFormatId checkedFormatId = await SeedProductFormatAsync("Milk");
+    ProductFormatId uncheckedFormatId = await SeedProductFormatAsync("Bread");
+    _context.PriceSnapshots.Add(new PriceSnapshotDbEntity {
+      ProductFormatId = checkedFormatId.Value,
+      PriceAmount = 2.50m,
+      ObservedAt = RemovedAt,
+    });
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    var list = ShoppingList.Create(ownerId, new ShoppingListName("Weekly"));
+    list.AddItem(checkedFormatId, new PositiveAmount(2), true);
+    list.AddItem(uncheckedFormatId, new PositiveAmount(3), false);
+    _repository.Add(list);
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    ShoppingList persisted = (await _repository.GetAsync(
+      ownerId,
+      new ShoppingListName("Weekly"),
+      TestContext.Current.CancellationToken))!;
+
+    _repository.Record(ownerId, persisted);
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+    PurchaseItemDbEntity purchaseItem = await _context.PurchaseItems
+      .Include(item => item.PriceSnapshot)
+      .SingleAsync(
+        item => item.Purchase.UserUid == ownerId.Value,
+        TestContext.Current.CancellationToken);
+    Assert.Equal(checkedFormatId.Value, purchaseItem.PriceSnapshot.ProductFormatId);
+    Assert.Equal(2.50m, purchaseItem.PriceSnapshot.PriceAmount);
+    Assert.Equal(2, purchaseItem.Amount);
+  }
+
+  [Fact(DisplayName = "Reset does not change another owner's matching list")]
+  public async Task Reset_IsolatesOwners() {
+    UserId ownerId = await SeedUserAsync();
+    UserId otherOwnerId = await SeedUserAsync();
+    ProductFormatId formatId = await SeedProductFormatAsync("Milk");
+    var ownList = ShoppingList.Create(ownerId, new ShoppingListName("Weekly"));
+    ownList.AddItem(formatId, new PositiveAmount(1), true);
+    var otherList = ShoppingList.Create(
+      otherOwnerId, new ShoppingListName("Weekly"));
+    otherList.AddItem(formatId, new PositiveAmount(1), true);
+    _repository.Add(ownList);
+    _repository.Add(otherList);
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+    _repository.Reset(ownerId, new ShoppingListName("Weekly"));
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+    ShoppingList unchanged = (await _repository.GetAsync(
+      otherOwnerId,
+      new ShoppingListName("Weekly"),
+      TestContext.Current.CancellationToken))!;
+    Assert.True(unchanged.Items.Single().IsChecked);
+  }
+
+  [Fact(DisplayName = "Resets temporary list selected by missing name")]
+  public async Task Reset_UpdatesTemporaryList_WhenNameIsMissing() {
+    UserId ownerId = await SeedUserAsync();
+    ProductFormatId formatId = await SeedProductFormatAsync("Milk");
+    var list = ShoppingList.Create(ownerId, null);
+    list.AddItem(formatId, new PositiveAmount(1), true);
+    _repository.Add(list);
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+    _repository.Reset(ownerId, null);
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+    ShoppingList result = (await _repository.GetAsync(
+      ownerId, null, TestContext.Current.CancellationToken))!;
+    Assert.False(result.Items.Single().IsChecked);
   }
 
   private async Task<UserId> SeedUserAsync() {

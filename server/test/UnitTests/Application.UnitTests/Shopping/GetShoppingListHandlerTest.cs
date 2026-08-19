@@ -64,4 +64,35 @@ public class GetShoppingListHandlerTest {
       new Query(Guid.CreateVersion7(), "Weekly"),
       TestContext.Current.CancellationToken));
   }
+
+  [Fact(DisplayName = "Rejects missing product projection")]
+  public async Task Handle_ThrowsExactException_WhenProductFormatIsMissing() {
+    var ownerId = Guid.CreateVersion7();
+    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
+    repository.GetAsync(
+      new UserId(ownerId), null, TestContext.Current.CancellationToken)
+      .Returns(ShoppingTestData.List(ownerId, null, ShoppingTestData.Item(7)));
+    IProductRepository productRepository = Substitute.For<IProductRepository>();
+    productRepository.GetProductsAsync(
+      Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>())
+      .Returns(new Dictionary<int, MarketProduct>());
+    var handler = new Handler(repository, productRepository);
+
+    await Assert.ThrowsAsync<ShoppingProductFormatNotFoundException>(() => handler.Handle(
+      new Query(ownerId, null), TestContext.Current.CancellationToken));
+  }
+
+  [Fact(DisplayName = "Does not load products when list is missing")]
+  public async Task Handle_DoesNotLoadProducts_WhenListIsMissing() {
+    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
+    IProductRepository productRepository = Substitute.For<IProductRepository>();
+    var handler = new Handler(repository, productRepository);
+
+    await Assert.ThrowsAsync<ShoppingListNotFoundException>(() => handler.Handle(
+      new Query(Guid.CreateVersion7(), "Weekly"),
+      TestContext.Current.CancellationToken));
+
+    await productRepository.DidNotReceive().GetProductsAsync(
+      Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>());
+  }
 }

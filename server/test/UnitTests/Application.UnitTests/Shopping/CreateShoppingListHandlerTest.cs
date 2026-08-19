@@ -29,6 +29,19 @@ public class CreateShoppingListHandlerTest {
       TestContext.Current.CancellationToken);
   }
 
+  [Fact(DisplayName = "Creates temporary list when name is missing")]
+  public async Task Handle_AddsTemporaryAggregate_WhenNameIsMissing() {
+    var ownerId = Guid.CreateVersion7();
+    var handler = new Handler(_repository, _unitOfWork);
+
+    await handler.Handle(
+      new Command(ownerId, null), TestContext.Current.CancellationToken);
+
+    _repository.Received(1).Add(Arg.Is<ShoppingList>(list =>
+      list.IsTemporary &&
+      list.OwnerIds.Single() == new UserId(ownerId)));
+  }
+
   [Fact(DisplayName = "Throws conflict and does not commit")]
   public async Task Handle_ThrowsExactException_WhenListAlreadyExists() {
     _repository.ExistsAsync(

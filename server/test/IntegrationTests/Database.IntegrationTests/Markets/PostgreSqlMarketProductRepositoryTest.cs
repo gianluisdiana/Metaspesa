@@ -84,6 +84,26 @@ public class PostgreSqlMarketProductRepositoryTests : IAsyncLifetime {
     Assert.Equal(observedAt, snapshot.ObservedAt);
   }
 
+  [Fact(DisplayName = "Reuses matching product and format on repeated import")]
+  public async Task Repository_ReusesProductAndFormat_WhenIdentityIsUnchanged() {
+    MarketImport market = await CreateMarketImportAsync();
+    ProductImportResult first = await _productRepository.ResolveProductsAsync(
+      market, UtcDate(2026, 7, 28), TestContext.Current.CancellationToken);
+
+    ProductImportResult second = await _productRepository.ResolveProductsAsync(
+      market, UtcDate(2026, 7, 29), TestContext.Current.CancellationToken);
+
+    Assert.Empty(second.AddedProductIds);
+    Assert.Empty(second.AddedProductFormatIds);
+    Assert.Equal(
+      Assert.Single(first.PriceObservations).ProductFormatId,
+      Assert.Single(second.PriceObservations).ProductFormatId);
+    Assert.Equal(1, await _context.Products.CountAsync(
+      TestContext.Current.CancellationToken));
+    Assert.Equal(1, await _context.ProductFormats.CountAsync(
+      TestContext.Current.CancellationToken));
+  }
+
   [Fact(DisplayName = "Loads product aggregate without price history")]
   public async Task Repository_LoadsProduct_WithoutPriceSnapshots() {
     ProductImportResult result = await ResolveAndAppendAsync();
@@ -103,6 +123,20 @@ public class PostgreSqlMarketProductRepositoryTests : IAsyncLifetime {
     Assert.DoesNotContain(
       typeof(ProductFormat).GetProperties(),
       property => property.PropertyType == typeof(PriceSnapshot));
+  }
+
+  [Fact(DisplayName = "Catalog excludes products without price history")]
+  public async Task Repository_ExcludesProductWithoutSnapshot_FromCatalog() {
+    MarketImport market = await CreateMarketImportAsync();
+    await _productRepository.ResolveProductsAsync(
+      market, UtcDate(2026, 7, 28), TestContext.Current.CancellationToken);
+
+    PagedResult<MarketCatalog> result = await _productRepository.GetProductsAsync(
+      new GetMarketProductsFilter(null, null, null, Pagination.Infinite),
+      TestContext.Current.CancellationToken);
+
+    Assert.Empty(result.Values);
+    Assert.Equal(0, result.TotalCount);
   }
 
   [Fact(DisplayName = "Catalog returns latest snapshot without adding it to product")]
@@ -158,6 +192,32 @@ public class PostgreSqlMarketProductRepositoryTests : IAsyncLifetime {
     Assert.Equal(0, missing.TotalCount);
   }
 
+  [Fact(DisplayName = "Catalog pagination preserves total and returns requested page")]
+  public async Task Repository_PaginatesProducts_AndPreservesTotalCount() {
+    await ResolveAndAppendAsync();
+    var secondImport = new MarketImport(
+      new MarketName("Mercadona"),
+      [new ProductImport(
+        new ProductName("Yogurt"),
+        new BrandName("Brand"),
+        [new ProductFormatImport(
+          new Quantity(1, new UnitOfMeasure("kg")),
+          new Money(2.49m),
+          null)])]);
+    ProductImportResult second = await _productRepository.ResolveProductsAsync(
+      secondImport, UtcDate(2026, 7, 28), TestContext.Current.CancellationToken);
+    await _snapshotRepository.AppendAsync(
+      second.PriceObservations, TestContext.Current.CancellationToken);
+
+    PagedResult<MarketCatalog> result = await _productRepository.GetProductsAsync(
+      new GetMarketProductsFilter(null, null, null, new Pagination(2, 1)),
+      TestContext.Current.CancellationToken);
+
+    Assert.Equal(2, result.TotalCount);
+    MarketProduct product = Assert.Single(Assert.Single(result.Values).Products);
+    Assert.Equal("Yogurt", product.Name);
+  }
+
   [Fact(DisplayName = "Returns shopping enrichment model by product format id")]
   public async Task Repository_ReturnsReadModel_ByProductFormatId() {
     ProductImportResult result = await ResolveAndAppendAsync();
@@ -172,6 +232,36 @@ public class PostgreSqlMarketProductRepositoryTests : IAsyncLifetime {
     Assert.Equal("Milk", product.Name);
     Assert.Equal("Brand", product.BrandName);
     Assert.Equal(new Money(1.99m), Assert.Single(product.Formats).Price);
+  }
+
+  [Fact(DisplayName = "Product lookup omits unknown format ids")]
+  public async Task Repository_ReturnsOnlyExistingProductFormats() {
+    ProductImportResult import = await ResolveAndAppendAsync();
+    ProductFormatId existingId = Assert.Single(import.PriceObservations).ProductFormatId;
+
+    IReadOnlyDictionary<int, MarketProduct> products =
+      await _productRepository.GetProductsAsync(
+        [existingId.Value, int.MaxValue],
+        TestContext.Current.CancellationToken);
+
+    Assert.True(products.ContainsKey(existingId.Value));
+    Assert.False(products.ContainsKey(int.MaxValue));
+  }
+
+  [Fact(DisplayName = "Deletes only requested brand")]
+  public async Task Repository_DeleteBrandsAsync_PreservesOtherBrands() {
+    await _productRepository.AddBrandsAsync(
+      [new BrandName("Delete me"), new BrandName("Keep me")],
+      TestContext.Current.CancellationToken);
+
+    await _productRepository.DeleteBrandsAsync(
+      [new BrandName("Delete me")],
+      TestContext.Current.CancellationToken);
+
+    IReadOnlyCollection<BrandName> brands =
+      await _productRepository.GetBrandsAsync(
+        TestContext.Current.CancellationToken);
+    Assert.Equal(new BrandName("Keep me"), Assert.Single(brands));
   }
 
   [Fact(DisplayName = "Deletes product formats and snapshots created by import")]

@@ -244,6 +244,62 @@ public class AddProductsHandlerTest {
       Arg.Any<CancellationToken>());
   }
 
+  [Fact(DisplayName = "Checks equivalent unit codes only once")]
+  public async Task Handler_ChecksUnitSupportOnce_IgnoringCase() {
+    Command command = new([
+      new CommandProduct(
+        "Milk", 1.99m, 1, "l", "Market", "Brand", null),
+      new CommandProduct(
+        "Juice", 2.49m, 1, "L", "Market", "Brand", null),
+    ], new DateOnly(2026, 7, 28));
+
+    await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+    await _marketRepository.Received(1).CheckUnitOfMeasureIsSupportedAsync(
+      Arg.Any<string>(), TestContext.Current.CancellationToken);
+  }
+
+  [Fact(DisplayName = "Rollback deletes only market and brand created by import")]
+  public async Task Handler_RollbackPreservesExistingMarketAndBrand() {
+    _marketRepository.GetMarketsAsync(Arg.Any<CancellationToken>())
+      .Returns([new Market(new MarketId(1), new MarketName("Existing"))]);
+    _productRepository.GetBrandsAsync(Arg.Any<CancellationToken>())
+      .Returns([new BrandName("Existing brand")]);
+    _snapshotRepository.AppendAsync(
+      Arg.Any<IReadOnlyCollection<PriceObservation>>(),
+      Arg.Any<CancellationToken>())
+      .ThrowsAsync<OperationCanceledException>();
+    var rollbackSignal = new TaskCompletionSource(
+      TaskCreationOptions.RunContinuationsAsynchronously);
+    _marketRepository.DeleteMarketsAsync(
+      Arg.Any<IReadOnlyCollection<MarketName>>(),
+      Arg.Any<CancellationToken>())
+      .Returns(_ => {
+        rollbackSignal.SetResult();
+        return Task.CompletedTask;
+      });
+    Command command = new([
+      new CommandProduct(
+        "Milk", 1.99m, 1, "l", "Existing", "Existing brand", null),
+      new CommandProduct(
+        "Bread", 2.49m, 1, "kg", "New market", "New brand", null),
+    ], new DateOnly(2026, 7, 28));
+
+    await Assert.ThrowsAsync<OperationCanceledException>(() =>
+      _handler.Handle(command, TestContext.Current.CancellationToken));
+    await rollbackSignal.Task.WaitAsync(
+      TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
+
+    await _marketRepository.Received(1).DeleteMarketsAsync(
+      Arg.Is<IReadOnlyCollection<MarketName>>(names =>
+        names.Count == 1 && names.Single() == new MarketName("New market")),
+      Arg.Any<CancellationToken>());
+    await _productRepository.Received(1).DeleteBrandsAsync(
+      Arg.Is<IReadOnlyCollection<BrandName>>(names =>
+        names.Count == 1 && names.Single() == new BrandName("New brand")),
+      Arg.Any<CancellationToken>());
+  }
+
   private static Command CreateCommand() => new(
     [new CommandProduct(
       "Milk",

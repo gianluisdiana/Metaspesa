@@ -49,4 +49,24 @@ public class UpdateShoppingListHandlerTest {
     Assert.True(list.IsTemporary);
     await unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
   }
+
+  [Fact(DisplayName = "Renaming with same normalized name skips conflict lookup")]
+  public async Task Handle_DoesNotCheckConflict_WhenNameIsUnchanged() {
+    var ownerId = Guid.CreateVersion7();
+    ShoppingList list = ShoppingTestData.List(ownerId, "Weekly");
+    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
+    repository.GetAsync(
+      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      .Returns(list);
+    IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
+    var handler = new Handler(repository, unitOfWork);
+
+    await handler.Handle(
+      new Command(ownerId, "Weekly", " Weekly "),
+      TestContext.Current.CancellationToken);
+
+    await repository.DidNotReceive().ExistsAsync(
+      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>());
+    await unitOfWork.Received(1).SaveChangesAsync(TestContext.Current.CancellationToken);
+  }
 }

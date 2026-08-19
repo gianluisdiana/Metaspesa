@@ -48,6 +48,21 @@ public class ShoppingListTests {
       new ShoppingListId(1), [OwnerId, OwnerId], null, null, []));
   }
 
+  [Fact(DisplayName = "Rejects duplicate persisted items")]
+  public void Rehydrate_ThrowsExactException_WhenItemIsDuplicated() {
+    var duplicateId = new ProductFormatId(2);
+
+    Assert.Throws<DuplicateShoppingItemException>(() => ShoppingList.Rehydrate(
+      new ShoppingListId(1),
+      [OwnerId],
+      null,
+      null,
+      [
+        new ShoppingItem(duplicateId, new PositiveAmount(1), false),
+        new ShoppingItem(duplicateId, new PositiveAmount(2), true),
+      ]));
+  }
+
   [Fact(DisplayName = "Renames temporary list")]
   public void Rename_SetsNameAndClearsTemporaryState() {
     var list = ShoppingList.Create(OwnerId, null);
@@ -82,6 +97,21 @@ public class ShoppingListTests {
     Assert.Empty(list.Items);
   }
 
+  [Fact(DisplayName = "Rejects item already present without partial mutation")]
+  public void AddItems_ThrowsAndLeavesStateUnchanged_WhenItemAlreadyExists() {
+    var list = ShoppingList.Create(OwnerId, null);
+    var existingId = new ProductFormatId(2);
+    list.AddItem(existingId, new PositiveAmount(1), false);
+
+    Assert.Throws<DuplicateShoppingItemException>(() => list.AddItems([
+      new ShoppingItem(new ProductFormatId(3), new PositiveAmount(1), false),
+      new ShoppingItem(existingId, new PositiveAmount(2), true),
+    ]));
+
+    ShoppingItem item = Assert.Single(list.Items);
+    Assert.Equal(existingId, item.ProductFormatId);
+  }
+
   [Fact(DisplayName = "Updates amount and checked state atomically")]
   public void UpdateItem_UpdatesProvidedFields() {
     var list = ShoppingList.Create(OwnerId, null);
@@ -114,6 +144,28 @@ public class ShoppingListTests {
       list.UpdateItem(new ProductFormatId(2), new PositiveAmount(1), null));
   }
 
+  [Fact(DisplayName = "Preserves amount when updating checked state")]
+  public void UpdateItem_PreservesAmount_WhenAmountIsMissing() {
+    var list = ShoppingList.Create(OwnerId, null);
+    var formatId = new ProductFormatId(2);
+    list.AddItem(formatId, new PositiveAmount(3), false);
+
+    list.UpdateItem(formatId, null, true);
+
+    Assert.Equal(3, list.Items.Single().Amount.Value);
+  }
+
+  [Fact(DisplayName = "Preserves checked state when updating amount")]
+  public void UpdateItem_PreservesCheckedState_WhenCheckedStateIsMissing() {
+    var list = ShoppingList.Create(OwnerId, null);
+    var formatId = new ProductFormatId(2);
+    list.AddItem(formatId, new PositiveAmount(1), true);
+
+    list.UpdateItem(formatId, new PositiveAmount(3), null);
+
+    Assert.True(list.Items.Single().IsChecked);
+  }
+
   [Fact(DisplayName = "Removes existing item")]
   public void RemoveItem_RemovesItem() {
     var list = ShoppingList.Create(OwnerId, null);
@@ -123,6 +175,14 @@ public class ShoppingListTests {
     list.RemoveItem(formatId);
 
     Assert.Empty(list.Items);
+  }
+
+  [Fact(DisplayName = "Rejects removal of missing item")]
+  public void RemoveItem_ThrowsExactException_WhenItemIsMissing() {
+    var list = ShoppingList.Create(OwnerId, null);
+
+    Assert.Throws<ShoppingItemNotFoundException>(() =>
+      list.RemoveItem(new ProductFormatId(2)));
   }
 
   [Fact(DisplayName = "Returns checked items without mutation")]

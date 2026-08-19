@@ -74,4 +74,34 @@ public class AddItemsToListHandlerTest {
     await _repository.DidNotReceive().UpdateAsync(
       Arg.Any<ShoppingList>(), Arg.Any<CancellationToken>());
   }
+
+  [Fact(DisplayName = "Loads owner list and distinct product formats")]
+  public async Task Handle_UsesOwnerNameAndDistinctFormatIds() {
+    var ownerId = Guid.CreateVersion7();
+    ShoppingList list = ShoppingTestData.List(ownerId, null);
+    _repository.GetAsync(
+      new UserId(ownerId), null, TestContext.Current.CancellationToken)
+      .Returns(list);
+    _productRepository.GetProductsAsync(
+      Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>())
+      .Returns(new Dictionary<int, MarketProduct> {
+        [10] = ShoppingTestData.MarketProduct(10),
+      });
+    var handler = new Handler(_repository, _productRepository, _unitOfWork);
+
+    await Assert.ThrowsAsync<DuplicateShoppingItemException>(() => handler.Handle(
+      new Command(ownerId, null, [
+        new CommandItem(10, 1, false),
+        new CommandItem(10, 2, true),
+      ]),
+      TestContext.Current.CancellationToken));
+
+    await _repository.Received(1).GetAsync(
+      new UserId(ownerId), null, TestContext.Current.CancellationToken);
+    await _productRepository.Received(1).GetProductsAsync(
+      Arg.Is<IReadOnlyCollection<int>>(ids => ids.Count == 1 && ids.Single() == 10),
+      TestContext.Current.CancellationToken);
+    await _unitOfWork.DidNotReceive().SaveChangesAsync(
+      Arg.Any<CancellationToken>());
+  }
 }

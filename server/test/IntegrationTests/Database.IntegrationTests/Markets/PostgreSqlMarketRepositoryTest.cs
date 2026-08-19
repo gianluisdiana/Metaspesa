@@ -1,3 +1,4 @@
+using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Database.Entities;
 using Metaspesa.Database.Repositories;
 using Metaspesa.Domain.Markets;
@@ -56,6 +57,45 @@ public class PostgreSqlMarketRepositoryTest : IAsyncLifetime {
       "L", TestContext.Current.CancellationToken);
 
     Assert.True(supported);
+  }
+
+  [Fact(DisplayName = "Rejects unsupported unit code")]
+  public async Task Repository_ReturnsFalse_ForUnsupportedUnit() {
+    bool supported = await _marketRepository.CheckUnitOfMeasureIsSupportedAsync(
+      "missing-unit", TestContext.Current.CancellationToken);
+
+    Assert.False(supported);
+  }
+
+  [Fact(DisplayName = "Maps market logo in summaries")]
+  public async Task Repository_MapsLogo_InMarketSummary() {
+    _context.SuperMarkets.Add(new SuperMarketDbEntity {
+      Name = "Mercadona",
+      LogoUrl = "https://example.test/mercadona.png",
+    });
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+    IReadOnlyCollection<MarketSummary> summaries =
+      await _marketRepository.GetMarketSummariesAsync(
+        TestContext.Current.CancellationToken);
+
+    MarketSummary summary = Assert.Single(summaries);
+    Assert.Equal(new Uri("https://example.test/mercadona.png"), summary.LogoUrl);
+  }
+
+  [Fact(DisplayName = "Deletes only requested market")]
+  public async Task Repository_DeleteMarketsAsync_PreservesOtherMarkets() {
+    await _marketRepository.AddMarketsAsync(
+      [new MarketName("Delete me"), new MarketName("Keep me")],
+      TestContext.Current.CancellationToken);
+
+    await _marketRepository.DeleteMarketsAsync(
+      [new MarketName("Delete me")],
+      TestContext.Current.CancellationToken);
+
+    List<Market> markets = await _marketRepository.GetMarketsAsync(
+      TestContext.Current.CancellationToken);
+    Assert.Equal(new MarketName("Keep me"), Assert.Single(markets).Name);
   }
 
   private async Task EnsureUnitOfMeasureAsync(string code) {
