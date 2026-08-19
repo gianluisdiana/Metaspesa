@@ -4,6 +4,7 @@ using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Identity;
 using Metaspesa.Application.Markets;
+using Metaspesa.Application.Purchasing;
 using Metaspesa.Application.Shopping;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -19,6 +20,7 @@ public static class ApplicationDependencyInjection {
       services.AddIdentityUseCases();
       services.AddMarketUseCases();
       services.AddShoppingUseCases();
+      services.AddPurchasingUseCases();
 
       services.AddValidatorsFromAssemblyContaining<Result>(includeInternalTypes: true);
 
@@ -44,15 +46,17 @@ public static class ApplicationDependencyInjection {
       services.AddScoped<GetShoppingList.Handler>();
       services.AddScoped<GetShoppingListSummaries.Handler>();
 
-      services.AddScoped<
-        ICommandHandler<RecordShoppingList.Command>,
-        RecordShoppingList.Handler>();
-
       services.AddScoped<CreateShoppingList.Handler>();
       services.AddScoped<AddItemsToList.Handler>();
       services.AddScoped<UpdateItem.Handler>();
       services.AddScoped<UpdateShoppingList.Handler>();
       services.AddScoped<RemoveItem.Handler>();
+
+      return services;
+    }
+
+    private IServiceCollection AddPurchasingUseCases() {
+      services.AddScoped<CheckoutShoppingList.Handler>();
 
       return services;
     }
