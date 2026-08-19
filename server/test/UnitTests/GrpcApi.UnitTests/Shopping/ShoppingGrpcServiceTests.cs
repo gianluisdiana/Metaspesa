@@ -5,10 +5,13 @@ using Grpc.Core;
 using Grpc.Core.Testing;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Markets;
+using Metaspesa.Application.Abstractions.Purchasing;
 using Metaspesa.Application.Abstractions.Shopping;
+using Metaspesa.Application.Purchasing;
 using Metaspesa.Application.Shopping;
 using Metaspesa.Domain.Identity;
 using Metaspesa.Domain.Markets;
+using Metaspesa.Domain.Purchasing;
 using Metaspesa.Domain.SharedKernel;
 using Metaspesa.Domain.Shopping;
 using Metaspesa.GrpcApi.Protos.Shopping;
@@ -245,40 +248,65 @@ public class ShoppingGrpcServiceTests {
     Assert.Empty(list.Items);
   }
 
-  [Fact(DisplayName = "Keeps record workflow on transitional handler")]
-  public async Task RecordShoppingList_UsesTransitionalHandler() {
+  [Fact(DisplayName = "Records list through concrete Purchasing handler")]
+  public async Task RecordShoppingList_UsesPurchasingHandler() {
     var fixture = new ServiceFixture();
     var ownerId = Guid.CreateVersion7();
-    fixture.RecordHandler.Handle(
-      Arg.Any<RecordShoppingList.Command>(), Arg.Any<CancellationToken>())
-      .Returns(Result.Success());
+    ShoppingList list = PersistedList(
+      ownerId,
+      "Weekly",
+      new ShoppingItem(new ProductFormatId(7), new PositiveAmount(2), true));
+    fixture.ShoppingRepository.GetAsync(
+      new UserId(ownerId),
+      new ShoppingListName("Weekly"),
+      TestContext.Current.CancellationToken)
+      .Returns(list);
+    fixture.SnapshotReader.GetLatestAsync(
+      Arg.Any<IReadOnlyCollection<ProductFormatId>>(),
+      TestContext.Current.CancellationToken)
+      .Returns(new Dictionary<ProductFormatId, PriceSnapshotId> {
+        [new ProductFormatId(7)] = new PriceSnapshotId(12),
+      });
+    fixture.Clock.GetCurrentTime().Returns(
+      new DateTime(2026, 8, 19, 12, 0, 0, DateTimeKind.Utc));
 
-    await fixture.Service.RecordShoppingList(
+    Empty response = await fixture.Service.RecordShoppingList(
       new RecordShoppingListRequest { ShoppingListName = "Weekly" },
       CreateServerCallContext(ownerId));
 
-    await fixture.RecordHandler.Received(1).Handle(
-      Arg.Is<RecordShoppingList.Command>(command =>
-        command.UserUid == ownerId && command.ShoppingListName == "Weekly"),
-      TestContext.Current.CancellationToken);
+    Assert.NotNull(response);
+    fixture.PurchaseRepository.Received(1).Add(Arg.Is<Purchase>(purchase =>
+      purchase.BuyerId == new UserId(ownerId) &&
+      purchase.ShoppingListId == new ShoppingListId(1) &&
+      purchase.Items.Single().PriceSnapshotId == new PriceSnapshotId(12)));
+    Assert.False(list.Items.Single().IsChecked);
   }
 
-  [Fact(DisplayName = "Maps transitional record failure to RPC status")]
-  public async Task RecordShoppingList_ThrowsRpcException_WhenHandlerFails() {
+  [Fact(DisplayName = "Maps empty RPC list name to temporary list")]
+  public async Task RecordShoppingList_MapsEmptyName_ToTemporaryList() {
     var fixture = new ServiceFixture();
-    fixture.RecordHandler.Handle(
-      Arg.Any<RecordShoppingList.Command>(), Arg.Any<CancellationToken>())
-      .Returns(new DomainError(
-        "ShoppingList.MissingCheckedItems",
-        "Shopping list must contain a checked item.",
-        ErrorKind.Validation));
+    var ownerId = Guid.CreateVersion7();
+    ShoppingList list = PersistedList(
+      ownerId,
+      null,
+      new ShoppingItem(new ProductFormatId(7), new PositiveAmount(1), true));
+    fixture.ShoppingRepository.GetAsync(
+      new UserId(ownerId), null, TestContext.Current.CancellationToken)
+      .Returns(list);
+    fixture.SnapshotReader.GetLatestAsync(
+      Arg.Any<IReadOnlyCollection<ProductFormatId>>(),
+      Arg.Any<CancellationToken>())
+      .Returns(new Dictionary<ProductFormatId, PriceSnapshotId> {
+        [new ProductFormatId(7)] = new PriceSnapshotId(12),
+      });
+    fixture.Clock.GetCurrentTime().Returns(
+      new DateTime(2026, 8, 19, 12, 0, 0, DateTimeKind.Utc));
 
-    RpcException exception = await Assert.ThrowsAsync<RpcException>(() =>
-      fixture.Service.RecordShoppingList(
-        new RecordShoppingListRequest { ShoppingListName = "Weekly" },
-        CreateServerCallContext(Guid.CreateVersion7())));
+    await fixture.Service.RecordShoppingList(
+      new RecordShoppingListRequest(), CreateServerCallContext(ownerId));
 
-    Assert.Equal(StatusCode.InvalidArgument, exception.StatusCode);
+    await fixture.ShoppingRepository.Received(1).GetAsync(
+      new UserId(ownerId), null, TestContext.Current.CancellationToken);
   }
 
   private sealed class ServiceFixture {
@@ -287,15 +315,23 @@ public class ShoppingGrpcServiceTests {
     public IProductRepository ProductRepository { get; } =
       Substitute.For<IProductRepository>();
     public IUnitOfWork UnitOfWork { get; } = Substitute.For<IUnitOfWork>();
-    public ICommandHandler<RecordShoppingList.Command> RecordHandler { get; } =
-      Substitute.For<ICommandHandler<RecordShoppingList.Command>>();
+    public IPurchasePriceSnapshotReader SnapshotReader { get; } =
+      Substitute.For<IPurchasePriceSnapshotReader>();
+    public IPurchaseRepository PurchaseRepository { get; } =
+      Substitute.For<IPurchaseRepository>();
+    public IClock Clock { get; } = Substitute.For<IClock>();
     public ShoppingGrpcService Service { get; }
 
     public ServiceFixture() {
       Service = new ShoppingGrpcService(
         new GetShoppingListSummaries.Handler(ShoppingRepository),
         new GetShoppingList.Handler(ShoppingRepository, ProductRepository),
-        RecordHandler,
+        new CheckoutShoppingList.Handler(
+          ShoppingRepository,
+          SnapshotReader,
+          PurchaseRepository,
+          Clock,
+          UnitOfWork),
         new CreateShoppingList.Handler(ShoppingRepository, UnitOfWork),
         new AddItemsToList.Handler(
           ShoppingRepository, ProductRepository, UnitOfWork),

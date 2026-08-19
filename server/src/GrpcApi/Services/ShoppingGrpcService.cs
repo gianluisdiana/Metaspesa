@@ -1,6 +1,6 @@
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
-using Metaspesa.Application.Abstractions.Core;
+using Metaspesa.Application.Purchasing;
 using Metaspesa.Application.Shopping;
 using Metaspesa.Domain.Identity;
 using Metaspesa.GrpcApi.Extensions;
@@ -13,7 +13,7 @@ namespace Metaspesa.GrpcApi.Services;
 internal class ShoppingGrpcService(
   GetShoppingListSummaries.Handler getShoppingListSummariesHandler,
   GetShoppingList.Handler getShoppingListHandler,
-  ICommandHandler<RecordShoppingList.Command> recordShoppingListHandler,
+  CheckoutShoppingList.Handler checkoutShoppingListHandler,
   CreateShoppingList.Handler createShoppingListHandler,
   AddItemsToList.Handler addItemsToListHandler,
   UpdateItem.Handler updateItemHandler,
@@ -137,14 +137,11 @@ internal class ShoppingGrpcService(
   public override async Task<Empty> RecordShoppingList(
     RecordShoppingListRequest request, ServerCallContext context
   ) {
-    var command = new RecordShoppingList.Command(
+    var command = new CheckoutShoppingList.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
       ShoppingListName: GrpcTextSanitizer.SanitizeAscii(request.ShoppingListName));
 
-    Result result = await recordShoppingListHandler.Handle(
-      command, context.CancellationToken);
-
-    result.ThrowRpcExceptionIfFailed();
+    await checkoutShoppingListHandler.Handle(command, context.CancellationToken);
 
     return new Empty();
   }

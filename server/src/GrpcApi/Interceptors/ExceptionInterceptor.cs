@@ -3,6 +3,7 @@ using Grpc.Core.Interceptors;
 using Metaspesa.Database.Exceptions;
 using Metaspesa.Domain.Identity.Errors;
 using Metaspesa.Domain.Markets.Errors;
+using Metaspesa.Domain.Purchasing.Errors;
 using Metaspesa.Domain.Shopping.Errors;
 using Metaspesa.GrpcApi.Extensions;
 
@@ -45,6 +46,9 @@ internal partial class ExceptionInterceptor(
     } catch (ShoppingDomainException ex) {
       LogShoppingDomainException(context.Method);
       throw ex.ToRpcException();
+    } catch (PurchaseDomainException ex) {
+      LogPurchaseDomainException(context.Method);
+      throw ex.ToRpcException();
     } catch (Exception ex) {
       LogUnhandledException(context.Method, ex);
       throw new RpcException(new Status(StatusCode.Internal, "internal server error"));
@@ -68,6 +72,9 @@ internal partial class ExceptionInterceptor(
 
   [LoggerMessage(LogLevel.Error, "Shopping domain exception while handling {Method}")]
   private partial void LogShoppingDomainException(string method);
+
+  [LoggerMessage(LogLevel.Error, "Purchasing domain exception while handling {Method}")]
+  private partial void LogPurchaseDomainException(string method);
 
   [LoggerMessage(LogLevel.Error, "Unhandled exception while handling {Method}")]
   private partial void LogUnhandledException(string method, Exception ex);
