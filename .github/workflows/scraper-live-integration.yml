@@ -1,0 +1,56 @@
+name: Scraper live integration
+
+on:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.14"
+
+jobs:
+  live-retailer-tests:
+    name: Live retailer tests (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: scraper/uv.lock
+
+      - name: Install dependencies
+        run: uv sync --frozen
+        working-directory: scraper
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('scraper/uv.lock') }}
+
+      - name: Install Firefox and system dependencies
+        run: uv run playwright install --with-deps firefox
+        working-directory: scraper
+
+      - name: Test live retailers
+        run: uv run pytest -m integration
+        working-directory: scraper

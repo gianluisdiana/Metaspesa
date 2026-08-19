@@ -1,0 +1,84 @@
+name: Dependabot patch auto-merge
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+jobs:
+  classify-patch:
+    name: Classify Dependabot patch update
+    if: >-
+      github.event_name == 'pull_request_target' &&
+      github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+
+    steps:
+      - name: Read Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@d7267f607e9d3fb96fc2fbe83e0af444713e90b7
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Ensure patch label exists
+        run: >-
+          gh label create "dependabot:patch" --color "0E8A16"
+          --description "Dependabot patch update eligible for auto-merge" --force
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Mark patch update for auto-merge
+        if: steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        run: gh pr edit "$PR_URL" --add-label "dependabot:patch"
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          PR_URL: "${{ github.event.pull_request.html_url }}"
+
+      - name: Remove patch marker from non-patch update
+        if: steps.metadata.outputs.update-type != 'version-update:semver-patch'
+        shell: bash
+        run: |
+          if gh pr view "$PR_URL" --json labels --jq '.labels[].name' | grep -Fxq "dependabot:patch"; then
+            gh pr edit "$PR_URL" --remove-label "dependabot:patch"
+          fi
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          PR_URL: "${{ github.event.pull_request.html_url }}"
+
+  merge-after-ci:
+    name: Merge patch update after CI
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]' &&
+      github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Merge marked patch update
+        shell: bash
+        run: |
+          if [[ -z "$PR_URL" ]]; then
+            echo "Successful CI run has no associated pull request."
+            exit 0
+          fi
+
+          if gh pr view "$PR_URL" --json labels --jq '.labels[].name' | grep -Fxq "dependabot:patch"; then
+            gh pr merge --merge "$PR_URL"
+          else
+            echo "Pull request is not an eligible patch update."
+          fi
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          PR_URL: "${{ github.event.workflow_run.pull_requests[0].html_url }}"

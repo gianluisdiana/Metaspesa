@@ -1,0 +1,217 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: "10.0.100"
+  NODE_VERSION: "24"
+  PYTHON_VERSION: "3.14"
+
+jobs:
+  backend-quality:
+    name: Backend quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('server/Directory.Packages.props', 'server/**/*.csproj') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Check formatting
+        run: dotnet format server/Metaspesa.slnx --verify-no-changes --verbosity diagnostic
+
+  backend-tests:
+    name: Backend tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('server/Directory.Packages.props', 'server/**/*.csproj') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Restore server dependencies
+        run: dotnet restore server/Metaspesa.slnx
+
+      - name: Test server
+        run: dotnet test server --no-restore
+
+  client-quality:
+    name: Client quality and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: client/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: client
+
+      - name: Generate gRPC types
+        run: pnpm run generate-proto
+        working-directory: client
+
+      - name: Check lint and formatting
+        run: pnpm run lint
+        working-directory: client
+
+      - name: Check types
+        run: pnpm run typecheck
+        working-directory: client
+
+      - name: Build production client
+        run: pnpm run build
+        working-directory: client
+
+  client-tests:
+    name: Client tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: client/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: client
+
+      - name: Generate gRPC types
+        run: pnpm run generate-proto
+        working-directory: client
+
+      - name: Test client
+        run: pnpm run test
+        working-directory: client
+
+  scraper-quality:
+    name: Scraper quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: scraper/uv.lock
+
+      - name: Install dependencies
+        run: uv sync --frozen
+        working-directory: scraper
+
+      - name: Check lint
+        run: uv run ruff check src test
+        working-directory: scraper
+
+      - name: Check formatting
+        run: uv run ruff format --check src test
+        working-directory: scraper
+
+  scraper-tests:
+    name: Scraper tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: scraper/uv.lock
+
+      - name: Install dependencies
+        run: uv sync --frozen
+        working-directory: scraper
+
+      - name: Test scraper without live retailers
+        run: uv run pytest -m "not integration"
+        working-directory: scraper
