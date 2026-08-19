@@ -15,18 +15,23 @@ context: |
   Architecture rules:
   - Preserve service boundaries. Do not move behavior across client, server, scraper, db, or observability without explicit rationale.
   - Server dependencies flow inward: GrpcApi -> Application -> Domain. Database implements Application abstractions.
-  - Domain contains entities and value objects with no external dependencies.
-  - Application contains use cases, handlers, DTOs, validators, and abstractions.
+  - Domain contains aggregates, entities, value objects, and domain exceptions with no infrastructure dependencies.
+  - Domain is organized into Identity, Markets, Shopping, and Purchasing bounded contexts, with shared value objects and the base DomainException in SharedKernel.
+  - Cross-context aggregate references use typed IDs, never object references. ShoppingItem references ProductFormatId; PurchaseItem references PriceSnapshotId.
+  - Application contains concrete use-case handlers, read models, and integration abstractions.
   - Database contains EF Core repositories and PostgreSQL persistence.
   - GrpcApi contains transport mapping, .proto files, service implementations, and entry point.
   - Scraper market-specific behavior belongs under scraper/src/infrastructure/market_scrapers/.
   - Client route components belong in client/src/app. View models and services belong in client/src/lib. gRPC infrastructure belongs in client/src/infrastructure.
 
   Core backend patterns:
-  - Use Result<T> for domain/application errors. Handlers should not throw for expected domain failures.
+  - Domain and Application signal expected failures with dedicated concrete domain exceptions derived from the bounded-context exception base, then shared DomainException.
+  - Keep validation in domain value objects and aggregates. Do not add separate validators for rules owned by those types.
+  - Use concrete handler classes directly.
+  - Application handlers return Application read models, never Domain aggregates, when a response is required.
   - Use IClock for time in Domain and Application. Do not use DateTime.Now or DateTime.UtcNow directly there.
-  - Use CancellableCommandHandler<TCommand> for use cases that need rollback support.
-  - Use IHandler<TCommand, TResult> for application handlers.
+  - Repositories are aggregate-oriented and each PostgreSQL repository implements one bounded-context interface. Use IUnitOfWork as transaction boundary; repositories do not save independently.
+  - Identity owns User; Markets owns Market, Product, ProductFormat, and append-only PriceSnapshot; Shopping owns planning state; Purchasing owns immutable Purchase receipts and checkout orchestration.
   - Keep gRPC response/status mapping in GrpcApi, not Domain or Application.
 
   gRPC contract:
