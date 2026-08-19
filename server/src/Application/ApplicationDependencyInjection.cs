@@ -1,7 +1,4 @@
 using System.Diagnostics;
-using FluentValidation;
-using Metaspesa.Application.Abstractions.Core;
-using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Identity;
 using Metaspesa.Application.Markets;
 using Metaspesa.Application.Purchasing;
@@ -17,14 +14,10 @@ public static class ApplicationDependencyInjection {
     public IServiceCollection AddApplication() {
       Debug.Assert(services != null);
 
-      services.AddIdentityUseCases();
-      services.AddMarketUseCases();
-      services.AddShoppingUseCases();
-      services.AddPurchasingUseCases();
-
-      services.AddValidatorsFromAssemblyContaining<Result>(includeInternalTypes: true);
-
-      return services;
+      return services.AddIdentityUseCases()
+        .AddMarketUseCases()
+        .AddShoppingUseCases()
+        .AddPurchasingUseCases();
     }
 
     private IServiceCollection AddIdentityUseCases() {

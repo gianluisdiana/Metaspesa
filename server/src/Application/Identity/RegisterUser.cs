@@ -6,7 +6,7 @@ using Metaspesa.Domain.Identity.Errors;
 namespace Metaspesa.Application.Identity;
 
 public static class RegisterUser {
-  public record Command(string Username, string Password) : ICommand;
+  public record Command(string Username, string Password);
 
   public class Handler(
     IHasher hasher,
