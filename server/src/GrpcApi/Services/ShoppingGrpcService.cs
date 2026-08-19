@@ -2,7 +2,6 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Shopping;
-using Metaspesa.Domain.Shopping;
 using Metaspesa.Domain.Identity;
 using Metaspesa.GrpcApi.Extensions;
 using Metaspesa.GrpcApi.Protos.Shopping;
@@ -12,14 +11,14 @@ namespace Metaspesa.GrpcApi.Services;
 
 [Authorize(Roles = nameof(Role.Shopper))]
 internal class ShoppingGrpcService(
-  IQueryHandler<GetShoppingListSummaries.Query, List<AShoppingList>> getShoppingListSummariesHandler,
-  IQueryHandler<GetShoppingList.Query, GetShoppingList.Response> getShoppingListHandler,
+  GetShoppingListSummaries.Handler getShoppingListSummariesHandler,
+  GetShoppingList.Handler getShoppingListHandler,
   ICommandHandler<RecordShoppingList.Command> recordShoppingListHandler,
-  ICommandHandler<CreateShoppingList.Command> createShoppingListHandler,
-  ICommandHandler<AddItemsToList.Command> addItemsToListHandler,
-  ICommandHandler<UpdateItem.Command> updateItemHandler,
-  ICommandHandler<RemoveItem.Command> removeItemHandler,
-  ICommandHandler<UpdateShoppingList.Command>? updateShoppingListHandler = null
+  CreateShoppingList.Handler createShoppingListHandler,
+  AddItemsToList.Handler addItemsToListHandler,
+  UpdateItem.Handler updateItemHandler,
+  RemoveItem.Handler removeItemHandler,
+  UpdateShoppingList.Handler? updateShoppingListHandler = null
 ) : ShoppingService.ShoppingServiceBase {
   public override async Task<ShoppingListSummariesResponse> GetShoppingListSummaries(
     Empty request, ServerCallContext context
@@ -27,13 +26,11 @@ internal class ShoppingGrpcService(
     var query = new GetShoppingListSummaries.Query(
       UserUid: context.GetHttpContext().GetUserUid());
 
-    Result<List<AShoppingList>> result =
+    IReadOnlyCollection<GetShoppingListSummaries.Response> result =
       await getShoppingListSummariesHandler.Handle(query, context.CancellationToken);
 
-    result.ThrowRpcExceptionIfFailed();
-
     var response = new ShoppingListSummariesResponse();
-    response.ShoppingLists.AddRange(result.Value.Select(summary => summary.ToSummaryProto()));
+    response.ShoppingLists.AddRange(result.Select(summary => summary.ToSummaryProto()));
 
     return response;
   }
@@ -47,13 +44,11 @@ internal class ShoppingGrpcService(
         ? GrpcTextSanitizer.SanitizeAscii(request.ShoppingListName)
         : null);
 
-    Result<GetShoppingList.Response> result = await getShoppingListHandler
+    GetShoppingList.Response result = await getShoppingListHandler
       .Handle(query, context.CancellationToken);
 
-    result.ThrowRpcExceptionIfFailed();
-
     var response = new ShoppingListResponse {
-      ShoppingList = result.Value.ToProto(),
+      ShoppingList = result.ToProto(),
     };
 
     return response;
@@ -66,10 +61,7 @@ internal class ShoppingGrpcService(
       UserUid: context.GetHttpContext().GetUserUid(),
       ShoppingListName: request.HasName ? GrpcTextSanitizer.SanitizeAscii(request.Name) : null);
 
-    Result result = await createShoppingListHandler.Handle(
-      command, context.CancellationToken);
-
-    result.ThrowRpcExceptionIfFailed();
+    await createShoppingListHandler.Handle(command, context.CancellationToken);
 
     var response = new CreateShoppingListResponse();
     if (!string.IsNullOrWhiteSpace(command.ShoppingListName)) {
@@ -88,10 +80,7 @@ internal class ShoppingGrpcService(
         : null,
       Items: [.. request.Items.Select(i => i.ToAddItemsCommand())]);
 
-    Result result = await addItemsToListHandler.Handle(
-      command, context.CancellationToken);
-
-    result.ThrowRpcExceptionIfFailed();
+    await addItemsToListHandler.Handle(command, context.CancellationToken);
 
     return new Empty();
   }
@@ -106,9 +95,7 @@ internal class ShoppingGrpcService(
       Amount: request.HasAmount ? request.Amount : null,
       IsChecked: request.HasIsChecked ? request.IsChecked : null);
 
-    Result result = await updateItemHandler.Handle(command, context.CancellationToken);
-
-    result.ThrowRpcExceptionIfFailed();
+    await updateItemHandler.Handle(command, context.CancellationToken);
 
     return new Empty();
   }
@@ -129,9 +116,7 @@ internal class ShoppingGrpcService(
         ? GrpcTextSanitizer.SanitizeAscii(request.ListName)
         : null);
 
-    Result result = await updateShoppingListHandler.Handle(command, context.CancellationToken);
-
-    result.ThrowRpcExceptionIfFailed();
+    await updateShoppingListHandler.Handle(command, context.CancellationToken);
 
     return new Empty();
   }
@@ -144,9 +129,7 @@ internal class ShoppingGrpcService(
       ShoppingListName: GrpcTextSanitizer.SanitizeAscii(request.ShoppingListName),
       ProductReferenceUid: request.ProductReferenceUid);
 
-    Result result = await removeItemHandler.Handle(command, context.CancellationToken);
-
-    result.ThrowRpcExceptionIfFailed();
+    await removeItemHandler.Handle(command, context.CancellationToken);
 
     return new Empty();
   }
