@@ -36,6 +36,7 @@ internal static class ProtosExtensions {
       $"{item.Format.Quantity.Amount:G} {item.Format.Quantity.UnitOfMeasure.Value}"),
     Price = GrpcPriceConverter.ToProto(item.Format.Price.Amount),
     Checked = item.IsChecked,
+    ProductFormatUid = item.Format.ProductFormatUid,
   };
 
   public static Protos.Markets.MarketSummary ToProto(this MarketSummary summary) =>
@@ -58,6 +59,7 @@ internal static class ProtosExtensions {
             $"{f.Quantity.Amount:G} {f.Quantity.UnitOfMeasure.Value}"),
           Price = GrpcPriceConverter.ToProto(f.Price.Amount),
           ImageUrl = f.ImageUrl?.ToString() ?? string.Empty,
+          ProductFormatUid = f.ProductFormatUid,
         }),
       },
     };

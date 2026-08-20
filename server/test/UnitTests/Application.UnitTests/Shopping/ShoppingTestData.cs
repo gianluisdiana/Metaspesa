@@ -27,5 +27,6 @@ internal static class ShoppingTestData {
     [new MarketProductFormat(
       new Quantity(1, new UnitOfMeasure("l")),
       new Money(1.25m),
-      new Uri($"https://example.test/{formatId}"))]);
+      new Uri($"https://example.test/{formatId}"),
+      formatId)]);
 }

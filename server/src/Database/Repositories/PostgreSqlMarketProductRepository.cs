@@ -253,7 +253,8 @@ internal partial class PostgreSqlMarketProductRepository(
         format.Quantity,
         new UnitOfMeasure(format.UnitOfMeasure.Code)),
       new Money(snapshot.PriceAmount),
-      ToUri(format.ImageUrl));
+      ToUri(format.ImageUrl),
+      format.Id);
   }
 
   private async Task<int> GetMarketIdAsync(

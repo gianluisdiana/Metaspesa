@@ -10,9 +10,6 @@ option csharp_namespace = "Metaspesa.GrpcApi.Protos.Shopping";
 
 // Handles the shopping related operations.
 service ShoppingService {
-  // Gets the registered items.
-  rpc GetRegisteredItems(google.protobuf.Empty) returns (RegisteredItemsResponse);
-
   // Gets the names of all shopping lists owned by the user.
   rpc GetShoppingListSummaries(google.protobuf.Empty) returns (ShoppingListSummariesResponse);
 

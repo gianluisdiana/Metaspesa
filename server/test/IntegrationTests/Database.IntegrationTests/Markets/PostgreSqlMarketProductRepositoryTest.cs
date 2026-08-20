@@ -165,6 +165,25 @@ public class PostgreSqlMarketProductRepositoryTests : IAsyncLifetime {
     Assert.Equal(1, resultPage.TotalCount);
   }
 
+  [Fact(DisplayName = "Catalog projects the persisted product format identifier")]
+  public async Task Repository_ProjectsProductFormatIdentifier_InCatalog() {
+    // Arrange
+    ProductImportResult import = await ResolveAndAppendAsync();
+    ProductFormatId persistedFormatId =
+      Assert.Single(import.PriceObservations).ProductFormatId;
+
+    // Act
+    PagedResult<MarketCatalog> result = await _productRepository.GetProductsAsync(
+      new GetMarketProductsFilter(null, null, null, Pagination.Infinite),
+      TestContext.Current.CancellationToken);
+
+    // Assert
+    MarketProduct product = Assert.Single(Assert.Single(result.Values).Products);
+    Assert.Equal(
+      persistedFormatId.Value,
+      Assert.Single(product.Formats).ProductFormatUid);
+  }
+
   [Fact(DisplayName = "Catalog applies market, brand, name, and pagination filters")]
   public async Task Repository_AppliesCatalogFilters_AndPagination() {
     await ResolveAndAppendAsync();

@@ -321,7 +321,8 @@ public static class MarketGrpcServiceTests {
               new Metaspesa.Application.Abstractions.Markets.MarketProductFormat(
                 new Quantity(1.5m, new UnitOfMeasure("L")),
                 new DomainPrice(0.89m),
-                null)
+                null,
+                17)
             ])
           ]),
         ], 1));
@@ -332,6 +333,35 @@ public static class MarketGrpcServiceTests {
 
       // Assert
       Assert.Equal("1.5 l", response.Markets.Single().Products.Single().Formats.Single().Quantity);
+    }
+
+    [Fact(DisplayName = "Maps product format identifier to catalog response")]
+    public async Task Api_MapsProductFormatIdentifier_ToCatalogResponse() {
+      // Arrange
+      _productRepository
+        .GetProductsAsync(
+          Arg.Any<GetMarketProductsFilter>(),
+          TestContext.Current.CancellationToken)
+        .Returns(new PagedResult<DomainMarket>([
+          new DomainMarket("Mercadona", [
+            new DomainMarketProduct("Leche", "H", [
+              new Metaspesa.Application.Abstractions.Markets.MarketProductFormat(
+                new Quantity(1.5m, new UnitOfMeasure("L")),
+                new DomainPrice(0.89m),
+                null,
+                17)
+            ])
+          ]),
+        ], 1));
+
+      // Act
+      GetMarketProductsResponse response =
+        await _service.GetMarketProducts(new GetMarketProductsRequest(), CreateServerCallContext());
+
+      // Assert
+      Assert.Equal(
+        17,
+        response.Markets.Single().Products.Single().Formats.Single().ProductFormatUid);
     }
 
     [Fact(DisplayName = "Returns total_products from handler result")]

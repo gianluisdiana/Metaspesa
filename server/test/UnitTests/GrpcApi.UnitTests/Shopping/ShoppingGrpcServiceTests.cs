@@ -72,6 +72,32 @@ public class ShoppingGrpcServiceTests {
     Assert.True(item.Checked);
   }
 
+  [Fact(DisplayName = "Maps product format identifier to shopping item response")]
+  public async Task GetShoppingList_MapsProductFormatIdentifier() {
+    // Arrange
+    var fixture = new ServiceFixture();
+    var ownerId = Guid.CreateVersion7();
+    fixture.ShoppingRepository.GetAsync(
+      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      .Returns(PersistedList(
+        ownerId,
+        "Weekly",
+        new ShoppingItem(new ProductFormatId(7), new PositiveAmount(2), true)));
+    fixture.ProductRepository.GetProductsAsync(
+      Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>())
+      .Returns(new Dictionary<int, MarketProduct> {
+        [7] = ProductProjection(),
+      });
+
+    // Act
+    ShoppingListResponse response = await fixture.Service.GetShoppingList(
+      new GetShoppingListRequest { ShoppingListName = "Weekly" },
+      CreateServerCallContext(ownerId));
+
+    // Assert
+    Assert.Equal(7, Assert.Single(response.ShoppingList.Items).ProductFormatUid);
+  }
+
   [Fact(DisplayName = "Maps missing list name and JWT owner to temporary-list query")]
   public async Task GetShoppingList_UsesClaimAndNullName_WhenNameIsMissing() {
     var fixture = new ServiceFixture();
@@ -356,7 +382,8 @@ public class ShoppingGrpcServiceTests {
     [new MarketProductFormat(
       new Quantity(1, new UnitOfMeasure("l")),
       new Money(1.25m),
-      new Uri("https://example.test/milk"))]);
+      new Uri("https://example.test/milk"),
+      7)]);
 
   private static ServerCallContext CreateServerCallContext(Guid userId) {
     ServerCallContext context = TestServerCallContext.Create(
