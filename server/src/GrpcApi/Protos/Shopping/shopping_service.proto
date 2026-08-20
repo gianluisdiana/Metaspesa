@@ -59,7 +59,7 @@ message AddItemsToListRequest {
 // Request message to update an item in a shopping list.
 message UpdateItemRequest {
   string shopping_list_name = 1;
-  int32 product_reference_uid = 2;
+  int32 product_format_uid = 2;
   optional int32 amount = 3;
   optional bool is_checked = 4;
 }
@@ -73,7 +73,7 @@ message UpdateShoppingListRequest {
 // Request message to remove an item from a shopping list.
 message RemoveItemRequest {
   string shopping_list_name = 1;
-  int32 product_reference_uid = 2;
+  int32 product_format_uid = 2;
 }
 
 // Response message with registered items.

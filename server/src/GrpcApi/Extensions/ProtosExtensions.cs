@@ -67,7 +67,7 @@ internal static class ProtosExtensions {
   public static AddItemsToList.CommandItem ToAddItemsCommand(
     this Protos.Shopping.AShoppingItem protoItem
   ) => new(
-    protoItem.ReferenceUid,
+    protoItem.ProductFormatUid,
     protoItem.Amount,
     protoItem.IsChecked
   );

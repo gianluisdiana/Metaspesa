@@ -155,7 +155,7 @@ public class ShoppingGrpcServiceTests {
       .Returns(new Dictionary<int, MarketProduct> { [7] = ProductProjection() });
     var request = new AddItemsToListRequest { ShoppingListName = "Weekly" };
     request.Items.Add(new AShoppingItem {
-      ReferenceUid = 7,
+      ProductFormatUid = 7,
       Amount = 3,
       IsChecked = true,
     });
@@ -182,7 +182,7 @@ public class ShoppingGrpcServiceTests {
       Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>())
       .Returns(new Dictionary<int, MarketProduct> { [7] = ProductProjection() });
     var request = new AddItemsToListRequest { ShoppingListName = "Semanal \u2713" };
-    request.Items.Add(new AShoppingItem { ReferenceUid = 7, Amount = 1 });
+    request.Items.Add(new AShoppingItem { ProductFormatUid = 7, Amount = 1 });
 
     await fixture.Service.AddItemsToList(request, CreateServerCallContext(ownerId));
 
@@ -206,7 +206,7 @@ public class ShoppingGrpcServiceTests {
 
     await fixture.Service.UpdateItem(new UpdateItemRequest {
       ShoppingListName = "Weekly",
-      ProductReferenceUid = 7,
+      ProductFormatUid = 7,
       Amount = 4,
       IsChecked = true,
     }, CreateServerCallContext(ownerId));
@@ -229,7 +229,7 @@ public class ShoppingGrpcServiceTests {
 
     await fixture.Service.UpdateItem(new UpdateItemRequest {
       ShoppingListName = "Weekly",
-      ProductReferenceUid = 7,
+      ProductFormatUid = 7,
       IsChecked = true,
     }, CreateServerCallContext(ownerId));
 
@@ -268,7 +268,7 @@ public class ShoppingGrpcServiceTests {
 
     await fixture.Service.RemoveItem(new RemoveItemRequest {
       ShoppingListName = "Weekly",
-      ProductReferenceUid = 7,
+      ProductFormatUid = 7,
     }, CreateServerCallContext(ownerId));
 
     Assert.Empty(list.Items);

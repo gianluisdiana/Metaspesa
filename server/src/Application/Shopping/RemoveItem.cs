@@ -7,7 +7,7 @@ using Metaspesa.Domain.Shopping;
 namespace Metaspesa.Application.Shopping;
 
 public static class RemoveItem {
-  public record Command(Guid UserUid, string? ShoppingListName, int ProductReferenceUid);
+  public record Command(Guid UserUid, string? ShoppingListName, int ProductFormatUid);
 
   public class Handler(
     IShoppingListRepository shoppingListRepository,
@@ -24,7 +24,7 @@ public static class RemoveItem {
         ownerId, name, cancellationToken) ??
         throw ShoppingListRequest.NotFound();
 
-      shoppingList.RemoveItem(new ProductFormatId(command.ProductReferenceUid));
+      shoppingList.RemoveItem(new ProductFormatId(command.ProductFormatUid));
       await shoppingListRepository.UpdateAsync(shoppingList, cancellationToken);
       await unitOfWork.SaveChangesAsync(cancellationToken);
     }

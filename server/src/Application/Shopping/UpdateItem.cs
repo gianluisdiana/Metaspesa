@@ -11,7 +11,7 @@ public static class UpdateItem {
   public record Command(
     Guid UserUid,
     string? ShoppingListName,
-    int ProductReferenceUid,
+    int ProductFormatUid,
     int? Amount,
     bool? IsChecked
   );
@@ -32,7 +32,7 @@ public static class UpdateItem {
         throw ShoppingListRequest.NotFound();
 
       shoppingList.UpdateItem(
-        new ProductFormatId(command.ProductReferenceUid),
+        new ProductFormatId(command.ProductFormatUid),
         command.Amount.HasValue ? new PositiveAmount(command.Amount.Value) : null,
         command.IsChecked);
       await shoppingListRepository.UpdateAsync(shoppingList, cancellationToken);

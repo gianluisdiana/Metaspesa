@@ -15,7 +15,7 @@ message ShoppingItem {
 
 // An item in the shopping list.
 message AShoppingItem {
-  int32 reference_uid = 1;
+  int32 product_format_uid = 1;
   int32 amount = 2;
   bool is_checked = 3;
 }

@@ -91,7 +91,7 @@ internal class ShoppingGrpcService(
     var command = new UpdateItem.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
       ShoppingListName: GrpcTextSanitizer.SanitizeAscii(request.ShoppingListName),
-      ProductReferenceUid: request.ProductReferenceUid,
+      ProductFormatUid: request.ProductFormatUid,
       Amount: request.HasAmount ? request.Amount : null,
       IsChecked: request.HasIsChecked ? request.IsChecked : null);
 
@@ -127,7 +127,7 @@ internal class ShoppingGrpcService(
     var command = new RemoveItem.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
       ShoppingListName: GrpcTextSanitizer.SanitizeAscii(request.ShoppingListName),
-      ProductReferenceUid: request.ProductReferenceUid);
+      ProductFormatUid: request.ProductFormatUid);
 
     await removeItemHandler.Handle(command, context.CancellationToken);
 

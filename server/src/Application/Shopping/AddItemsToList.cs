@@ -11,7 +11,7 @@ using MarketProductRepository = Metaspesa.Application.Abstractions.Markets.IProd
 namespace Metaspesa.Application.Shopping;
 
 public static class AddItemsToList {
-  public record CommandItem(int ReferenceUid, int Amount, bool IsChecked);
+  public record CommandItem(int ProductFormatUid, int Amount, bool IsChecked);
   public record Command(
     Guid UserUid,
     string? ShoppingListName,
@@ -39,7 +39,7 @@ public static class AddItemsToList {
         throw ShoppingListRequest.NotFound();
 
       var items = command.Items.Select(item => new ShoppingItem(
-        new ProductFormatId(item.ReferenceUid),
+        new ProductFormatId(item.ProductFormatUid),
         new PositiveAmount(item.Amount),
         item.IsChecked)).ToList();
       IReadOnlyCollection<int> formatIds = [
