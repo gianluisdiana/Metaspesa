@@ -6,10 +6,11 @@ package Metaspesa.Protos.Markets;
 message Product {
   string name = 1;
   string price = 2;
-  string quantity = 3;
-  string market_name = 4;
-  string brand_name = 5;
-  string image_url = 6;
+  float quantity = 3;
+  string unit_of_measure = 4;
+  string market_name = 5;
+  string brand_name = 6;
+  string image_url = 7;
 }
 
 // A format (size/quantity + price) for a market product.
