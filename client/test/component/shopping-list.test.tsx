@@ -29,9 +29,15 @@ function renderShoppingList() {
               checked: false,
               name: 'Milk',
               price: 1.25,
+              productFormatUid: 1,
               quantity: '1 l',
             },
-            { checked: true, name: 'Bread', price: 2.35 },
+            {
+              checked: true,
+              name: 'Bread',
+              price: 2.35,
+              productFormatUid: 2,
+            },
           ],
         }}
         initialShoppingListSummaries={[{ name: 'Groceries' }]}

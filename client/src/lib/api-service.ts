@@ -14,15 +14,14 @@ export default interface ApiService {
   createShoppingList(name?: string): Promise<void>;
   getShoppingList(name?: string): Promise<ShoppingListMessage>;
   getShoppingListSummaries(): Promise<ShoppingListSummaryMessage[]>;
-  getRegisteredProducts(): Promise<ProductMessage[]>;
   removeItem(
     shoppingListName: string | undefined,
-    itemName: string,
+    productFormatUid: number,
   ): Promise<void>;
-  recordShoppingList(shoppingList: ShoppingListMessage): Promise<void>;
+  recordShoppingList(shoppingListName?: string): Promise<void>;
   updateItem(
     shoppingListName: string | undefined,
-    itemName: string,
+    productFormatUid: number,
     update: ShoppingItemUpdateMessage,
   ): Promise<void>;
   updateShoppingList(

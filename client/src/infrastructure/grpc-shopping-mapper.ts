@@ -52,6 +52,7 @@ export class GrpcShoppingMapper {
         item.price === undefined
           ? undefined
           : dollars.round(Number(item.price)),
+      productFormatUid: item.productFormatUid,
       quantity: item.quantity,
     };
   }

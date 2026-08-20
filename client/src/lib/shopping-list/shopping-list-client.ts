@@ -81,21 +81,21 @@ export class ShoppingListClient {
 
   public async removeItem(
     shoppingListName: string | undefined,
-    itemName: string,
+    productFormatUid: number,
   ): Promise<CreateListResponse> {
     return await this.mutateItems('DELETE', {
-      itemName,
+      productFormatUid,
       shoppingListName,
     });
   }
 
   public async updateItem(
     shoppingListName: string | undefined,
-    itemName: string,
+    productFormatUid: number,
     update: ShoppingItemUpdateMessage,
   ): Promise<CreateListResponse> {
     return await this.mutateItems('PATCH', {
-      itemName,
+      productFormatUid,
       shoppingListName,
       update,
     });

@@ -71,12 +71,16 @@ export function useProductGridController({
     if (!selectedProduct) {
       return;
     }
+    if (selectedProduct.productFormatUid === undefined) {
+      throw new Error('Product format UID is required to add an item.');
+    }
 
     const result = await client.addItemsToList(listName, [
       {
         checked: false,
         name: selectedProduct.name,
         price: selectedProduct.priceValue,
+        productFormatUid: selectedProduct.productFormatUid,
         quantity: selectedProduct.unit || undefined,
       },
     ]);

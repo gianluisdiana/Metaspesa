@@ -10,6 +10,14 @@ message ShoppingItem {
   optional string quantity = 2;
   optional string price = 3;
   bool checked = 4;
+  int32 product_format_uid = 5;
+}
+
+// An item in the shopping list.
+message AShoppingItem {
+  int32 product_format_uid = 1;
+  int32 amount = 2;
+  bool is_checked = 3;
 }
 
 // A list of items for shopping.

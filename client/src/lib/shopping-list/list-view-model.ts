@@ -16,7 +16,7 @@ export class ShoppingListViewModel {
 
   public get checkedItems(): CheckedShoppingItemViewModel[] {
     return this.checkedProducts.map(
-      (product, index) => new CheckedShoppingItemViewModel(product, index),
+      product => new CheckedShoppingItemViewModel(product),
     );
   }
 
@@ -55,9 +55,7 @@ export class ShoppingListViewModel {
   public get uncheckedSections(): ShoppingItemSectionViewModel[] {
     const uncheckedItems = this.products
       .filter(product => !product.checked)
-      .map(
-        (product, index) => new UncheckedShoppingItemViewModel(product, index),
-      );
+      .map(product => new UncheckedShoppingItemViewModel(product));
     const sectionNames = [
       ...new Set(uncheckedItems.map(item => item.categorySection)),
     ];

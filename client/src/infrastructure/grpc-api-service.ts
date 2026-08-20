@@ -39,17 +39,20 @@ export default class GrpcApiService implements ApiService {
     shoppingListName: string | undefined,
     products: ProductMessage[],
   ): Promise<void> {
+    for (const product of products) {
+      if (!product.productFormatUid) {
+        throw new Error('Product format UID is required to add an item.');
+      }
+    }
+
     await this.executeEmptyCall(resolve => {
       this.client.AddItemsToList(
         {
           ...(shoppingListName ? { shoppingListName } : {}),
           items: products.map(product => ({
-            checked: product.checked,
-            name: product.name,
-            ...(product.price === undefined
-              ? {}
-              : { price: product.price.toString() }),
-            ...(product.quantity ? { quantity: product.quantity } : {}),
+            amount: 1,
+            isChecked: product.checked,
+            productFormatUid: product.productFormatUid,
           })),
         },
         this.metadata,
@@ -143,65 +146,42 @@ export default class GrpcApiService implements ApiService {
     }
   }
 
-  async getRegisteredProducts(): Promise<ProductMessage[]> {
-    try {
-      return await new Promise<ProductMessage[]>((resolve, reject) => {
-        this.client.GetRegisteredItems({}, this.metadata, (err, response) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-
-          resolve(
-            this.mapper.mapRegisteredItems(
-              requireGrpcResponse(response, 'RegisteredItemsResponse'),
-            ),
-          );
-        });
-      });
-    } catch (error) {
-      logGrpcReadFailure({
-        error,
-        grpcMethod: 'GetRegisteredItems',
-        grpcService: SERVICE_NAME,
-        loggerName: LOGGER_NAME,
-      });
-      throw error;
-    }
-  }
-
   async removeItem(
     shoppingListName: string | undefined,
-    itemName: string,
+    productFormatUid: number,
   ): Promise<void> {
     await this.executeEmptyCall(resolve => {
       this.client.RemoveItem(
-        { itemName, shoppingListName: shoppingListName ?? '' },
+        { productFormatUid, shoppingListName: shoppingListName ?? '' },
         this.metadata,
         resolve,
       );
     });
   }
 
-  recordShoppingList(shoppingList: ShoppingListMessage): Promise<void> {
-    throw new Error(
-      `Method not implemented. Received: ${JSON.stringify(shoppingList)}`,
-    );
+  async recordShoppingList(shoppingListName?: string): Promise<void> {
+    await this.executeEmptyCall(resolve => {
+      this.client.RecordShoppingList(
+        { shoppingListName: shoppingListName ?? '' },
+        this.metadata,
+        resolve,
+      );
+    });
   }
 
   async updateItem(
     shoppingListName: string | undefined,
-    itemName: string,
+    productFormatUid: number,
     update: ShoppingItemUpdateMessage,
   ): Promise<void> {
     await this.executeEmptyCall(resolve => {
       this.client.UpdateItem(
         {
-          ...(update.checked === undefined ? {} : { checked: update.checked }),
-          ...(update.name ? { itemName: update.name } : {}),
-          ...(update.price === undefined ? {} : { itemPrice: update.price }),
-          ...(update.quantity ? { itemQuantity: update.quantity } : {}),
-          originalItemName: itemName,
+          ...(update.amount === undefined ? {} : { amount: update.amount }),
+          ...(update.checked === undefined
+            ? {}
+            : { isChecked: update.checked }),
+          productFormatUid,
           shoppingListName: shoppingListName ?? '',
         },
         this.metadata,

@@ -37,6 +37,7 @@ function renderAuthenticatedProductGrid() {
                   {
                     imageUrl: '',
                     price: 1.29,
+                    productFormatUid: 10,
                     quantity: '1 l',
                   },
                 ],

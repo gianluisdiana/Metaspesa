@@ -20,6 +20,7 @@ describe('GrpcMarketMapper', () => {
               {
                 imageUrl: '',
                 price: '1.5',
+                productFormatUid: 10,
                 quantity: '1 kg',
               },
             ],
@@ -36,6 +37,7 @@ describe('GrpcMarketMapper', () => {
             {
               imageUrl: null,
               price: 1.5,
+              productFormatUid: 10,
               quantity: '1 kg',
             },
           ],

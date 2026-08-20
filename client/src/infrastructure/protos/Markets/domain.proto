@@ -17,6 +17,7 @@ message MarketProductFormat {
   string quantity = 1;
   string price = 2;
   string image_url = 3;
+  int32 product_format_uid = 4;
 }
 
 // A market product with all its available formats.

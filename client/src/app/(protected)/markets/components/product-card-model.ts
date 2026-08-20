@@ -1,5 +1,6 @@
 export type Product = {
   id: string;
+  productFormatUid?: number;
   category: string;
   name: string;
   price: string;

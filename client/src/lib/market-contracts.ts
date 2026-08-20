@@ -4,6 +4,7 @@ export interface MarketSummaryMessage {
 }
 
 export interface MarketProductFormatMessage {
+  productFormatUid: number;
   quantity: string;
   price: number;
   imageUrl: string | null;

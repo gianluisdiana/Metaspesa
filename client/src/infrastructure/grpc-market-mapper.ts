@@ -14,6 +14,7 @@ export class GrpcMarketMapper {
             product.formats?.map(format => ({
               imageUrl: format.imageUrl || null,
               price: Number(format.price),
+              productFormatUid: format.productFormatUid,
               quantity: format.quantity,
             })) ?? [],
           name: product.name,

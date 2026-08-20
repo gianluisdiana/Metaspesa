@@ -60,6 +60,7 @@ const milk = {
   checked: false,
   name: 'Integration Milk',
   price: 1.29,
+  productFormatUid: 1,
   quantity: '1 l',
 };
 
@@ -67,6 +68,7 @@ const bread = {
   checked: false,
   name: 'Integration Bread',
   price: 2.49,
+  productFormatUid: 2,
   quantity: '1 unit',
 };
 
@@ -102,7 +104,9 @@ describeIfGrpc('shopping gRPC integration', () => {
     const service = await createApiServiceWithShoppingList(shoppingListName);
     await service.addItemsToList(shoppingListName, [milk]);
 
-    await service.updateItem(shoppingListName, milk.name, { checked: true });
+    await service.updateItem(shoppingListName, milk.productFormatUid, {
+      checked: true,
+    });
 
     await expect(service.getShoppingList(shoppingListName)).resolves.toEqual(
       expect.objectContaining({
@@ -123,11 +127,28 @@ describeIfGrpc('shopping gRPC integration', () => {
     const service = await createApiServiceWithShoppingList(shoppingListName);
     await service.addItemsToList(shoppingListName, [milk, bread]);
 
-    await service.removeItem(shoppingListName, milk.name);
+    await service.removeItem(shoppingListName, milk.productFormatUid);
 
     await expect(service.getShoppingList(shoppingListName)).resolves.toEqual(
       expect.objectContaining({
         products: [bread],
+      }),
+    );
+  });
+
+  it('records checked items and resets their checked state through api service', async () => {
+    const shoppingListName = uniqueListName('Integration Record');
+    const service = await createApiServiceWithShoppingList(shoppingListName);
+    await service.addItemsToList(shoppingListName, [milk]);
+    await service.updateItem(shoppingListName, milk.productFormatUid, {
+      checked: true,
+    });
+
+    await service.recordShoppingList(shoppingListName);
+
+    await expect(service.getShoppingList(shoppingListName)).resolves.toEqual(
+      expect.objectContaining({
+        products: [expect.objectContaining({ checked: false })],
       }),
     );
   });

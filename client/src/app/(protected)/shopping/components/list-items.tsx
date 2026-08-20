@@ -21,8 +21,8 @@ export default function ItemsContainer({
 }: Readonly<{
   checkedItems: CheckedShoppingItemViewModel[];
   hasItems: boolean;
-  onRequestDeleteItem: (itemName: string) => void;
-  onToggleItemChecked: (itemName: string, checked: boolean) => void;
+  onRequestDeleteItem: (productFormatUid: number, itemName: string) => void;
+  onToggleItemChecked: (productFormatUid: number, checked: boolean) => void;
   uncheckedSections: ShoppingItemSectionViewModel[];
 }>) {
   if (!hasItems) {
@@ -38,8 +38,12 @@ export default function ItemsContainer({
             <UncheckedItem
               key={item.id}
               item={item}
-              onDelete={() => onRequestDeleteItem(item.name)}
-              onToggleChecked={() => onToggleItemChecked(item.name, true)}
+              onDelete={() =>
+                onRequestDeleteItem(item.productFormatUid, item.name)
+              }
+              onToggleChecked={() =>
+                onToggleItemChecked(item.productFormatUid, true)
+              }
             />
           ))}
         </Fragment>
@@ -51,7 +55,9 @@ export default function ItemsContainer({
             <CheckedItem
               key={item.id}
               item={item}
-              onToggleChecked={() => onToggleItemChecked(item.name, false)}
+              onToggleChecked={() =>
+                onToggleItemChecked(item.productFormatUid, false)
+              }
             />
           ))}
         </>

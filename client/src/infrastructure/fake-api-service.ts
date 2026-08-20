@@ -21,12 +21,9 @@ export default class FakeApiService implements ApiService {
     console.log(`Shopping list "${name ?? 'temporary'}" created.`);
   }
 
-  async recordShoppingList(shoppingList: ShoppingListMessage): Promise<void> {
+  async recordShoppingList(shoppingListName?: string): Promise<void> {
     await Promise.resolve();
-    console.log(
-      `Shopping list "${shoppingList.name}" recorded:`,
-      shoppingList.products,
-    );
+    console.log(`Shopping list "${shoppingListName ?? 'temporary'}" recorded.`);
   }
 
   getShoppingList(name?: string): Promise<ShoppingListMessage> {
@@ -37,16 +34,19 @@ export default class FakeApiService implements ApiService {
           checked: true,
           name: 'Naranjas',
           price: 2,
+          productFormatUid: 1,
           quantity: '1 paquete',
         },
         {
           checked: true,
           name: 'Pan dulce',
           price: 1.5,
+          productFormatUid: 2,
         },
         {
           checked: true,
           name: 'Leche entera',
+          productFormatUid: 3,
           quantity: '1 litro',
         },
       ],
@@ -57,44 +57,26 @@ export default class FakeApiService implements ApiService {
     return Promise.resolve([{ name: undefined }, { name: 'Groceries' }]);
   }
 
-  getRegisteredProducts(): Promise<ProductMessage[]> {
-    return Promise.resolve([
-      {
-        checked: true,
-        name: 'Manzanas',
-        price: 2,
-        quantity: '1 paquete',
-      },
-      {
-        checked: true,
-        name: 'Pan',
-        price: 1.5,
-        quantity: '2 barras',
-      },
-      {
-        checked: true,
-        name: 'Leche',
-        quantity: '1 litro',
-      },
-    ]);
-  }
-
   async removeItem(
     shoppingListName: string | undefined,
-    itemName: string,
+    productFormatUid: number,
   ): Promise<void> {
     const list = await this.getShoppingList(shoppingListName);
-    list.products = list.products.filter(product => product.name !== itemName);
+    list.products = list.products.filter(
+      product => product.productFormatUid !== productFormatUid,
+    );
   }
 
   async updateItem(
     shoppingListName: string | undefined,
-    itemName: string,
+    productFormatUid: number,
     update: ShoppingItemUpdateMessage,
   ): Promise<void> {
     const list = await this.getShoppingList(shoppingListName);
     list.products = list.products.map(product =>
-      product.name === itemName ? { ...product, ...update } : product,
+      product.productFormatUid === productFormatUid
+        ? { ...product, ...update }
+        : product,
     );
   }
 

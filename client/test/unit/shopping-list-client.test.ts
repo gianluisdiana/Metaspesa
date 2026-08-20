@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ShoppingListClient } from '@/lib/shopping-list';
 
+const ProductFormatUid = 10;
+
 function shoppingListResponse(body: unknown, ok = true) {
   return {
     json: () => Promise.resolve(body),
@@ -66,12 +68,26 @@ describe('ShoppingListClient', () => {
     const client = new ShoppingListClient();
 
     await client.addItemsToList('Groceries', [
-      { checked: false, name: 'Milk', price: 1.29, quantity: '1 l' },
+      {
+        checked: false,
+        name: 'Milk',
+        price: 1.29,
+        productFormatUid: ProductFormatUid,
+        quantity: '1 l',
+      },
     ]);
 
     expect(fetchMock).toHaveBeenCalledWith('/api/shopping/lists/items', {
       body: JSON.stringify({
-        items: [{ checked: false, name: 'Milk', price: 1.29, quantity: '1 l' }],
+        items: [
+          {
+            checked: false,
+            name: 'Milk',
+            price: 1.29,
+            productFormatUid: ProductFormatUid,
+            quantity: '1 l',
+          },
+        ],
         shoppingListName: 'Groceries',
       }),
       headers: { 'Content-Type': 'application/json' },
@@ -86,11 +102,11 @@ describe('ShoppingListClient', () => {
     vi.stubGlobal('fetch', fetchMock);
     const client = new ShoppingListClient();
 
-    await client.updateItem('Groceries', 'Milk', { checked: true });
+    await client.updateItem('Groceries', ProductFormatUid, { checked: true });
 
     expect(fetchMock).toHaveBeenCalledWith('/api/shopping/lists/items', {
       body: JSON.stringify({
-        itemName: 'Milk',
+        productFormatUid: ProductFormatUid,
         shoppingListName: 'Groceries',
         update: { checked: true },
       }),
@@ -106,11 +122,11 @@ describe('ShoppingListClient', () => {
     vi.stubGlobal('fetch', fetchMock);
     const client = new ShoppingListClient();
 
-    await client.removeItem('Groceries', 'Milk');
+    await client.removeItem('Groceries', ProductFormatUid);
 
     expect(fetchMock).toHaveBeenCalledWith('/api/shopping/lists/items', {
       body: JSON.stringify({
-        itemName: 'Milk',
+        productFormatUid: ProductFormatUid,
         shoppingListName: 'Groceries',
       }),
       headers: { 'Content-Type': 'application/json' },
@@ -125,8 +141,8 @@ describe('ShoppingListClient', () => {
     vi.stubGlobal('fetch', fetchMock);
     const client = new ShoppingListClient();
 
-    await expect(client.removeItem('Groceries', 'Milk')).rejects.toThrow(
-      'Could not update shopping list.',
-    );
+    await expect(
+      client.removeItem('Groceries', ProductFormatUid),
+    ).rejects.toThrow('Could not update shopping list.');
   });
 });

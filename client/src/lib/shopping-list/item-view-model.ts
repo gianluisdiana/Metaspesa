@@ -10,13 +10,14 @@ export type ShoppingItemBadgeViewModel = {
 };
 
 export class CheckedShoppingItemViewModel {
-  public constructor(
-    private readonly product: ProductMessage,
-    private readonly index: number,
-  ) {}
+  public constructor(private readonly product: ProductMessage) {}
 
   public get id(): string {
-    return `${this.name}-${this.index}`;
+    return String(this.productFormatUid);
+  }
+
+  public get productFormatUid(): number {
+    return this.product.productFormatUid;
   }
 
   public get name(): string {
@@ -29,10 +30,7 @@ export class CheckedShoppingItemViewModel {
 }
 
 export class UncheckedShoppingItemViewModel {
-  public constructor(
-    private readonly product: ProductMessage,
-    private readonly index: number,
-  ) {}
+  public constructor(private readonly product: ProductMessage) {}
 
   public get badge(): ShoppingItemBadgeViewModel {
     return {
@@ -46,7 +44,11 @@ export class UncheckedShoppingItemViewModel {
   }
 
   public get id(): string {
-    return `${this.name}-${this.index}`;
+    return String(this.productFormatUid);
+  }
+
+  public get productFormatUid(): number {
+    return this.product.productFormatUid;
   }
 
   public get lowStock(): boolean {

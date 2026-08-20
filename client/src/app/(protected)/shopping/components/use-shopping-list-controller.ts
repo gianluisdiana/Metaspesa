@@ -34,7 +34,10 @@ export function useShoppingListController({
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [itemPendingDelete, setItemPendingDelete] = useState<string>();
+  const [itemPendingDelete, setItemPendingDelete] = useState<{
+    name: string;
+    productFormatUid: number;
+  }>();
   const [temporaryListNamePrompt, setTemporaryListNamePrompt] =
     useState<string>();
   const { showToast } = useToast();
@@ -140,7 +143,8 @@ export function useShoppingListController({
     }
 
     const previousShoppingList = shoppingList;
-    const deletedItemName = itemPendingDelete;
+    const deletedItemName = itemPendingDelete.name;
+    const deletedProductFormatUid = itemPendingDelete.productFormatUid;
     setItemPendingDelete(undefined);
     setShoppingList({
       ...shoppingList,
@@ -150,7 +154,10 @@ export function useShoppingListController({
     });
 
     try {
-      const result = await client.removeItem(selectedListName, deletedItemName);
+      const result = await client.removeItem(
+        selectedListName,
+        deletedProductFormatUid,
+      );
       setShoppingList(result.shoppingList);
       setShoppingListSummaries(result.shoppingListSummaries);
       showToast({
@@ -169,19 +176,26 @@ export function useShoppingListController({
     }
   }
 
-  async function handleToggleItemChecked(itemName: string, checked: boolean) {
+  async function handleToggleItemChecked(
+    productFormatUid: number,
+    checked: boolean,
+  ) {
     const previousShoppingList = shoppingList;
     setShoppingList({
       ...shoppingList,
       products: shoppingList.products.map(product =>
-        product.name === itemName ? { ...product, checked } : product,
+        product.productFormatUid === productFormatUid
+          ? { ...product, checked }
+          : product,
       ),
     });
 
     try {
-      const result = await client.updateItem(selectedListName, itemName, {
-        checked,
-      });
+      const result = await client.updateItem(
+        selectedListName,
+        productFormatUid,
+        { checked },
+      );
       setShoppingList(result.shoppingList);
       setShoppingListSummaries(result.shoppingListSummaries);
     } catch (requestError) {
@@ -202,12 +216,13 @@ export function useShoppingListController({
     handleConfirmDeleteItem,
     handleConfirmTemporaryListName,
     handleCreateList,
-    handleRequestDeleteItem: setItemPendingDelete,
+    handleRequestDeleteItem: (productFormatUid: number, name: string) =>
+      setItemPendingDelete({ name, productFormatUid }),
     handleSelectList,
     handleToggleItemChecked,
     isCreating,
     isLoading,
-    itemPendingDelete,
+    itemPendingDelete: itemPendingDelete?.name,
     tabs: tabsViewModel.tabs,
     temporaryListNamePrompt,
     viewModel,

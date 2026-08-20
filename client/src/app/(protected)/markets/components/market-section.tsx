@@ -10,12 +10,13 @@ function toProduct(p: MarketProductMessage): Product {
   const [first] = p.formats;
   return {
     category: p.brandName,
-    id: p.name,
+    id: first?.productFormatUid ? String(first.productFormatUid) : p.name,
     imageAlt: p.name,
     imageUrl: first.imageUrl ?? '',
     name: p.name,
     price: first ? euros.format(first.price) : MISSING_PRICE_LABEL,
     priceValue: first?.price,
+    productFormatUid: first?.productFormatUid,
     unit: first?.quantity ?? '',
   };
 }

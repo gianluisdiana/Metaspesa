@@ -114,27 +114,6 @@ describe('GrpcApiService observability', () => {
     );
   });
 
-  it('logs and rethrows registered product read failures', async () => {
-    const error = serviceError();
-    const service = createService({
-      GetRegisteredItems: vi.fn(callWithError(error)),
-    });
-
-    await expect(service.getRegisteredProducts()).rejects.toBe(error);
-
-    expect(emitMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        attributes: expect.objectContaining({
-          'error.message': 'backend unavailable',
-          'grpc.code': grpc.status.UNAVAILABLE,
-          'grpc.method': 'GetRegisteredItems',
-          'grpc.service': 'ShoppingService',
-        }),
-        severityText: 'ERROR',
-      }),
-    );
-  });
-
   it('returns successful empty shopping lists without logging', async () => {
     const service = createService({
       GetShoppingList: vi.fn(
@@ -164,19 +143,6 @@ describe('GrpcApiService observability', () => {
     });
 
     await expect(service.getShoppingListSummaries()).resolves.toEqual([]);
-    expect(emitMock).not.toHaveBeenCalled();
-  });
-
-  it('returns successful empty registered products without logging', async () => {
-    const service = createService({
-      GetRegisteredItems: vi.fn(
-        callWithResponse<RegisteredItemsResponse__Output>({
-          items: [],
-        }),
-      ),
-    });
-
-    await expect(service.getRegisteredProducts()).resolves.toEqual([]);
     expect(emitMock).not.toHaveBeenCalled();
   });
 });

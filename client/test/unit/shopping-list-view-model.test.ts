@@ -42,9 +42,20 @@ describe('ShoppingListViewModel', () => {
     const viewModel = new ShoppingListViewModel({
       name: 'Groceries',
       products: [
-        { checked: false, name: 'Milk', price: 1.2, quantity: '1 liter' },
-        { checked: true, name: 'Bread', price: 2.345 },
-        { checked: true, name: 'Eggs' },
+        {
+          checked: false,
+          name: 'Milk',
+          price: 1.2,
+          productFormatUid: 1,
+          quantity: '1 liter',
+        },
+        {
+          checked: true,
+          name: 'Bread',
+          price: 2.345,
+          productFormatUid: 2,
+        },
+        { checked: true, name: 'Eggs', productFormatUid: 3 },
       ],
     });
 
@@ -65,23 +76,23 @@ describe('ShoppingListViewModel', () => {
     expect(viewModel.uncheckedSections[0].items[0].categorySection).toBe(
       'To buy',
     );
-    expect(viewModel.uncheckedSections[0].items[0].id).toBe('Milk-0');
+    expect(viewModel.uncheckedSections[0].items[0].id).toBe('1');
     expect(viewModel.uncheckedSections[0].items[0].lowStock).toBe(false);
     expect(viewModel.uncheckedSections[0].items[0].name).toBe('Milk');
     expect(viewModel.uncheckedSections[0].items[0].price).toBe('$1.20');
     expect(viewModel.uncheckedSections[0].items[0].qty).toBe('1 liter');
     expect(viewModel.checkedItems).toHaveLength(2);
-    expect(viewModel.checkedItems[0].id).toBe('Bread-0');
+    expect(viewModel.checkedItems[0].id).toBe('2');
     expect(viewModel.checkedItems[0].name).toBe('Bread');
     expect(viewModel.checkedItems[0].price).toBe('$2.35');
-    expect(viewModel.checkedItems[1].id).toBe('Eggs-1');
+    expect(viewModel.checkedItems[1].id).toBe('3');
     expect(viewModel.checkedItems[1].name).toBe('Eggs');
     expect(viewModel.checkedItems[1].price).toBe('-');
   });
 
   it('uses a singular item count label', () => {
     const viewModel = new ShoppingListViewModel({
-      products: [{ checked: false, name: 'Milk' }],
+      products: [{ checked: false, name: 'Milk', productFormatUid: 1 }],
     });
 
     expect(viewModel.itemCountLabel).toBe('1 item');

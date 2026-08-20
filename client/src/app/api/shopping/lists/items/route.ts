@@ -13,13 +13,13 @@ type AddItemsBody = {
 };
 
 type UpdateItemBody = {
-  itemName?: string;
+  productFormatUid?: number;
   shoppingListName?: string;
   update?: ShoppingItemUpdateMessage;
 };
 
 type RemoveItemBody = {
-  itemName?: string;
+  productFormatUid?: number;
   shoppingListName?: string;
 };
 
@@ -49,14 +49,18 @@ export async function PATCH(request: NextRequest) {
   const service = new GrpcApiService(token);
   const body = (await request.json()) as UpdateItemBody;
 
-  if (!body.itemName || !body.update) {
+  if (!body.productFormatUid || !body.update) {
     return NextResponse.json(
-      { message: 'Item name and update are required.' },
+      { message: 'Product format UID and update are required.' },
       { status: 400 },
     );
   }
 
-  await service.updateItem(body.shoppingListName, body.itemName, body.update);
+  await service.updateItem(
+    body.shoppingListName,
+    body.productFormatUid,
+    body.update,
+  );
   return await responseForList(service, body.shoppingListName);
 }
 
@@ -65,13 +69,13 @@ export async function DELETE(request: NextRequest) {
   const service = new GrpcApiService(token);
   const body = (await request.json()) as RemoveItemBody;
 
-  if (!body.itemName) {
+  if (!body.productFormatUid) {
     return NextResponse.json(
-      { message: 'Item name is required.' },
+      { message: 'Product format UID is required.' },
       { status: 400 },
     );
   }
 
-  await service.removeItem(body.shoppingListName, body.itemName);
+  await service.removeItem(body.shoppingListName, body.productFormatUid);
   return await responseForList(service, body.shoppingListName);
 }

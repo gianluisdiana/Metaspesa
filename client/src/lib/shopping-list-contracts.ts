@@ -1,4 +1,5 @@
 export interface ProductMessage {
+  productFormatUid: number;
   name: string;
   quantity?: string;
   price?: number;
@@ -15,10 +16,8 @@ export interface ShoppingListSummaryMessage {
 }
 
 export interface ShoppingItemUpdateMessage {
+  amount?: number;
   checked?: boolean;
-  name?: string;
-  price?: number;
-  quantity?: string;
 }
 
 export interface ShoppingListUpdateMessage {
