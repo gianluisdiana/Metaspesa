@@ -11,8 +11,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Metaspesa.Database.Migrations {
   [DbContext(typeof(MainContext))]
-  [Migration("20260601191629_ReferencingHistoryForPriceAndFormat")]
-  partial class ReferencingHistoryForPriceAndFormat {
+  [Migration("20260912103320_InitialCreate")]
+  partial class InitialCreate {
     /// <inheritdoc />
     protected override void BuildTargetModel(ModelBuilder modelBuilder) {
 #pragma warning disable 612, 618
@@ -21,6 +21,54 @@ namespace Metaspesa.Database.Migrations {
           .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
       NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+      modelBuilder.Entity("Metaspesa.Database.Entities.PriceSnapshotDbEntity", b => {
+        b.Property<int>("Id")
+            .ValueGeneratedOnAdd()
+            .HasColumnType("integer")
+            .HasColumnName("id");
+
+        NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+        b.Property<string>("CurrencyCode")
+            .IsRequired()
+            .ValueGeneratedOnAdd()
+            .HasColumnType("char(3)")
+            .HasDefaultValue("EUR")
+            .HasColumnName("currency_code");
+
+        b.Property<DateTime>("ObservedAt")
+            .ValueGeneratedOnAdd()
+            .HasColumnType("timestamp with time zone")
+            .HasColumnName("observed_at")
+            .HasDefaultValueSql("now()");
+
+        b.Property<decimal>("PriceAmount")
+            .HasPrecision(10, 2)
+            .HasColumnType("numeric(10,2)")
+            .HasColumnName("price_amount");
+
+        b.Property<int>("ProductFormatId")
+            .HasColumnType("integer")
+            .HasColumnName("product_format_id");
+
+        b.HasKey("Id")
+            .HasName("pk_price_snapshot");
+
+        b.HasIndex(new[] { "ProductFormatId", "ObservedAt" }, "idx_price_snapshot_format_observed_at");
+
+        b.HasIndex(new[] { "ObservedAt" }, "idx_price_snapshot_observed_at");
+
+        b.HasIndex(new[] { "ProductFormatId" }, "idx_price_snapshot_product_format_id");
+
+        b.ToTable("price_snapshots", "market", t => {
+          t.HasComment("Historical price observations for product formats.");
+
+          t.HasCheckConstraint("chk_price_snapshot_currency_code", "currency_code ~ '^[A-Z]{3}$'");
+
+          t.HasCheckConstraint("chk_price_snapshot_positive_price", "price_amount > 0.00");
+        });
+      });
 
       modelBuilder.Entity("Metaspesa.Database.Entities.ProductBrandDbEntity", b => {
         b.Property<int>("Id")
@@ -128,57 +176,6 @@ namespace Metaspesa.Database.Migrations {
         });
       });
 
-      modelBuilder.Entity("Metaspesa.Database.Entities.ProductsHistoryDbEntity", b => {
-        b.Property<int>("Id")
-            .ValueGeneratedOnAdd()
-            .HasColumnType("integer")
-            .HasColumnName("id");
-
-        NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-        b.Property<DateTime>("CreatedAt")
-            .ValueGeneratedOnAdd()
-            .HasColumnType("timestamp with time zone")
-            .HasColumnName("created_at")
-            .HasDefaultValueSql("now()");
-
-        b.Property<decimal>("Price")
-            .HasPrecision(10, 2)
-            .HasColumnType("numeric(10,2)")
-            .HasColumnName("price");
-
-        b.Property<int>("ProductFormatId")
-            .HasColumnType("integer")
-            .HasColumnName("product_format_id");
-
-        b.Property<int>("ProductId")
-            .HasColumnType("integer")
-            .HasColumnName("product_id");
-
-        b.HasKey("Id")
-            .HasName("pk_product_history");
-
-        b.HasAlternateKey("Id", "ProductId")
-            .HasName("ak_product_history_id_product_id");
-
-        b.HasIndex("ProductFormatId", "ProductId");
-
-        b.HasIndex(new[] { "CreatedAt" }, "idx_product_history_created_at");
-
-        b.HasIndex(new[] { "Id", "ProductId" }, "idx_product_history_id_product_id")
-            .IsUnique();
-
-        b.HasIndex(new[] { "ProductFormatId" }, "idx_product_history_product_format_id");
-
-        b.HasIndex(new[] { "ProductId" }, "idx_product_history_product_id");
-
-        b.ToTable("products_history", "market", t => {
-          t.HasComment("Historical price and format data for products, tracking changes over time.");
-
-          t.HasCheckConstraint("chk_positive_price", "price > 0.00");
-        });
-      });
-
       modelBuilder.Entity("Metaspesa.Database.Entities.PurchaseDbEntity", b => {
         b.Property<int>("Id")
             .ValueGeneratedOnAdd()
@@ -197,7 +194,7 @@ namespace Metaspesa.Database.Migrations {
             .HasColumnType("integer")
             .HasColumnName("shopping_list_id");
 
-        b.Property<Guid>("UserUid")
+        b.Property<Guid?>("UserUid")
             .HasColumnType("uuid")
             .HasColumnName("user_uid");
 
@@ -210,7 +207,7 @@ namespace Metaspesa.Database.Migrations {
 
         b.HasIndex(new[] { "UserUid" }, "idx_purchases_user_uid");
 
-        b.ToTable("purchases", "shopping", t => {
+        b.ToTable("purchases", "purchasing", t => {
           t.HasComment("Purchase receipt header. It records who bought, when, and optionally which\r\nshopping list was checked out. Product lines live in purchase_items.");
         });
       });
@@ -230,13 +227,9 @@ namespace Metaspesa.Database.Migrations {
             .HasColumnName("amount")
             .HasComment("How many units/packages were bought");
 
-        b.Property<int>("ProductHistoryId")
+        b.Property<int>("PriceSnapshotId")
             .HasColumnType("integer")
-            .HasColumnName("product_history_id");
-
-        b.Property<int>("ProductId")
-            .HasColumnType("integer")
-            .HasColumnName("product_id");
+            .HasColumnName("price_snapshot_id");
 
         b.Property<int>("PurchaseId")
             .HasColumnType("integer")
@@ -245,16 +238,12 @@ namespace Metaspesa.Database.Migrations {
         b.HasKey("Id")
             .HasName("pk_purchase_item");
 
-        b.HasIndex("ProductHistoryId", "ProductId");
-
-        b.HasIndex(new[] { "ProductHistoryId" }, "idx_purchase_item_product_history_id");
-
-        b.HasIndex(new[] { "ProductId" }, "idx_purchase_item_product_id");
+        b.HasIndex(new[] { "PriceSnapshotId" }, "idx_purchase_item_price_snapshot_id");
 
         b.HasIndex(new[] { "PurchaseId" }, "idx_purchase_item_purchase_id");
 
-        b.ToTable("purchase_items", "shopping", t => {
-          t.HasComment("Immutable purchase receipt lines. Each line references the exact market\r\nproduct history row used for analytics, which provides the exact price and\r\nformat paid at purchase time.");
+        b.ToTable("purchase_items", "purchasing", t => {
+          t.HasComment("Immutable purchase receipt lines. Each line references the exact market\r\nprice snapshot used at purchase time.");
 
           t.HasCheckConstraint("chk_purchase_item_positive_amount", "amount > 0");
         });
@@ -285,13 +274,9 @@ namespace Metaspesa.Database.Migrations {
             .HasDefaultValue(false)
             .HasColumnName("is_checked");
 
-        b.Property<int>("ProductHistoryId")
+        b.Property<int>("ProductFormatId")
             .HasColumnType("integer")
-            .HasColumnName("product_history_id");
-
-        b.Property<int>("ProductId")
-            .HasColumnType("integer")
-            .HasColumnName("product_id");
+            .HasColumnName("product_format_id");
 
         b.Property<int>("ShoppingListId")
             .HasColumnType("integer")
@@ -300,19 +285,18 @@ namespace Metaspesa.Database.Migrations {
         b.HasKey("Id")
             .HasName("pk_shopping_item");
 
-        b.HasIndex("ProductHistoryId", "ProductId");
+        b.HasIndex(new[] { "ShoppingListId", "ProductFormatId" }, "idx_shopping_item_list_product_format");
 
-        b.HasIndex(new[] { "ShoppingListId", "ProductId" }, "idx_shopping_item_list_product")
-            .IsUnique();
+        b.HasIndex(new[] { "ShoppingListId", "ProductFormatId" }, "idx_shopping_item_list_product_format_active")
+            .IsUnique()
+            .HasFilter("deleted_at IS NULL");
 
-        b.HasIndex(new[] { "ProductHistoryId" }, "idx_shopping_item_product_history_id");
-
-        b.HasIndex(new[] { "ProductId" }, "idx_shopping_item_product_id");
+        b.HasIndex(new[] { "ProductFormatId" }, "idx_shopping_item_product_format_id");
 
         b.HasIndex(new[] { "ShoppingListId" }, "idx_shopping_item_shopping_list_id");
 
         b.ToTable("shopping_items", "shopping", t => {
-          t.HasComment("Items that belong to a shopping list, representing planned purchases.\r\nEach line points to an existing market product and the exact product history\r\nrow used when the item was added, so price and format are explicit.");
+          t.HasComment("Items that belong to a shopping list, representing planned purchases.\r\nEach line points to an existing product format.");
 
           t.HasCheckConstraint("chk_shopping_item_positive_amount", "amount > 0");
         });
@@ -330,10 +314,15 @@ namespace Metaspesa.Database.Migrations {
             .HasColumnType("timestamp with time zone")
             .HasColumnName("deleted_at");
 
+        b.Property<bool>("IsTemporary")
+            .ValueGeneratedOnAdd()
+            .HasColumnType("boolean")
+            .HasDefaultValue(false)
+            .HasColumnName("is_temporary");
+
         b.Property<string>("Name")
             .HasColumnType("text")
-            .HasColumnName("name")
-            .HasComment("Missing name indicates a temporary shopping list, not saved by the user");
+            .HasColumnName("name");
 
         b.HasKey("Id")
             .HasName("pk_shopping_list");
@@ -341,7 +330,9 @@ namespace Metaspesa.Database.Migrations {
         b.ToTable("shopping_lists", "shopping", t => {
           t.HasComment("Shopping lists created by users, can be shared among multiple users");
 
-          t.HasCheckConstraint("chk_shopping_list_temporary_cannot_be_soft_deleted", "name IS NOT NULL OR deleted_at IS NULL");
+          t.HasCheckConstraint("chk_saved_shopping_list_requires_name", "is_temporary = true OR name IS NOT NULL");
+
+          t.HasCheckConstraint("chk_shopping_list_temporary_cannot_be_soft_deleted", "is_temporary = false OR deleted_at IS NULL");
         });
       });
 
@@ -503,17 +494,27 @@ namespace Metaspesa.Database.Migrations {
             });
       });
 
+      modelBuilder.Entity("Metaspesa.Database.Entities.PriceSnapshotDbEntity", b => {
+        b.HasOne("Metaspesa.Database.Entities.ProductFormatDbEntity", "ProductFormat")
+            .WithMany("PriceSnapshots")
+            .HasForeignKey("ProductFormatId")
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired();
+
+        b.Navigation("ProductFormat");
+      });
+
       modelBuilder.Entity("Metaspesa.Database.Entities.ProductDbEntity", b => {
         b.HasOne("Metaspesa.Database.Entities.ProductBrandDbEntity", "Brand")
             .WithMany("Products")
             .HasForeignKey("BrandId")
-            .OnDelete(DeleteBehavior.Cascade)
+            .OnDelete(DeleteBehavior.Restrict)
             .IsRequired();
 
         b.HasOne("Metaspesa.Database.Entities.SuperMarketDbEntity", "SuperMarket")
             .WithMany("Products")
             .HasForeignKey("SuperMarketId")
-            .OnDelete(DeleteBehavior.Cascade)
+            .OnDelete(DeleteBehavior.Restrict)
             .IsRequired();
 
         b.Navigation("Brand");
@@ -525,37 +526,18 @@ namespace Metaspesa.Database.Migrations {
         b.HasOne("Metaspesa.Database.Entities.ProductDbEntity", "Product")
             .WithMany("Formats")
             .HasForeignKey("ProductId")
-            .OnDelete(DeleteBehavior.Cascade)
+            .OnDelete(DeleteBehavior.Restrict)
             .IsRequired();
 
         b.HasOne("Metaspesa.Database.Entities.UnitOfMeasureDbEntity", "UnitOfMeasure")
             .WithMany("ProductFormats")
             .HasForeignKey("UnitOfMeasureId")
-            .OnDelete(DeleteBehavior.Cascade)
+            .OnDelete(DeleteBehavior.Restrict)
             .IsRequired();
 
         b.Navigation("Product");
 
         b.Navigation("UnitOfMeasure");
-      });
-
-      modelBuilder.Entity("Metaspesa.Database.Entities.ProductsHistoryDbEntity", b => {
-        b.HasOne("Metaspesa.Database.Entities.ProductDbEntity", "Product")
-            .WithMany("History")
-            .HasForeignKey("ProductId")
-            .OnDelete(DeleteBehavior.Cascade)
-            .IsRequired();
-
-        b.HasOne("Metaspesa.Database.Entities.ProductFormatDbEntity", "ProductFormat")
-            .WithMany("History")
-            .HasForeignKey("ProductFormatId", "ProductId")
-            .HasPrincipalKey("Id", "ProductId")
-            .OnDelete(DeleteBehavior.Cascade)
-            .IsRequired();
-
-        b.Navigation("Product");
-
-        b.Navigation("ProductFormat");
       });
 
       modelBuilder.Entity("Metaspesa.Database.Entities.PurchaseDbEntity", b => {
@@ -567,8 +549,7 @@ namespace Metaspesa.Database.Migrations {
         b.HasOne("Metaspesa.Database.Entities.UserDbEntity", "User")
             .WithMany("Purchases")
             .HasForeignKey("UserUid")
-            .OnDelete(DeleteBehavior.Cascade)
-            .IsRequired();
+            .OnDelete(DeleteBehavior.SetNull);
 
         b.Navigation("ShoppingList");
 
@@ -576,9 +557,9 @@ namespace Metaspesa.Database.Migrations {
       });
 
       modelBuilder.Entity("Metaspesa.Database.Entities.PurchaseItemDbEntity", b => {
-        b.HasOne("Metaspesa.Database.Entities.ProductDbEntity", "Product")
+        b.HasOne("Metaspesa.Database.Entities.PriceSnapshotDbEntity", "PriceSnapshot")
             .WithMany("PurchaseItems")
-            .HasForeignKey("ProductId")
+            .HasForeignKey("PriceSnapshotId")
             .OnDelete(DeleteBehavior.Restrict)
             .IsRequired();
 
@@ -588,24 +569,15 @@ namespace Metaspesa.Database.Migrations {
             .OnDelete(DeleteBehavior.Cascade)
             .IsRequired();
 
-        b.HasOne("Metaspesa.Database.Entities.ProductsHistoryDbEntity", "ProductHistory")
-            .WithMany("PurchaseItems")
-            .HasForeignKey("ProductHistoryId", "ProductId")
-            .HasPrincipalKey("Id", "ProductId")
-            .OnDelete(DeleteBehavior.Restrict)
-            .IsRequired();
-
-        b.Navigation("Product");
-
-        b.Navigation("ProductHistory");
+        b.Navigation("PriceSnapshot");
 
         b.Navigation("Purchase");
       });
 
       modelBuilder.Entity("Metaspesa.Database.Entities.ShoppingItemDbEntity", b => {
-        b.HasOne("Metaspesa.Database.Entities.ProductDbEntity", "Product")
+        b.HasOne("Metaspesa.Database.Entities.ProductFormatDbEntity", "ProductFormat")
             .WithMany("ShoppingItems")
-            .HasForeignKey("ProductId")
+            .HasForeignKey("ProductFormatId")
             .OnDelete(DeleteBehavior.Restrict)
             .IsRequired();
 
@@ -615,16 +587,7 @@ namespace Metaspesa.Database.Migrations {
             .OnDelete(DeleteBehavior.Cascade)
             .IsRequired();
 
-        b.HasOne("Metaspesa.Database.Entities.ProductsHistoryDbEntity", "ProductHistory")
-            .WithMany("ShoppingItems")
-            .HasForeignKey("ProductHistoryId", "ProductId")
-            .HasPrincipalKey("Id", "ProductId")
-            .OnDelete(DeleteBehavior.Restrict)
-            .IsRequired();
-
-        b.Navigation("Product");
-
-        b.Navigation("ProductHistory");
+        b.Navigation("ProductFormat");
 
         b.Navigation("ShoppingList");
       });
@@ -657,26 +620,20 @@ namespace Metaspesa.Database.Migrations {
         b.Navigation("Role");
       });
 
+      modelBuilder.Entity("Metaspesa.Database.Entities.PriceSnapshotDbEntity", b => {
+        b.Navigation("PurchaseItems");
+      });
+
       modelBuilder.Entity("Metaspesa.Database.Entities.ProductBrandDbEntity", b => {
         b.Navigation("Products");
       });
 
       modelBuilder.Entity("Metaspesa.Database.Entities.ProductDbEntity", b => {
         b.Navigation("Formats");
-
-        b.Navigation("History");
-
-        b.Navigation("PurchaseItems");
-
-        b.Navigation("ShoppingItems");
       });
 
       modelBuilder.Entity("Metaspesa.Database.Entities.ProductFormatDbEntity", b => {
-        b.Navigation("History");
-      });
-
-      modelBuilder.Entity("Metaspesa.Database.Entities.ProductsHistoryDbEntity", b => {
-        b.Navigation("PurchaseItems");
+        b.Navigation("PriceSnapshots");
 
         b.Navigation("ShoppingItems");
       });
