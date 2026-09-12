@@ -107,7 +107,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH product_registration AS (\n  SELECT\n    p.id,\n    p.super_market_id,\n    MIN(ph.created_at) AS registered_at\n  FROM market.products AS p\n  JOIN market.products_history AS ph ON ph.product_id = p.id\n  GROUP BY p.id, p.super_market_id\n)\nSELECT\n  $__timeGroupAlias(pr.registered_at, '1d'),\n  sm.name AS metric,\n  COUNT(*) AS value\nFROM product_registration AS pr\nJOIN market.super_markets AS sm ON sm.id = pr.super_market_id\nWHERE $__timeFilter(pr.registered_at)\nGROUP BY 1, sm.name\nORDER BY 1;",
+          "rawSql": "WITH product_registration AS (\n  SELECT\n    p.id,\n    p.super_market_id,\n    MIN(ps.observed_at) AS registered_at\n  FROM market.products AS p\n  JOIN market.product_formats AS pf ON pf.product_id = p.id\n  JOIN market.price_snapshots AS ps ON ps.product_format_id = pf.id\n  GROUP BY p.id, p.super_market_id\n)\nSELECT\n  $__timeGroupAlias(pr.registered_at, '1d'),\n  sm.name AS metric,\n  COUNT(*) AS value\nFROM product_registration AS pr\nJOIN market.super_markets AS sm ON sm.id = pr.super_market_id\nWHERE $__timeFilter(pr.registered_at)\nGROUP BY 1, sm.name\nORDER BY 1;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -299,7 +299,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  u.username,\n  COALESCE(sl.name, 'Temporary list') AS shopping_list,\n  COUNT(si.id) FILTER (WHERE si.deleted_at IS NULL) AS item_count\nFROM shopping.users AS u\nJOIN shopping.shopping_list_ownerships AS slo ON slo.user_uid = u.id\nJOIN shopping.shopping_lists AS sl ON sl.id = slo.shopping_list_id\nLEFT JOIN shopping.shopping_items AS si ON si.shopping_list_id = sl.id\nWHERE sl.deleted_at IS NULL\nGROUP BY u.username, sl.id, sl.name\nORDER BY u.username ASC, item_count DESC, shopping_list ASC;",
+          "rawSql": "SELECT\n  u.username,\n  COALESCE(sl.name, 'Temporary list') AS shopping_list,\n  COUNT(si.id) FILTER (WHERE si.deleted_at IS NULL) AS item_count\nFROM identity.users AS u\nJOIN shopping.shopping_list_ownerships AS slo ON slo.user_uid = u.uid\nJOIN shopping.shopping_lists AS sl ON sl.id = slo.shopping_list_id\nLEFT JOIN shopping.shopping_items AS si ON si.shopping_list_id = sl.id\nWHERE sl.deleted_at IS NULL\nGROUP BY u.username, sl.id, sl.name\nORDER BY u.username ASC, item_count DESC, shopping_list ASC;",
           "refId": "A",
           "sql": {
             "columns": [
