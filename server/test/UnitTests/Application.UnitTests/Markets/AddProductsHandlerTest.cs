@@ -95,6 +95,227 @@ public class AddProductsHandlerTest {
     await Assert.ThrowsAsync<DuplicateMarketProductException>(action);
   }
 
+  [Fact(DisplayName = "Doesn't throw exact exception if products only differ in name")]
+  public async Task Handler_DoesNotThrowDuplicateMarketProduct_WhenNamesDiffer() {
+    Command command = CreateCommand();
+    CommandProduct product = command.Products.Single();
+    command = command with {
+      Products = [
+        product,
+        product with { Name = "Bread" },
+      ],
+    };
+
+    async Task action() => await _handler.Handle(
+      command,
+      TestContext.Current.CancellationToken);
+
+    await action();
+    Assert.True(true, "No exception was thrown");
+  }
+
+  [Fact(DisplayName = "Throws exact exception if products differ only in case of name")]
+  public async Task Handler_ThrowsDuplicateMarketProduct_WhenNamesDifferOnlyInCase() {
+    Command command = CreateCommand();
+    CommandProduct product = command.Products.Single();
+    command = command with {
+      Products = [
+        product,
+        product with { Name = product.Name?.ToUpperInvariant() },
+      ],
+    };
+
+    async Task action() => await _handler.Handle(
+      command,
+      TestContext.Current.CancellationToken);
+
+    await Assert.ThrowsAsync<DuplicateMarketProductException>(action);
+  }
+
+  [Fact(DisplayName = "Doesn't throw exact exception if products only differ in market")]
+  public async Task Handler_DoesNotThrowDuplicateMarketProduct_WhenMarketsDiffer() {
+    Command command = CreateCommand();
+    CommandProduct product = command.Products.Single();
+    command = command with {
+      Products = [
+        product,
+        product with { MarketName = "Other market" },
+      ],
+    };
+
+    async Task action() => await _handler.Handle(
+      command,
+      TestContext.Current.CancellationToken);
+
+    await action();
+    Assert.True(true, "No exception was thrown");
+  }
+
+  [Fact(DisplayName = "Throws exact exception if products differ only in case of market")]
+  public async Task Handler_ThrowsDuplicateMarketProduct_WhenMarketsDifferOnlyInCase() {
+    Command command = CreateCommand();
+    CommandProduct product = command.Products.Single();
+    command = command with {
+      Products = [
+        product,
+        product with { MarketName = product.MarketName?.ToUpperInvariant() },
+      ],
+    };
+
+    async Task action() => await _handler.Handle(
+      command,
+      TestContext.Current.CancellationToken);
+
+    await Assert.ThrowsAsync<DuplicateMarketProductException>(action);
+  }
+
+  [Fact(DisplayName = "Doesn't throw exact exception if products only differ in brand")]
+  public async Task Handler_DoesNotThrowDuplicateMarketProduct_WhenBrandsDiffer() {
+    Command command = CreateCommand();
+    CommandProduct product = command.Products.Single();
+    command = command with {
+      Products = [
+        product,
+        product with { BrandName = "Other brand" },
+      ],
+    };
+
+    async Task action() => await _handler.Handle(
+      command,
+      TestContext.Current.CancellationToken);
+
+    await action();
+    Assert.True(true, "No exception was thrown");
+  }
+
+  [Fact(DisplayName = "Throws exact exception if products differ only in case of brand")]
+  public async Task Handler_ThrowsDuplicateMarketProduct_WhenBrandsDifferOnlyInCase() {
+    Command command = CreateCommand();
+    CommandProduct product = command.Products.Single();
+    command = command with {
+      Products = [
+        product,
+        product with { BrandName = product.BrandName?.ToUpperInvariant() },
+      ],
+    };
+
+    async Task action() => await _handler.Handle(
+      command,
+      TestContext.Current.CancellationToken);
+
+    await Assert.ThrowsAsync<DuplicateMarketProductException>(action);
+  }
+
+  [Fact(DisplayName = "Doesn't throw exact exception if products only differ in quantity")]
+  public async Task Handler_DoesNotThrowDuplicateMarketProduct_WhenQuantitiesDiffer() {
+    Command command = CreateCommand();
+    CommandProduct product = command.Products.Single();
+    command = command with {
+      Products = [
+        product,
+        product with { Quantity = product.Quantity + 1 },
+      ],
+    };
+
+    async Task action() => await _handler.Handle(
+      command,
+      TestContext.Current.CancellationToken);
+
+    await action();
+    Assert.True(true, "No exception was thrown");
+  }
+
+  [Fact(DisplayName = "Throws exact exception if products only differ in quantity in case of decimal precision")]
+  public async Task Handler_ThrowsDuplicateMarketProduct_WhenQuantitiesDifferOnlyInPrecision() {
+    Command command = CreateCommand();
+    CommandProduct product = command.Products.Single();
+    command = command with {
+      Products = [
+        product,
+        product with { Quantity = product.Quantity + 0.001f },
+      ],
+    };
+
+    async Task action() => await _handler.Handle(
+      command,
+      TestContext.Current.CancellationToken);
+
+    await Assert.ThrowsAsync<DuplicateMarketProductException>(action);
+  }
+
+  [Fact(DisplayName = "Doesn't throw exact exception if products only differ in unit of measure")]
+  public async Task Handler_DoesNotThrowDuplicateMarketProduct_WhenUnitsDiffer() {
+    Command command = CreateCommand();
+    CommandProduct product = command.Products.Single();
+    command = command with {
+      Products = [
+        product,
+        product with { UnitOfMeasure = "kg" },
+      ],
+    };
+
+    async Task action() => await _handler.Handle(
+      command,
+      TestContext.Current.CancellationToken);
+
+    await action();
+    Assert.True(true, "No exception was thrown");
+  }
+
+  [Fact(DisplayName = "Throws exact exception if products differ only in case of unit of measure")]
+  public async Task Handler_ThrowsDuplicateMarketProduct_WhenUnitsDifferOnlyInCase() {
+    Command command = CreateCommand();
+    CommandProduct product = command.Products.Single();
+    command = command with {
+      Products = [
+        product,
+        product with { UnitOfMeasure = product.UnitOfMeasure?.ToUpperInvariant() },
+      ],
+    };
+
+    async Task action() => await _handler.Handle(
+      command,
+      TestContext.Current.CancellationToken);
+
+    await Assert.ThrowsAsync<DuplicateMarketProductException>(action);
+  }
+
+  [Fact(DisplayName = "Throws exact exception if products differ only in image url ")]
+  public async Task Handler_ThrowsDuplicateMarketProduct_WhenImageUrlsDiffer() {
+    Command command = CreateCommand();
+    CommandProduct product = command.Products.Single();
+    command = command with {
+      Products = [
+        product,
+        product with { ImageUrl = new Uri("https://example.com/other.png") },
+      ],
+    };
+
+    async Task action() => await _handler.Handle(
+      command,
+      TestContext.Current.CancellationToken);
+
+    await Assert.ThrowsAsync<DuplicateMarketProductException>(action);
+  }
+
+  [Fact(DisplayName = "Throws exact exception if products differ only in price ")]
+  public async Task Handler_ThrowsDuplicateMarketProduct_WhenPricesDiffer() {
+    Command command = CreateCommand();
+    CommandProduct product = command.Products.Single();
+    command = command with {
+      Products = [
+        product,
+        product with { Price = product.Price + 1 },
+      ],
+    };
+
+    async Task action() => await _handler.Handle(
+      command,
+      TestContext.Current.CancellationToken);
+
+    await Assert.ThrowsAsync<DuplicateMarketProductException>(action);
+  }
+
   [Fact(DisplayName = "Throws exact exception for an unsupported unit")]
   public async Task Handler_ThrowsUnsupportedUnit_WhenUnitIsNotSupported() {
     _marketRepository

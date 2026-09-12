@@ -95,9 +95,11 @@ public static class AddMarketProducts {
     ) {
       CommandProduct? duplicate = products
         .GroupBy(product => (
-          product.Name,
-          product.MarketName,
-          product.BrandName))
+          product.Name?.ToUpperInvariant(),
+          product.MarketName?.ToUpperInvariant(),
+          product.BrandName?.ToUpperInvariant(),
+          Math.Round(product.Quantity, 2),
+          product.UnitOfMeasure?.ToUpperInvariant()))
         .Where(group => group.Count() > 1)
         .Select(group => group.First())
         .FirstOrDefault();
@@ -106,7 +108,9 @@ public static class AddMarketProducts {
         throw new DuplicateMarketProductException(
           duplicate.Name,
           duplicate.MarketName,
-          duplicate.BrandName);
+          duplicate.BrandName,
+          duplicate.Quantity,
+          duplicate.UnitOfMeasure);
       }
     }
 

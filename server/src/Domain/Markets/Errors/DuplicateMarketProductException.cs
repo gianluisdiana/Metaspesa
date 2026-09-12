@@ -6,12 +6,14 @@ public class DuplicateMarketProductException : MarketDomainException {
   public DuplicateMarketProductException(
     string? productName,
     string? marketName,
-    string? brandName
+    string? brandName,
+    float quantity,
+    string? unitOfMeasure
   ) : base(
     "Market.Product.Duplicate",
-    "Each product must be unique in name, market and brand combination. " +
+    "Each product must be unique in name, market, brand, quantity and unit of measure combination. " +
     $"Repeated product: name '{productName}', market '{marketName}', " +
-    $"brand '{brandName}'.") { }
+    $"brand '{brandName}', quantity '{quantity}', unitOfMeasure '{unitOfMeasure}'.") { }
 
   public DuplicateMarketProductException(string message) : base(message) { }
 
