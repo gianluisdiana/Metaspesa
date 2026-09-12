@@ -46,6 +46,17 @@ function renderShoppingList() {
   );
 }
 
+function renderUserWithoutShoppingLists() {
+  render(
+    <ToastProvider>
+      <ShoppingListContainer
+        initialShoppingList={{ products: [] }}
+        initialShoppingListSummaries={[]}
+      />
+    </ToastProvider>,
+  );
+}
+
 function shoppingListResponse(body: unknown, ok = true) {
   return {
     json: () => Promise.resolve(body),
@@ -81,6 +92,43 @@ describe('shopping list component', () => {
     renderShoppingList();
 
     expect(screen.getByRole('heading', { name: 'Groceries' })).toBeVisible();
+  });
+
+  it('guides users who do not have a shopping list', () => {
+    renderUserWithoutShoppingLists();
+
+    expect(
+      screen.getByRole('heading', { name: 'No shopping lists yet' }),
+    ).toBeVisible();
+  });
+
+  it('does not show a temporary list when none exists', () => {
+    renderUserWithoutShoppingLists();
+
+    expect(screen.queryByText('Temporary List')).not.toBeInTheDocument();
+  });
+
+  it('creates the first shopping list from the empty state', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        shoppingListResponse({
+          message: 'Shopping list created.',
+          shoppingList: { name: undefined, products: [] },
+          shoppingListSummaries: [{ name: undefined }],
+        }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderUserWithoutShoppingLists();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Create shopping list' }),
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Temporary List' }),
+    ).toBeVisible();
   });
 
   it('renders item count label', () => {

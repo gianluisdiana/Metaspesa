@@ -220,6 +220,7 @@ export function useShoppingListController({
       setItemPendingDelete({ name, productFormatUid }),
     handleSelectList,
     handleToggleItemChecked,
+    hasShoppingLists: shoppingListSummaries.length > 0,
     isCreating,
     isLoading,
     itemPendingDelete: itemPendingDelete?.name,

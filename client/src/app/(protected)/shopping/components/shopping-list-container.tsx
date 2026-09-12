@@ -25,6 +25,7 @@ export default function ShoppingListContainer({
 
   return (
     <ShoppingListView
+      hasShoppingLists={controller.hasShoppingLists}
       isCreating={controller.isCreating}
       isLoading={controller.isLoading}
       itemPendingDelete={controller.itemPendingDelete}

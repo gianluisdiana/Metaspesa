@@ -6,6 +6,7 @@ import {
 import { DeleteItemConfirmationModal } from './delete-item-confirmation-modal';
 import ListTabs, { ListPageHeader } from './list-header';
 import ItemsContainer from './list-items';
+import { NoShoppingLists } from './no-shopping-lists';
 import { ProgressTracker } from './progress-tracker';
 import { ShoppingListLoadingState } from './shopping-list-loading-state';
 import SummaryFooter from './summary-footer';
@@ -13,6 +14,7 @@ import { TemporaryListNameModal } from './temporary-list-name-modal';
 
 export function ShoppingListView({
   isCreating,
+  hasShoppingLists,
   isLoading,
   itemPendingDelete,
   onCancelDeleteItem,
@@ -28,6 +30,7 @@ export function ShoppingListView({
   viewModel,
 }: Readonly<{
   isCreating: boolean;
+  hasShoppingLists: boolean;
   isLoading: boolean;
   itemPendingDelete?: string;
   onCancelDeleteItem: () => void;
@@ -42,6 +45,22 @@ export function ShoppingListView({
   temporaryListNamePrompt?: string;
   viewModel: ShoppingListViewModel;
 }>) {
+  if (!hasShoppingLists) {
+    return (
+      <>
+        <NoShoppingLists isCreating={isCreating} onCreateList={onCreateList} />
+        {temporaryListNamePrompt && (
+          <TemporaryListNameModal
+            isSaving={isCreating}
+            message={temporaryListNamePrompt}
+            onCancel={onCancelTemporaryListName}
+            onConfirm={onConfirmTemporaryListName}
+          />
+        )}
+      </>
+    );
+  }
+
   return (
     <>
       <div className="top-16 z-30 bg-surface/90 backdrop-blur-md border-b border-surface-variant px-container-margin py-stack-md flex flex-col gap-stack-sm shadow-sm shadow-secondary/5">

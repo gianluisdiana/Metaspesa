@@ -6,6 +6,7 @@ import { pageMetadata } from '@/lib/seo';
 import { getAuthToken } from '@/lib/server/auth-cookie';
 
 import ShoppingListContainer from './components/shopping-list-container';
+import { loadShoppingPage } from './shopping-page-loader';
 
 export const metadata: Metadata = pageMetadata({
   canonicalPath: '/shopping',
@@ -21,16 +22,13 @@ export default async function ShoppingPage({
   const [params, token] = await Promise.all([searchParams, getAuthToken()]);
   const selectedListName = stringParam(params, 'name');
   const service = new GrpcApiService(token);
-  const [shoppingList, shoppingListSummaries] = await Promise.all([
-    service.getShoppingList(selectedListName),
-    service.getShoppingListSummaries(),
-  ]);
+  const pageData = await loadShoppingPage(service, selectedListName);
 
   return (
     <ShoppingListContainer
-      initialSelectedListName={selectedListName}
-      initialShoppingList={shoppingList}
-      initialShoppingListSummaries={shoppingListSummaries}
+      initialSelectedListName={pageData.selectedListName}
+      initialShoppingList={pageData.shoppingList}
+      initialShoppingListSummaries={pageData.shoppingListSummaries}
     />
   );
 }
