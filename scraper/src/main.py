@@ -22,7 +22,7 @@ from infrastructure.web_driver import WebDriver
 
 async def main() -> None:
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.getLevelName(os.getenv("LOG_LEVEL", "INFO")),  # pyright: ignore[reportDeprecated]
         format="\033[1m%(asctime)s\033[0m - \033[1m%(levelname)s\033[0m: %(name)s\n\t%(message)s",  # noqa: E501
     )
 

@@ -62,6 +62,7 @@ services:
     depends_on:
       - server
     environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
       GRPC_SERVER_URL: server:8080
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
     volumes:
