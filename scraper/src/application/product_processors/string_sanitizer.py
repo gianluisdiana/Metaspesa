@@ -6,6 +6,8 @@ from domain import Product
 
 
 class StringSanitizer(ProductProcessor):
+    __TEXT_CATEGORY_PREFIXES = ("L", "M", "N", "P", "Z")
+
     @override
     def _process(self, product: Product) -> Product:
         return Product(
@@ -22,14 +24,14 @@ class StringSanitizer(ProductProcessor):
 
     @staticmethod
     def __sanitize(value: str) -> str:
-        if value.isascii():
-            return value
-
-        normalized_value = unicodedata.normalize("NFD", value)
+        normalized_value = unicodedata.normalize("NFC", value)
         return "".join(
             character
             for character in normalized_value
-            if unicodedata.category(character) not in {"Mn", "Mc", "Me"}
-            and character.isascii()
-            and character.isprintable()
+            if character.isprintable()
+            and (
+                character.isascii()
+                or unicodedata.category(character)[0]
+                in StringSanitizer.__TEXT_CATEGORY_PREFIXES
+            )
         )

@@ -4,7 +4,7 @@ from application.product_processors import ProductProcessor, StringSanitizer
 from domain import Product
 
 
-def test_string_sanitizer_removes_non_ascii_from_name():
+def test_string_sanitizer_preserves_diacritics_and_removes_symbols_from_name():
     # Arrange
     sanitizer = StringSanitizer()
     product = Product(
@@ -19,10 +19,10 @@ def test_string_sanitizer_removes_non_ascii_from_name():
     result = sanitizer.process(product)
 
     # Assert
-    assert result.name == "Cafe "
+    assert result.name == "Café "
 
 
-def test_string_sanitizer_removes_non_ascii_from_quantity():
+def test_string_sanitizer_removes_symbols_from_quantity():
     # Arrange
     sanitizer = StringSanitizer()
     product = Product(
@@ -40,7 +40,7 @@ def test_string_sanitizer_removes_non_ascii_from_quantity():
     assert result.quantity == "500 g "
 
 
-def test_string_sanitizer_removes_non_ascii_from_brand():
+def test_string_sanitizer_preserves_diacritics_in_brand():
     # Arrange
     sanitizer = StringSanitizer()
     product = Product(
@@ -49,14 +49,14 @@ def test_string_sanitizer_removes_non_ascii_from_brand():
         price=1.0,
         quantity="500 g",
         image_url="https://example.com/product.png",
-        brand="Niño",
+        brand="NIÑO",
     )
 
     # Act
     result = sanitizer.process(product)
 
     # Assert
-    assert result.brand == "Nino"
+    assert result.brand == "NIÑO"
 
 
 def test_string_sanitizer_keeps_missing_brand():
@@ -77,7 +77,7 @@ def test_string_sanitizer_keeps_missing_brand():
     assert result.brand is None
 
 
-def test_string_sanitizer_removes_non_ascii_from_image_url():
+def test_string_sanitizer_preserves_diacritics_in_image_url():
     # Arrange
     sanitizer = StringSanitizer()
     product = Product(
@@ -92,7 +92,7 @@ def test_string_sanitizer_removes_non_ascii_from_image_url():
     result = sanitizer.process(product)
 
     # Assert
-    assert result.image_url == "https://example.com/cafe.png"
+    assert result.image_url == "https://example.com/café.png"
 
 
 def test_string_sanitizer_sends_product_to_next_processor():
@@ -150,7 +150,7 @@ def test_string_sanitizer_sanitizes_name_before_next_processor():
     sanitizer.process(product)
 
     # Assert
-    assert next_processor.received_product.name == "Cafe "
+    assert next_processor.received_product.name == "Café "
 
 
 def test_string_sanitizer_sanitizes_quantity_before_next_processor():
@@ -187,8 +187,8 @@ def test_string_sanitizer_sanitizes_quantity_before_next_processor():
     [
         ("", ""),
         ("Coffee BRAND, 500 g, 1.99", "Coffee BRAND, 500 g, 1.99"),
-        ("Café Niño, 500 g, 1.99 € ☕", "Cafe Nino, 500 g, 1.99  "),
-        ("Cafe\u0301, 1 kg, 2.0", "Cafe, 1 kg, 2.0"),
+        ("Café Niño, 500 g, 1.99 € ☕", "Café Niño, 500 g, 1.99  "),
+        ("Cafe\u0301, 1 kg, 2.0", "Café, 1 kg, 2.0"),
     ],
 )
 def test_sanitizes_raw_content_independently_of_processed_name(
@@ -210,7 +210,7 @@ def test_sanitizes_raw_content_independently_of_processed_name(
 def test_passes_sanitized_raw_content_to_next_processor():
     class RawContentReader(ProductProcessor):
         def _process(self, product: Product) -> Product:
-            assert product.raw_content == "Cafe, 500 g, 1.99 "
+            assert product.raw_content == "Café, 500 g, 1.99 "
             return product
 
     processor = StringSanitizer()
