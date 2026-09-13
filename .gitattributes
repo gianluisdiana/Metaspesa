@@ -1,2 +1,1 @@
-server/**/*.cs text eol=lf
-server/.editorconfig text eol=lf
+* text=auto eol=lf

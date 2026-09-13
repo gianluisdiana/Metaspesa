@@ -1,4 +1,3 @@
-import type { RegisteredItemsResponse__Output } from '@/generated-protos/Metaspesa/Protos/Shopping/RegisteredItemsResponse';
 import type { ShoppingListResponse__Output } from '@/generated-protos/Metaspesa/Protos/Shopping/ShoppingListResponse';
 import type { ShoppingListSummariesResponse__Output } from '@/generated-protos/Metaspesa/Protos/Shopping/ShoppingListSummariesResponse';
 import type { ShoppingServiceClient } from '@/generated-protos/shopping/ShoppingService';

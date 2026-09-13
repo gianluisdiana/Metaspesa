@@ -1,7 +1,7 @@
 {
   "arrowParens": "avoid",
   "singleQuote": true,
-  "endOfLine": "crlf",
+  "endOfLine": "lf",
   "plugins": ["@ianvs/prettier-plugin-sort-imports"],
   "importOrder": [
     "<BUILTIN_MODULES>",
