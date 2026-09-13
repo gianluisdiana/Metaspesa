@@ -32,7 +32,7 @@
     "@opentelemetry/sdk-metrics": "^2.7.1",
     "@opentelemetry/sdk-node": "^0.216.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
-    "next": "^16.2.4",
+    "next": "^16.3.3",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
