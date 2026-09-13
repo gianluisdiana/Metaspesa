@@ -1,4 +1,4 @@
-FROM node:24.16-alpine AS builder
+FROM node:26.8-alpine AS builder
 
 WORKDIR /client
 
@@ -14,7 +14,7 @@ RUN pnpm run generate-proto
 
 RUN pnpm run build
 
-FROM node:24.16-alpine AS runner
+FROM node:26.8-alpine AS runner
 
 WORKDIR /client
 
