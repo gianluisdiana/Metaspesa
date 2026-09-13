@@ -1,6 +1,6 @@
 import logging
 from datetime import date
-from typing import override
+from typing import Any, override
 
 import pytest
 from conftest import (
@@ -31,6 +31,7 @@ class RenamingProductProcessor(ProductProcessor):
     @override
     def _process(self, product: Product) -> Product:
         return Product(
+            raw_content=product.raw_content,
             name=f"{product.name} processed",
             price=product.price,
             quantity=product.quantity,
@@ -95,7 +96,7 @@ class FakeMarketWebScraper(SpyMarketWebScraper):
         return self.scrapped_products
 
 
-def make_handler(**kwargs) -> ScrapeMarketsCommandHandler:
+def make_handler(**kwargs: Any) -> ScrapeMarketsCommandHandler:
     defaults: dict = dict(
         main_repository=DummyProductRepository(),
         fallback_repository=DummyFallbackRepository(),
@@ -182,6 +183,7 @@ async def test_scrapes_subcategories_if_found():
     # Arrange
     products = [
         Product(
+            raw_content="Original product, 1 unit, 1.0",
             name="product1",
             price=1.0,
             quantity="1 unit",
@@ -202,12 +204,14 @@ async def test_saves_scrapped_products_to_main_repository():
     # Arrange
     products = [
         Product(
+            raw_content="Original product, 1 unit, 1.0",
             name="product1",
             price=1.0,
             quantity="1 unit",
             image_url="https://example.com/product.png",
         ),
         Product(
+            raw_content="Original product, 1 unit, 1.0",
             name="product2",
             price=2.0,
             quantity="1 unit",
@@ -232,6 +236,7 @@ async def test_saves_scrapped_products_with_clock_date():
     # Arrange
     products = [
         Product(
+            raw_content="Original product, 1 unit, 1.0",
             name="product1",
             price=1.0,
             quantity="1 unit",
@@ -257,6 +262,7 @@ async def test_saves_scrapped_products_with_clock_date():
 async def test_saves_processed_products_to_main_repository():
     # Arrange
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="product1",
         price=1.0,
         quantity="1 unit",
@@ -292,12 +298,14 @@ async def test_raises_if_no_market_scrapers_are_configured():
 async def test_saves_only_not_repeated_products_to_main_repository():
     # Arrange
     repeated_product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="product1",
         price=1.0,
         quantity="1 unit",
         image_url="https://example.com/product.png",
     )
     unique_product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="product2",
         price=2.0,
         quantity="1 unit",
@@ -317,9 +325,12 @@ async def test_saves_only_not_repeated_products_to_main_repository():
     assert repository.saved_products == [repeated_product, unique_product]
 
 
-async def test_logs_warning_for_repeated_products(caplog):
+async def test_logs_warning_for_repeated_products(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     # Arrange
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="product1",
         price=1.0,
         quantity="1 unit",
@@ -340,6 +351,7 @@ async def test_saves_to_fallback_if_main_raises():
     # Arrange
     products = [
         Product(
+            raw_content="Original product, 1 unit, 1.0",
             name="product1",
             price=1.0,
             quantity="1 unit",
@@ -365,6 +377,7 @@ async def test_saves_products_to_fallback_if_main_raises():
     # Arrange
     products = [
         Product(
+            raw_content="Original product, 1 unit, 1.0",
             name="product1",
             price=1.0,
             quantity="1 unit",
@@ -389,12 +402,14 @@ async def test_saves_products_to_fallback_if_main_raises():
 async def test_saves_only_not_repeated_products_to_fallback_if_main_raises():
     # Arrange
     repeated_product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="product1",
         price=1.0,
         quantity="1 unit",
         image_url="https://example.com/product.png",
     )
     unique_product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="product2",
         price=2.0,
         quantity="1 unit",
@@ -418,12 +433,14 @@ async def test_saves_only_not_repeated_products_to_fallback_if_main_raises():
 async def test_saves_only_unique_products_to_fallback_if_main_raises():
     # Arrange
     repeated_product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="product1",
         price=1.0,
         quantity="1 unit",
         image_url="https://example.com/product.png",
     )
     unique_product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="product2",
         price=2.0,
         quantity="1 unit",

@@ -25,6 +25,7 @@ class BrandSimplifier(ProductProcessor):
                     )
 
                 return Product(
+                    raw_content=product.raw_content,
                     name=simplified_name,
                     price=product.price,
                     quantity=product.quantity,

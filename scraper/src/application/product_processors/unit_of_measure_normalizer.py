@@ -50,6 +50,7 @@ class UnitOfMeasureNormalizer(ProductProcessor):
 
         factor, normalized_unit = self.__CONVERSIONS.get(unit, (1, unit))
         return Product(
+            raw_content=product.raw_content,
             name=product.name,
             price=product.price,
             quantity=quantity * factor,

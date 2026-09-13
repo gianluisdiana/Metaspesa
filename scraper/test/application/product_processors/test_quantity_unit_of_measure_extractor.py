@@ -10,6 +10,7 @@ def test_extracts_quantity():
     # Arrange
     extractor = QuantityUnitOfMeasureExtractor()
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity="2g",
@@ -27,6 +28,7 @@ def test_extracts_quantity_more_than_1_digit():
     # Arrange
     extractor = QuantityUnitOfMeasureExtractor()
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity="10kg",
@@ -48,6 +50,7 @@ def test_extracts_quantity_with_decimal(raw_quantity: str, expected_quantity: fl
     # Arrange
     extractor = QuantityUnitOfMeasureExtractor()
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity=raw_quantity,
@@ -94,6 +97,7 @@ def test_extracts_quantity_and_unit_of_measure(raw_quantity: str, expected_unit:
     # Arrange
     extractor = QuantityUnitOfMeasureExtractor()
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity=raw_quantity,
@@ -111,6 +115,7 @@ def test_does_not_extract_and_assigns_default_quantity():
     # Arrange
     extractor = QuantityUnitOfMeasureExtractor()
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity="bandeja",
@@ -128,6 +133,7 @@ def test_does_not_extract_and_assigns_kg_to_unit_of_measure():
     # Arrange
     extractor = QuantityUnitOfMeasureExtractor()
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity="al peso",
@@ -145,6 +151,7 @@ def test_does_not_extract_and_assigns_default_unit_of_measure():
     # Arrange
     extractor = QuantityUnitOfMeasureExtractor()
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity="bandeja",
@@ -156,3 +163,22 @@ def test_does_not_extract_and_assigns_default_unit_of_measure():
 
     # Assert
     assert result.unit_of_measure == "unit"
+
+
+@pytest.mark.parametrize(
+    "quantity",
+    ["500 g", "al peso", "", 500],
+)
+def test_preserves_raw_content(quantity: float | str) -> None:
+    processor = QuantityUnitOfMeasureExtractor()
+    product = Product(
+        raw_content="Café Variant, 500 g, 1.99 €",
+        name="Coffee",
+        quantity=quantity,
+        price=1.99,
+        image_url="https://example.com/coffee.png",
+    )
+
+    result = processor.process(product)
+
+    assert result.raw_content == "Café Variant, 500 g, 1.99 €"

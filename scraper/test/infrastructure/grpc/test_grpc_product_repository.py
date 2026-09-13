@@ -1,19 +1,26 @@
 from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 
+from grpc.aio import Metadata
+
 from domain import Product
 from infrastructure.grpc.grpc_product_repository import (
     AddProductsRequestMapper,
     GrpcProductRepository,
 )
+from infrastructure.grpc.protos import auth_service_pb2, market_service_pb2
 
 
 class FakeMarketStub:
     def __init__(self) -> None:
         self.add_products_calls: list[tuple[object, object]] = []
 
-    async def AddProducts(self, request, metadata=None) -> None:
-        self.add_products_calls.append((request, metadata))
+    async def AddProducts(
+        self,
+        request: market_service_pb2.AddProductsRequest,  # type: ignore
+        metadata: Metadata | None = None,
+    ) -> None:
+        self.add_products_calls.append((request, metadata))  # type: ignore
 
 
 class FakeAuthStub:
@@ -21,7 +28,7 @@ class FakeAuthStub:
         self.login_requests: list[object] = []
         self.__expirations = expirations or [datetime.now(UTC) + timedelta(hours=1)]
 
-    async def Login(self, request):
+    async def Login(self, request: auth_service_pb2.LoginRequest) -> SimpleNamespace:
         self.login_requests.append(request)
         expiration = self.__expirations.pop(0)
         return SimpleNamespace(
@@ -32,6 +39,7 @@ class FakeAuthStub:
 
 def branded_product(name: str = "Product") -> Product:
     return Product(
+        raw_content="Original product, 1 unit, 1.0",
         name=name,
         price=1.99,
         quantity=500,
@@ -43,6 +51,7 @@ def branded_product(name: str = "Product") -> Product:
 
 def brandless_product() -> Product:
     return Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Brandless",
         price=2.99,
         quantity=1000,
@@ -65,7 +74,7 @@ def make_repository(
     )
 
 
-def authorization(metadata) -> str:
+def authorization(metadata: Metadata) -> str:
     return metadata.get("authorization")
 
 

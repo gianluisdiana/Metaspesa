@@ -42,6 +42,7 @@ class AlcampoProductTag:
 
     def to_product(self) -> Product:
         return Product(
+            raw_content=f"{self.__name}, {self.__price}",
             name=self.__name,
             quantity=self.__quantity,
             price=self.__price,
@@ -102,6 +103,7 @@ class MercadonaProductTag:
 
     def to_product(self) -> Product:
         return Product(
+            raw_content=self.__raw_content,
             name=self.__name,
             quantity=self.__quantity,
             price=self.__price,
@@ -115,6 +117,10 @@ class MercadonaProductTag:
             and self.__text("p.product-price__unit-price") != ""
             and self.__has_valid_image_url()
         )
+
+    @property
+    def __raw_content(self) -> str:
+        return f"{self.__name}, {self.__quantity}, {self.__price}"
 
     @property
     def __name(self) -> str:
@@ -133,7 +139,7 @@ class MercadonaProductTag:
         if quantity_tag:
             texts = [text for text in quantity_tag.stripped_strings if text]
             if len(texts) > 1:
-                return texts[1].strip()
+                return texts[-1].strip()
             if len(texts) == 1:
                 return texts[0].strip()
         return ""

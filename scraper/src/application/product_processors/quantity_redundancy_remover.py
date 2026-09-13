@@ -25,6 +25,7 @@ class QuantityRedundancyRemover(ProductProcessor):
         name = self.__quantity_pattern.sub("", product.name).strip()
 
         return Product(
+            raw_content=product.raw_content,
             name=name,
             price=product.price,
             quantity=product.quantity,

@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Any
 
 from conftest import (
     DummyFallbackRepository,
@@ -14,7 +15,7 @@ from domain import Product
 REGISTERED_AT = date(2026, 5, 18)
 
 
-def make_handler(**kwargs) -> RetryFailedSavesCommandHandler:
+def make_handler(**kwargs: Any) -> RetryFailedSavesCommandHandler:
     defaults: dict = dict(
         fallback_repository=DummyFallbackRepository(),
         main_repository=DummyProductRepository(),
@@ -40,6 +41,7 @@ async def test_saves_products_to_main_repository():
     # Arrange
     products = [
         Product(
+            raw_content="Original product, 1 unit, 1.0",
             name="product1",
             price=1.0,
             quantity="1 unit",
@@ -183,6 +185,7 @@ async def test_saves_products_loaded_for_each_market_and_date():
     second_date = date(2026, 5, 19)
     market1_products = [
         Product(
+            raw_content="Original product, 1 unit, 1.0",
             name="product1",
             price=1.0,
             quantity="1 unit",
@@ -191,6 +194,7 @@ async def test_saves_products_loaded_for_each_market_and_date():
     ]
     market2_products = [
         Product(
+            raw_content="Original product, 1 unit, 1.0",
             name="product2",
             price=2.0,
             quantity="1 unit",

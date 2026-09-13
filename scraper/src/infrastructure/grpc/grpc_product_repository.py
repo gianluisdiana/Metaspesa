@@ -112,6 +112,7 @@ class AddProductsRequestMapper:
         request = market_service_pb2.AddProductsRequest(  # type: ignore
             products=[
                 domain_pb2.Product(  # type: ignore
+                    # raw_content=product.raw_content,
                     name=p.name,
                     price=f"{p.price}",
                     quantity=p.quantity,

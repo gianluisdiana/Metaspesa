@@ -9,6 +9,7 @@ class StringSanitizer(ProductProcessor):
     @override
     def _process(self, product: Product) -> Product:
         return Product(
+            raw_content=self.__sanitize(product.raw_content),
             name=self.__sanitize(product.name),
             price=product.price,
             quantity=self.__sanitize(product.quantity)

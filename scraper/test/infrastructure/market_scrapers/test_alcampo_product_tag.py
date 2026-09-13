@@ -9,6 +9,19 @@ def product_tag(html: str) -> AlcampoProductTag:
     return AlcampoProductTag(BeautifulSoup(html, "html.parser"))
 
 
+def test_captures_name_and_price_before_processing():
+    tag = product_tag("""
+        <h3 data-test="fop-title">Café BRAND 500 g</h3>
+        <div data-test="fop-size"><span>500 g</span></div>
+        <span data-test="fop-price">1,99€</span>
+        <img data-test="lazy-load-image" src="https://example.com/coffee.png" />
+    """)
+
+    product = tag.to_product()
+
+    assert product.raw_content == "Café BRAND 500 g, 1.99"
+
+
 def test_is_skeleton_by_default():
     # Arrange
     tag = product_tag("<div></div>")

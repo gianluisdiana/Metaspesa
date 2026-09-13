@@ -19,6 +19,7 @@ class RenamingProcessor(ProductProcessor):
 
     def _process(self, product: Product) -> Product:
         return Product(
+            raw_content=product.raw_content,
             name=f"{product.name}{self.__suffix}",
             price=product.price,
             quantity=product.quantity,
@@ -31,6 +32,7 @@ def test_processor_processes_product():
     # Arrange
     processor = SpyProcessor()
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="apple",
         price=1.0,
         quantity="1 kg",
@@ -51,6 +53,7 @@ def test_chain_of_responsibility_processes_first_processor():
     p1.next(p2)
 
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="apple",
         price=1.0,
         quantity="1 kg",
@@ -71,6 +74,7 @@ def test_chain_of_responsibility_processes_next_processor():
     p1.next(p2)
 
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="apple",
         price=1.0,
         quantity="1 kg",
@@ -91,6 +95,7 @@ def test_chain_of_responsibility_returns_final_product():
     p1.next(p2)
 
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="apple",
         price=1.0,
         quantity="1 kg",

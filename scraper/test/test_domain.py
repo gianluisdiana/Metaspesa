@@ -1,8 +1,35 @@
+from dataclasses import replace
 from typing import Any
 
 import pytest
 
 from domain import Product
+
+
+def test_raw_content_does_not_change_product_equality():
+    product = Product(
+        raw_content="Coffee Brand, 500 g, 1.99",
+        name="Coffee",
+        price=1.99,
+        quantity=500,
+        image_url="https://example.com/coffee.png",
+    )
+    same_product = replace(product, raw_content="Brand Coffee, 500g, 1.99")
+
+    assert product == same_product
+
+
+def test_raw_content_does_not_change_product_hash():
+    product = Product(
+        raw_content="Coffee Brand, 500 g, 1.99",
+        name="Coffee",
+        price=1.99,
+        quantity=500,
+        image_url="https://example.com/coffee.png",
+    )
+    same_product = replace(product, raw_content="Brand Coffee, 500g, 1.99")
+
+    assert hash(product) == hash(same_product)
 
 
 @pytest.mark.parametrize(
@@ -20,6 +47,7 @@ from domain import Product
 def test_is_not_equal_to_non_product(non_product: Any):
     # Arrange
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity="1 unit",
@@ -36,6 +64,7 @@ def test_is_not_equal_to_non_product(non_product: Any):
 def test_is_equal_to_product_with_same_attributes():
     # Arrange
     product1 = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity="1 unit",
@@ -43,6 +72,7 @@ def test_is_equal_to_product_with_same_attributes():
         brand="Brand",
     )
     product2 = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity="1 unit",
@@ -60,6 +90,7 @@ def test_is_equal_to_product_with_same_attributes():
 def test_is_not_equal_to_product_with_different_name():
     # Arrange
     product1 = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product 1",
         price=1.0,
         quantity="1 unit",
@@ -67,6 +98,7 @@ def test_is_not_equal_to_product_with_different_name():
         brand="Brand",
     )
     product2 = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product 2",
         price=1.0,
         quantity="1 unit",
@@ -84,6 +116,7 @@ def test_is_not_equal_to_product_with_different_name():
 def test_is_not_equal_to_product_with_different_price():
     # Arrange
     product1 = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity="1 unit",
@@ -91,6 +124,7 @@ def test_is_not_equal_to_product_with_different_price():
         brand="Brand",
     )
     product2 = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=2.0,
         quantity="1 unit",
@@ -108,6 +142,7 @@ def test_is_not_equal_to_product_with_different_price():
 def test_is_equal_to_product_with_close_enough_prices():
     # Arrange
     product1 = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity="1 unit",
@@ -115,6 +150,7 @@ def test_is_equal_to_product_with_close_enough_prices():
         brand="Brand",
     )
     product2 = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0001,
         quantity="1 unit",
@@ -132,6 +168,7 @@ def test_is_equal_to_product_with_close_enough_prices():
 def test_is_not_equal_to_product_with_different_quantity():
     # Arrange
     product1 = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity="1 unit",
@@ -139,6 +176,7 @@ def test_is_not_equal_to_product_with_different_quantity():
         brand="Brand",
     )
     product2 = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity="2 units",
@@ -156,6 +194,7 @@ def test_is_not_equal_to_product_with_different_quantity():
 def test_is_not_equal_to_product_with_different_brand():
     # Arrange
     product1 = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity="1 unit",
@@ -163,6 +202,7 @@ def test_is_not_equal_to_product_with_different_brand():
         brand="Brand 1",
     )
     product2 = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity="1 unit",
@@ -180,6 +220,7 @@ def test_is_not_equal_to_product_with_different_brand():
 def test_hash_of_equal_products_is_the_same():
     # Arrange
     product1 = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity="1 unit",
@@ -187,6 +228,7 @@ def test_hash_of_equal_products_is_the_same():
         brand="Brand",
     )
     product2 = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity="1 unit",

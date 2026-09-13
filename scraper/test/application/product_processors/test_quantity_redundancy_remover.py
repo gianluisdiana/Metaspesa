@@ -8,6 +8,7 @@ def test_processor_does_not_remove_quantity_if_does_not_have_it_on_name():
     # Arrange
     remover = QuantityRedundancyRemover()
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Arándanos",
         price=1.2,
         quantity="1 ud",
@@ -25,6 +26,7 @@ def test_processor_removes_quantity_from_name():
     # Arrange
     remover = QuantityRedundancyRemover()
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Arándanos 125 g",
         price=1.2,
         quantity="125g",
@@ -137,6 +139,7 @@ def test_processor_removes_quantity_with_extras_from_name(
     # Arrange
     remover = QuantityRedundancyRemover()
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name=original,
         price=1.2,
         quantity="1g",
@@ -148,3 +151,23 @@ def test_processor_removes_quantity_with_extras_from_name(
 
     # Assert
     assert result.name == expected_name
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["Coffee 500 g", "Coffee"],
+)
+def test_preserves_raw_content(name: str) -> None:
+    processor = QuantityRedundancyRemover()
+    product = Product(
+        raw_content="Café Variant, 500 g, 1.99 €",
+        name=name,
+        quantity=500,
+        unit_of_measure="g",
+        price=1.99,
+        image_url="https://example.com/coffee.png",
+    )
+
+    result = processor.process(product)
+
+    assert result.raw_content == "Café Variant, 500 g, 1.99 €"

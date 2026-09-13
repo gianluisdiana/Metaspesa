@@ -41,6 +41,7 @@ class QuantityUnitOfMeasureExtractor(ProductProcessor):
         product: Product, quantity: float, unit_of_measure: str
     ) -> Product:
         return Product(
+            raw_content=product.raw_content,
             name=product.name,
             price=product.price,
             quantity=quantity,

@@ -16,6 +16,7 @@ class FakeProductTag:
 
 def product(name: str) -> Product:
     return Product(
+        raw_content="Original product, 1 unit, 1.0",
         name=name,
         price=1.0,
         quantity="1 unit",

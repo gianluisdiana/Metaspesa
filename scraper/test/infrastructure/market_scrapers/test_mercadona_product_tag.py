@@ -9,6 +9,48 @@ def product_tag(html: str) -> MercadonaProductTag:
     return MercadonaProductTag(BeautifulSoup(html, "html.parser"))
 
 
+@pytest.mark.parametrize(
+    "quantity_html",
+    [
+        "500 g",
+        "<span>Formato</span><span>500 g</span>",
+        "<span>Formato</span><span>Paquete</span><span>500 g</span>",
+    ],
+)
+def test_captures_name_final_quantity_and_price_before_processing(
+    quantity_html: str,
+) -> None:
+    tag = product_tag(f"""
+        <h4 class="product-cell__description-name">Café Hacendado</h4>
+        <div class="product-format__size--cell">{quantity_html}</div>
+        <p class="product-price__unit-price">1,99€</p>
+        <div class="product-cell__image-wrapper">
+            <img src="https://example.com/coffee.png" />
+        </div>
+    """)
+
+    product = tag.to_product()
+
+    assert product.raw_content == "Café Hacendado, 500 g, 1.99"
+
+
+def test_uses_last_quantity_text_when_format_has_multiple_labels():
+    tag = product_tag("""
+        <h4 class="product-cell__description-name">Coffee</h4>
+        <div class="product-format__size--cell">
+            <span>Formato</span><span>Paquete</span><span>500 g</span>
+        </div>
+        <p class="product-price__unit-price">1.99</p>
+        <div class="product-cell__image-wrapper">
+            <img src="https://example.com/coffee.png" />
+        </div>
+    """)
+
+    product = tag.to_product()
+
+    assert product.quantity == "500 g"
+
+
 def test_raises_if_name_is_missing():
     # Arrange
     html = """

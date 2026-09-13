@@ -14,6 +14,7 @@ from domain import Product
 def test_converts_weight_quantities_to_grams(unit: str, expected_quantity: float):
     # Arrange
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity=1,
@@ -38,6 +39,7 @@ def test_converts_weight_quantities_to_grams(unit: str, expected_quantity: float
 def test_converts_volume_quantities_to_milliliters(unit: str, expected_quantity: float):
     # Arrange
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity=1,
@@ -56,6 +58,7 @@ def test_converts_volume_quantities_to_milliliters(unit: str, expected_quantity:
 def test_normalizes_weight_units_to_grams(unit: str):
     # Arrange
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity=1,
@@ -74,6 +77,7 @@ def test_normalizes_weight_units_to_grams(unit: str):
 def test_normalizes_volume_units_to_milliliters(unit: str):
     # Arrange
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity=1,
@@ -92,6 +96,7 @@ def test_normalizes_volume_units_to_milliliters(unit: str):
 def test_normalizes_unit_count_aliases(unit: str):
     # Arrange
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity=1,
@@ -117,6 +122,7 @@ def test_normalizes_unit_count_aliases(unit: str):
 def test_normalizes_non_weight_volume_units(unit: str, expected_unit: str):
     # Arrange
     product = Product(
+        raw_content="Original product, 1 unit, 1.0",
         name="Product",
         price=1.0,
         quantity=1,
@@ -129,3 +135,23 @@ def test_normalizes_non_weight_volume_units(unit: str, expected_unit: str):
 
     # Assert
     assert result.unit_of_measure == expected_unit
+
+
+@pytest.mark.parametrize(
+    "quantity, unit",
+    [(1, "kg"), (500, "unknown"), ("500 g", "")],
+)
+def test_preserves_raw_content(quantity: float | str, unit: str) -> None:
+    processor = UnitOfMeasureNormalizer()
+    product = Product(
+        raw_content="Café Variant, 500 g, 1.99 €",
+        name="Coffee",
+        quantity=quantity,
+        unit_of_measure=unit,
+        price=1.99,
+        image_url="https://example.com/coffee.png",
+    )
+
+    result = processor.process(product)
+
+    assert result.raw_content == "Café Variant, 500 g, 1.99 €"

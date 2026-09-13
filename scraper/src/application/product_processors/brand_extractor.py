@@ -25,6 +25,7 @@ class BrandExtractor(ProductProcessor):
 
             if name_without_brand != product.name:
                 return Product(
+                    raw_content=product.raw_content,
                     name=name_without_brand,
                     price=product.price,
                     quantity=product.quantity,
