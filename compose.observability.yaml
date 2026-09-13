@@ -17,7 +17,7 @@ services:
       - metaspesa_telemetry_default
 
   mimir:
-    image: grafana/mimir:3.0.6
+    image: grafana/mimir:3.2.1
     volumes:
       - ./observability/mimir/mimir.yaml:/etc/mimir/mimir.yaml
       - mimir_data:/var/mimir
