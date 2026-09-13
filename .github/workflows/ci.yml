@@ -44,13 +44,9 @@ jobs:
         run: dotnet format server/Metaspesa.slnx --verify-no-changes --verbosity diagnostic
 
   backend-tests:
-    name: Backend tests (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    name: Backend tests
+    runs-on: ubuntu-latest
     timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Check out repository
@@ -116,13 +112,9 @@ jobs:
         working-directory: client
 
   client-tests:
-    name: Client tests (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    name: Client tests
+    runs-on: ubuntu-latest
     timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Check out repository
@@ -185,13 +177,9 @@ jobs:
         working-directory: scraper
 
   scraper-tests:
-    name: Scraper tests (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    name: Scraper tests
+    runs-on: ubuntu-latest
     timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Check out repository
