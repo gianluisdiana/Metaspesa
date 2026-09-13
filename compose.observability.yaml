@@ -1,6 +1,6 @@
 services:
   alloy:
-    image: grafana/alloy:v1.16.1
+    image: grafana/alloy:v1.19.2
     volumes:
       - ./observability/alloy/config.alloy:/etc/alloy/config.alloy
     command: run /etc/alloy/config.alloy
