@@ -197,8 +197,18 @@ public static class AddMarketProducts {
         _addedProductIds.AddRange(result.AddedProductIds);
         _addedProductFormatIds.AddRange(result.AddedProductFormatIds);
         _completedMarkets.Add(market.Name);
+        IReadOnlyCollection<PriceSnapshot> latestSnapshots =
+          await priceSnapshotRepository.GetLatestForFormatsAsync(
+            [.. result.PriceObservations.Select(observation => observation.ProductFormatId)],
+            cancellationToken);
+        var snapshotsByFormat = latestSnapshots.ToDictionary(snapshot => snapshot.ProductFormatId);
+        List<PriceObservation> changedPrices = [
+          .. result.PriceObservations.Where(observation =>
+            !snapshotsByFormat.TryGetValue(observation.ProductFormatId, out PriceSnapshot? latest) ||
+            !latest.HasSamePrice(observation.Price))
+        ];
         await priceSnapshotRepository.AppendAsync(
-          result.PriceObservations,
+          changedPrices,
           cancellationToken);
       }
     }

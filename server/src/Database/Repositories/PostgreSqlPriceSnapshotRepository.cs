@@ -10,6 +10,25 @@ internal class PostgreSqlPriceSnapshotRepository(
 ) : IPriceSnapshotRepository {
   private const int BatchSize = 1_000;
 
+  public async Task<IReadOnlyCollection<PriceSnapshot>> GetLatestForFormatsAsync(
+    IReadOnlyCollection<ProductFormatId> productFormatIds,
+    CancellationToken cancellationToken
+  ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
+    int[] ids = [.. productFormatIds.Select(id => id.Value)];
+    List<PriceSnapshotDbEntity> snapshots = await context.PriceSnapshots
+      .AsNoTracking()
+      .Where(snapshot => ids.Contains(snapshot.ProductFormatId))
+      .GroupBy(snapshot => snapshot.ProductFormatId)
+      .Select(group => group.OrderByDescending(snapshot => snapshot.ObservedAt)
+        .ThenByDescending(snapshot => snapshot.Id)
+        .First())
+      .ToListAsync(cancellationToken);
+
+    return (IReadOnlyCollection<PriceSnapshot>)[
+      .. snapshots.Select(snapshot => snapshot.MapToDomain())
+    ];
+  }, "Couldn't get latest price snapshots.");
+
   public async Task<PriceSnapshot?> GetByIdAsync(
     PriceSnapshotId snapshotId,
     CancellationToken cancellationToken

@@ -5,6 +5,58 @@ using Metaspesa.Domain.SharedKernel;
 namespace Metaspesa.Domain.UnitTests.Markets;
 
 public static class PriceSnapshotTests {
+  [Fact(DisplayName = "Has same price when money values match")]
+  public static void HasSamePrice_ReturnsTrue_WhenMoneyValuesMatch() {
+    var snapshot = new PriceSnapshot(
+      new PriceSnapshotId(1),
+      new ProductFormatId(2),
+      new Money(3.45m),
+      new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc));
+
+    bool hasSamePrice = snapshot.HasSamePrice(new Money(3.45m));
+
+    Assert.True(hasSamePrice);
+  }
+
+  [Fact(DisplayName = "Has same price when money values round equally")]
+  public static void HasSamePrice_ReturnsTrue_WhenMoneyValuesRoundEqually() {
+    var snapshot = new PriceSnapshot(
+      new PriceSnapshotId(1),
+      new ProductFormatId(2),
+      new Money(3.45m),
+      new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc));
+
+    bool hasSamePrice = snapshot.HasSamePrice(new Money(3.451m));
+
+    Assert.True(hasSamePrice);
+  }
+
+  [Fact(DisplayName = "Does not have same price when money value increases")]
+  public static void HasSamePrice_ReturnsFalse_WhenMoneyValueIncreases() {
+    var snapshot = new PriceSnapshot(
+      new PriceSnapshotId(1),
+      new ProductFormatId(2),
+      new Money(3.45m),
+      new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc));
+
+    bool hasSamePrice = snapshot.HasSamePrice(new Money(3.46m));
+
+    Assert.False(hasSamePrice);
+  }
+
+  [Fact(DisplayName = "Does not have same price when money value decreases")]
+  public static void HasSamePrice_ReturnsFalse_WhenMoneyValueDecreases() {
+    var snapshot = new PriceSnapshot(
+      new PriceSnapshotId(1),
+      new ProductFormatId(2),
+      new Money(3.45m),
+      new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc));
+
+    bool hasSamePrice = snapshot.HasSamePrice(new Money(3.44m));
+
+    Assert.False(hasSamePrice);
+  }
+
   [Fact(DisplayName = "Creates immutable price snapshot")]
   public static void PriceSnapshot_Created_WithImmutableObservation() {
     var observedAt = new DateTime(2026, 7, 28, 12, 0, 0, DateTimeKind.Utc);
@@ -39,4 +91,5 @@ public static class PriceSnapshotTests {
     new DateTime(2026, 7, 28, 12, 0, 0, DateTimeKind.Local),
     new DateTime(2026, 7, 28, 12, 0, 0, DateTimeKind.Unspecified)
   );
+
 }

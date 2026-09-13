@@ -9,6 +9,8 @@ public sealed class PriceSnapshot {
   public Money Price { get; }
   public DateTime ObservedAt { get; }
 
+  public bool HasSamePrice(Money price) => Price == price;
+
   public PriceSnapshot(
     PriceSnapshotId id,
     ProductFormatId productFormatId,

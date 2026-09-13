@@ -1,6 +1,7 @@
 using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.Markets.Errors;
+using Metaspesa.Domain.SharedKernel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
@@ -19,6 +20,10 @@ public class AddProductsHandlerTest {
     _marketRepository = Substitute.For<IMarketRepository>();
     _productRepository = Substitute.For<IProductRepository>();
     _snapshotRepository = Substitute.For<IPriceSnapshotRepository>();
+    _snapshotRepository.GetLatestForFormatsAsync(
+      Arg.Any<IReadOnlyCollection<ProductFormatId>>(),
+      Arg.Any<CancellationToken>())
+      .Returns([]);
 
     IServiceScopeFactory scopeFactory = new ServiceCollection()
       .AddSingleton(_marketRepository)
@@ -350,7 +355,7 @@ public class AddProductsHandlerTest {
     Command command = CreateCommand();
     var observation = new PriceObservation(
       new ProductFormatId(7),
-      new Domain.SharedKernel.Money(1.99m),
+      new Money(1.99m),
       new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc));
     _productRepository
       .ResolveProductsAsync(
@@ -386,6 +391,155 @@ public class AddProductsHandlerTest {
       TestContext.Current.CancellationToken);
   }
 
+  [Fact(DisplayName = "Does not append snapshot when same-day price is unchanged")]
+  public async Task Handler_AppendsNoSnapshot_WhenSameDayPriceIsUnchanged() {
+    DateOnly registeredAt = new(2026, 7, 28);
+    var observedAt = registeredAt.ToDateTime(
+      TimeOnly.MinValue, DateTimeKind.Utc);
+    var observation = new PriceObservation(
+      new ProductFormatId(7), new Money(1.99m), observedAt);
+    var latestSnapshot = new PriceSnapshot(
+      new PriceSnapshotId(1),
+      observation.ProductFormatId,
+      new Money(1.99m),
+      observedAt);
+    _productRepository.ResolveProductsAsync(
+      Arg.Any<MarketImport>(), observedAt, Arg.Any<CancellationToken>())
+      .Returns(new ProductImportResult([], [], [observation]));
+    _snapshotRepository.GetLatestForFormatsAsync(
+      Arg.Any<IReadOnlyCollection<ProductFormatId>>(),
+      TestContext.Current.CancellationToken)
+      .Returns([latestSnapshot]);
+
+    await _handler.Handle(
+      CreateCommand() with { RegisteredAt = registeredAt },
+      TestContext.Current.CancellationToken);
+
+    await _snapshotRepository.Received(1).AppendAsync(
+      Arg.Is<IReadOnlyCollection<PriceObservation>>(values => values.Count == 0),
+      TestContext.Current.CancellationToken);
+  }
+
+  [Fact(DisplayName = "Does not append snapshot when only observation date changes")]
+  public async Task Handler_AppendsNoSnapshot_WhenOnlyObservationDateChanges() {
+    DateOnly registeredAt = new(2026, 7, 29);
+    var observedAt = registeredAt.ToDateTime(
+      TimeOnly.MinValue, DateTimeKind.Utc);
+    var observation = new PriceObservation(
+      new ProductFormatId(7), new Money(1.99m), observedAt);
+    var latestSnapshot = new PriceSnapshot(
+      new PriceSnapshotId(1),
+      observation.ProductFormatId,
+      new Money(1.99m),
+      new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc));
+    _productRepository.ResolveProductsAsync(
+      Arg.Any<MarketImport>(), observedAt, Arg.Any<CancellationToken>())
+      .Returns(new ProductImportResult([], [], [observation]));
+    _snapshotRepository.GetLatestForFormatsAsync(
+      Arg.Any<IReadOnlyCollection<ProductFormatId>>(),
+      TestContext.Current.CancellationToken)
+      .Returns([latestSnapshot]);
+
+    await _handler.Handle(
+      CreateCommand() with { RegisteredAt = registeredAt },
+      TestContext.Current.CancellationToken);
+
+    await _snapshotRepository.Received(1).AppendAsync(
+      Arg.Is<IReadOnlyCollection<PriceObservation>>(values => values.Count == 0),
+      TestContext.Current.CancellationToken);
+  }
+
+  [Fact(DisplayName = "Appends snapshot when price increases")]
+  public async Task Handler_AppendsSnapshot_WhenPriceIncreases() {
+    DateOnly registeredAt = new(2026, 7, 29);
+    var observedAt = registeredAt.ToDateTime(
+      TimeOnly.MinValue, DateTimeKind.Utc);
+    var observation = new PriceObservation(
+      new ProductFormatId(7), new Money(2.49m), observedAt);
+    var latestSnapshot = new PriceSnapshot(
+      new PriceSnapshotId(1),
+      observation.ProductFormatId,
+      new Money(1.99m),
+      new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc));
+    _productRepository.ResolveProductsAsync(
+      Arg.Any<MarketImport>(), observedAt, Arg.Any<CancellationToken>())
+      .Returns(new ProductImportResult([], [], [observation]));
+    _snapshotRepository.GetLatestForFormatsAsync(
+      Arg.Any<IReadOnlyCollection<ProductFormatId>>(),
+      TestContext.Current.CancellationToken)
+      .Returns([latestSnapshot]);
+    Command command = CreateCommand();
+    command = command with {
+      RegisteredAt = registeredAt,
+      Products = [command.Products.Single() with { Price = 2.49m }],
+    };
+
+    await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+    await _snapshotRepository.Received(1).AppendAsync(
+      Arg.Is<IReadOnlyCollection<PriceObservation>>(values =>
+        values.Count == 1 && values.Single() == observation),
+      TestContext.Current.CancellationToken);
+  }
+
+  [Fact(DisplayName = "Appends snapshot when price decreases")]
+  public async Task Handler_AppendsSnapshot_WhenPriceDecreases() {
+    DateOnly registeredAt = new(2026, 7, 29);
+    var observedAt = registeredAt.ToDateTime(
+      TimeOnly.MinValue, DateTimeKind.Utc);
+    var observation = new PriceObservation(
+      new ProductFormatId(7), new Money(1.49m), observedAt);
+    var latestSnapshot = new PriceSnapshot(
+      new PriceSnapshotId(1),
+      observation.ProductFormatId,
+      new Money(1.99m),
+      new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc));
+    _productRepository.ResolveProductsAsync(
+      Arg.Any<MarketImport>(), observedAt, Arg.Any<CancellationToken>())
+      .Returns(new ProductImportResult([], [], [observation]));
+    _snapshotRepository.GetLatestForFormatsAsync(
+      Arg.Any<IReadOnlyCollection<ProductFormatId>>(),
+      TestContext.Current.CancellationToken)
+      .Returns([latestSnapshot]);
+    Command command = CreateCommand();
+    command = command with {
+      RegisteredAt = registeredAt,
+      Products = [command.Products.Single() with { Price = 1.49m }],
+    };
+
+    await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+    await _snapshotRepository.Received(1).AppendAsync(
+      Arg.Is<IReadOnlyCollection<PriceObservation>>(values =>
+        values.Count == 1 && values.Single() == observation),
+      TestContext.Current.CancellationToken);
+  }
+
+  [Fact(DisplayName = "Appends first snapshot when format has no price history")]
+  public async Task Handler_AppendsSnapshot_WhenFormatHasNoPriceHistory() {
+    DateOnly registeredAt = new(2026, 7, 28);
+    var observedAt = registeredAt.ToDateTime(
+      TimeOnly.MinValue, DateTimeKind.Utc);
+    var observation = new PriceObservation(
+      new ProductFormatId(7), new Money(1.99m), observedAt);
+    _productRepository.ResolveProductsAsync(
+      Arg.Any<MarketImport>(), observedAt, Arg.Any<CancellationToken>())
+      .Returns(new ProductImportResult([], [], [observation]));
+    _snapshotRepository.GetLatestForFormatsAsync(
+      Arg.Any<IReadOnlyCollection<ProductFormatId>>(),
+      TestContext.Current.CancellationToken)
+      .Returns([]);
+
+    await _handler.Handle(
+      CreateCommand() with { RegisteredAt = registeredAt },
+      TestContext.Current.CancellationToken);
+
+    await _snapshotRepository.Received(1).AppendAsync(
+      Arg.Is<IReadOnlyCollection<PriceObservation>>(values =>
+        values.Count == 1 && values.Single() == observation),
+      TestContext.Current.CancellationToken);
+  }
+
   [Fact(DisplayName = "Does not add existing market or brand")]
   public async Task Handler_DoesNotAddExistingMarketOrBrand() {
     _marketRepository.GetMarketsAsync(Arg.Any<CancellationToken>())
@@ -413,7 +567,7 @@ public class AddProductsHandlerTest {
       [new ProductFormatId(7)],
       [new PriceObservation(
         new ProductFormatId(7),
-        new Domain.SharedKernel.Money(1.99m),
+        new Money(1.99m),
         new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc))]);
     _productRepository
       .ResolveProductsAsync(

@@ -55,6 +55,51 @@ public class PostgreSqlPriceSnapshotRepositoryTest : IAsyncLifetime {
     Assert.Equal(DateTimeKind.Utc, snapshot.ObservedAt.Kind);
   }
 
+  [Fact(DisplayName = "Loads latest format snapshot by observation time")]
+  public async Task Repository_LoadsLatestSnapshot_ByObservationTime() {
+    ProductImportResult result = await ResolveAndAppendAsync();
+    ProductFormatId formatId = result.PriceObservations.Single().ProductFormatId;
+    await _snapshotRepository.AppendAsync([
+      new PriceObservation(formatId, new Money(2.49m), UtcDate(2026, 7, 30)),
+      new PriceObservation(formatId, new Money(1.49m), UtcDate(2026, 7, 29)),
+    ], TestContext.Current.CancellationToken);
+
+    IReadOnlyCollection<PriceSnapshot> snapshots =
+      await _snapshotRepository.GetLatestForFormatsAsync(
+        [formatId], TestContext.Current.CancellationToken);
+
+    Assert.Equal(new Money(2.49m), snapshots.Single().Price);
+  }
+
+  [Fact(DisplayName = "Loads newest format snapshot when observation times match")]
+  public async Task Repository_LoadsNewestSnapshot_WhenObservationTimesMatch() {
+    ProductImportResult result = await ResolveAndAppendAsync();
+    ProductFormatId formatId = result.PriceObservations.Single().ProductFormatId;
+    await _snapshotRepository.AppendAsync([
+      new PriceObservation(formatId, new Money(2.49m), UtcDate(2026, 7, 30)),
+      new PriceObservation(formatId, new Money(2.99m), UtcDate(2026, 7, 30)),
+    ], TestContext.Current.CancellationToken);
+    PriceSnapshotDbEntity newestSnapshot = await _context.PriceSnapshots
+      .SingleAsync(snapshot => snapshot.PriceAmount == 2.99m,
+        TestContext.Current.CancellationToken);
+
+    IReadOnlyCollection<PriceSnapshot> snapshots =
+      await _snapshotRepository.GetLatestForFormatsAsync(
+        [formatId], TestContext.Current.CancellationToken);
+
+    Assert.Equal(new PriceSnapshotId(newestSnapshot.Id), snapshots.Single().Id);
+  }
+
+  [Fact(DisplayName = "Returns no snapshots when requested format has no history")]
+  public async Task Repository_ReturnsNoSnapshots_ForUnknownFormat() {
+    await ResolveAndAppendAsync();
+
+    IReadOnlyCollection<PriceSnapshot> snapshots =
+      await _snapshotRepository.GetLatestForFormatsAsync(
+        [new ProductFormatId(int.MaxValue)], TestContext.Current.CancellationToken);
+
+    Assert.Empty(snapshots);
+  }
 
   [Fact(DisplayName = "Appends every observation as a new snapshot")]
   public async Task Repository_AppendsSnapshots_WithoutUpdatingExistingRows() {
