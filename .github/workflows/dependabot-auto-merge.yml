@@ -1,20 +1,22 @@
-name: Dependabot patch auto-merge
+name: Dependabot minor/patch auto-merge
 
 on:
   pull_request_target:
     types: [opened, synchronize, reopened]
+
   workflow_run:
     workflows: [CI]
     types: [completed]
 
 jobs:
-  classify-patch:
-    name: Classify Dependabot patch update
+  classify:
+    name: Classify Dependabot update
     if: >-
       github.event_name == 'pull_request_target' &&
       github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 5
+
     permissions:
       contents: read
       issues: write
@@ -25,35 +27,44 @@ jobs:
         id: metadata
         uses: dependabot/fetch-metadata@d7267f607e9d3fb96fc2fbe83e0af444713e90b7
         with:
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Ensure patch label exists
-        run: >-
-          gh label create "dependabot:patch" --color "0E8A16"
-          --description "Dependabot patch update eligible for auto-merge" --force
-        env:
-          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-
-      - name: Mark patch update for auto-merge
-        if: steps.metadata.outputs.update-type == 'version-update:semver-patch'
-        run: gh pr edit "$PR_URL" --add-label "dependabot:patch"
-        env:
-          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          PR_URL: "${{ github.event.pull_request.html_url }}"
-
-      - name: Remove patch marker from non-patch update
-        if: steps.metadata.outputs.update-type != 'version-update:semver-patch'
-        shell: bash
+      - name: Ensure auto-merge label exists
         run: |
-          if gh pr view "$PR_URL" --json labels --jq '.labels[].name' | grep -Fxq "dependabot:patch"; then
-            gh pr edit "$PR_URL" --remove-label "dependabot:patch"
-          fi
+          gh label create "dependabot:auto-merge" \
+            --repo "$GITHUB_REPOSITORY" \
+            --color "0E8A16" \
+            --description "Dependabot minor/patch update eligible for auto-merge" \
+            --force
         env:
-          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          PR_URL: "${{ github.event.pull_request.html_url }}"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  merge-after-ci:
-    name: Merge patch update after CI
+      - name: Mark minor or patch update
+        if: >-
+          steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
+          steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        run: |
+          gh pr edit "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --add-label "dependabot:auto-merge"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+
+      - name: Remove auto-merge label from major update
+        if: >-
+          steps.metadata.outputs.update-type != 'version-update:semver-patch' &&
+          steps.metadata.outputs.update-type != 'version-update:semver-minor'
+        run: |
+          gh pr edit "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --remove-label "dependabot:auto-merge" 2>/dev/null || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+
+  merge:
+    name: Merge Dependabot minor/patch after CI
     if: >-
       github.event_name == 'workflow_run' &&
       github.event.workflow_run.conclusion == 'success' &&
@@ -61,24 +72,41 @@ jobs:
       github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
+
     permissions:
       contents: write
       pull-requests: write
 
     steps:
-      - name: Merge marked patch update
+      - name: Merge eligible update
         shell: bash
         run: |
-          if [[ -z "$PR_URL" ]]; then
-            echo "Successful CI run has no associated pull request."
+          PR_NUMBER="$(
+            gh pr list \
+              --repo "$GITHUB_REPOSITORY" \
+              --head "$HEAD_BRANCH" \
+              --app dependabot \
+              --state open \
+              --json number \
+              --jq '.[0].number // empty'
+          )"
+
+          if [[ -z "$PR_NUMBER" ]]; then
             exit 0
           fi
 
-          if gh pr view "$PR_URL" --json labels --jq '.labels[].name' | grep -Fxq "dependabot:patch"; then
-            gh pr merge --merge "$PR_URL"
-          else
-            echo "Pull request is not an eligible patch update."
+          if gh pr view "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json labels \
+            --jq '.labels[].name' |
+            grep -Fxq "dependabot:auto-merge"; then
+
+            gh pr merge "$PR_NUMBER" \
+              --repo "$GITHUB_REPOSITORY" \
+              --match-head-commit "$HEAD_SHA" \
+              --merge
           fi
         env:
-          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          PR_URL: "${{ github.event.workflow_run.pull_requests[0].html_url }}"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
