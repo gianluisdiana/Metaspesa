@@ -21,8 +21,6 @@ internal class MarketGrpcService(
   public override async Task<Empty> AddProducts(
     AddProductsRequest request, ServerCallContext context
   ) {
-    var registeredAt = DateOnly.FromDateTime(
-      request.RegisteredAt.ToDateTime());
     var command = new AddMarketProducts.Command(
       [.. request.Products.Select(p => new AddMarketProducts.CommandProduct(
         GrpcTextSanitizer.SanitizeAscii(p.Name),
@@ -32,7 +30,7 @@ internal class MarketGrpcService(
         GrpcTextSanitizer.SanitizeAscii(p.MarketName),
         GrpcTextSanitizer.SanitizeAscii(p.BrandName),
         string.IsNullOrEmpty(p.ImageUrl) ? null : new Uri(p.ImageUrl)))],
-      registeredAt);
+        DateOnly.FromDateTime(request.RegisteredAt.ToDateTime()));
 
     await addProductsHandler.Handle(command, context.CancellationToken);
 

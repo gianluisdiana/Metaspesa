@@ -11,7 +11,7 @@ indent_style = space
 tab_width = 2
 
 # New line preferences
-end_of_line = crlf
+end_of_line = lf
 insert_final_newline = false
 
 #### .NET Coding Conventions ####
@@ -259,3 +259,8 @@ dotnet_diagnostic.CA1062.severity = none
 
 # IDE0053: Use block body for lambda expression
 dotnet_diagnostic.IDE0053.severity = silent
+
+# Roslyn requires a final newline after top-level statements. Without this
+# override, dotnet format both inserts and removes it, failing verification.
+[src/{GrpcApi,MigrationService}/Program.cs]
+insert_final_newline = true
