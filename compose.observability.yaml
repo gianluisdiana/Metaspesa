@@ -26,7 +26,7 @@ services:
       - metaspesa_telemetry_default
 
   tempo:
-    image: grafana/tempo:2.10.5
+    image: grafana/tempo:3.0.3
     volumes:
       - ./observability/tempo/tempo.yaml:/etc/tempo/tempo.yaml
       - tempo_data:/var/tempo
