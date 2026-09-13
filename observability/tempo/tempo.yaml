@@ -8,19 +8,6 @@ distributor:
         grpc:
           endpoint: 0.0.0.0:4317
 
-metrics_generator:
-  ring:
-    kvstore:
-      store: inmemory
-  traces_storage:
-    path: /var/tempo/generator/traces
-  storage:
-    path: /var/tempo/generator/wal
-  processor:
-    local_blocks:
-      filter_server_spans: false
-      flush_to_storage: true
-
 storage:
   trace:
     backend: local
@@ -28,8 +15,3 @@ storage:
       path: /var/tempo/blocks
     wal:
       path: /var/tempo/wal
-
-overrides:
-  defaults:
-    metrics_generator:
-      processors: [local-blocks]
