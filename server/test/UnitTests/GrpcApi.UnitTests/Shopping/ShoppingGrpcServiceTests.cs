@@ -168,27 +168,27 @@ public class ShoppingGrpcServiceTests {
     Assert.True(item.IsChecked);
   }
 
-  [Fact(DisplayName = "Sanitizes list name before adding items")]
-  public async Task AddItemsToList_SanitizesNonAsciiListName() {
+  [Fact(DisplayName = "Preserves list-name diacritics and removes symbols")]
+  public async Task AddItemsToList_PreservesDiacritics_AndRemovesSymbols() {
     var fixture = new ServiceFixture();
     var ownerId = Guid.CreateVersion7();
-    ShoppingList list = PersistedList(ownerId, "Semanal");
+    ShoppingList list = PersistedList(ownerId, "Café semanal");
     fixture.ShoppingRepository.GetAsync(
       new UserId(ownerId),
-      new ShoppingListName("Semanal"),
+      new ShoppingListName("Café semanal"),
       TestContext.Current.CancellationToken)
       .Returns(list);
     fixture.ProductRepository.GetProductsAsync(
       Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>())
       .Returns(new Dictionary<int, MarketProduct> { [7] = ProductProjection() });
-    var request = new AddItemsToListRequest { ShoppingListName = "Semanal \u2713" };
+    var request = new AddItemsToListRequest { ShoppingListName = "Café semanal \u2713" };
     request.Items.Add(new AShoppingItem { ProductFormatUid = 7, Amount = 1 });
 
     await fixture.Service.AddItemsToList(request, CreateServerCallContext(ownerId));
 
     await fixture.ShoppingRepository.Received(1).GetAsync(
       new UserId(ownerId),
-      new ShoppingListName("Semanal"),
+      new ShoppingListName("Café semanal"),
       TestContext.Current.CancellationToken);
   }
 

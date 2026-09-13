@@ -171,8 +171,8 @@ public static class MarketGrpcServiceTests {
         TestContext.Current.CancellationToken);
     }
 
-    [Fact(DisplayName = "Sanitizes non-ASCII product text before creating command")]
-    public async Task Api_SanitizesNonAsciiProductText_BeforeCreatingCommand() {
+    [Fact(DisplayName = "Preserves product diacritics and removes symbols")]
+    public async Task Api_PreservesProductDiacritics_AndRemovesSymbols() {
       // Arrange
       var request = new AddProductsRequest {
         Products = {
@@ -194,9 +194,9 @@ public static class MarketGrpcServiceTests {
       // Assert
       await _productRepository.Received(1).ResolveProductsAsync(
         Arg.Is<MarketImport>(market =>
-          market.Name.Value == "Mercadona" &&
-          market.Products.Single().Name.Value == "Cafe" &&
-          market.Products.Single().Brand.Value == "Nino" &&
+          market.Name.Value == "Mercadóna" &&
+          market.Products.Single().Name.Value == "Café" &&
+          market.Products.Single().Brand.Value == "Niño" &&
           market.Products.Single().Formats.Single()
             .Quantity.UnitOfMeasure.Value == "g"),
         Arg.Any<DateTime>(),

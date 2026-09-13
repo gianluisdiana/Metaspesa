@@ -23,12 +23,12 @@ internal class MarketGrpcService(
   ) {
     var command = new AddMarketProducts.Command(
       [.. request.Products.Select(p => new AddMarketProducts.CommandProduct(
-        GrpcTextSanitizer.SanitizeAscii(p.Name),
+        GrpcTextSanitizer.Sanitize(p.Name),
         GrpcPriceConverter.ToDecimal(p.Price),
         p.Quantity,
-        GrpcTextSanitizer.SanitizeAscii(p.UnitOfMeasure),
-        GrpcTextSanitizer.SanitizeAscii(p.MarketName),
-        GrpcTextSanitizer.SanitizeAscii(p.BrandName),
+        GrpcTextSanitizer.Sanitize(p.UnitOfMeasure),
+        GrpcTextSanitizer.Sanitize(p.MarketName),
+        GrpcTextSanitizer.Sanitize(p.BrandName),
         string.IsNullOrEmpty(p.ImageUrl) ? null : new Uri(p.ImageUrl)))],
         DateOnly.FromDateTime(request.RegisteredAt.ToDateTime()));
 

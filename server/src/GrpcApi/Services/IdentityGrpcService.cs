@@ -16,7 +16,7 @@ internal class IdentityGrpcService(
   ) {
     await registerHandler.Handle(
       new RegisterUser.Command(
-        GrpcTextSanitizer.SanitizeAscii(request.Username),
+        GrpcTextSanitizer.Sanitize(request.Username),
         request.Password),
       context.CancellationToken
     );
@@ -29,7 +29,7 @@ internal class IdentityGrpcService(
   ) {
     Token token = await loginHandler.Handle(
       new LoginUser.Query(
-        GrpcTextSanitizer.SanitizeAscii(request.Username),
+        GrpcTextSanitizer.Sanitize(request.Username),
         request.Password),
       context.CancellationToken
     );

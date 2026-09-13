@@ -88,8 +88,8 @@ public static class IdentityGrpcServiceTests {
       _hasher.Received(1).Hash(Password);
     }
 
-    [Fact(DisplayName = "Sanitizes non-ASCII username before creating command")]
-    public async Task Api_SanitizesNonAsciiUsername_BeforeCreatingCommand() {
+    [Fact(DisplayName = "Preserves username diacritics and removes symbols")]
+    public async Task Api_PreservesUsernameDiacritics_AndRemovesSymbolsFromCommand() {
       // Arrange
       var request = new RegisterRequest { Username = "Est\u00e9la \u2713", Password = "SecurePass1!" };
 
@@ -98,7 +98,7 @@ public static class IdentityGrpcServiceTests {
 
       // Assert
       await _userRepository.Received(1).CheckUsernameExistsAsync(
-        Arg.Is<Username>(username => username.Value == "Estela "),
+        Arg.Is<Username>(username => username.Value == "Estéla "),
         TestContext.Current.CancellationToken);
     }
   }
@@ -215,8 +215,8 @@ public static class IdentityGrpcServiceTests {
       _hasher.Received(1).VerifyHash(Password, user.PasswordHash.Value);
     }
 
-    [Fact(DisplayName = "Sanitizes non-ASCII username before creating query")]
-    public async Task Api_SanitizesNonAsciiUsername_BeforeCreatingQuery() {
+    [Fact(DisplayName = "Preserves login diacritics and removes symbols")]
+    public async Task Api_PreservesUsernameDiacritics_AndRemovesSymbolsFromQuery() {
       // Arrange
       User user = TestUser();
       _userRepository
@@ -232,7 +232,7 @@ public static class IdentityGrpcServiceTests {
 
       // Assert
       await _userRepository.Received(1).GetUserByUsernameAsync(
-        Arg.Is<Username>(username => username.Value == "Estela "),
+        Arg.Is<Username>(username => username.Value == "Estéla "),
         TestContext.Current.CancellationToken);
     }
 
