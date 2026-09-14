@@ -5,6 +5,7 @@ using Metaspesa.Application.Shopping;
 using Metaspesa.Domain.Identity;
 using Metaspesa.GrpcApi.Extensions;
 using Metaspesa.GrpcApi.Protos.Shopping;
+using Metaspesa.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Metaspesa.GrpcApi.Services;
@@ -41,7 +42,7 @@ internal class ShoppingGrpcService(
     var query = new GetShoppingList.Query(
       UserUid: context.GetHttpContext().GetUserUid(),
       ShoppingListName: request.HasShoppingListName
-        ? GrpcTextSanitizer.Sanitize(request.ShoppingListName)
+        ? TextSanitizer.Sanitize(request.ShoppingListName)
         : null);
 
     GetShoppingList.Response result = await getShoppingListHandler
@@ -59,7 +60,7 @@ internal class ShoppingGrpcService(
   ) {
     var command = new CreateShoppingList.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
-      ShoppingListName: request.HasName ? GrpcTextSanitizer.Sanitize(request.Name) : null);
+      ShoppingListName: request.HasName ? TextSanitizer.Sanitize(request.Name) : null);
 
     await createShoppingListHandler.Handle(command, context.CancellationToken);
 
@@ -76,7 +77,7 @@ internal class ShoppingGrpcService(
     var command = new AddItemsToList.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
       ShoppingListName: request.HasShoppingListName
-        ? GrpcTextSanitizer.Sanitize(request.ShoppingListName)
+        ? TextSanitizer.Sanitize(request.ShoppingListName)
         : null,
       Items: [.. request.Items.Select(i => i.ToAddItemsCommand())]);
 
@@ -90,7 +91,7 @@ internal class ShoppingGrpcService(
   ) {
     var command = new UpdateItem.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
-      ShoppingListName: GrpcTextSanitizer.Sanitize(request.ShoppingListName),
+      ShoppingListName: TextSanitizer.Sanitize(request.ShoppingListName),
       ProductFormatUid: request.ProductFormatUid,
       Amount: request.HasAmount ? request.Amount : null,
       IsChecked: request.HasIsChecked ? request.IsChecked : null);
@@ -111,9 +112,9 @@ internal class ShoppingGrpcService(
       UserUid: context.GetHttpContext().GetUserUid(),
       ShoppingListName: string.IsNullOrWhiteSpace(request.ShoppingListName)
         ? null
-        : GrpcTextSanitizer.Sanitize(request.ShoppingListName),
+        : TextSanitizer.Sanitize(request.ShoppingListName),
       NewName: request.HasListName
-        ? GrpcTextSanitizer.Sanitize(request.ListName)
+        ? TextSanitizer.Sanitize(request.ListName)
         : null);
 
     await updateShoppingListHandler.Handle(command, context.CancellationToken);
@@ -126,7 +127,7 @@ internal class ShoppingGrpcService(
   ) {
     var command = new RemoveItem.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
-      ShoppingListName: GrpcTextSanitizer.Sanitize(request.ShoppingListName),
+      ShoppingListName: TextSanitizer.Sanitize(request.ShoppingListName),
       ProductFormatUid: request.ProductFormatUid);
 
     await removeItemHandler.Handle(command, context.CancellationToken);
@@ -139,7 +140,7 @@ internal class ShoppingGrpcService(
   ) {
     var command = new CheckoutShoppingList.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
-      ShoppingListName: GrpcTextSanitizer.Sanitize(request.ShoppingListName));
+      ShoppingListName: TextSanitizer.Sanitize(request.ShoppingListName));
 
     await checkoutShoppingListHandler.Handle(command, context.CancellationToken);
 

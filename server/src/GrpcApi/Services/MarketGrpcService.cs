@@ -6,6 +6,7 @@ using Metaspesa.Application.Markets;
 using Metaspesa.Domain.Identity;
 using Metaspesa.GrpcApi.Extensions;
 using Metaspesa.GrpcApi.Protos.Markets;
+using Metaspesa.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using MarketSummaryModel = Metaspesa.Application.Abstractions.Markets.MarketSummary;
 
@@ -23,12 +24,12 @@ internal class MarketGrpcService(
   ) {
     var command = new AddMarketProducts.Command(
       [.. request.Products.Select(p => new AddMarketProducts.CommandProduct(
-        GrpcTextSanitizer.Sanitize(p.Name),
+        TextSanitizer.Sanitize(p.Name),
         GrpcPriceConverter.ToDecimal(p.Price),
         p.Quantity,
-        GrpcTextSanitizer.Sanitize(p.UnitOfMeasure),
-        GrpcTextSanitizer.Sanitize(p.MarketName),
-        GrpcTextSanitizer.Sanitize(p.BrandName),
+        TextSanitizer.Sanitize(p.UnitOfMeasure),
+        TextSanitizer.Sanitize(p.MarketName),
+        TextSanitizer.Sanitize(p.BrandName),
         string.IsNullOrEmpty(p.ImageUrl) ? null : new Uri(p.ImageUrl)))],
         DateOnly.FromDateTime(request.RegisteredAt.ToDateTime()));
 
