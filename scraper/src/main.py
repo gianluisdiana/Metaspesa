@@ -3,6 +3,7 @@ import logging
 import os
 
 import grpc.aio
+import httpx
 from opentelemetry.instrumentation.grpc import aio_client_interceptors  # type: ignore
 
 from application.use_cases import (
@@ -31,16 +32,22 @@ async def main() -> None:
     settings: AppConfig = load_config()
     web_driver: WebDriver = await create_web_driver()
 
-    async with grpc.aio.insecure_channel(
-        os.getenv("GRPC_SERVER_URL") or "localhost:5000",
-        interceptors=aio_client_interceptors(),  # type: ignore
-    ) as channel:
+    async with (
+        httpx.AsyncClient(
+            base_url=os.getenv("REST_API_URL") or "http://localhost:4001/api/v1",
+            timeout=10,
+        ) as http_client,
+        grpc.aio.insecure_channel(
+            os.getenv("GRPC_SERVER_URL") or "localhost:5000",
+            interceptors=aio_client_interceptors(),  # type: ignore
+        ) as channel,
+    ):
         try:
             scrape_handler: ScrapeMarketsCommandHandler = create_scrape_handler(
-                settings, web_driver, channel
+                settings, web_driver, channel, http_client
             )
             retry_handler: RetryFailedSavesCommandHandler = create_retry_handler(
-                settings, channel
+                settings, channel, http_client
             )
 
             tasks = [

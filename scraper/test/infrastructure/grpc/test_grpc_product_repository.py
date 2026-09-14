@@ -1,5 +1,4 @@
 from datetime import UTC, date, datetime, timedelta
-from types import SimpleNamespace
 
 from grpc.aio import Metadata
 
@@ -8,7 +7,8 @@ from infrastructure.grpc.grpc_product_repository import (
     AddProductsRequestMapper,
     GrpcProductRepository,
 )
-from infrastructure.grpc.protos import auth_service_pb2, market_service_pb2
+from infrastructure.grpc.protos import market_service_pb2
+from infrastructure.rest.rest_token_client import Token
 
 
 class FakeMarketStub:
@@ -23,17 +23,17 @@ class FakeMarketStub:
         self.add_products_calls.append((request, metadata))  # type: ignore
 
 
-class FakeAuthStub:
+class FakeTokenClient:
     def __init__(self, expirations: list[datetime] | None = None) -> None:
-        self.login_requests: list[object] = []
+        self.create_token_calls: list[tuple[str, str]] = []
         self.__expirations = expirations or [datetime.now(UTC) + timedelta(hours=1)]
 
-    async def Login(self, request: auth_service_pb2.LoginRequest) -> SimpleNamespace:
-        self.login_requests.append(request)
+    async def create_token(self, username: str, password: str) -> Token:
+        self.create_token_calls.append((username, password))
         expiration = self.__expirations.pop(0)
-        return SimpleNamespace(
-            token=f"token-{len(self.login_requests)}",
-            expiration_in_utc=expiration.isoformat(),
+        return Token(
+            value=f"token-{len(self.create_token_calls)}",
+            expires_at=expiration,
         )
 
 
@@ -63,14 +63,14 @@ def brandless_product() -> Product:
 
 def make_repository(
     market_stub: FakeMarketStub,
-    auth_stub: FakeAuthStub,
+    token_client: FakeTokenClient,
 ) -> GrpcProductRepository:
     return GrpcProductRepository(
         channel=None,  # type: ignore[arg-type]
         username="scraper",
         password="password",
+        token_client=token_client,
         market_stub=market_stub,
-        auth_stub=auth_stub,
     )
 
 
@@ -177,47 +177,47 @@ def test_filters_products_without_brand_from_request():
 async def test_authenticates_once_before_save():
     # Arrange
     market_stub = FakeMarketStub()
-    auth_stub = FakeAuthStub()
-    repository = make_repository(market_stub, auth_stub)
+    token_client = FakeTokenClient()
+    repository = make_repository(market_stub, token_client)
 
     # Act
     await repository.save("Market", date(2026, 5, 18), [branded_product()])
 
     # Assert
-    assert len(auth_stub.login_requests) == 1
+    assert len(token_client.create_token_calls) == 1
 
 
 async def test_authenticates_with_username_before_save():
     # Arrange
     market_stub = FakeMarketStub()
-    auth_stub = FakeAuthStub()
-    repository = make_repository(market_stub, auth_stub)
+    token_client = FakeTokenClient()
+    repository = make_repository(market_stub, token_client)
 
     # Act
     await repository.save("Market", date(2026, 5, 18), [branded_product()])
 
     # Assert
-    assert auth_stub.login_requests[0].username == "scraper"
+    assert token_client.create_token_calls[0][0] == "scraper"
 
 
 async def test_authenticates_with_password_before_save():
     # Arrange
     market_stub = FakeMarketStub()
-    auth_stub = FakeAuthStub()
-    repository = make_repository(market_stub, auth_stub)
+    token_client = FakeTokenClient()
+    repository = make_repository(market_stub, token_client)
 
     # Act
     await repository.save("Market", date(2026, 5, 18), [branded_product()])
 
     # Assert
-    assert auth_stub.login_requests[0].password == "password"
+    assert token_client.create_token_calls[0][1] == "password"
 
 
 async def test_sends_authorization_metadata_after_authentication():
     # Arrange
     market_stub = FakeMarketStub()
-    auth_stub = FakeAuthStub()
-    repository = make_repository(market_stub, auth_stub)
+    token_client = FakeTokenClient()
+    repository = make_repository(market_stub, token_client)
 
     # Act
     await repository.save("Market", date(2026, 5, 18), [branded_product()])
@@ -230,22 +230,22 @@ async def test_sends_authorization_metadata_after_authentication():
 async def test_reuses_valid_token_without_logging_in_again():
     # Arrange
     market_stub = FakeMarketStub()
-    auth_stub = FakeAuthStub()
-    repository = make_repository(market_stub, auth_stub)
+    token_client = FakeTokenClient()
+    repository = make_repository(market_stub, token_client)
 
     # Act
     await repository.save("Market", date(2026, 5, 18), [branded_product("Product 1")])
     await repository.save("Market", date(2026, 5, 19), [branded_product("Product 2")])
 
     # Assert
-    assert len(auth_stub.login_requests) == 1
+    assert len(token_client.create_token_calls) == 1
 
 
 async def test_saves_both_requests_when_reusing_valid_token():
     # Arrange
     market_stub = FakeMarketStub()
-    auth_stub = FakeAuthStub()
-    repository = make_repository(market_stub, auth_stub)
+    token_client = FakeTokenClient()
+    repository = make_repository(market_stub, token_client)
 
     # Act
     await repository.save("Market", date(2026, 5, 18), [branded_product("Product 1")])
@@ -258,32 +258,32 @@ async def test_saves_both_requests_when_reusing_valid_token():
 async def test_refreshes_expired_token_by_logging_in_again():
     # Arrange
     market_stub = FakeMarketStub()
-    auth_stub = FakeAuthStub(
+    token_client = FakeTokenClient(
         [
             datetime.now(UTC) - timedelta(minutes=1),
             datetime.now(UTC) + timedelta(hours=1),
         ]
     )
-    repository = make_repository(market_stub, auth_stub)
+    repository = make_repository(market_stub, token_client)
 
     # Act
     await repository.save("Market", date(2026, 5, 18), [branded_product("Product 1")])
     await repository.save("Market", date(2026, 5, 19), [branded_product("Product 2")])
 
     # Assert
-    assert len(auth_stub.login_requests) == 2
+    assert len(token_client.create_token_calls) == 2
 
 
 async def test_uses_first_token_for_first_save_when_token_expires():
     # Arrange
     market_stub = FakeMarketStub()
-    auth_stub = FakeAuthStub(
+    token_client = FakeTokenClient(
         [
             datetime.now(UTC) - timedelta(minutes=1),
             datetime.now(UTC) + timedelta(hours=1),
         ]
     )
-    repository = make_repository(market_stub, auth_stub)
+    repository = make_repository(market_stub, token_client)
 
     # Act
     await repository.save("Market", date(2026, 5, 18), [branded_product("Product 1")])
@@ -297,13 +297,13 @@ async def test_uses_first_token_for_first_save_when_token_expires():
 async def test_uses_refreshed_token_for_second_save_when_token_expires():
     # Arrange
     market_stub = FakeMarketStub()
-    auth_stub = FakeAuthStub(
+    token_client = FakeTokenClient(
         [
             datetime.now(UTC) - timedelta(minutes=1),
             datetime.now(UTC) + timedelta(hours=1),
         ]
     )
-    repository = make_repository(market_stub, auth_stub)
+    repository = make_repository(market_stub, token_client)
 
     # Act
     await repository.save("Market", date(2026, 5, 18), [branded_product("Product 1")])

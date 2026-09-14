@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from typing import Any, override
 
@@ -11,12 +10,11 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from application.abstractions import ProductRepository, RepositorySaveException
 from domain import Product
 from infrastructure.grpc.protos import (
-    auth_service_pb2,
-    auth_service_pb2_grpc,
     domain_pb2,
     market_service_pb2,
     market_service_pb2_grpc,
 )
+from infrastructure.rest.rest_token_client import Token, TokenClient, TokenRequestError
 
 
 class GrpcProductRepository(ProductRepository):
@@ -25,15 +23,15 @@ class GrpcProductRepository(ProductRepository):
         channel: grpc.aio.Channel,
         username: str,
         password: str,
+        token_client: TokenClient,
         *,
         market_stub: Any | None = None,
-        auth_stub: Any | None = None,
         request_mapper: AddProductsRequestMapper | None = None,
     ) -> None:
         self.__market_stub = market_stub or market_service_pb2_grpc.MarketServiceStub(
             channel
         )
-        self.__auth_stub = auth_stub or auth_service_pb2_grpc.AuthServiceStub(channel)
+        self.__token_client = token_client
         self.__request_mapper = request_mapper or AddProductsRequestMapper()
         self.__username = username
         self.__password = password
@@ -77,25 +75,17 @@ class GrpcProductRepository(ProductRepository):
     async def __ensure_authenticated(self) -> None:
         try:
             if self.__token is None or self.__token.expires_at <= datetime.now(UTC):
-                response = await self.__auth_stub.Login(  # type: ignore
-                    auth_service_pb2.LoginRequest(  # type: ignore
-                        username=self.__username,
-                        password=self.__password,
-                    )
+                self.__token = await self.__token_client.create_token(
+                    self.__username,
+                    self.__password,
                 )
-
-                self.__token = Token(
-                    value=response.token,  # type: ignore
-                    expires_at=datetime.fromisoformat(response.expiration_in_utc),  # type: ignore
-                )
-        except grpc.aio.AioRpcError as e:
+        except TokenRequestError as e:
             self.__logger.exception(
                 "Authentication failed for user '%s'",
                 self.__username,
                 exc_info=e,
                 extra={
                     "username": self.__username,
-                    "trailing_metadata": e.trailing_metadata(),
                 },
             )
             raise RepositorySaveException from e
@@ -128,9 +118,3 @@ class AddProductsRequestMapper:
         )
 
         return request  # type: ignore
-
-
-@dataclass
-class Token:
-    value: str
-    expires_at: datetime

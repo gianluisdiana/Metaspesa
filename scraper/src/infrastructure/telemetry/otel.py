@@ -6,6 +6,7 @@ from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.grpc import GrpcAioInstrumentorClient
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.metrics import MeterProvider
@@ -49,3 +50,4 @@ def __configure_sdk(endpoint: str) -> None:
     logging.getLogger().addHandler(LoggingHandler(logger_provider=logger_provider))
 
     GrpcAioInstrumentorClient().instrument()
+    HTTPXClientInstrumentor().instrument()
