@@ -1,7 +1,8 @@
 'use client';
 
 import TextField from '@/app/components/text-field';
-import { useActionState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useActionState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
 
 import { RegisterState, registerAction } from '../actions';
@@ -62,6 +63,12 @@ export default function RegisterCard() {
     registerAction,
     null,
   );
+  const router = useRouter();
+  useEffect(() => {
+    if (state && 'registered' in state) {
+      router.replace('/auth/login');
+    }
+  }, [router, state]);
   return (
     <div className="w-full max-w-md bg-surface-container-lowest rounded-xl shadow-[0_8px_32px_rgba(168,85,247,0.05)] overflow-hidden relative">
       <DecorativeHeader />
@@ -88,7 +95,7 @@ export default function RegisterCard() {
             placeholder="••••••••"
             type="password"
           />
-          {state?.error && (
+          {state && 'error' in state && (
             <p className="font-body-sm text-body-sm text-error">
               {state.error}
             </p>

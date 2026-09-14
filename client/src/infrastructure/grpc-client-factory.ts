@@ -2,8 +2,6 @@ import 'server-only';
 
 import path from 'node:path';
 
-import { AuthServiceClient } from '@/generated-protos/auth/AuthService';
-import { ProtoGrpcType as AuthProtoGrpcType } from '@/generated-protos/auth_service';
 import { MarketServiceClient } from '@/generated-protos/markets/MarketService';
 import { ProtoGrpcType as MarketsProtoGrpcType } from '@/generated-protos/markets_service';
 import { ShoppingServiceClient } from '@/generated-protos/shopping/ShoppingService';
@@ -21,19 +19,6 @@ export class GrpcClientFactory {
     const metadata = createTracingMetadata();
     metadata.set('Authorization', `Bearer ${token}`);
     return metadata;
-  }
-
-  public createAuthServiceClient(): AuthServiceClient {
-    const definition = protoLoader.loadSync(
-      path.join(
-        process.cwd(),
-        'src/infrastructure/protos/Auth/auth_service.proto',
-      ),
-    );
-    const { AuthService } =
-      this.loadPackage<AuthProtoGrpcType>(definition).Metaspesa.Protos.Auth;
-
-    return new AuthService(this.config.serverUrl, this.credentials);
   }
 
   public createMetadata(): grpc.Metadata {

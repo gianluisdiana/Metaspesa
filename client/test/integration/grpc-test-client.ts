@@ -1,8 +1,5 @@
 import path from 'node:path';
 
-import type { LoginResponse__Output } from '@/generated-protos/Metaspesa/Protos/Auth/LoginResponse';
-import type { AuthServiceClient } from '@/generated-protos/auth/AuthService';
-import type { ProtoGrpcType as AuthProtoGrpcType } from '@/generated-protos/auth_service';
 import type { MarketServiceClient } from '@/generated-protos/markets/MarketService';
 import type { ProtoGrpcType as MarketsProtoGrpcType } from '@/generated-protos/markets_service';
 import type { ShoppingServiceClient } from '@/generated-protos/shopping/ShoppingService';
@@ -12,17 +9,22 @@ import * as protoLoader from '@grpc/proto-loader';
 import { describe } from 'vitest';
 
 export const grpcServerUrl = process.env.GRPC_SERVER_URL;
+export const restApiUrl = process.env.REST_API_URL;
 export const describeIfGrpc = grpcServerUrl ? describe : describe.skip;
+export const describeIfRest = restApiUrl ? describe : describe.skip;
+export const describeIfApis =
+  grpcServerUrl && restApiUrl ? describe : describe.skip;
 export const password = 'SecurePass1!';
 
 function loadPackage<T>(protoPath: string, options?: protoLoader.Options): T {
-  const packageDefinition = protoLoader.loadSync(
-    path.resolve(process.cwd(), protoPath),
-    {
-      includeDirs: [path.resolve(process.cwd(), 'src/infrastructure')],
-      ...options,
-    },
-  );
+  const resolvedProtoPath = path.resolve(process.cwd(), protoPath);
+  const packageDefinition = protoLoader.loadSync(resolvedProtoPath, {
+    includeDirs: [
+      path.dirname(resolvedProtoPath),
+      path.resolve(process.cwd(), 'src/infrastructure'),
+    ],
+    ...options,
+  });
   return grpc.loadPackageDefinition(packageDefinition) as unknown as T;
 }
 
@@ -33,17 +35,10 @@ export function requireResponse<T>(response: T | undefined, name: string): T {
   return response;
 }
 
-export function createAuthClient(): AuthServiceClient {
-  const { AuthService } = loadPackage<AuthProtoGrpcType>(
-    'src/infrastructure/protos/Auth/auth_service.proto',
-  ).Metaspesa.Protos.Auth;
-
-  return new AuthService(grpcServerUrl!, grpc.credentials.createInsecure());
-}
-
 export function createMarketClient(): MarketServiceClient {
   const { MarketService } = loadPackage<MarketsProtoGrpcType>(
     'src/infrastructure/protos/Markets/markets_service.proto',
+    { defaults: true },
   ).Metaspesa.Protos.Markets;
 
   return new MarketService(grpcServerUrl!, grpc.credentials.createInsecure());
@@ -58,32 +53,52 @@ export function createShoppingClient(): ShoppingServiceClient {
   return new ShoppingService(grpcServerUrl!, grpc.credentials.createInsecure());
 }
 
-export async function registerAndLogin(): Promise<LoginResponse__Output> {
-  const authClient = createAuthClient();
+export async function registerAndLogin(): Promise<{
+  expirationInUtc: string;
+  token: string;
+}> {
   const credentials = {
     password,
     username: `client_it_${Date.now()}`,
   };
 
-  await new Promise<void>((resolve, reject) => {
-    authClient.Register(credentials, err => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve();
-    });
+  const registration = await fetch(`${restApiUrl}/auth/registrations`, {
+    body: JSON.stringify(credentials),
+    headers: {
+      'Content-Type': 'application/json',
+      Origin: 'http://localhost:3000',
+    },
+    method: 'POST',
   });
+  if (!registration.ok) {
+    throw new Error(`Registration failed with ${registration.status}.`);
+  }
 
-  return await new Promise<LoginResponse__Output>((resolve, reject) => {
-    authClient.Login(credentials, (err, response) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(requireResponse(response, 'Login'));
-    });
+  const session = await fetch(`${restApiUrl}/auth/sessions`, {
+    body: JSON.stringify(credentials),
+    headers: {
+      'Content-Type': 'application/json',
+      Origin: 'http://localhost:3000',
+    },
+    method: 'POST',
   });
+  if (!session.ok) {
+    throw new Error(`Login failed with ${session.status}.`);
+  }
+  const cookie = session.headers.get('set-cookie');
+  const cookieParts = cookie?.split(';') ?? [];
+  const [sessionPart] = cookieParts;
+  const token = sessionPart?.startsWith('metaspesa_session=')
+    ? sessionPart.slice('metaspesa_session='.length)
+    : undefined;
+  const expirationInUtc = cookieParts
+    .find(part => part.trimStart().toLowerCase().startsWith('expires='))
+    ?.trimStart()
+    .slice('expires='.length);
+  if (!token || !expirationInUtc) {
+    throw new Error('Login did not return the session cookie.');
+  }
+  return { expirationInUtc, token };
 }
 
 export function authMetadata(token: string): grpc.Metadata {

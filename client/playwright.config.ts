@@ -38,6 +38,9 @@ export default defineConfig({
         command: `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
         env: {
           GRPC_SERVER_URL: process.env.GRPC_SERVER_URL ?? '127.0.0.1:8080',
+          NEXT_PUBLIC_REST_API_URL:
+            process.env.NEXT_PUBLIC_REST_API_URL ??
+            'http://127.0.0.1:4001/api/v1',
           NODE_ENV: 'test',
         },
         reuseExistingServer: true,

@@ -1,6 +1,6 @@
-import { CredentialsMessage, LoginResultMessage } from './auth-contracts';
+import { CredentialsMessage } from './auth-contracts';
 
 export default interface AuthService {
-  login(credentials: CredentialsMessage): Promise<LoginResultMessage>;
+  login(credentials: CredentialsMessage): Promise<void>;
   register(credentials: CredentialsMessage): Promise<void>;
 }

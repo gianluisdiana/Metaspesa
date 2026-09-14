@@ -24,9 +24,6 @@
       "@/generated-protos/shopping/*": [
         "./src/infrastructure/protos_generated/Metaspesa/Protos/Shopping/*"
       ],
-      "@/generated-protos/auth/*": [
-        "./src/infrastructure/protos_generated/Metaspesa/Protos/Auth/*"
-      ],
       "@/generated-protos/markets/*": [
         "./src/infrastructure/protos_generated/Metaspesa/Protos/Markets/*"
       ]

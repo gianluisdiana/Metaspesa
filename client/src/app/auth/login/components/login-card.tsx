@@ -1,7 +1,8 @@
 'use client';
 
 import TextField from '@/app/components/text-field';
-import { useActionState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useActionState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
 
 import { LoginState, loginAction } from '../actions';
@@ -59,6 +60,12 @@ export default function LoginCard() {
     loginAction,
     null,
   );
+  const router = useRouter();
+  useEffect(() => {
+    if (state && 'authenticated' in state) {
+      router.replace('/markets');
+    }
+  }, [router, state]);
   return (
     <div className="bg-surface-container-lowest/70 backdrop-blur-xl border border-surface-variant rounded-xl p-stack-lg md:p-8 shadow-[0_8px_32px_rgba(97,88,136,0.08)]">
       <CardHeading />
@@ -76,7 +83,7 @@ export default function LoginCard() {
           placeholder="••••••••"
           type="password"
         />
-        {state?.error && (
+        {state && 'error' in state && (
           <p className="font-body-sm text-body-sm text-error">{state.error}</p>
         )}
         <LoginButton />

@@ -10,7 +10,7 @@ function isProtectedPath(pathname: string): boolean {
 }
 
 export function proxy(request: NextRequest) {
-  const token = request.cookies.get('auth_token')?.value;
+  const token = request.cookies.get('metaspesa_session')?.value;
   const { pathname } = request.nextUrl;
 
   const isAuthPath = AUTH_PATHS.some(p => pathname.startsWith(p));

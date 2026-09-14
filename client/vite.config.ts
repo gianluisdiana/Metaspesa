@@ -10,10 +10,6 @@ export default defineConfig({
         __dirname,
         './src/infrastructure/protos_generated',
       ),
-      '@/generated-protos/auth': path.resolve(
-        __dirname,
-        './src/infrastructure/protos_generated/Metaspesa/Protos/Auth/',
-      ),
       '@/generated-protos/markets': path.resolve(
         __dirname,
         './src/infrastructure/protos_generated/Metaspesa/Protos/Markets/',

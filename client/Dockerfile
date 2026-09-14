@@ -1,5 +1,8 @@
 FROM node:26.8-alpine AS builder
 
+ARG NEXT_PUBLIC_REST_API_URL=http://localhost:4001/api/v1
+ENV NEXT_PUBLIC_REST_API_URL=$NEXT_PUBLIC_REST_API_URL
+
 WORKDIR /client
 
 RUN npm install -g pnpm@10.34.5

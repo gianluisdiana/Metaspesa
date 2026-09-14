@@ -4,27 +4,41 @@ Tests are split by cost and system boundary.
 
 ## Fast Tests
 
-- Unit/regression: `npm run test:unit`
+- Unit/regression: `pnpm run test:unit`
   - Stack: Vitest in Node.
   - Scope: pure logic, mappers, search params, auth validation, view models.
-- Component: `npm run test:component`
+- Component: `pnpm run test:component`
   - Stack: Vitest, jsdom, Testing Library, jest-dom.
   - Scope: React UI behavior for search filters, product cards, add-to-list modal, shopping list, and price-history shell.
 
-`npm run test` runs unit and component tests.
+`pnpm run test` runs unit and component tests.
 
 ## Connected Tests
 
-- Integration: `GRPC_SERVER_URL=localhost:8080 npm run test:integration`
-  - Stack: Vitest with real `@grpc/grpc-js` clients.
-  - Scope: client-to-server gRPC contract for auth, shopping lists, and market reads.
-  - Without `GRPC_SERVER_URL`, specs are skipped.
+- Integration: `pnpm run test:integration`
+  - Stack: Vitest with real REST and `@grpc/grpc-js` clients.
+  - Scope: REST authentication plus client-to-server gRPC contracts for shopping lists and market reads.
+  - Requires `GRPC_SERVER_URL` and `REST_API_URL`; specs without their required URLs are skipped.
 
-- E2E smoke: `npm run test:e2e`
+Start required services from repository root:
+
+```powershell
+docker compose up -d db server rest-api
+```
+
+Then run integration tests from `client/`:
+
+```powershell
+$env:GRPC_SERVER_URL = 'localhost:4000'
+$env:REST_API_URL = 'http://localhost:4001/api/v1'
+pnpm run test:integration
+```
+
+- E2E smoke: `pnpm run test:e2e`
   - Stack: Playwright Chromium against Next.js plus real backend.
   - Scope: page smoke, register/login, market search, product add modal when products exist, shopping navigation.
 
-- Visual: `npm run test:visual`
+- Visual: `pnpm run test:visual`
   - Stack: Playwright screenshots.
   - Scope: screenshot render coverage for markets, shopping, and evolution pages.
 
@@ -40,6 +54,6 @@ Then from `client/`, run Playwright with:
 
 ```powershell
 $env:PLAYWRIGHT_START_SERVER = 'false'
-npm run test:e2e
-npm run test:visual
+pnpm run test:e2e
+pnpm run test:visual
 ```

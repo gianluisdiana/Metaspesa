@@ -1,12 +1,8 @@
-'use server';
-
-import { redirect } from 'next/navigation';
-
-import GrpcAuthService from '@/infrastructure/grpc-auth-service';
+import RestAuthService from '@/infrastructure/rest-auth-service';
 import { Credentials } from '@/lib/auth-domain';
-import { getGrpcErrorMessage } from '@/lib/auth-errors';
+import { getAuthErrorMessage } from '@/lib/auth-errors';
 
-export type RegisterState = { error: string } | null;
+export type RegisterState = { error: string } | { registered: true } | null;
 
 export async function registerAction(
   _: RegisterState,
@@ -30,14 +26,14 @@ export async function registerAction(
     return { error: 'Passwords do not match.' };
   }
 
-  const service = new GrpcAuthService();
+  const service = new RestAuthService();
   try {
     await service.register({ password, username });
   } catch (err) {
     return {
-      error: getGrpcErrorMessage(err, 'Registration failed. Please try again.'),
+      error: getAuthErrorMessage(err, 'Registration failed. Please try again.'),
     };
   }
 
-  redirect('/auth/login');
+  return { registered: true };
 }

@@ -44,14 +44,3 @@ export class Credentials {
     return this.hasValidUsername() && this.hasValidPassword();
   }
 }
-
-export class LoginResult {
-  public constructor(
-    public token: string,
-    public expirationInUtc: Date,
-  ) {}
-
-  public isExpired(): boolean {
-    return new Date() > this.expirationInUtc;
-  }
-}
