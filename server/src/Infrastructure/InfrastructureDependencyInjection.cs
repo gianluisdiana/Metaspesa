@@ -23,12 +23,10 @@ public static class InfrastructureDependencyInjection {
     services.AddSingleton<ITokenProvider, JwtTokenProvider>();
     services.AddSingleton<IHasher, Pbkdf2Hasher>();
 
-    services.AddJwt();
-
-    return services;
+    return services.AddSession();
   }
 
-  private static IServiceCollection AddJwt(
+  private static IServiceCollection AddSession(
     this IServiceCollection services
   ) {
     services.AddOptionsWithValidateOnStart<JwtOptions>()
@@ -37,6 +35,11 @@ public static class InfrastructureDependencyInjection {
       .Validate(o => !string.IsNullOrWhiteSpace(o.Issuer), "Jwt:Issuer must be provided")
       .Validate(o => !string.IsNullOrWhiteSpace(o.Audience), "Jwt:Audience must be provided")
       .Validate(o => o.ExpirationMinutes > 0, "Jwt:ExpirationMinutes must be greater than 0");
+    services.AddOptionsWithValidateOnStart<SessionCookieOptions>()
+      .BindConfiguration("BrowserSession")
+      .Validate(
+        options => !string.IsNullOrWhiteSpace(options.CookieName),
+        "BrowserSession:CookieName must be provided");
 
     services
       .AddAuthorization()
@@ -45,16 +48,28 @@ public static class InfrastructureDependencyInjection {
 
     services
       .AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
-      .Configure<IOptions<JwtOptions>>((bearerOptions, jwtOptions) =>
-        bearerOptions.TokenValidationParameters = new TokenValidationParameters {
-          ValidIssuer = jwtOptions.Value.Issuer,
-          ValidAudience = jwtOptions.Value.Audience,
-          IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(jwtOptions.Value.Key!)),
-          ValidateIssuer = true,
-          ValidateAudience = true,
-          ValidateLifetime = true,
-          ValidateIssuerSigningKey = true,
+      .Configure<IOptions<JwtOptions>, IOptions<SessionCookieOptions>>(
+        (bearerOptions, jwtOptions, sessionOptions) => {
+          bearerOptions.TokenValidationParameters = new TokenValidationParameters {
+            ValidIssuer = jwtOptions.Value.Issuer,
+            ValidAudience = jwtOptions.Value.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(
+              Encoding.UTF8.GetBytes(jwtOptions.Value.Key!)),
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+          };
+          bearerOptions.Events = new JwtBearerEvents {
+            OnMessageReceived = context => {
+              if (string.IsNullOrEmpty(context.Token) &&
+                context.Request.Cookies.TryGetValue(
+                  sessionOptions.Value.CookieName, out string? token)) {
+                context.Token = token;
+              }
+              return Task.CompletedTask;
+            },
+          };
         });
 
     return services;

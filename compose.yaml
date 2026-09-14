@@ -19,6 +19,27 @@ services:
       - default
       - metaspesa_telemetry_default
 
+  rest-api:
+    image: gianluisdiana/metaspesa_rest_api:${METASPESA_VERSION:-latest}
+    build:
+      context: ./server
+      dockerfile: ./src/RestApi/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://+:8080
+      BrowserSecurity__AllowedOrigins__0: http://localhost:3000
+      POSTGRES_CONNECTION_STRING: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+    ports:
+      - 4001:8080
+    env_file:
+      - .env
+    secrets:
+      - jwt_secret_key
+    networks:
+      - default
+      - metaspesa_telemetry_default
+
   migrations:
     image: gianluisdiana/metaspesa_migrations:${METASPESA_VERSION:-latest}
     build:
@@ -43,12 +64,16 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_REST_API_URL: http://localhost:4001/api/v1
     ports:
       - 3000:8080
     depends_on:
       - server
+      - rest-api
     environment:
       GRPC_SERVER_URL: server:8080
+      NEXT_PUBLIC_REST_API_URL: http://localhost:4001/api/v1
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
       PORT: 8080
     networks:
@@ -62,9 +87,11 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - server
+      - rest-api
     environment:
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       GRPC_SERVER_URL: server:8080
+      REST_API_URL: http://rest-api:8080/api/v1
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
     volumes:
       - scraper_data:/app/data

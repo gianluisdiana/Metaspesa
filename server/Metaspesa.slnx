@@ -6,6 +6,7 @@
     <Project Path="src/GrpcApi/GrpcApi.csproj" />
     <Project Path="src/Infrastructure/Infrastructure.csproj" />
     <Project Path="src/MigrationService/MigrationService.csproj" />
+    <Project Path="src/RestApi/RestApi.csproj" />
     <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/test/">
@@ -21,5 +22,6 @@
     <Project Path="test/UnitTests/Domain.UnitTests/Domain.UnitTests.csproj" />
     <Project Path="test/UnitTests/GrpcApi.UnitTests/GrpcApi.UnitTests.csproj" />
     <Project Path="test/UnitTests/Infrastructure.UnitTests/Infrastructure.UnitTests.csproj" />
+    <Project Path="test/UnitTests/RestApi.UnitTests/RestApi.UnitTests.csproj" />
   </Folder>
 </Solution>
