@@ -11,18 +11,10 @@ option csharp_namespace = "Metaspesa.GrpcApi.Protos.Markets";
 
 // Handles the market related operations.
 service MarketService {
-  // Adds new products to the system.
-  rpc AddProducts(AddProductsRequest) returns (google.protobuf.Empty);
   // Returns market products with optional filters.
   rpc GetMarketProducts(GetMarketProductsRequest) returns (GetMarketProductsResponse);
   // Returns all markets with their basic info.
   rpc GetMarkets(google.protobuf.Empty) returns (GetMarketsResponse);
-}
-
-// Request message for adding new products.
-message AddProductsRequest {
-  repeated Product products = 1;
-  google.protobuf.Timestamp registered_at = 2;
 }
 
 // Request message for getting market products with optional filters and pagination.

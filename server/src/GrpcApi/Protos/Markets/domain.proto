@@ -4,17 +4,6 @@ package Metaspesa.Protos.Markets;
 
 option csharp_namespace = "Metaspesa.GrpcApi.Protos.Markets";
 
-// A product sold in the market with its details.
-message Product {
-  string name = 1;
-  string price = 2;
-  float quantity = 3;
-  string unit_of_measure = 4;
-  string market_name = 5;
-  string brand_name = 6;
-  string image_url = 7;
-}
-
 // A format (size/quantity + price) for a market product.
 message MarketProductFormat {
   string quantity = 1;

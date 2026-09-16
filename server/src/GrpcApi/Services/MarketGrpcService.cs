@@ -3,10 +3,8 @@ using Grpc.Core;
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Markets;
-using Metaspesa.Domain.Identity;
 using Metaspesa.GrpcApi.Extensions;
 using Metaspesa.GrpcApi.Protos.Markets;
-using Metaspesa.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using MarketSummaryModel = Metaspesa.Application.Abstractions.Markets.MarketSummary;
 
@@ -14,30 +12,9 @@ namespace Metaspesa.GrpcApi.Services;
 
 [Authorize]
 internal class MarketGrpcService(
-  AddMarketProducts.Handler addProductsHandler,
   GetMarketProducts.Handler getProductsHandler,
   GetMarkets.Handler getMarketsHandler
 ) : MarketService.MarketServiceBase {
-  [Authorize(Roles = nameof(Role.ProductManager))]
-  public override async Task<Empty> AddProducts(
-    AddProductsRequest request, ServerCallContext context
-  ) {
-    var command = new AddMarketProducts.Command(
-      [.. request.Products.Select(p => new AddMarketProducts.CommandProduct(
-        TextSanitizer.Sanitize(p.Name),
-        GrpcPriceConverter.ToDecimal(p.Price),
-        p.Quantity,
-        TextSanitizer.Sanitize(p.UnitOfMeasure),
-        TextSanitizer.Sanitize(p.MarketName),
-        TextSanitizer.Sanitize(p.BrandName),
-        string.IsNullOrEmpty(p.ImageUrl) ? null : new Uri(p.ImageUrl)))],
-        DateOnly.FromDateTime(request.RegisteredAt.ToDateTime()));
-
-    await addProductsHandler.Handle(command, context.CancellationToken);
-
-    return new Empty();
-  }
-
   [AllowAnonymous]
   public override async Task<GetMarketProductsResponse> GetMarketProducts(
     GetMarketProductsRequest request, ServerCallContext context

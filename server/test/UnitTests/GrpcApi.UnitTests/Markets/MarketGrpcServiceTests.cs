@@ -5,13 +5,10 @@ using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Markets;
 using Metaspesa.Domain.Identity;
-using Metaspesa.Domain.Markets.Errors;
 using Metaspesa.Domain.SharedKernel;
 using Metaspesa.GrpcApi.Protos.Markets;
 using Metaspesa.GrpcApi.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 using DomainMarket = Metaspesa.Application.Abstractions.Markets.MarketCatalog;
 using DomainMarketProduct = Metaspesa.Application.Abstractions.Markets.MarketProduct;
@@ -70,193 +67,6 @@ public static class MarketGrpcServiceTests {
     }
   }
 
-  public class AddProductsRpc {
-    private readonly IMarketRepository _marketRepository;
-    private readonly IProductRepository _productRepository;
-    private readonly MarketGrpcService _service;
-
-    public AddProductsRpc() {
-      _marketRepository = Substitute.For<IMarketRepository>();
-      _productRepository = Substitute.For<IProductRepository>();
-      IPriceSnapshotRepository snapshotRepository =
-        Substitute.For<IPriceSnapshotRepository>();
-      _marketRepository.GetMarketsAsync(Arg.Any<CancellationToken>())
-        .Returns([]);
-      _marketRepository
-        .CheckUnitOfMeasureIsSupportedAsync(
-          Arg.Any<string>(),
-          Arg.Any<CancellationToken>())
-        .Returns(true);
-      _productRepository.GetBrandsAsync(Arg.Any<CancellationToken>())
-        .Returns([]);
-      _productRepository.ResolveProductsAsync(
-          Arg.Any<MarketImport>(),
-          Arg.Any<DateTime>(),
-          Arg.Any<CancellationToken>())
-        .Returns(new ProductImportResult([], [], []));
-      IServiceScopeFactory scopeFactory = new ServiceCollection()
-        .AddSingleton(_marketRepository)
-        .AddSingleton(_productRepository)
-        .AddSingleton(snapshotRepository)
-        .BuildServiceProvider()
-        .GetRequiredService<IServiceScopeFactory>();
-      _service = new MarketGrpcService(
-        new AddMarketProducts.Handler(
-          _marketRepository,
-          _productRepository,
-          snapshotRepository,
-          scopeFactory,
-          Substitute.For<ILogger<AddMarketProducts.Handler>>()),
-        new GetMarketProducts.Handler(Substitute.For<IProductRepository>()),
-        new GetMarkets.Handler(Substitute.For<IMarketRepository>()));
-    }
-
-    [Fact(DisplayName = "Propagates domain exception from command handler")]
-    public async Task Api_ThrowsDomainException_IfCommandIsInvalid() {
-      var request = new AddProductsRequest {
-        RegisteredAt = Timestamp.FromDateTime(DateTime.UtcNow),
-      };
-
-      // Act
-      async Task action() => await _service.AddProducts(request, CreateServerCallContext());
-
-      // Assert
-      await Assert.ThrowsAsync<EmptyMarketProductsException>(action);
-    }
-
-    [Fact(DisplayName = "Returns empty when handler succeeds")]
-    public async Task Api_ReturnsEmpty_WhenHandlerSucceeds() {
-      // Arrange
-      var request = new AddProductsRequest {
-        Products = {
-          new Product {
-            Name = "Milk", Price = "1.99", Quantity = 1, UnitOfMeasure = "L",
-            MarketName = "Walmart", BrandName = "Nike"
-          }
-        },
-        RegisteredAt = Timestamp.FromDateTime(DateTime.UtcNow),
-      };
-
-      // Act
-      Empty response = await _service.AddProducts(request, CreateServerCallContext());
-
-      // Assert
-      Assert.NotNull(response);
-    }
-
-    [Fact(DisplayName = "Maps products count from request to command")]
-    public async Task Api_MapsProductsCount_FromRequestToCommand() {
-      // Arrange
-      var request = new AddProductsRequest {
-        Products = {
-          new Product {
-            Name = "Milk", Price = "1.99", Quantity = 1, UnitOfMeasure = "L",
-            MarketName = "Walmart", BrandName = "Nike"
-          },
-          new Product {
-            Name = "Bread", Price = "0.99", Quantity = 500, UnitOfMeasure = "g",
-            MarketName = "Carrefour", BrandName = "Adidas"
-          },
-        },
-        RegisteredAt = Timestamp.FromDateTime(DateTime.UtcNow),
-      };
-
-      // Act
-      await _service.AddProducts(request, CreateServerCallContext());
-
-      // Assert
-      await _productRepository.Received(2).ResolveProductsAsync(
-        Arg.Any<MarketImport>(),
-        Arg.Any<DateTime>(),
-        TestContext.Current.CancellationToken);
-    }
-
-    [Fact(DisplayName = "Preserves product diacritics and removes symbols")]
-    public async Task Api_PreservesProductDiacritics_AndRemovesSymbols() {
-      // Arrange
-      var request = new AddProductsRequest {
-        Products = {
-          new Product {
-            Name = "Caf\u00e9 \u2615",
-            Price = "1.99",
-            Quantity = 500,
-            UnitOfMeasure = "g \u2713",
-            MarketName = "Mercad\u00f3na",
-            BrandName = "Ni\u00f1o",
-          }
-        },
-        RegisteredAt = Timestamp.FromDateTime(DateTime.UtcNow),
-      };
-
-      // Act
-      await _service.AddProducts(request, CreateServerCallContext());
-
-      // Assert
-      await _productRepository.Received(1).ResolveProductsAsync(
-        Arg.Is<MarketImport>(market =>
-          market.Name.Value == "Mercadóna" &&
-          market.Products.Single().Name.Value == "Café" &&
-          market.Products.Single().Brand.Value == "Niño" &&
-          market.Products.Single().Formats.Single()
-            .Quantity.UnitOfMeasure.Value == "g"),
-        Arg.Any<DateTime>(),
-        TestContext.Current.CancellationToken);
-    }
-
-    [Fact(DisplayName = "Maps quantity and unit of measure from request to command")]
-    public async Task Api_MapsQuantityAndUnitOfMeasure_FromRequestToCommand() {
-      // Arrange
-      var request = new AddProductsRequest {
-        Products = {
-          new Product {
-            Name = "Milk", Price = "1.99", Quantity = 1.5F, UnitOfMeasure = "L",
-            MarketName = "Walmart", BrandName = "Nike"
-          }
-        },
-        RegisteredAt = Timestamp.FromDateTime(DateTime.UtcNow),
-      };
-
-      // Act
-      await _service.AddProducts(request, CreateServerCallContext());
-
-      // Assert
-      await _productRepository.Received(1).ResolveProductsAsync(
-        Arg.Is<MarketImport>(market =>
-          market.Products.Single().Formats.Single().Quantity.Amount == 1.5m &&
-          market.Products.Single().Formats.Single()
-            .Quantity.UnitOfMeasure.Value == "l"),
-        Arg.Any<DateTime>(),
-        TestContext.Current.CancellationToken);
-    }
-
-    [Fact(DisplayName = "Maps registered_at from request when provided")]
-    public async Task Api_MapsRegisteredAt_WhenProvided() {
-      // Arrange
-      var expectedTime = new DateTime(2024, 6, 15, 12, 0, 0, DateTimeKind.Utc);
-      var request = new AddProductsRequest {
-        Products = {
-          new Product {
-            Name = "Milk", Price = "1.99", Quantity = 1, UnitOfMeasure = "L",
-            MarketName = "Walmart", BrandName = "Nike"
-          }
-        },
-        RegisteredAt = Timestamp.FromDateTime(expectedTime),
-      };
-
-      // Act
-      await _service.AddProducts(request, CreateServerCallContext());
-
-      // Assert
-      await _productRepository.Received(1).ResolveProductsAsync(
-        Arg.Any<MarketImport>(),
-        Arg.Is<DateTime>(observedAt =>
-          observedAt == DateOnly.FromDateTime(expectedTime).ToDateTime(
-            TimeOnly.MinValue,
-            DateTimeKind.Utc)),
-        TestContext.Current.CancellationToken);
-    }
-  }
-
   public class GetMarketProductsRpc {
     private readonly IProductRepository _productRepository;
     private readonly MarketGrpcService _service;
@@ -269,7 +79,6 @@ public static class MarketGrpcServiceTests {
           Arg.Any<CancellationToken>())
         .Returns(EmptyPagedResult());
       _service = new MarketGrpcService(
-        CreateUnusedAddProductsHandler(),
         new GetMarketProducts.Handler(_productRepository),
         new GetMarkets.Handler(Substitute.For<IMarketRepository>()));
     }
@@ -518,7 +327,6 @@ public static class MarketGrpcServiceTests {
         .GetMarketSummariesAsync(Arg.Any<CancellationToken>())
         .Returns([]);
       _service = new MarketGrpcService(
-        CreateUnusedAddProductsHandler(),
         new GetMarketProducts.Handler(Substitute.For<IProductRepository>()),
         new GetMarkets.Handler(_marketRepository));
     }
@@ -568,26 +376,6 @@ public static class MarketGrpcServiceTests {
       // Assert
       Assert.Equal("Mercadona", response.Markets.Single().Name);
     }
-  }
-
-  private static AddMarketProducts.Handler CreateUnusedAddProductsHandler() {
-    IMarketRepository marketRepository = Substitute.For<IMarketRepository>();
-    IProductRepository productRepository = Substitute.For<IProductRepository>();
-    IPriceSnapshotRepository snapshotRepository =
-      Substitute.For<IPriceSnapshotRepository>();
-    IServiceScopeFactory scopeFactory = new ServiceCollection()
-      .AddSingleton(marketRepository)
-      .AddSingleton(productRepository)
-      .AddSingleton(snapshotRepository)
-      .BuildServiceProvider()
-      .GetRequiredService<IServiceScopeFactory>();
-
-    return new AddMarketProducts.Handler(
-      marketRepository,
-      productRepository,
-      snapshotRepository,
-      scopeFactory,
-      Substitute.For<ILogger<AddMarketProducts.Handler>>());
   }
 
   private static ServerCallContext CreateServerCallContext() => TestServerCallContext.Create(

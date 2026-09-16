@@ -26,8 +26,10 @@ class FakeTokenClient:
             Token("machine-token", datetime(9999, 1, 1, tzinfo=UTC))
         ]
         self.error = error
+        self.calls: list[tuple[str, str]] = []
 
     async def create_token(self, username: str, password: str) -> Token:
+        self.calls.append((username, password))
         if self.error is not None:
             raise self.error
         return self.issued_tokens.pop(0)
@@ -70,6 +72,20 @@ async def test_posts_existing_fields_without_raw_content() -> None:
             ]
         },
     )
+
+
+async def test_uses_scraper_credentials_to_get_machine_token() -> None:
+    def respond(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(204)
+
+    token_client = FakeTokenClient()
+    async with httpx.AsyncClient(
+        base_url="http://server/api/v1", transport=httpx.MockTransport(respond)
+    ) as client:
+        repository = RestProductRepository(client, "scraper", "password", token_client)
+        await repository.save("Market", date(2026, 9, 15), [product()])
+
+    assert token_client.calls == [("scraper", "password")]
 
 
 @pytest.mark.parametrize("status", [200, 400, 401, 403, 413, 500, 503])
