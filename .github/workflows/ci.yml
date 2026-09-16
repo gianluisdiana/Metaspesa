@@ -248,3 +248,153 @@ jobs:
           push: false
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  client-server-integration:
+    name: Client <-> server integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      DOCKER_NETWORK: metaspesa-ci
+      POSTGRES_DB: metaspesa
+      POSTGRES_USER: metaspesa
+      POSTGRES_PASSWORD: metaspesa
+      POSTGRES_CONNECTION_STRING: Host=db;Port=5432;Database=metaspesa;Username=metaspesa;Password=metaspesa
+      JWT_KEY: integration-tests-only-secret-key
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: client/pnpm-lock.yaml
+
+      - name: Install client dependencies
+        working-directory: client
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run generate-proto
+
+      - name: Start database
+        run: |
+          docker network create "$DOCKER_NETWORK"
+
+          docker run \
+            --detach \
+            --name db \
+            --network "$DOCKER_NETWORK" \
+            --env POSTGRES_DB \
+            --env POSTGRES_USER \
+            --env POSTGRES_PASSWORD \
+            postgres:18.6-alpine
+
+          until docker exec db pg_isready \
+            -U "$POSTGRES_USER" \
+            -d "$POSTGRES_DB"
+          do
+            sleep 1
+          done
+
+      - name: Run migrations and seed integration fixtures
+        run: |
+          docker build \
+            --file server/src/MigrationService/Dockerfile \
+            --tag metaspesa-migrations-ci \
+            server
+
+          docker run \
+            --rm \
+            --network "$DOCKER_NETWORK" \
+            --env POSTGRES_CONNECTION_STRING \
+            --env SEED_PROFILE=integration \
+            metaspesa-migrations-ci
+
+      - name: Build APIs
+        run: |
+          docker build \
+            --file server/src/GrpcApi/Dockerfile \
+            --tag metaspesa-grpc-api-ci \
+            server
+
+          docker build \
+            --file server/src/RestApi/Dockerfile \
+            --tag metaspesa-rest-api-ci \
+            server
+
+      - name: Start APIs
+        run: |
+          start_api() {
+            local name="$1"
+            local image="$2"
+            local port="$3"
+
+            docker run \
+              --detach \
+              --name "$name" \
+              --network "$DOCKER_NETWORK" \
+              --publish "$port:8080" \
+              --env ASPNETCORE_ENVIRONMENT=Development \
+              --env ASPNETCORE_URLS=http://+:8080 \
+              --env POSTGRES_CONNECTION_STRING \
+              --env "Jwt__Key=$JWT_KEY" \
+              "$image"
+          }
+
+          start_api grpc-api metaspesa-grpc-api-ci 4000
+          start_api rest-api metaspesa-rest-api-ci 4001
+
+      - name: Wait for APIs
+        shell: bash
+        run: |
+          wait_for_api() {
+            local name="$1"
+            local port="$2"
+
+            for _ in {1..30}; do
+              if (echo > "/dev/tcp/127.0.0.1/$port") 2>/dev/null; then
+                return 0
+              fi
+
+              if [[ "$(docker inspect -f '{{.State.Running}}' "$name")" != "true" ]]; then
+                docker logs "$name"
+                return 1
+              fi
+
+              sleep 1
+            done
+
+            docker logs "$name"
+            return 1
+          }
+
+          wait_for_api grpc-api 4000
+          wait_for_api rest-api 4001
+
+      - name: Run client integration tests
+        working-directory: client
+        env:
+          GRPC_SERVER_URL: localhost:4000
+          NEXT_PUBLIC_REST_API_URL: http://localhost:4001/api/v1
+        run: pnpm run test:integration
+
+      - name: Print container logs on failure
+        if: failure()
+        run: |
+          docker logs grpc-api || true
+          docker logs rest-api || true
+          docker logs db || true
+
+      - name: Clean up containers
+        if: always()
+        run: |
+          docker rm -f grpc-api rest-api db 2>/dev/null || true
+          docker network rm "$DOCKER_NETWORK" 2>/dev/null || true
