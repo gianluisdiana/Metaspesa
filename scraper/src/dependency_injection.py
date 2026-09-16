@@ -1,6 +1,5 @@
 import logging
 
-import grpc.aio
 import httpx
 
 from application.abstractions import (
@@ -23,12 +22,12 @@ from application.use_cases import (
     ScrapeMarketsCommandHandler,
 )
 from config import AppConfig
-from infrastructure.grpc.grpc_product_repository import GrpcProductRepository
 from infrastructure.local_storage import CsvProductRepository
 from infrastructure.market_scrapers.market_web_scraper_factory import (
     MarketWebScraperFactory,
 )
 from infrastructure.playwright_driver import PlaywrightDriver
+from infrastructure.rest.rest_product_repository import RestProductRepository
 from infrastructure.rest.rest_token_client import RestTokenClient
 from infrastructure.secrets import LocalSecretVault, SecretNotFoundError
 from infrastructure.telemetry.instrumented_playwright_driver import (
@@ -58,7 +57,6 @@ def __create_product_processor(settings: AppConfig) -> ProductProcessor:
 
 def __create_main_repository(
     settings: AppConfig,
-    channel: grpc.aio.Channel,
     http_client: httpx.AsyncClient,
 ) -> ProductRepository:
     vault = LocalSecretVault()
@@ -76,8 +74,8 @@ def __create_main_repository(
         )
         username = ""
         password = ""
-    return GrpcProductRepository(
-        channel,
+    return RestProductRepository(
+        http_client,
         username,
         password,
         RestTokenClient(http_client),
@@ -91,11 +89,10 @@ def __create_fallback_repository(settings: AppConfig) -> FallbackProductReposito
 def create_scrape_handler(
     settings: AppConfig,
     web_driver: WebDriver,
-    channel: grpc.aio.Channel,
     http_client: httpx.AsyncClient,
 ) -> ScrapeMarketsCommandHandler:
     return ScrapeMarketsCommandHandler(
-        main_repository=__create_main_repository(settings, channel, http_client),
+        main_repository=__create_main_repository(settings, http_client),
         fallback_repository=__create_fallback_repository(settings),
         market_web_scrapers=__create_market_web_scrapers(settings, web_driver),
         product_processor=__create_product_processor(settings),
@@ -105,12 +102,11 @@ def create_scrape_handler(
 
 def create_retry_handler(
     settings: AppConfig,
-    channel: grpc.aio.Channel,
     http_client: httpx.AsyncClient,
 ) -> RetryFailedSavesCommandHandler:
     return RetryFailedSavesCommandHandler(
         fallback_repository=__create_fallback_repository(settings),
-        main_repository=__create_main_repository(settings, channel, http_client),
+        main_repository=__create_main_repository(settings, http_client),
     )
 
 
