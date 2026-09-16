@@ -1,10 +1,53 @@
 openapi: 3.1.0
 info:
-  title: Metaspesa Identity API
+  title: Metaspesa REST API
   version: 1.0.0
 servers:
   - url: /api/v1
 paths:
+  /markets/{marketName}/snapshots/{date}:
+    post:
+      operationId: addMarketSnapshot
+      description: >-
+        Step 1 transport migration of gRPC AddProducts. Markets are still resolved
+        or created by name. Existing batch processing and rollback behavior applies;
+        per-item results and raw content are not implemented yet. Prices are in EUR.
+      security:
+        - ingestionBearer: []
+        - sessionCookie: []
+      parameters:
+        - name: marketName
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Snapshot date in YYYY-MM-DD format, on or after 2023-01-01.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SnapshotRequest"
+      responses:
+        "204":
+          description: Batch processed successfully; no response body
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          description: Missing or invalid authentication
+        "403":
+          description: ProductManager role required
+        "413":
+          description: Request body exceeds server limit
+        "500":
+          $ref: "#/components/responses/Problem"
   /auth/registrations:
     post:
       operationId: registerShopper
@@ -58,7 +101,49 @@ paths:
         "401":
           $ref: "#/components/responses/Problem"
 components:
+  securitySchemes:
+    ingestionBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: ProductManager token from /auth/tokens.
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: metaspesa_session
+      description: Session token accepted by the default scheme; ProductManager role required.
   schemas:
+    SnapshotRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/SnapshotItem"
+    SnapshotItem:
+      type: object
+      required: [name, price, quantity, unitOfMeasure, brandName]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        price:
+          type: number
+          minimum: 0
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+        unitOfMeasure:
+          type: string
+          minLength: 1
+        brandName:
+          type: string
+          minLength: 1
+        imageUrl:
+          type: [string, "null"]
+          description: Absolute image URL, empty string, or null.
     Credentials:
       type: object
       additionalProperties: false

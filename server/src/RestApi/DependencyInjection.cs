@@ -13,6 +13,7 @@ internal static class ServiceCollectionExtensions {
 
     services.AddProblemDetails();
     services.AddExceptionHandler<RestExceptionHandler>();
+    services.AddRequestDecompression();
     services.AddOptionsWithValidateOnStart<BrowserSecurityOptions>()
       .BindConfiguration("BrowserSecurity")
       .Validate(

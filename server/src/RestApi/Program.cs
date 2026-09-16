@@ -3,6 +3,7 @@ using Metaspesa.Database;
 using Metaspesa.Infrastructure;
 using Metaspesa.RestApi;
 using Metaspesa.RestApi.Identity;
+using Metaspesa.RestApi.Markets;
 using Metaspesa.ServiceDefaults;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -18,8 +19,10 @@ builder.Services
 WebApplication app = builder.Build();
 
 app.UseExceptionHandler();
+app.UseRequestDecompression();
 app.UseCors();
 app.MapIdentityEndpoints();
+app.MapSnapshotEndpoint();
 app.MapDefaultEndpoints();
 
 await app.RunAsync();

@@ -1,5 +1,7 @@
 using Metaspesa.Database.Exceptions;
 using Metaspesa.Domain.Identity.Errors;
+using Metaspesa.Domain.Markets.Errors;
+using Metaspesa.Domain.SharedKernel.Errors;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -35,6 +37,13 @@ internal sealed partial class RestExceptionHandler(
         "Server.DatabaseError",
         "Database error",
         "database-error"),
+      MarketDomainException market => (
+        StatusCodes.Status400BadRequest, market.Code, market.Message, "market-validation"),
+      DomainException domain => (
+        StatusCodes.Status400BadRequest, "Ingestion.InvalidProduct",
+        domain.Message, "ingestion-validation"),
+      BadHttpRequestException request => (
+        request.StatusCode, "Request.Invalid", request.Message, "invalid-request"),
       _ => (
         StatusCodes.Status500InternalServerError,
         "Server.InternalError",
