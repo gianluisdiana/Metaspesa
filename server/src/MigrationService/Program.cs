@@ -5,6 +5,7 @@ using Metaspesa.ServiceDefaults;
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddHostedService<Worker>();
+builder.Services.AddScoped<IntegrationSeeder>();
 
 builder.AddServiceDefaults("metaspesa-migration-service");
 builder.Services.AddDatabase();

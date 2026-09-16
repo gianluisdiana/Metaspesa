@@ -7,7 +7,8 @@ namespace Metaspesa.MigrationService;
 
 internal class Worker(
   IServiceProvider serviceProvider,
-  IHostApplicationLifetime hostApplicationLifetime
+  IHostApplicationLifetime hostApplicationLifetime,
+  IConfiguration configuration
 ) : BackgroundService {
   internal const string ActivitySourceName = "MigrationService";
   private static readonly ActivitySource ActivitySource = new(ActivitySourceName);
@@ -22,8 +23,14 @@ internal class Worker(
       IExecutionStrategy strategy = dbContext.Database.CreateExecutionStrategy();
       await strategy.ExecuteAsync(async () =>
         await dbContext.Database.MigrateAsync(stoppingToken));
+
+      if (SeedProfile.IsIntegration(configuration["SEED_PROFILE"])) {
+        await scope.ServiceProvider.GetRequiredService<IntegrationSeeder>()
+          .SeedAsync(stoppingToken);
+      }
     } catch (Exception ex) {
       activity?.AddException(ex);
+      Environment.ExitCode = 1;
       throw;
     }
 
