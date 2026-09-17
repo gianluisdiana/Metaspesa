@@ -383,7 +383,7 @@ jobs:
         working-directory: client
         env:
           GRPC_SERVER_URL: localhost:4000
-          NEXT_PUBLIC_REST_API_URL: http://localhost:4001/api/v1
+          REST_API_URL: http://localhost:4001/api/v1
         run: pnpm run test:integration
 
       - name: Print container logs on failure

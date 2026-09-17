@@ -20,10 +20,12 @@ Tests are split by cost and system boundary.
   - Scope: REST authentication plus client-to-server gRPC contracts for shopping lists and market reads.
   - Requires `GRPC_SERVER_URL` and `REST_API_URL`; specs without their required URLs are skipped.
 
-Start required services from repository root:
+Start required services from repository root against a fresh test database:
 
 ```powershell
-docker compose up -d db server rest-api
+docker compose up -d db
+docker compose --profile tools run --rm -e SEED_PROFILE=integration migrations
+docker compose up -d server rest-api
 ```
 
 Then run integration tests from `client/`:

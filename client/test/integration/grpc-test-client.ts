@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 
 import type { MarketServiceClient } from '@/generated-protos/markets/MarketService';
@@ -59,7 +60,7 @@ export async function registerAndLogin(): Promise<{
 }> {
   const credentials = {
     password,
-    username: `client_it_${Date.now()}`,
+    username: `client_it_${randomUUID()}`,
   };
 
   const registration = await fetch(`${restApiUrl}/auth/registrations`, {

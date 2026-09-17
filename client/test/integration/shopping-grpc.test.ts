@@ -64,7 +64,7 @@ async function getCatalogProducts(count: number): Promise<ProductMessage[]> {
   const response = await new Promise<GetMarketProductsResponse__Output>(
     (resolve, reject) => {
       createMarketClient().GetMarketProducts(
-        { page: 1, pageSize: count },
+        { nameSegment: 'Integration', page: 1, pageSize: 20 },
         (
           error: ServiceError | null,
           value?: GetMarketProductsResponse__Output,
@@ -78,23 +78,47 @@ async function getCatalogProducts(count: number): Promise<ProductMessage[]> {
       );
     },
   );
-  const products = response.markets.flatMap(market =>
-    market.products.flatMap(product =>
-      product.formats.map(format => ({
-        checked: false,
-        name: product.name,
-        price: Number(format.price),
-        productFormatUid: format.productFormatUid,
-        quantity: format.quantity,
-      })),
-    ),
-  );
-  if (products.length < count) {
-    throw new Error(
-      `Shopping integration tests require ${count} catalog products.`,
+  const fixtures = [
+    {
+      market: 'Integration Market A',
+      name: 'Integration Milk 1L',
+      price: 1.25,
+      quantity: '1 l',
+    },
+    {
+      market: 'Integration Market A',
+      name: 'Integration Bread',
+      price: 2.1,
+      quantity: '1 unit',
+    },
+  ];
+  return fixtures.slice(0, count).map(fixture => {
+    const market = response.markets.find(
+      value => value.name === fixture.market,
     );
-  }
-  return products.slice(0, count);
+    const product = market?.products.find(value => value.name === fixture.name);
+    const format = product?.formats.find(
+      value => value.quantity === fixture.quantity,
+    );
+    if (
+      !product ||
+      !format ||
+      product.brandName !== 'Integration Brand' ||
+      Number(format.price) !== fixture.price ||
+      format.productFormatUid <= 0
+    ) {
+      throw new Error(
+        `Missing or changed integration fixture: ${fixture.name}.`,
+      );
+    }
+    return {
+      checked: false,
+      name: fixture.name,
+      price: fixture.price,
+      productFormatUid: format.productFormatUid,
+      quantity: fixture.quantity,
+    };
+  });
 }
 
 describeIfApis('shopping gRPC integration with REST identity', () => {
