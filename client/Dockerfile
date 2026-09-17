@@ -27,7 +27,6 @@ COPY --from=builder /client/pnpm-lock.yaml ./
 COPY --from=builder /client/pnpm-workspace.yaml ./
 COPY --from=builder /client/node_modules ./node_modules
 COPY --from=builder /client/.next ./.next
-COPY --from=builder /client/public ./public
 COPY --from=builder /client/next.config.* ./
 COPY --from=builder /client/src/infrastructure/protos ./src/infrastructure/protos
 
