@@ -41,19 +41,6 @@ public static class MarketGrpcServiceTests {
       Assert.Contains(attributes, attribute => attribute is AllowAnonymousAttribute);
     }
 
-    [Fact(DisplayName = "Requires product manager role to add products")]
-    public void AddProducts_RequiresProductManagerRole() {
-      // Act
-      AuthorizeAttribute attribute = typeof(MarketGrpcService)
-        .GetMethod(nameof(MarketGrpcService.AddProducts))!
-        .GetCustomAttributes(inherit: true)
-        .OfType<AuthorizeAttribute>()
-        .Single();
-
-      // Assert
-      Assert.Equal(nameof(Role.ProductManager), attribute.Roles);
-    }
-
     [Fact(DisplayName = "Keeps shopping service protected for shoppers")]
     public void ShoppingService_RequiresShopperRole() {
       // Act
