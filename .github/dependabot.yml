@@ -10,11 +10,16 @@ updates:
     open-pull-requests-limit: 5
     groups:
       minor-and-patch:
+        applies-to: version-updates
         patterns:
           - "*"
         update-types:
           - "minor"
           - "patch"
+      security-fixes:
+        applies-to: security-updates
+        patterns:
+          - "*"
 
   - package-ecosystem: "uv"
     directory: "/scraper"
@@ -25,11 +30,16 @@ updates:
     open-pull-requests-limit: 5
     groups:
       minor-and-patch:
+        applies-to: version-updates
         patterns:
           - "*"
         update-types:
           - "minor"
           - "patch"
+      security-fixes:
+        applies-to: security-updates
+        patterns:
+          - "*"
 
   - package-ecosystem: "nuget"
     directory: "/server"
