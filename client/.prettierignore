@@ -5,4 +5,5 @@ node_modules
 playwright-report
 pnpm-lock.yaml
 src/infrastructure/protos_generated
+src/infrastructure/openapi_generated
 test-results

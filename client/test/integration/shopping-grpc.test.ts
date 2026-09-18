@@ -1,22 +1,23 @@
-import type { GetMarketProductsResponse__Output } from '@/generated-protos/Metaspesa/Protos/Markets/GetMarketProductsResponse';
 import type { CreateShoppingListResponse__Output } from '@/generated-protos/Metaspesa/Protos/Shopping/CreateShoppingListResponse';
 import type { ShoppingListSummariesResponse__Output } from '@/generated-protos/Metaspesa/Protos/Shopping/ShoppingListSummariesResponse';
-import type { ServiceError } from '@grpc/grpc-js';
 import { expect, it, vi } from 'vitest';
 
 import GrpcApiService from '@/infrastructure/grpc-api-service';
+import RestMarketApiService from '@/infrastructure/rest-market-api-service';
 import type { ProductMessage } from '@/lib/shopping-list-contracts';
 
 import {
   authMetadata,
-  createMarketClient,
   createShoppingClient,
   describeIfApis,
   registerAndLogin,
   requireResponse,
+  restApiUrl,
 } from './grpc-test-client';
 
 vi.mock('server-only', () => ({}));
+
+const QUANTITY_DECIMAL_PLACES = 3;
 
 async function createTemporaryShoppingList() {
   const loginResponse = await registerAndLogin();
@@ -60,22 +61,12 @@ function uniqueListName(prefix: string): string {
   return `${prefix} ${Date.now()}`;
 }
 
-async function getCatalogProducts(count: number): Promise<ProductMessage[]> {
-  const response = await new Promise<GetMarketProductsResponse__Output>(
-    (resolve, reject) => {
-      createMarketClient().GetMarketProducts(
-        { nameSegment: 'Integration', page: 1, pageSize: 20 },
-        (
-          error: ServiceError | null,
-          value?: GetMarketProductsResponse__Output,
-        ) => {
-          if (error) {
-            reject(error);
-            return;
-          }
-          resolve(requireResponse(value, 'GetMarketProducts'));
-        },
-      );
+async function getMarketProducts(count: number): Promise<ProductMessage[]> {
+  const response = await new RestMarketApiService(restApiUrl).getMarketProducts(
+    {
+      page: 1,
+      pageSize: 20,
+      query: 'Integration',
     },
   );
   const fixtures = [
@@ -83,29 +74,31 @@ async function getCatalogProducts(count: number): Promise<ProductMessage[]> {
       market: 'Integration Market A',
       name: 'Integration Milk 1L',
       price: 1.25,
-      quantity: '1 l',
+      quantity: { amount: 1, unit: 'l' },
     },
     {
       market: 'Integration Market A',
       name: 'Integration Bread',
       price: 2.1,
-      quantity: '1 unit',
+      quantity: { amount: 1, unit: 'unit' },
     },
   ];
   return fixtures.slice(0, count).map(fixture => {
-    const market = response.markets.find(
-      value => value.name === fixture.market,
+    const product = response.items.find(
+      value =>
+        value.market.name === fixture.market && value.name === fixture.name,
     );
-    const product = market?.products.find(value => value.name === fixture.name);
     const format = product?.formats.find(
-      value => value.quantity === fixture.quantity,
+      value =>
+        value.quantity.amount === fixture.quantity.amount &&
+        value.quantity.unit === fixture.quantity.unit,
     );
     if (
       !product ||
       !format ||
-      product.brandName !== 'Integration Brand' ||
-      Number(format.price) !== fixture.price ||
-      format.productFormatUid <= 0
+      product.brand !== 'Integration Brand' ||
+      format.currentPrice.amount !== fixture.price ||
+      format.id <= 0
     ) {
       throw new Error(
         `Missing or changed integration fixture: ${fixture.name}.`,
@@ -115,8 +108,8 @@ async function getCatalogProducts(count: number): Promise<ProductMessage[]> {
       checked: false,
       name: fixture.name,
       price: fixture.price,
-      productFormatUid: format.productFormatUid,
-      quantity: fixture.quantity,
+      productFormatUid: format.id,
+      quantity: `${fixture.quantity.amount.toFixed(QUANTITY_DECIMAL_PLACES)} ${fixture.quantity.unit}`,
     };
   });
 }
@@ -137,7 +130,7 @@ describeIfApis('shopping gRPC integration with REST identity', () => {
   });
 
   it('adds a shopping item through api service', async () => {
-    const [product] = await getCatalogProducts(1);
+    const [product] = await getMarketProducts(1);
     const service = await createApiServiceWithShoppingList();
 
     await service.addItemsToList(undefined, [product]);
@@ -150,7 +143,7 @@ describeIfApis('shopping gRPC integration with REST identity', () => {
   });
 
   it('updates only the requested shopping item fields through api service', async () => {
-    const [product] = await getCatalogProducts(1);
+    const [product] = await getMarketProducts(1);
     const shoppingListName = uniqueListName('Integration Update');
     const service = await createApiServiceWithShoppingList(shoppingListName);
     await service.addItemsToList(shoppingListName, [product]);
@@ -174,7 +167,7 @@ describeIfApis('shopping gRPC integration with REST identity', () => {
   });
 
   it('removes one shopping item and preserves remaining items through api service', async () => {
-    const [removedProduct, retainedProduct] = await getCatalogProducts(2);
+    const [removedProduct, retainedProduct] = await getMarketProducts(2);
     const shoppingListName = uniqueListName('Integration Remove');
     const service = await createApiServiceWithShoppingList(shoppingListName);
     await service.addItemsToList(shoppingListName, [
@@ -192,7 +185,7 @@ describeIfApis('shopping gRPC integration with REST identity', () => {
   });
 
   it('records checked items and resets their checked state through api service', async () => {
-    const [product] = await getCatalogProducts(1);
+    const [product] = await getMarketProducts(1);
     const shoppingListName = uniqueListName('Integration Record');
     const service = await createApiServiceWithShoppingList(shoppingListName);
     await service.addItemsToList(shoppingListName, [product]);

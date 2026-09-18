@@ -1,8 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 
-import type { MarketServiceClient } from '@/generated-protos/markets/MarketService';
-import type { ProtoGrpcType as MarketsProtoGrpcType } from '@/generated-protos/markets_service';
 import type { ShoppingServiceClient } from '@/generated-protos/shopping/ShoppingService';
 import type { ProtoGrpcType as ShoppingProtoGrpcType } from '@/generated-protos/shopping_service';
 import * as grpc from '@grpc/grpc-js';
@@ -34,15 +32,6 @@ export function requireResponse<T>(response: T | undefined, name: string): T {
     throw new Error(`${name} did not return a response.`);
   }
   return response;
-}
-
-export function createMarketClient(): MarketServiceClient {
-  const { MarketService } = loadPackage<MarketsProtoGrpcType>(
-    'src/infrastructure/protos/Markets/markets_service.proto',
-    { defaults: true },
-  ).Metaspesa.Protos.Markets;
-
-  return new MarketService(grpcServerUrl!, grpc.credentials.createInsecure());
 }
 
 export function createShoppingClient(): ShoppingServiceClient {

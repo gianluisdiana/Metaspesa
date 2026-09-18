@@ -5,7 +5,7 @@ import { useRef, useState } from 'react';
 
 import { useInfiniteScroll } from '@/lib/hooks/use-infinite-scroll';
 import { MarketFilter } from '@/lib/market-api-service';
-import { MarketMessage } from '@/lib/market-contracts';
+import { MarketProductsResult } from '@/lib/market-contracts';
 import { ShoppingListClient } from '@/lib/shopping-list';
 import { ShoppingListSummaryMessage } from '@/lib/shopping-list-contracts';
 
@@ -15,15 +15,13 @@ import { usePaginatedMarketProducts } from './use-paginated-market-products';
 
 export function useProductGridController({
   filter,
-  initialMarkets,
+  initialPage,
   initialShoppingListSummaries,
-  initialTotalProducts,
   isAuthenticated,
 }: Readonly<{
   filter: MarketFilter;
-  initialMarkets: MarketMessage[];
+  initialPage: MarketProductsResult;
   initialShoppingListSummaries: ShoppingListSummaryMessage[];
-  initialTotalProducts: number;
   isAuthenticated: boolean;
 }>) {
   const pathname = usePathname();
@@ -35,11 +33,10 @@ export function useProductGridController({
   );
   const { showToast } = useToast();
   const client = new ShoppingListClient();
-  const { hasFailed, hasMore, isLoading, loadNextPage, markets } =
+  const { hasFailed, hasMore, isLoading, loadNextPage, products } =
     usePaginatedMarketProducts({
       filter,
-      initialMarkets,
-      initialTotalProducts,
+      initialPage,
     });
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -130,8 +127,8 @@ export function useProductGridController({
     hasFailed,
     isLoading,
     isModalOpen,
-    markets,
     openAddToListModal,
+    products,
     retry: () => void loadNextPage(),
     selectedProduct,
     sentinelRef,

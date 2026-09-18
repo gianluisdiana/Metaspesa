@@ -1,158 +1,86 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
+import RestMarketApiService from '@/infrastructure/rest-market-api-service';
 import { MarketFilter } from '@/lib/market-api-service';
 import {
-  MarketMessage,
   MarketProductMessage,
   MarketProductsResult,
 } from '@/lib/market-contracts';
 
-const DEFAULT_PAGE_SIZE = 20;
-const FIRST_NEXT_PAGE = 2;
-
-function countProducts(markets: MarketMessage[]): number {
-  return markets.reduce((total, market) => total + market.products.length, 0);
-}
-
-function productKey(marketName: string, product: MarketProductMessage): string {
-  return `${marketName}:${product.name}`;
-}
-
 export class PaginatedMarketProductsState {
-  public readonly nextPage: number;
-
   public constructor(
-    public readonly markets: MarketMessage[],
-    public readonly totalProducts: number,
-    nextPage = FIRST_NEXT_PAGE,
-  ) {
-    this.nextPage = nextPage;
-  }
+    public readonly products: MarketProductMessage[],
+    public readonly nextPage: number,
+    public readonly totalPages: number,
+  ) {}
 
   public static initial(
-    markets: MarketMessage[],
-    totalProducts: number,
+    page: MarketProductsResult,
   ): PaginatedMarketProductsState {
-    return new PaginatedMarketProductsState(markets, totalProducts);
-  }
-
-  public buildProductsUrl(filter: MarketFilter): string {
-    const params = new URLSearchParams();
-    if (filter.brandNameSegment) {
-      params.set('brand_name', filter.brandNameSegment);
-    }
-    if (filter.marketName) {
-      params.set('market_name', filter.marketName);
-    }
-    if (filter.nameSegment) {
-      params.set('name_segment', filter.nameSegment);
-    }
-    params.set('page', String(this.nextPage));
-    params.set('page_size', String(filter.pageSize ?? DEFAULT_PAGE_SIZE));
-
-    return `/api/markets/products?${params}`;
+    return new PaginatedMarketProductsState(
+      page.items,
+      page.page + 1,
+      page.totalPages,
+    );
   }
 
   public get hasMore(): boolean {
-    return countProducts(this.markets) < this.totalProducts;
+    return this.nextPage <= this.totalPages;
   }
 
-  public merge(result: MarketProductsResult): PaginatedMarketProductsState {
+  public merge(page: MarketProductsResult): PaginatedMarketProductsState {
+    const seen = new Set(this.products.map(product => product.id));
     return new PaginatedMarketProductsState(
-      this.mergeMarkets(result.markets),
-      result.totalProducts,
-      this.nextPage + 1,
+      [
+        ...this.products,
+        ...page.items.filter(product => !seen.has(product.id)),
+      ],
+      page.page + 1,
+      page.totalPages,
     );
-  }
-
-  private mergeMarkets(nextMarkets: MarketMessage[]): MarketMessage[] {
-    const markets = this.markets.map(market => ({
-      ...market,
-      products: [...market.products],
-    }));
-    const marketIndexes = new Map(markets.map((market, i) => [market.name, i]));
-    const seenProducts = new Set(
-      markets.flatMap(market =>
-        market.products.map(product => productKey(market.name, product)),
-      ),
-    );
-
-    nextMarkets.forEach(nextMarket => {
-      const index = marketIndexes.get(nextMarket.name);
-      if (index === undefined) {
-        marketIndexes.set(nextMarket.name, markets.length);
-        nextMarket.products.forEach(product => {
-          seenProducts.add(productKey(nextMarket.name, product));
-        });
-        markets.push({ ...nextMarket, products: [...nextMarket.products] });
-        return;
-      }
-
-      const products = nextMarket.products.filter(product => {
-        const key = productKey(nextMarket.name, product);
-        if (seenProducts.has(key)) {
-          return false;
-        }
-        seenProducts.add(key);
-        return true;
-      });
-      markets[index].products.push(...products);
-    });
-
-    return markets;
   }
 }
 
 export function usePaginatedMarketProducts({
   filter,
-  initialMarkets,
-  initialTotalProducts,
+  initialPage,
 }: Readonly<{
   filter: MarketFilter;
-  initialMarkets: MarketMessage[];
-  initialTotalProducts: number;
+  initialPage: MarketProductsResult;
 }>) {
   const [pagination, setPagination] = useState(() =>
-    PaginatedMarketProductsState.initial(initialMarkets, initialTotalProducts),
+    PaginatedMarketProductsState.initial(initialPage),
   );
   const [isLoading, setIsLoading] = useState(false);
   const [hasFailed, setHasFailed] = useState(false);
   const isLoadingRef = useRef(false);
-  const hasMore = useMemo(() => pagination.hasMore, [pagination]);
 
   const loadNextPage = useCallback(async () => {
-    if (isLoadingRef.current || !hasMore) {
-      return;
-    }
-
+    if (isLoadingRef.current || !pagination.hasMore) return;
     isLoadingRef.current = true;
     setIsLoading(true);
     setHasFailed(false);
-
     try {
-      const response = await fetch(pagination.buildProductsUrl(filter), {
-        headers: { Accept: 'application/json' },
+      const page = await new RestMarketApiService().getMarketProducts({
+        ...filter,
+        page: pagination.nextPage,
       });
-      if (!response.ok) {
-        throw new Error('Failed to load products');
-      }
-      const result = (await response.json()) as MarketProductsResult;
-      setPagination(currentPagination => currentPagination.merge(result));
+      setPagination(current => current.merge(page));
     } catch {
       setHasFailed(true);
     } finally {
       isLoadingRef.current = false;
       setIsLoading(false);
     }
-  }, [filter, hasMore, pagination]);
+  }, [filter, pagination]);
 
   return {
     hasFailed,
-    hasMore,
+    hasMore: pagination.hasMore,
     isLoading,
     loadNextPage,
-    markets: pagination.markets,
+    products: pagination.products,
   };
 }

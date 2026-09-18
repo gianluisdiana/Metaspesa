@@ -2,8 +2,6 @@ import 'server-only';
 
 import path from 'node:path';
 
-import { MarketServiceClient } from '@/generated-protos/markets/MarketService';
-import { ProtoGrpcType as MarketsProtoGrpcType } from '@/generated-protos/markets_service';
 import { ShoppingServiceClient } from '@/generated-protos/shopping/ShoppingService';
 import { ProtoGrpcType as ShoppingProtoGrpcType } from '@/generated-protos/shopping_service';
 import * as grpc from '@grpc/grpc-js';
@@ -23,20 +21,6 @@ export class GrpcClientFactory {
 
   public createMetadata(): grpc.Metadata {
     return createTracingMetadata();
-  }
-
-  public createMarketServiceClient(): MarketServiceClient {
-    const definition = protoLoader.loadSync(
-      path.join(
-        process.cwd(),
-        'src/infrastructure/protos/Markets/markets_service.proto',
-      ),
-    );
-    const { MarketService } =
-      this.loadPackage<MarketsProtoGrpcType>(definition).Metaspesa.Protos
-        .Markets;
-
-    return new MarketService(this.config.serverUrl, this.credentials);
   }
 
   public createShoppingServiceClient(): ShoppingServiceClient {

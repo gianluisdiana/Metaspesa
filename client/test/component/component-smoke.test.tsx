@@ -1,7 +1,7 @@
 import { ToastProvider } from '@/app/(protected)/components/toast-provider';
 import AddToListModal from '@/app/(protected)/markets/components/add-to-list-modal';
 import FilterHeader from '@/app/(protected)/markets/components/filter-header';
-import ProductGrid from '@/app/(protected)/markets/components/product-grid';
+import { ProductGridView } from '@/app/(protected)/markets/components/product-grid-view';
 import ShoppingListContainer from '@/app/(protected)/shopping/components/shopping-list-container';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -65,12 +65,19 @@ describe('component smoke tests', () => {
   it('renders an empty product grid state', () => {
     const markup = renderToStaticMarkup(
       <ToastProvider>
-        <ProductGrid
+        <ProductGridView
           filter={{ page: 1, pageSize: 20 }}
-          initialMarkets={[]}
-          initialTotalProducts={0}
-          isAuthenticated
+          hasFailed={false}
+          isLoading={false}
+          isModalOpen={false}
+          products={[]}
+          sentinelRef={{ current: null }}
           shoppingListSummaries={[]}
+          onAddProduct={() => undefined}
+          onCloseModal={() => undefined}
+          onCreateList={() => undefined}
+          onRetry={() => undefined}
+          onSelectList={() => undefined}
         />
       </ToastProvider>,
     );
@@ -80,12 +87,17 @@ describe('component smoke tests', () => {
 
   it('renders filter header options from search params', () => {
     navigationMocks.searchParams = new URLSearchParams({
-      market_name: 'Mercadona',
-      name_segment: 'milk',
+      marketId: '1',
+      query: 'milk',
     });
 
     const markup = renderToStaticMarkup(
-      <FilterHeader marketNames={['Mercadona', 'Hiperdino']} />,
+      <FilterHeader
+        markets={[
+          { id: 1, name: 'Mercadona' },
+          { id: 2, name: 'Hiperdino' },
+        ]}
+      />,
     );
 
     expect(markup).toContain('Mercadona');

@@ -1,27 +1,15 @@
-export interface MarketSummaryMessage {
-  name: string;
-  logoUrl: string | null;
-}
+import type {
+  FormatResponse,
+  MarketResponse,
+  MoneyResponse,
+  ProductPageResponse,
+  ProductResponse,
+  QuantityResponse,
+} from '@/infrastructure/openapi_generated';
 
-export interface MarketProductFormatMessage {
-  productFormatUid: number;
-  quantity: string;
-  price: number;
-  imageUrl: string | null;
-}
-
-export interface MarketProductMessage {
-  name: string;
-  brandName: string;
-  formats: MarketProductFormatMessage[];
-}
-
-export interface MarketMessage {
-  name: string;
-  products: MarketProductMessage[];
-}
-
-export interface MarketProductsResult {
-  markets: MarketMessage[];
-  totalProducts: number;
-}
+export type MarketSummaryMessage = MarketResponse;
+export type MarketQuantityMessage = QuantityResponse;
+export type MarketMoneyMessage = MoneyResponse;
+export type MarketProductFormatMessage = FormatResponse;
+export type MarketProductMessage = ProductResponse;
+export type MarketProductsResult = ProductPageResponse;

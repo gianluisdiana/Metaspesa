@@ -8,7 +8,7 @@ test.describe('market search e2e', () => {
 
     await page.getByPlaceholder('Search products...').fill('milk');
 
-    await expect(page).toHaveURL(/name_segment=milk/);
+    await expect(page).toHaveURL(/query=milk/);
   });
 
   test('brand filter stays available during product search', async ({

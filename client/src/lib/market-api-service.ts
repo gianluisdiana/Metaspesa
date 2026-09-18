@@ -1,12 +1,8 @@
+import type { GetProductsData } from '@/infrastructure/openapi_generated';
+
 import { MarketProductsResult, MarketSummaryMessage } from './market-contracts';
 
-export interface MarketFilter {
-  marketName?: string;
-  brandNameSegment?: string;
-  nameSegment?: string;
-  page?: number;
-  pageSize?: number;
-}
+export type MarketFilter = NonNullable<GetProductsData['query']>;
 
 export default interface MarketApiService {
   getMarketProducts(filter: MarketFilter): Promise<MarketProductsResult>;

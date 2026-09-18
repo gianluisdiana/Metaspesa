@@ -1,7 +1,7 @@
 import { RefObject } from 'react';
 
 import { MarketFilter } from '@/lib/market-api-service';
-import { MarketMessage } from '@/lib/market-contracts';
+import { MarketProductMessage } from '@/lib/market-contracts';
 import { ShoppingListSummaryMessage } from '@/lib/shopping-list-contracts';
 
 import AddToListModal from './add-to-list-modal';
@@ -14,7 +14,7 @@ export function ProductGridView({
   hasFailed,
   isLoading,
   isModalOpen,
-  markets,
+  products,
   onAddProduct,
   onCloseModal,
   onCreateList,
@@ -28,7 +28,7 @@ export function ProductGridView({
   hasFailed: boolean;
   isLoading: boolean;
   isModalOpen: boolean;
-  markets: MarketMessage[];
+  products: MarketProductMessage[];
   onAddProduct: (product: Product) => void;
   onCloseModal: () => void;
   onCreateList: () => void;
@@ -38,18 +38,35 @@ export function ProductGridView({
   sentinelRef: RefObject<HTMLDivElement | null>;
   shoppingListSummaries: ShoppingListSummaryMessage[];
 }>) {
-  if (markets.length === 0) {
+  if (products.length === 0) {
     return <EmptyState />;
   }
+
+  const grouped = new Map<
+    number,
+    { name: string; products: MarketProductMessage[] }
+  >();
+  products.forEach(product => {
+    const group = grouped.get(product.market.id);
+    if (group) {
+      group.products.push(product);
+    } else {
+      grouped.set(product.market.id, {
+        name: product.market.name,
+        products: [product],
+      });
+    }
+  });
 
   return (
     <>
       <div className="p-container-margin flex flex-col gap-section-gap">
-        {markets.map(market => (
+        {[...grouped.entries()].map(([marketId, market]) => (
           <MarketSection
-            key={market.name}
-            market={market}
-            showDivider={!filter.marketName}
+            key={marketId}
+            marketName={market.name}
+            products={market.products}
+            showDivider={!filter.marketId?.length}
             onAddProduct={onAddProduct}
           />
         ))}

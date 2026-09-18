@@ -21,7 +21,14 @@ vi.mock('next/navigation', () => ({
 }));
 
 function renderFilterHeader() {
-  return render(<FilterHeader marketNames={['Mercadona', 'Hiperdino']} />);
+  return render(
+    <FilterHeader
+      markets={[
+        { id: 1, name: 'Mercadona' },
+        { id: 2, name: 'Hiperdino' },
+      ]}
+    />,
+  );
 }
 
 describe('market filter header component', () => {
@@ -47,7 +54,7 @@ describe('market filter header component', () => {
     vi.advanceTimersByTime(filterDebounceMs);
 
     expect(navigationMocks.replace).toHaveBeenLastCalledWith(
-      '/markets?name_segment=milk',
+      '/markets?query=milk',
     );
   });
 
@@ -60,29 +67,34 @@ describe('market filter header component', () => {
     vi.advanceTimersByTime(filterDebounceMs);
 
     expect(navigationMocks.replace).toHaveBeenLastCalledWith(
-      '/markets?brand_name=Pascual',
+      '/markets?brand=Pascual',
     );
   });
 
   it('writes market selection to URL query', () => {
     renderFilterHeader();
 
-    fireEvent.change(screen.getByRole('combobox'), {
-      target: { value: 'Mercadona' },
+    fireEvent.change(screen.getAllByRole('combobox')[0], {
+      target: { value: '1' },
     });
 
     expect(navigationMocks.replace).toHaveBeenLastCalledWith(
-      '/markets?market_name=Mercadona',
+      '/markets?marketId=1',
     );
   });
 
   it('reflects product name from URL navigation', () => {
     const { rerender } = renderFilterHeader();
-    navigationMocks.searchParams = new URLSearchParams(
-      'name_segment=olive%20oil',
-    );
+    navigationMocks.searchParams = new URLSearchParams('query=olive%20oil');
 
-    rerender(<FilterHeader marketNames={['Mercadona', 'Hiperdino']} />);
+    rerender(
+      <FilterHeader
+        markets={[
+          { id: 1, name: 'Mercadona' },
+          { id: 2, name: 'Hiperdino' },
+        ]}
+      />,
+    );
 
     expect(screen.getByPlaceholderText('Search products...')).toHaveValue(
       'olive oil',
@@ -91,9 +103,16 @@ describe('market filter header component', () => {
 
   it('reflects brand name from URL navigation', () => {
     const { rerender } = renderFilterHeader();
-    navigationMocks.searchParams = new URLSearchParams('brand_name=Pascual');
+    navigationMocks.searchParams = new URLSearchParams('brand=Pascual');
 
-    rerender(<FilterHeader marketNames={['Mercadona', 'Hiperdino']} />);
+    rerender(
+      <FilterHeader
+        markets={[
+          { id: 1, name: 'Mercadona' },
+          { id: 2, name: 'Hiperdino' },
+        ]}
+      />,
+    );
 
     expect(screen.getByPlaceholderText('Brand...')).toHaveValue('Pascual');
   });

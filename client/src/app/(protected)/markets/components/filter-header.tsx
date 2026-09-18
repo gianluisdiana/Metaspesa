@@ -3,10 +3,15 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import RestMarketApiService from '@/infrastructure/rest-market-api-service';
+import { MarketSummaryMessage } from '@/lib/market-contracts';
+
+import { RetryButton } from './product-grid-states';
+
 const FILTER_DEBOUNCE_MS = 350;
 
 interface Props {
-  marketNames: string[];
+  markets?: MarketSummaryMessage[];
 }
 
 function SearchBar({
@@ -35,7 +40,7 @@ function MarketSelect({
   onChange,
 }: Readonly<{
   value: string;
-  options: string[];
+  options: MarketSummaryMessage[];
   onChange: (v: string) => void;
 }>) {
   return (
@@ -45,9 +50,9 @@ function MarketSelect({
       onChange={e => onChange(e.target.value)}
     >
       <option value="">All markets</option>
-      {options.map(name => (
-        <option key={name} value={name}>
-          {name}
+      {options.map(market => (
+        <option key={market.id} value={market.id}>
+          {market.name}
         </option>
       ))}
     </select>
@@ -73,63 +78,92 @@ function BrandFilter({
 
 function FilterControls({
   brandName,
-  marketName,
-  marketNames,
-  nameSegment,
+  marketId,
+  markets,
+  query,
+  sort,
   replaceParams,
 }: Readonly<{
   brandName: string;
-  marketName: string;
-  marketNames: string[];
-  nameSegment: string;
+  marketId: string;
+  markets: MarketSummaryMessage[];
+  query: string;
+  sort: string;
   replaceParams: (values: Readonly<Record<string, string>>) => void;
 }>) {
-  const [pendingNameSegment, setPendingNameSegment] = useState(nameSegment);
+  const [pendingQuery, setPendingQuery] = useState(query);
   const [pendingBrandName, setPendingBrandName] = useState(brandName);
 
   useEffect(() => {
     const timeoutId = globalThis.setTimeout(() => {
-      if (
-        pendingBrandName !== brandName ||
-        pendingNameSegment !== nameSegment
-      ) {
+      if (pendingBrandName !== brandName || pendingQuery !== query) {
         replaceParams({
-          brand_name: pendingBrandName,
-          name_segment: pendingNameSegment,
+          brand: pendingBrandName,
+          query: pendingQuery,
         });
       }
     }, FILTER_DEBOUNCE_MS);
 
     return () => globalThis.clearTimeout(timeoutId);
-  }, [
-    brandName,
-    nameSegment,
-    pendingBrandName,
-    pendingNameSegment,
-    replaceParams,
-  ]);
+  }, [brandName, query, pendingBrandName, pendingQuery, replaceParams]);
 
   return (
     <div className="flex flex-wrap gap-unit mt-unit items-center">
-      <SearchBar value={pendingNameSegment} onChange={setPendingNameSegment} />
+      <SearchBar value={pendingQuery} onChange={setPendingQuery} />
       <MarketSelect
-        value={marketName}
-        options={marketNames}
-        onChange={value => replaceParams({ market_name: value })}
+        value={marketId}
+        options={markets}
+        onChange={value => replaceParams({ marketId: value })}
       />
       <BrandFilter value={pendingBrandName} onChange={setPendingBrandName} />
+      <select
+        aria-label="Sort products"
+        className="bg-surface-container border border-outline-variant rounded-full px-4 py-2 font-label-md text-label-md text-on-surface"
+        value={sort}
+        onChange={event => replaceParams({ sort: event.target.value })}
+      >
+        <option value="name">Name</option>
+        <option value="priceAsc">Price: low to high</option>
+        <option value="priceDesc">Price: high to low</option>
+      </select>
     </div>
   );
 }
 
-export default function FilterHeader({ marketNames }: Readonly<Props>) {
+export default function FilterHeader({ markets }: Readonly<Props>) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [fetchedMarkets, setFetchedMarkets] = useState<MarketSummaryMessage[]>(
+    [],
+  );
+  const [marketsFailed, setMarketsFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const availableMarkets = markets ?? fetchedMarkets;
 
-  const nameSegment = searchParams.get('name_segment') ?? '';
-  const marketName = searchParams.get('market_name') ?? '';
-  const brandName = searchParams.get('brand_name') ?? '';
+  useEffect(() => {
+    if (markets) return;
+    let cancelled = false;
+    new RestMarketApiService().getMarkets().then(
+      items => {
+        if (!cancelled) setFetchedMarkets(items);
+      },
+      () => {
+        if (!cancelled) setMarketsFailed(true);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [markets, retry]);
+
+  const query = searchParams.get('query') ?? '';
+  const marketId = searchParams.get('marketId') ?? '';
+  const brandName = searchParams.get('brand') ?? '';
+  const sort = searchParams.get('sort') ?? 'name';
+  const marketName = availableMarkets.find(
+    market => String(market.id) === marketId,
+  )?.name;
 
   function replaceParams(values: Readonly<Record<string, string>>) {
     const params = new URLSearchParams(searchParams.toString());
@@ -149,17 +183,26 @@ export default function FilterHeader({ marketNames }: Readonly<Props>) {
     <div className="sticky top-16 z-30 bg-surface/90 backdrop-blur-md border-b border-surface-variant px-container-margin py-stack-md flex flex-col gap-stack-sm shadow-sm shadow-secondary/5">
       <div className="flex items-center justify-between">
         <h1 className="font-headline-lg text-headline-lg text-on-surface">
-          {marketName || 'All markets'}
+          {marketName ?? 'All markets'}
         </h1>
       </div>
       <FilterControls
-        key={JSON.stringify([nameSegment, brandName])}
+        key={JSON.stringify([query, brandName])}
         brandName={brandName}
-        marketName={marketName}
-        marketNames={marketNames}
-        nameSegment={nameSegment}
+        marketId={marketId}
+        markets={availableMarkets}
+        query={query}
         replaceParams={replaceParams}
+        sort={sort}
       />
+      {marketsFailed && (
+        <RetryButton
+          onRetry={() => {
+            setMarketsFailed(false);
+            setRetry(value => value + 1);
+          }}
+        />
+      )}
     </div>
   );
 }
