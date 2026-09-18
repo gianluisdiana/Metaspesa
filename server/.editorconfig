@@ -262,5 +262,5 @@ dotnet_diagnostic.IDE0053.severity = silent
 
 # Roslyn requires a final newline after top-level statements. Without this
 # override, dotnet format both inserts and removes it, failing verification.
-[src/{GrpcApi,MigrationService}/Program.cs]
+[src/{GrpcApi,MigrationService,RestApi}/Program.cs]
 insert_final_newline = true

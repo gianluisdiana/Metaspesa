@@ -68,7 +68,7 @@ jobs:
         run: dotnet restore server/Metaspesa.slnx
 
       - name: Test server
-        run: dotnet test server --no-restore
+        run: dotnet test --solution server/Metaspesa.slnx --no-restore
 
   client-quality:
     name: Client quality and build

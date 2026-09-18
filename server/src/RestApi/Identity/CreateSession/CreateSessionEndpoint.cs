@@ -33,7 +33,6 @@ internal static class CreateSessionEndpoint {
     CredentialsRequest request,
     LoginUser.Handler handler,
     HttpContext context,
-    IHostEnvironment environment,
     IOptions<SessionCookieOptions> sessionOptions,
     CancellationToken cancellationToken
   ) {
@@ -50,7 +49,7 @@ internal static class CreateSessionEndpoint {
         HttpOnly = true,
         Path = "/",
         SameSite = SameSiteMode.Lax,
-        Secure = !environment.IsDevelopment(),
+        Secure = true,
       });
 
     return Results.NoContent();

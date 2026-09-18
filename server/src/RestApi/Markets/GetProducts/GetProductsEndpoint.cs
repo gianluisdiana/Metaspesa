@@ -136,7 +136,7 @@ internal static class GetProductsEndpoint {
       Maximum = maximum?.ToString(CultureInfo.InvariantCulture),
       Default = defaultValue is null ? null : JsonValue.Create(defaultValue.Value),
       Enum = allowedValues is null ? null :
-        [.. allowedValues.Select(value => JsonValue.Create(value)!)],
+        [.. allowedValues.Select(value => JsonValue.Create(value))],
     },
   };
 }

@@ -61,7 +61,7 @@ public static class ServiceDefaultExtensions {
     return builder;
   }
 
-  private static TBuilder AddOpenTelemetryExporters<TBuilder>(
+  private static void AddOpenTelemetryExporters<TBuilder>(
     this TBuilder builder
   ) where TBuilder : IHostApplicationBuilder {
     bool useOtlpExporter = !string.IsNullOrWhiteSpace(
@@ -70,8 +70,6 @@ public static class ServiceDefaultExtensions {
     if (useOtlpExporter) {
       builder.Services.AddOpenTelemetry().UseOtlpExporter();
     }
-
-    return builder;
   }
 
   public static TBuilder AddDefaultHealthChecks<TBuilder>(
