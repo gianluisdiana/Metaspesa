@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 
 from config import (
@@ -61,7 +62,7 @@ def __create_default_settings() -> AppConfig:
         markets=[ALCAMPO, MERCADONA],
         processor=ProcessorSettings(known_brands=[], replacements={}),
         scrapers=ScraperSettings(skipped_categories=[]),
-        fallback_persistence=FallbackPersistenceSettings(folder_path="data"),
+        fallback_persistence=FallbackPersistenceSettings(folder_path=Path("data")),
         credentials=CredentialsSettings(
             username_secret="scraper_username",
             password_secret="scraper_password",

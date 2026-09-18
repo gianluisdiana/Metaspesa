@@ -176,6 +176,10 @@ jobs:
         run: uv run ruff format --check src test
         working-directory: scraper
 
+      - name: Check types with Pyright
+        run: uv run pyright src test
+        working-directory: scraper
+
   scraper-tests:
     name: Scraper tests
     runs-on: ubuntu-latest

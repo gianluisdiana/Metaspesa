@@ -150,6 +150,7 @@ def test_string_sanitizer_sanitizes_name_before_next_processor():
     sanitizer.process(product)
 
     # Assert
+    assert next_processor.received_product is not None
     assert next_processor.received_product.name == "Café "
 
 
@@ -179,6 +180,7 @@ def test_string_sanitizer_sanitizes_quantity_before_next_processor():
     sanitizer.process(product)
 
     # Assert
+    assert next_processor.received_product is not None
     assert next_processor.received_product.quantity == "500 g "
 
 
