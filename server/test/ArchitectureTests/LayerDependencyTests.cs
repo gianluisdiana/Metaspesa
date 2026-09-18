@@ -14,6 +14,7 @@ public class LayerDependencyTests {
   [InlineData("Metaspesa.Database")]
   [InlineData("Metaspesa.Infrastructure")]
   [InlineData("Metaspesa.GrpcApi")]
+  [InlineData("Metaspesa.RestApi")]
   [InlineData("Metaspesa.MigrationService")]
   public void Domain_DoesNotDependOnOuterLayer(string forbiddenNamespace) =>
     AssertNoDependency(DomainAssembly, forbiddenNamespace);
@@ -22,6 +23,7 @@ public class LayerDependencyTests {
   [InlineData("Metaspesa.Database")]
   [InlineData("Metaspesa.Infrastructure")]
   [InlineData("Metaspesa.GrpcApi")]
+  [InlineData("Metaspesa.RestApi")]
   [InlineData("Metaspesa.MigrationService")]
   public void Application_DoesNotDependOnImplementationLayer(
     string forbiddenNamespace
@@ -29,6 +31,7 @@ public class LayerDependencyTests {
 
   [Theory(DisplayName = "View layers expose no Domain response models")]
   [InlineData("GrpcApi", "Metaspesa.GrpcApi.Services")]
+  [InlineData("RestApi", "Metaspesa.RestApi")]
   [InlineData("MigrationService", "Metaspesa.MigrationService")]
   public void ViewLayer_DoesNotExposeDomainResponseModels(
     string assemblyName,
@@ -36,11 +39,13 @@ public class LayerDependencyTests {
   ) {
     var viewAssembly = Assembly.Load(assemblyName);
     Type[] domainResponseTypes = viewAssembly.GetTypes()
-      .Where(type => type.Namespace == viewNamespace)
+      .Where(type => type.Namespace is not null &&
+        (type.Namespace == viewNamespace ||
+          type.Namespace.StartsWith(viewNamespace + ".", StringComparison.Ordinal)))
       .SelectMany(type => type.GetMethods(
         BindingFlags.Instance |
+        BindingFlags.Static |
         BindingFlags.Public |
-        BindingFlags.NonPublic |
         BindingFlags.DeclaredOnly))
       .SelectMany(method => ExpandType(method.ReturnType))
       .Where(type => type.Assembly == DomainAssembly)
@@ -52,7 +57,11 @@ public class LayerDependencyTests {
 
   [Theory(DisplayName = "View layers have no dependency on other views")]
   [InlineData("GrpcApi", "Metaspesa.MigrationService")]
+  [InlineData("GrpcApi", "Metaspesa.RestApi")]
   [InlineData("MigrationService", "Metaspesa.GrpcApi")]
+  [InlineData("MigrationService", "Metaspesa.RestApi")]
+  [InlineData("RestApi", "Metaspesa.GrpcApi")]
+  [InlineData("RestApi", "Metaspesa.MigrationService")]
   public void ViewLayer_DoesNotDependOnOtherView(
     string assemblyName,
     string forbiddenNamespace

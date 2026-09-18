@@ -30,16 +30,6 @@ internal static class ServiceCollectionExtensions {
             AutoReplenishment = true
           }));
 
-      options.AddPolicy("market", context =>
-        RateLimitPartition.GetSlidingWindowLimiter(
-          context.GetPartitionKey(),
-          _ => new SlidingWindowRateLimiterOptions {
-            PermitLimit = 300,
-            Window = TimeSpan.FromMinutes(1),
-            SegmentsPerWindow = 6,
-            QueueLimit = 0,
-            AutoReplenishment = true
-          }));
     });
 
     return services;
@@ -57,7 +47,6 @@ internal static class WebApplicationExtensions {
 
   public static WebApplication MapGrpcServices(this WebApplication app) {
     app.MapGrpcService<ShoppingGrpcService>();
-    app.MapGrpcService<MarketGrpcService>().RequireRateLimiting("market");
     app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
 
     return app;

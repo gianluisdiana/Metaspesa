@@ -5,7 +5,7 @@ using Metaspesa.Database.Exceptions;
 using Metaspesa.Domain.Identity.Errors;
 using Metaspesa.Domain.Markets.Errors;
 using Metaspesa.GrpcApi.Interceptors;
-using Metaspesa.GrpcApi.Protos.Markets;
+using Metaspesa.GrpcApi.Protos.Shopping;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
@@ -22,9 +22,9 @@ public class ExceptionInterceptorTests {
   [Fact(DisplayName = "Rethrows RpcException without modification")]
   public async Task UnaryServerHandler_RethrowsRpcException_WithoutModification() {
     // Arrange
-    var request = new GetMarketProductsRequest();
+    var request = new GetShoppingListRequest();
     var rpcException = new RpcException(new Status(StatusCode.InvalidArgument, "Invalid argument"));
-    Task<Empty> continuation(GetMarketProductsRequest _, ServerCallContext __) => throw rpcException;
+    Task<Empty> continuation(GetShoppingListRequest _, ServerCallContext __) => throw rpcException;
 
     // Act
     RpcException exception = await Assert.ThrowsAsync<RpcException>(() =>
@@ -37,8 +37,8 @@ public class ExceptionInterceptorTests {
   [Fact(DisplayName = "Throws cancelled RpcException when OperationCanceledException is thrown and cancellation is requested")]
   public async Task UnaryServerHandler_ThrowsCancelledRpcException_WhenCancellationIsRequested() {
     // Arrange
-    var request = new GetMarketProductsRequest();
-    static Task<Empty> continuation(GetMarketProductsRequest _, ServerCallContext __) =>
+    var request = new GetShoppingListRequest();
+    static Task<Empty> continuation(GetShoppingListRequest _, ServerCallContext __) =>
       throw new OperationCanceledException("Operation was canceled");
 
     using var cancellationTokenSource = new CancellationTokenSource();
@@ -56,9 +56,9 @@ public class ExceptionInterceptorTests {
   [Fact(DisplayName = "Throws internal RpcException when db exception is thrown")]
   public async Task UnaryServerHandler_ThrowsInternalRpcException_WhenDatabaseExceptionIsThrown() {
     // Arrange
-    var request = new GetMarketProductsRequest();
+    var request = new GetShoppingListRequest();
 
-    static Task<Empty> continuation(GetMarketProductsRequest _, ServerCallContext __) =>
+    static Task<Empty> continuation(GetShoppingListRequest _, ServerCallContext __) =>
       throw new DatabaseException("Database error");
 
     // Act
@@ -71,9 +71,9 @@ public class ExceptionInterceptorTests {
 
   [Fact(DisplayName = "Maps argument-out-of-range exception to invalid argument")]
   public async Task UnaryServerHandler_MapsArgumentOutOfRange_ToInvalidArgument() {
-    var request = new GetMarketProductsRequest();
+    var request = new GetShoppingListRequest();
     static Task<Empty> continuation(
-      GetMarketProductsRequest invalidRequest,
+      GetShoppingListRequest invalidRequest,
       ServerCallContext _
     ) {
       ArgumentNullException.ThrowIfNull(invalidRequest);
@@ -107,9 +107,9 @@ public class ExceptionInterceptorTests {
     IdentityDomainException originalException, StatusCode expectedStatusCode
   ) {
     // Arrange
-    var request = new GetMarketProductsRequest();
+    var request = new GetShoppingListRequest();
 
-    Task<Empty> continuation(GetMarketProductsRequest _, ServerCallContext __) =>
+    Task<Empty> continuation(GetShoppingListRequest _, ServerCallContext __) =>
       throw originalException;
 
     // Act
@@ -122,9 +122,9 @@ public class ExceptionInterceptorTests {
 
   [Fact(DisplayName = "Maps market domain exception to invalid argument with error metadata")]
   public async Task UnaryServerHandler_MapsMarketDomainException_ToRpcException() {
-    var request = new GetMarketProductsRequest();
+    var request = new GetShoppingListRequest();
     var domainException = new InvalidProductNameException("");
-    Task<Empty> continuation(GetMarketProductsRequest _, ServerCallContext __) =>
+    Task<Empty> continuation(GetShoppingListRequest _, ServerCallContext __) =>
       throw domainException;
 
     RpcException exception = await Assert.ThrowsAsync<RpcException>(() =>
@@ -141,8 +141,8 @@ public class ExceptionInterceptorTests {
   [Fact(DisplayName = "Throws internal RpcException when unhandled exception is thrown")]
   public async Task UnaryServerHandler_ThrowsInternalRpcException_WhenUnhandledExceptionIsThrown() {
     // Arrange
-    var request = new GetMarketProductsRequest();
-    static Task<Empty> continuation(GetMarketProductsRequest _, ServerCallContext __) =>
+    var request = new GetShoppingListRequest();
+    static Task<Empty> continuation(GetShoppingListRequest _, ServerCallContext __) =>
       throw new NotSupportedException("Unhandled exception");
 
     // Act

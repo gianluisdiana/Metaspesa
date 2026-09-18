@@ -1,5 +1,4 @@
 using System.Globalization;
-using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Shopping;
 
 namespace Metaspesa.GrpcApi.Extensions;
@@ -38,31 +37,6 @@ internal static class ProtosExtensions {
     Checked = item.IsChecked,
     ProductFormatUid = item.Format.ProductFormatUid,
   };
-
-  public static Protos.Markets.MarketSummary ToProto(this MarketSummary summary) =>
-    new() { Name = summary.Name, LogoUrl = summary.LogoUrl?.ToString() ?? string.Empty };
-
-  public static Protos.Markets.Market ToProto(this MarketCatalog market) =>
-    new() {
-      Name = market.Name,
-      Products = { market.Products.Select(p => p.ToProto()) },
-    };
-
-  private static Protos.Markets.MarketProduct ToProto(this MarketProduct product) =>
-    new() {
-      Name = product.Name,
-      BrandName = product.BrandName,
-      Formats = {
-        product.Formats.Select(f => new Protos.Markets.MarketProductFormat {
-          Quantity = string.Create(
-            CultureInfo.InvariantCulture,
-            $"{f.Quantity.Amount:G} {f.Quantity.UnitOfMeasure.Value}"),
-          Price = GrpcPriceConverter.ToProto(f.Price.Amount),
-          ImageUrl = f.ImageUrl?.ToString() ?? string.Empty,
-          ProductFormatUid = f.ProductFormatUid,
-        }),
-      },
-    };
 
   public static AddItemsToList.CommandItem ToAddItemsCommand(
     this Protos.Shopping.AShoppingItem protoItem
