@@ -2,16 +2,22 @@
 
   <PropertyGroup>
     <RootNamespace>Metaspesa.RestApi</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.OpenApi" />
     <ProjectReference Include="..\Database\Database.csproj" />
     <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
     <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
+  <Target Name="GenerateOpenApiYaml" AfterTargets="Build"
+          Condition="'$(DesignTimeBuild)' != 'true'">
+    <Exec Command="dotnet &quot;$(TargetPath)&quot; --generate-openapi &quot;$(MSBuildProjectDirectory)/openapi.yaml&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          EnvironmentVariables="ASPNETCORE_ENVIRONMENT=Development;DOTNET_ENVIRONMENT=Development;POSTGRES_CONNECTION_STRING=Host=localhost" />
+  </Target>
 
 </Project>
