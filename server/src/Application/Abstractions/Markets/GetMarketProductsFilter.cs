@@ -1,35 +1,30 @@
 using Metaspesa.Application.Abstractions.Core;
+using Metaspesa.Domain.Markets;
 
 namespace Metaspesa.Application.Abstractions.Markets;
 
-public record GetMarketProductsFilter {
+public sealed record GetMarketProductsFilter {
   public GetMarketProductsFilter(
-    string? marketName,
-    string? brandNameSegment,
     string? nameSegment,
-    Pagination? pagination
+    IReadOnlyCollection<MarketId> marketIds,
+    string? brandNameSegment,
+    Pagination pagination,
+    CatalogSort sort = CatalogSort.Name
   ) {
-    if (pagination is { IsInfinite: false, Index: <= 0 }) {
-      throw new ArgumentOutOfRangeException(
-        nameof(pagination),
-        pagination.Index,
-        "Page index must be greater than 0.");
-    }
-    if (pagination is { IsInfinite: false, Size: <= 0 }) {
-      throw new ArgumentOutOfRangeException(
-        nameof(pagination),
-        pagination.Size,
-        "Page size must be greater than 0.");
-    }
-
-    MarketName = marketName;
+    ArgumentNullException.ThrowIfNull(pagination);
+    ArgumentNullException.ThrowIfNull(marketIds);
+    MarketIds = [.. marketIds.Select(id => new MarketId(id.Value))];
     BrandNameSegment = brandNameSegment;
     NameSegment = nameSegment;
     Pagination = pagination;
+    Sort = sort;
   }
 
-  public string? MarketName { get; init; }
-  public string? BrandNameSegment { get; init; }
-  public string? NameSegment { get; init; }
-  public Pagination? Pagination { get; init; }
+  public IReadOnlyCollection<MarketId> MarketIds { get; }
+  public string? BrandNameSegment { get; }
+  public string? NameSegment { get; }
+  public Pagination Pagination { get; }
+  public CatalogSort Sort { get; }
 }
+
+public enum CatalogSort { Name, PriceAsc, PriceDesc }

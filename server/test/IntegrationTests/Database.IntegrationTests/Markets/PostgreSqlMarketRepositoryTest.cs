@@ -80,6 +80,7 @@ public class PostgreSqlMarketRepositoryTest : IAsyncLifetime {
         TestContext.Current.CancellationToken);
 
     MarketSummary summary = Assert.Single(summaries);
+    Assert.True(summary.Id > 0);
     Assert.Equal(new Uri("https://example.test/mercadona.png"), summary.LogoUrl);
   }
 

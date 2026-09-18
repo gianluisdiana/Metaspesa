@@ -7,27 +7,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Metaspesa.Database.Repositories;
 
-internal static class IQueryableExtensions {
-  public static IQueryable<ProductDbEntity> ApplyFilter(
-    this IQueryable<ProductDbEntity> query, GetMarketProductsFilter filter
-  ) {
-    if (filter.MarketName is not null) {
-      query = query.Where(product =>
-        EF.Functions.ILike(product.SuperMarket.Name, filter.MarketName));
-    }
-    if (filter.BrandNameSegment is not null) {
-      query = query.Where(product => EF.Functions.ILike(
-        product.Brand.Name, $"%{filter.BrandNameSegment}%"));
-    }
-    if (filter.NameSegment is not null) {
-      query = query.Where(product => EF.Functions.ILike(
-        product.Name, $"%{filter.NameSegment}%"));
-    }
-
-    return query;
-  }
-}
-
 internal partial class PostgreSqlMarketProductRepository(
   MainContext context
 ) : IProductRepository {
@@ -58,20 +37,69 @@ internal partial class PostgreSqlMarketProductRepository(
     return entity?.MapToDomain();
   }, "Couldn't get product.");
 
-  public async Task<PagedResult<MarketCatalog>> GetProductsAsync(
+  public async Task<PagedResult<CatalogProduct>> GetProductsAsync(
     GetMarketProductsFilter filter, CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
     IQueryable<ProductDbEntity> query = context.Products
-      .Include(product => product.Brand)
-      .Include(product => product.SuperMarket)
-      .Where(product => product.Formats.Any(format => format.PriceSnapshots.Count > 0))
-      .ApplyFilter(filter);
+      .AsNoTracking()
+      .Where(product => product.Formats.Any(format => format.PriceSnapshots.Count > 0));
+
+    if (!string.IsNullOrWhiteSpace(filter.NameSegment)) {
+      query = query.Where(product => EF.Functions.ILike(
+        product.Name, $"%{EscapeLike(filter.NameSegment)}%", "\\"));
+    }
+    if (filter.MarketIds.Count > 0) {
+      int[] marketIds = [.. filter.MarketIds.Select(id => id.Value)];
+      query = query.Where(product => marketIds.Contains(product.SuperMarketId));
+    }
+    if (!string.IsNullOrWhiteSpace(filter.BrandNameSegment)) {
+      query = query.Where(product => EF.Functions.ILike(
+        product.Brand.Name, $"%{EscapeLike(filter.BrandNameSegment)}%", "\\"));
+    }
 
     int totalCount = await query.CountAsync(cancellationToken);
-    List<ProductDbEntity> entities = await LoadProductPageAsync(
-      query, filter, cancellationToken);
+    IOrderedQueryable<ProductDbEntity> ordered = filter.Sort switch {
+      CatalogSort.PriceAsc => query.OrderBy(product => product.Formats
+        .Where(format => format.PriceSnapshots.Count > 0)
+        .Min(format => format.PriceSnapshots
+          .OrderByDescending(snapshot => snapshot.ObservedAt)
+          .ThenByDescending(snapshot => snapshot.Id)
+          .Select(snapshot => snapshot.PriceAmount).First())),
+      CatalogSort.PriceDesc => query.OrderByDescending(product => product.Formats
+        .Where(format => format.PriceSnapshots.Count > 0)
+        .Min(format => format.PriceSnapshots
+          .OrderByDescending(snapshot => snapshot.ObservedAt)
+          .ThenByDescending(snapshot => snapshot.Id)
+          .Select(snapshot => snapshot.PriceAmount).First())),
+      _ => query.OrderBy(product => product.Name),
+    };
 
-    return new PagedResult<MarketCatalog>(MapCatalogs(entities), totalCount);
+    List<ProductDbEntity> products = await ordered
+      .ThenBy(product => product.Name)
+      .ThenBy(product => product.Id)
+      .Skip(filter.Pagination.Skip)
+      .Take(filter.Pagination.Size)
+      .Include(product => product.Brand)
+      .Include(product => product.SuperMarket)
+      .Include(product => product.Formats)
+      .ThenInclude(format => format.UnitOfMeasure)
+      .Include(product => product.Formats)
+      .ThenInclude(format => format.PriceSnapshots)
+      .AsSplitQuery()
+      .ToListAsync(cancellationToken);
+
+    return new PagedResult<CatalogProduct>([
+      .. products.Select(product => new CatalogProduct(
+        product.Id,
+        product.Name,
+        product.Brand.Name,
+        new MarketSummary(product.SuperMarketId, product.SuperMarket.Name,
+          ToUri(product.SuperMarket.LogoUrl)),
+        [.. product.Formats
+          .Where(format => format.PriceSnapshots.Count > 0)
+          .OrderBy(format => format.Id)
+          .Select(ToCatalogFormat)]))
+    ], totalCount);
   }, "Couldn't get market products.");
 
   public async Task<IReadOnlyDictionary<int, MarketProduct>> GetProductsAsync(
@@ -201,46 +229,16 @@ internal partial class PostgreSqlMarketProductRepository(
       .ExecuteDeleteAsync(cancellationToken);
   }, "Couldn't delete product formats.");
 
-  private static async Task<List<ProductDbEntity>> LoadProductPageAsync(
-    IQueryable<ProductDbEntity> query,
-    GetMarketProductsFilter filter,
-    CancellationToken cancellationToken
-  ) {
-    IQueryable<ProductDbEntity> orderedQuery = query
-      .Include(product => product.Formats)
-      .ThenInclude(format => format.UnitOfMeasure)
-      .Include(product => product.Formats)
-      .ThenInclude(format => format.PriceSnapshots)
-      .OrderBy(product => product.SuperMarket.Name)
-      .ThenBy(product => product.Name);
-
-    if (filter.Pagination is null || filter.Pagination.IsInfinite) {
-      return await orderedQuery.ToListAsync(cancellationToken);
-    }
-
-    return await orderedQuery
-      .Skip(filter.Pagination.Skip)
-      .Take(filter.Pagination.Size)
-      .ToListAsync(cancellationToken);
+  private static CatalogFormat ToCatalogFormat(ProductFormatDbEntity format) {
+    PriceSnapshotDbEntity snapshot = format.PriceSnapshots
+      .OrderByDescending(value => value.ObservedAt)
+      .ThenByDescending(value => value.Id)
+      .First();
+    return new CatalogFormat(
+      format.Id, format.Quantity, format.UnitOfMeasure.Code,
+      snapshot.PriceAmount, snapshot.CurrencyCode, ToUri(format.ImageUrl),
+      DateTime.SpecifyKind(snapshot.ObservedAt, DateTimeKind.Utc));
   }
-
-  private static IReadOnlyCollection<MarketCatalog> MapCatalogs(
-    IEnumerable<ProductDbEntity> products
-  ) => [
-    ..products.GroupBy(product => product.SuperMarket.Name)
-      .Select(group => new MarketCatalog(
-        group.Key,
-        [.. group.Select(ToReadModel)]))
-  ];
-
-  private static MarketProduct ToReadModel(ProductDbEntity product) => new(
-    product.Name,
-    product.Brand.Name,
-    [
-      ..product.Formats
-        .Where(format => format.PriceSnapshots.Count > 0)
-        .Select(ToReadModel)
-    ]);
 
   private static MarketProductFormat ToReadModel(ProductFormatDbEntity format) {
     PriceSnapshotDbEntity snapshot = format.PriceSnapshots
@@ -507,4 +505,9 @@ internal partial class PostgreSqlMarketProductRepository(
     string.IsNullOrWhiteSpace(value)
       ? null
       : new Uri(value, UriKind.Absolute);
+
+  private static string EscapeLike(string value) => value
+    .Replace("\\", "\\\\", StringComparison.Ordinal)
+    .Replace("%", "\\%", StringComparison.Ordinal)
+    .Replace("_", "\\_", StringComparison.Ordinal);
 }

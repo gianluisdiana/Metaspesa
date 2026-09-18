@@ -6,7 +6,7 @@ namespace Metaspesa.Application.Abstractions.Markets;
 public interface IProductRepository {
   Task<Product?> GetByIdAsync(
     ProductId productId, CancellationToken cancellationToken);
-  Task<PagedResult<MarketCatalog>> GetProductsAsync(
+  Task<PagedResult<CatalogProduct>> GetProductsAsync(
     GetMarketProductsFilter filter, CancellationToken cancellationToken);
   Task<IReadOnlyDictionary<int, MarketProduct>> GetProductsAsync(
     IReadOnlyCollection<int> productFormatIds, CancellationToken cancellationToken);

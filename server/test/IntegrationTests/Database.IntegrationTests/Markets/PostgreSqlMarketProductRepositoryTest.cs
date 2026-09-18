@@ -131,8 +131,8 @@ public class PostgreSqlMarketProductRepositoryTests : IAsyncLifetime {
     await _productRepository.ResolveProductsAsync(
       market, UtcDate(2026, 7, 28), TestContext.Current.CancellationToken);
 
-    PagedResult<MarketCatalog> result = await _productRepository.GetProductsAsync(
-      new GetMarketProductsFilter(null, null, null, Pagination.Infinite),
+    PagedResult<CatalogProduct> result = await _productRepository.GetProductsAsync(
+      new GetMarketProductsFilter(null, [], null, new Pagination(1, 24)),
       TestContext.Current.CancellationToken);
 
     Assert.Empty(result.Values);
@@ -150,18 +150,17 @@ public class PostgreSqlMarketProductRepositoryTests : IAsyncLifetime {
         UtcDate(2026, 7, 29))],
       TestContext.Current.CancellationToken);
 
-    PagedResult<MarketCatalog> resultPage =
+    PagedResult<CatalogProduct> resultPage =
       await _productRepository.GetProductsAsync(
-      new GetMarketProductsFilter(null, null, null, Pagination.Infinite),
+      new GetMarketProductsFilter(null, [], null, new Pagination(1, 24)),
       TestContext.Current.CancellationToken);
 
-    MarketCatalog catalog = Assert.Single(resultPage.Values);
-    MarketProduct product = Assert.Single(catalog.Products);
-    MarketProductFormat format = Assert.Single(product.Formats);
-    Assert.Equal("Mercadona", catalog.Name);
+    CatalogProduct product = Assert.Single(resultPage.Values);
+    CatalogFormat format = Assert.Single(product.Formats);
+    Assert.Equal("Mercadona", product.Market.Name);
     Assert.Equal("Milk", product.Name);
-    Assert.Equal("Brand", product.BrandName);
-    Assert.Equal(new Money(2.49m), format.Price);
+    Assert.Equal("Brand", product.Brand);
+    Assert.Equal(2.49m, format.Price);
     Assert.Equal(1, resultPage.TotalCount);
   }
 
@@ -173,36 +172,38 @@ public class PostgreSqlMarketProductRepositoryTests : IAsyncLifetime {
       Assert.Single(import.PriceObservations).ProductFormatId;
 
     // Act
-    PagedResult<MarketCatalog> result = await _productRepository.GetProductsAsync(
-      new GetMarketProductsFilter(null, null, null, Pagination.Infinite),
+    PagedResult<CatalogProduct> result = await _productRepository.GetProductsAsync(
+      new GetMarketProductsFilter(null, [], null, new Pagination(1, 24)),
       TestContext.Current.CancellationToken);
 
     // Assert
-    MarketProduct product = Assert.Single(Assert.Single(result.Values).Products);
+    CatalogProduct product = Assert.Single(result.Values);
     Assert.Equal(
       persistedFormatId.Value,
-      Assert.Single(product.Formats).ProductFormatUid);
+      Assert.Single(product.Formats).Id);
   }
 
   [Fact(DisplayName = "Catalog applies market, brand, name, and pagination filters")]
   public async Task Repository_AppliesCatalogFilters_AndPagination() {
     await ResolveAndAppendAsync();
+    int marketId = await _context.SuperMarkets.Select(market => market.Id)
+      .SingleAsync(TestContext.Current.CancellationToken);
 
-    PagedResult<MarketCatalog> matching =
+    PagedResult<CatalogProduct> matching =
       await _productRepository.GetProductsAsync(
       new GetMarketProductsFilter(
-        "Mercadona",
-        "ran",
         "Mil",
+        [new MarketId(marketId)],
+        "ran",
         new Pagination(1, 1)),
       TestContext.Current.CancellationToken);
-    PagedResult<MarketCatalog> missing =
+    PagedResult<CatalogProduct> missing =
       await _productRepository.GetProductsAsync(
       new GetMarketProductsFilter(
-        "Other",
         null,
+        [new MarketId(int.MaxValue)],
         null,
-        Pagination.Infinite),
+        new Pagination(1, 24)),
       TestContext.Current.CancellationToken);
 
     Assert.Single(matching.Values);
@@ -228,13 +229,49 @@ public class PostgreSqlMarketProductRepositoryTests : IAsyncLifetime {
     await _snapshotRepository.AppendAsync(
       second.PriceObservations, TestContext.Current.CancellationToken);
 
-    PagedResult<MarketCatalog> result = await _productRepository.GetProductsAsync(
-      new GetMarketProductsFilter(null, null, null, new Pagination(2, 1)),
+    PagedResult<CatalogProduct> result = await _productRepository.GetProductsAsync(
+      new GetMarketProductsFilter(null, [], null, new Pagination(2, 1)),
       TestContext.Current.CancellationToken);
 
     Assert.Equal(2, result.TotalCount);
-    MarketProduct product = Assert.Single(Assert.Single(result.Values).Products);
+    CatalogProduct product = Assert.Single(result.Values);
     Assert.Equal("Yogurt", product.Name);
+  }
+
+  [Fact(DisplayName = "Repository filters by market and sorts by latest format price")]
+  public async Task Repository_FiltersByMarketAndSortsByLatestFormatPrice() {
+    ProductImportResult milk = await ResolveAndAppendAsync();
+    ProductFormatId milkFormatId = Assert.Single(milk.PriceObservations).ProductFormatId;
+    await _snapshotRepository.AppendAsync(
+      [new PriceObservation(milkFormatId, new Money(3.00m), UtcDate(2026, 7, 29))],
+      TestContext.Current.CancellationToken);
+    var secondImport = new MarketImport(
+      new MarketName("Mercadona"),
+      [new ProductImport(new ProductName("Yogurt"), new BrandName("Brand"),
+        [new ProductFormatImport(
+          new Quantity(1, new UnitOfMeasure("kg")), new Money(2.00m), null)])]);
+    ProductImportResult yogurt = await _productRepository.ResolveProductsAsync(
+      secondImport, UtcDate(2026, 7, 28), TestContext.Current.CancellationToken);
+    await _snapshotRepository.AppendAsync(
+      yogurt.PriceObservations, TestContext.Current.CancellationToken);
+    int marketId = await _context.SuperMarkets.Select(market => market.Id)
+      .SingleAsync(TestContext.Current.CancellationToken);
+    PagedResult<CatalogProduct> result = await _productRepository.GetProductsAsync(
+      new GetMarketProductsFilter(null, [new MarketId(marketId)], null,
+        new Pagination(1, 1),
+        CatalogSort.PriceAsc), TestContext.Current.CancellationToken);
+    PagedResult<CatalogProduct> missing = await _productRepository.GetProductsAsync(
+      new GetMarketProductsFilter(null, [new MarketId(int.MaxValue)], null,
+        new Pagination(1, 24),
+        CatalogSort.Name), TestContext.Current.CancellationToken);
+
+    Assert.Equal(2, result.TotalCount);
+    CatalogProduct product = Assert.Single(result.Values);
+    Assert.Equal("Yogurt", product.Name);
+    Assert.Equal(marketId, product.Market.Id);
+    Assert.Equal(2.00m, Assert.Single(product.Formats).Price);
+    Assert.Empty(missing.Values);
+    Assert.Equal(0, missing.TotalCount);
   }
 
   [Fact(DisplayName = "Returns shopping enrichment model by product format id")]

@@ -1,77 +1,73 @@
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Markets;
+using Metaspesa.Domain.Markets;
 using NSubstitute;
 
 namespace Metaspesa.Application.UnitTests.Markets;
 
 public class GetMarketProductsHandlerTest {
-  private readonly IProductRepository _productRepository;
+  private readonly IProductRepository _repository;
   private readonly GetMarketProducts.Handler _handler;
 
   public GetMarketProductsHandlerTest() {
-    _productRepository = Substitute.For<IProductRepository>();
-    _productRepository
-      .GetProductsAsync(
-        Arg.Any<GetMarketProductsFilter>(),
-        Arg.Any<CancellationToken>())
-      .Returns(new PagedResult<MarketCatalog>([], 0));
-    _handler = new GetMarketProducts.Handler(_productRepository);
+    _repository = Substitute.For<IProductRepository>();
+    _handler = new GetMarketProducts.Handler(_repository);
   }
 
-  [Fact(DisplayName = "Passes filters and pagination to product repository")]
-  public async Task Handler_PassesFilter_ToProductRepository() {
+  [Fact]
+  public async Task Handle_ReturnsProductsProvidedByRepository() {
+    var filter = new GetMarketProductsFilter(null, [], null, new Pagination(1, 10));
+    var expected = new PagedResult<CatalogProduct>([], 42);
+    _repository.GetProductsAsync(filter, TestContext.Current.CancellationToken)
+      .Returns(expected);
+
+    PagedResult<CatalogProduct> result = await _handler
+      .Handle(new GetMarketProducts.Query(filter), TestContext.Current.CancellationToken);
+
+    Assert.Same(expected, result);
+  }
+
+  [Fact]
+  public async Task Handle_PassesRequestedFilterToRepository() {
     var filter = new GetMarketProductsFilter(
-      "Mercadona",
-      "Hacendado",
-      "leche",
-      new Pagination(3, 10));
+      "Milk", [new MarketId(1), new MarketId(2)], "Brand",
+      new Pagination(3, 10), CatalogSort.PriceDesc);
 
-    await _handler.Handle(
-      new GetMarketProducts.Query(filter),
-      TestContext.Current.CancellationToken);
+    await _handler
+      .Handle(new GetMarketProducts.Query(filter), TestContext.Current.CancellationToken);
 
-    await _productRepository.Received(1).GetProductsAsync(
-      Arg.Is<GetMarketProductsFilter>(value =>
-        value.MarketName == "Mercadona" &&
-        value.BrandNameSegment == "Hacendado" &&
-        value.NameSegment == "leche" &&
-        value.Pagination!.Index == 3 &&
-        value.Pagination.Size == 10),
-      TestContext.Current.CancellationToken);
+    await _repository.Received(1).GetProductsAsync(
+      filter, Arg.Any<CancellationToken>());
   }
 
-  [Fact(DisplayName = "Assigns infinite pagination when pagination is missing")]
-  public async Task Handler_AssignsInfinitePagination_WhenPaginationIsMissing() {
-    var filter = new GetMarketProductsFilter(null, null, null, null);
+  [Fact]
+  public async Task Handle_PassesCancellationTokenToRepository() {
+    var filter = new GetMarketProductsFilter(null, [], null, new Pagination(1, 10));
+    using var cancellation = new CancellationTokenSource();
 
-    await _handler.Handle(
-      new GetMarketProducts.Query(filter),
-      TestContext.Current.CancellationToken);
+    await _handler
+      .Handle(new GetMarketProducts.Query(filter), cancellation.Token);
 
-    await _productRepository.Received(1).GetProductsAsync(
-      Arg.Is<GetMarketProductsFilter>(value =>
-        value.Pagination != null && value.Pagination.IsInfinite),
-      TestContext.Current.CancellationToken);
+    await _repository.Received(1).GetProductsAsync(
+      Arg.Any<GetMarketProductsFilter>(), cancellation.Token);
   }
 
-  [Fact(DisplayName = "Returns catalog and total count from product repository")]
-  public async Task Handler_ReturnsCatalog_FromProductRepository() {
-    var catalogs = new List<MarketCatalog> {
-      new("Mercadona", [new MarketProduct("Milk", "Brand", [])]),
-    };
-    _productRepository
-      .GetProductsAsync(
-        Arg.Any<GetMarketProductsFilter>(),
-        Arg.Any<CancellationToken>())
-      .Returns(new PagedResult<MarketCatalog>(catalogs, 42));
+  [Fact]
+  public async Task Handle_RejectsNullQuery() {
+    await Assert.ThrowsAsync<ArgumentNullException>(() =>
+      _handler.Handle(null!, TestContext.Current.CancellationToken));
+  }
 
-    PagedResult<MarketCatalog> result = await _handler.Handle(
-      new GetMarketProducts.Query(
-        new GetMarketProductsFilter(null, null, null, null)),
-      TestContext.Current.CancellationToken);
+  [Fact]
+  public async Task Handle_PropagatesRepositoryFailure() {
+    var filter = new GetMarketProductsFilter(null, [], null, new Pagination(1, 10));
+    _repository.GetProductsAsync(filter, TestContext.Current.CancellationToken)
+      .Returns<Task<PagedResult<CatalogProduct>>>(_ =>
+        throw new InvalidOperationException("Repository unavailable"));
 
-    Assert.Single(result.Values);
-    Assert.Equal(42, result.TotalCount);
+    await Assert.ThrowsAsync<InvalidOperationException>(() =>
+      _handler.Handle(new GetMarketProducts.Query(filter),
+          TestContext.Current.CancellationToken));
   }
 }

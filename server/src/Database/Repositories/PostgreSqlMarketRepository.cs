@@ -12,7 +12,10 @@ internal class PostgreSqlMarketRepository(
     CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync(
     async () => await context.SuperMarkets
+      .OrderBy(market => market.Name)
+      .ThenBy(market => market.Id)
       .Select(market => new MarketSummary(
+        market.Id,
         market.Name,
         market.LogoUrl == null ? null : new Uri(market.LogoUrl)))
       .ToListAsync(cancellationToken),

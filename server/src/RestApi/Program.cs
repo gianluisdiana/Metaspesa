@@ -25,7 +25,7 @@ if (app.Environment.IsDevelopment()) {
   app.MapOpenApi("/openapi/{documentName}.yaml");
 }
 app.MapIdentityEndpoints();
-app.MapSnapshotEndpoint();
+app.MapMarketEndpoints();
 app.MapDefaultEndpoints();
 
 if (args is ["--generate-openapi", string outputPath]) {

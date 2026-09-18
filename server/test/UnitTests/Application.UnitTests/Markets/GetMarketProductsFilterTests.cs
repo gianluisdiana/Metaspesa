@@ -1,59 +1,100 @@
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Markets;
+using Metaspesa.Domain.Markets;
+using Metaspesa.Domain.Markets.Errors;
 
 namespace Metaspesa.Application.UnitTests.Markets;
 
 public class GetMarketProductsFilterTests {
-  [Theory(DisplayName = "Throws when finite page index is not positive")]
-  [InlineData(0)]
-  [InlineData(-1)]
-  public void Constructor_Throws_WhenPageIndexIsNotPositive(int index) {
-    void action() => _ = new GetMarketProductsFilter(
-      null, null, null, new Pagination(index, 20));
+  [Fact]
+  public void Constructor_RejectsNullMarketIds() {
+    var pagination = new Pagination(1, 24);
 
-    ArgumentOutOfRangeException exception =
-      Assert.Throws<ArgumentOutOfRangeException>(action);
-
-    Assert.Equal("pagination", exception.ParamName);
-    Assert.Equal(index, exception.ActualValue);
+    Assert.Throws<ArgumentNullException>(() =>
+      new GetMarketProductsFilter(null, null!, null, pagination));
   }
 
-  [Theory(DisplayName = "Throws when finite page size is not positive")]
-  [InlineData(0)]
-  [InlineData(-5)]
-  public void Constructor_Throws_WhenPageSizeIsNotPositive(int size) {
-    void action() => _ = new GetMarketProductsFilter(
-      null, null, null, new Pagination(1, size));
+  [Fact]
+  public void Constructor_RejectsNullPagination() {
+    IReadOnlyCollection<MarketId> marketIds = [];
 
-    ArgumentOutOfRangeException exception =
-      Assert.Throws<ArgumentOutOfRangeException>(action);
-
-    Assert.Equal("pagination", exception.ParamName);
-    Assert.Equal(size, exception.ActualValue);
+    Assert.Throws<ArgumentNullException>(() =>
+      new GetMarketProductsFilter(null, marketIds, null, null!));
   }
 
-  [Fact(DisplayName = "Accepts missing pagination")]
-  public void Constructor_Accepts_WhenPaginationIsNull() {
-    var filter = new GetMarketProductsFilter(null, null, null, null);
+  [Fact]
+  public void Constructor_RejectsDefaultMarketIdBecauseItIsNotPositive() =>
+    Assert.Throws<InvalidMarketIdException>(() =>
+      new GetMarketProductsFilter(null, [default], null,
+        new Pagination(1, 24)));
 
-    Assert.Null(filter.Pagination);
-  }
-
-  [Fact(DisplayName = "Accepts infinite pagination")]
-  public void Constructor_Accepts_WhenPaginationIsInfinite() {
+  [Fact]
+  public void Constructor_AcceptsNoMarketIds() {
     var filter = new GetMarketProductsFilter(
-      null, null, null, Pagination.Infinite);
+      null, [], null, new Pagination(1, 24));
 
-    Assert.NotNull(filter.Pagination);
-    Assert.True(filter.Pagination.IsInfinite);
+    Assert.Empty(filter.MarketIds);
   }
 
-  [Fact(DisplayName = "Accepts positive finite pagination")]
-  public void Constructor_Accepts_WhenPaginationIsPositive() {
-    var pagination = new Pagination(1, 20);
+  [Fact]
+  public void Constructor_KeepsAllSelectedMarketIds() {
+    MarketId[] marketIds = [new MarketId(2), new MarketId(4)];
 
-    var filter = new GetMarketProductsFilter(null, null, null, pagination);
+    var filter = new GetMarketProductsFilter(
+      null, marketIds, null, new Pagination(1, 24));
 
-    Assert.Equal(pagination, filter.Pagination);
+    Assert.Equal(marketIds, filter.MarketIds);
+  }
+
+  [Fact]
+  public void Constructor_CopiesMarketIdsSoLaterInputChangesDoNotAlterFilter() {
+    MarketId[] marketIds = [new MarketId(2)];
+    var filter = new GetMarketProductsFilter(
+      null, marketIds, null, new Pagination(1, 24));
+
+    marketIds[0] = new MarketId(4);
+
+    Assert.Equal<MarketId>([new MarketId(2)], filter.MarketIds);
+  }
+
+  [Fact]
+  public void Constructor_KeepsProductNameSearchSegment() {
+    var filter = new GetMarketProductsFilter(
+      "Milk", [], null, new Pagination(1, 24));
+
+    Assert.Equal("Milk", filter.NameSegment);
+  }
+
+  [Fact]
+  public void Constructor_KeepsBrandNameSearchSegment() {
+    var filter = new GetMarketProductsFilter(
+      null, [], "Brand", new Pagination(1, 24));
+
+    Assert.Equal("Brand", filter.BrandNameSegment);
+  }
+
+  [Fact]
+  public void Constructor_UsesNameSortByDefault() {
+    var filter = new GetMarketProductsFilter(
+      null, [], null, new Pagination(1, 24));
+
+    Assert.Equal(CatalogSort.Name, filter.Sort);
+  }
+
+  [Fact]
+  public void Constructor_KeepsRequestedPriceSort() {
+    var filter = new GetMarketProductsFilter(
+      null, [], null, new Pagination(1, 24), CatalogSort.PriceDesc);
+
+    Assert.Equal(CatalogSort.PriceDesc, filter.Sort);
+  }
+
+  [Fact]
+  public void Constructor_KeepsValidatedPagination() {
+    var pagination = new Pagination(3, 10);
+
+    var filter = new GetMarketProductsFilter(null, [], null, pagination);
+
+    Assert.Same(pagination, filter.Pagination);
   }
 }

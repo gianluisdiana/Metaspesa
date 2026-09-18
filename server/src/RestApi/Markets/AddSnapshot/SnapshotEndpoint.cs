@@ -3,19 +3,37 @@ using Metaspesa.Application.Markets;
 using Metaspesa.Domain.Identity;
 using Metaspesa.Infrastructure;
 
-namespace Metaspesa.RestApi.Markets;
+namespace Metaspesa.RestApi.Markets.AddSnapshot;
 
 internal static class SnapshotEndpoint {
   public static IEndpointRouteBuilder MapSnapshotEndpoint(
     this IEndpointRouteBuilder endpoints
   ) {
-    endpoints.MapPost("/api/v1/markets/{marketName}/snapshots/{date}", HandleAsync)
+    endpoints.MapPost("/markets/{marketName}/snapshots/{date}", HandleAsync)
+      .WithName("AddMarketSnapshot")
+      .Produces(StatusCodes.Status204NoContent)
+      .ProducesProblem(StatusCodes.Status400BadRequest)
+      .Produces(StatusCodes.Status401Unauthorized)
+      .Produces(StatusCodes.Status403Forbidden)
+      .ProducesProblem(StatusCodes.Status500InternalServerError)
       .RequireAuthorization(policy => policy
         .RequireAuthenticatedUser()
         .RequireRole(nameof(Role.ProductManager)));
     return endpoints;
   }
 
+  /// <summary>Import a market price snapshot.</summary>
+  /// <remarks>Import product observations for a market and date. Requires authentication with the ProductManager role.</remarks>
+  /// <param name="marketName">Name of the observed market.</param>
+  /// <param name="date">Observation date in YYYY-MM-DD format, on or after 2023-01-01.</param>
+  /// <param name="handler">Market import use case.</param>
+  /// <param name="cancellationToken">Request cancellation token.</param>
+  /// <param name="request">Product observations for the market and date.</param>
+  /// <response code="204">Snapshot imported; no response body.</response>
+  /// <response code="400">The date or a product observation is invalid.</response>
+  /// <response code="401">No valid authentication token was provided.</response>
+  /// <response code="403">The authenticated user lacks the ProductManager role.</response>
+  /// <response code="500">An unexpected server or database failure occurred.</response>
   internal static async Task<IResult> HandleAsync(
     string marketName,
     string date,

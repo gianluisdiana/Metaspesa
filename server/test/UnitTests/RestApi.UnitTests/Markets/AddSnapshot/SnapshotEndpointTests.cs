@@ -1,8 +1,8 @@
 using Metaspesa.Application.Markets;
-using Metaspesa.RestApi.Markets;
+using Metaspesa.RestApi.Markets.AddSnapshot;
 using Microsoft.AspNetCore.Http;
 
-namespace Metaspesa.RestApi.UnitTests.Markets;
+namespace Metaspesa.RestApi.UnitTests.Markets.AddSnapshot;
 
 public static class SnapshotEndpointTests {
   [Fact]
