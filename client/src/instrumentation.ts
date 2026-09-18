@@ -23,7 +23,9 @@ export async function register() {
   const sdk = new NodeSDK({
     instrumentations: [getNodeAutoInstrumentations()],
     logRecordProcessors: [
-      new BatchLogRecordProcessor(new OTLPLogExporter({ url: otlpEndpoint })),
+      new BatchLogRecordProcessor({
+        exporter: new OTLPLogExporter({ url: otlpEndpoint }),
+      }),
     ],
     metricReader: new PeriodicExportingMetricReader({
       exportIntervalMillis: Number(
