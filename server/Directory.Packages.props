@@ -7,7 +7,7 @@
     <PackageVersion Include="Grpc.AspNetCore.Server.Reflection" Version="2.83.0" />
     <PackageVersion Include="Grpc.Core.Testing" Version="2.46.6" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.7" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.12" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.12" />
@@ -21,13 +21,13 @@
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="10.0.3" />
     <PackageVersion Include="NSubstitute" Version="6.2.0" />
     <PackageVersion Include="NSubstitute.Analyzers.CSharp" Version="1.0.17" />
-    <PackageVersion Include="Microsoft.OpenApi" Version="2.7.5" />
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.18.0" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.18.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.18.0" />
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.12.2" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.19.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.19.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.19.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.15.1-beta.1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.18.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.18.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.19.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.19.0" />
     <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.34.0.3385" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.15.0" />
     <PackageVersion Include="xunit.v3" Version="4.0.1" />
