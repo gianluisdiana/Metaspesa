@@ -20,13 +20,6 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@/generated-protos/*": ["./src/infrastructure/protos_generated/*.ts"],
-      "@/generated-protos/shopping/*": [
-        "./src/infrastructure/protos_generated/Metaspesa/Protos/Shopping/*"
-      ],
-      "@/generated-protos/markets/*": [
-        "./src/infrastructure/protos_generated/Metaspesa/Protos/Markets/*"
-      ]
     }
   },
   "include": [

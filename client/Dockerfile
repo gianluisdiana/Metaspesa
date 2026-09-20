@@ -13,7 +13,6 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-RUN pnpm run generate-proto
 RUN pnpm run build
 
 FROM node:26.8-alpine AS runner
@@ -28,6 +27,5 @@ COPY --from=builder /client/pnpm-workspace.yaml ./
 COPY --from=builder /client/node_modules ./node_modules
 COPY --from=builder /client/.next ./.next
 COPY --from=builder /client/next.config.* ./
-COPY --from=builder /client/src/infrastructure/protos ./src/infrastructure/protos
 
 ENTRYPOINT ["npm", "run", "start"]

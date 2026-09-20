@@ -1,5 +1,6 @@
 import { CredentialsMessage } from '@/lib/auth-contracts';
 import AuthService from '@/lib/auth-service';
+import { getRestApiUrl } from '@/lib/rest-api-url';
 
 interface ProblemDetails {
   title?: unknown;
@@ -11,8 +12,7 @@ export default class RestAuthService implements AuthService {
   private readonly baseUrl: string;
 
   public constructor(
-    baseUrl = process.env.NEXT_PUBLIC_REST_API_URL ??
-      'http://localhost:4001/api/v1',
+    baseUrl = getRestApiUrl(),
     private readonly fetcher: Fetcher = globalThis.fetch.bind(globalThis),
   ) {
     this.baseUrl = baseUrl.replace(/\/$/, '');

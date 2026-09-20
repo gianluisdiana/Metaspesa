@@ -7,6 +7,7 @@ import {
   MarketProductsResult,
   MarketSummaryMessage,
 } from '@/lib/market-contracts';
+import { getRestApiUrl } from '@/lib/rest-api-url';
 
 type Fetcher = (input: string, init: RequestInit) => Promise<Response>;
 
@@ -14,8 +15,7 @@ export default class RestMarketApiService implements MarketApiService {
   private readonly baseUrl: string;
 
   public constructor(
-    baseUrl = process.env.NEXT_PUBLIC_REST_API_URL ??
-      'http://localhost:4001/api/v1',
+    baseUrl = getRestApiUrl(),
     private readonly fetcher: Fetcher = globalThis.fetch.bind(globalThis),
   ) {
     this.baseUrl = baseUrl.replace(/\/$/, '');

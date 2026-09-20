@@ -95,8 +95,8 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: client
 
-      - name: Generate gRPC types
-        run: pnpm run generate-proto
+      - name: Generate open API type
+        run: pnpm run generate-api
         working-directory: client
 
       - name: Check lint and formatting
@@ -136,8 +136,8 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: client
 
-      - name: Generate gRPC types
-        run: pnpm run generate-proto
+      - name: Generate open API types
+        run: pnpm run generate-api
         working-directory: client
 
       - name: Test client

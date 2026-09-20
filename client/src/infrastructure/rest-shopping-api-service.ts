@@ -7,6 +7,7 @@ import {
   zShoppingListCollectionResponse,
   zShoppingListResponse,
 } from '@/infrastructure/openapi_generated/zod.gen';
+import { getRestApiUrl } from '@/lib/rest-api-url';
 import {
   ProductMessage,
   ShoppingItemUpdateMessage,
@@ -45,8 +46,7 @@ export default class RestShoppingApiService {
 
   public constructor(
     private readonly token?: string,
-    baseUrl = process.env.NEXT_PUBLIC_REST_API_URL ??
-      'http://localhost:4001/api/v1',
+    baseUrl = getRestApiUrl(),
     private readonly fetcher: Fetcher = globalThis.fetch.bind(globalThis),
   ) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
