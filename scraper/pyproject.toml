@@ -12,7 +12,7 @@ dependencies = [
     "opentelemetry-instrumentation-grpc>=0.62b0",
     "opentelemetry-instrumentation-httpx>=0.65b0",
     "opentelemetry-sdk>=1.30.0",
-    "playwright>=1.62.0",
+    "playwright>=1.63.0",
     "pydantic>=2.13.5",
     "pyyaml>=6.0.3",
 ]
@@ -24,7 +24,7 @@ dev = [
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
-    "ruff>=0.16.7",
+    "ruff>=0.16.8",
 ]
 
 [tool.ruff]
