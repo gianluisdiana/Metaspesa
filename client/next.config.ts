@@ -17,12 +17,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  outputFileTracingIncludes: {
-    '/*': ['src/infrastructure/protos/**/*.proto'],
-  },
   serverExternalPackages: [
-    '@grpc/grpc-js',
-    '@grpc/proto-loader',
     '@opentelemetry/api',
     '@opentelemetry/api-logs',
     '@opentelemetry/auto-instrumentations-node',
@@ -32,14 +27,6 @@ const nextConfig: NextConfig = {
     '@opentelemetry/sdk-logs',
     '@opentelemetry/sdk-node',
   ],
-  turbopack: {
-    ignoreIssue: [
-      {
-        path: 'src/infrastructure/grpc-client-factory.ts',
-        title: /^TP1105 /,
-      },
-    ],
-  },
 };
 
 export default nextConfig;

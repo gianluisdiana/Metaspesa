@@ -14,7 +14,7 @@ jobs:
           - name: server
             image: gianluisdiana/metaspesa_server
             context: ./server
-            dockerfile: ./server/src/GrpcApi/Dockerfile
+            dockerfile: ./server/src/RestApi/Dockerfile
 
           - name: migrations
             image: gianluisdiana/metaspesa_migrations

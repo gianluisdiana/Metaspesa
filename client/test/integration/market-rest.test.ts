@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 
 import RestMarketApiService from '@/infrastructure/rest-market-api-service';
 
-import { describeIfRest, restApiUrl } from './grpc-test-client';
+import { describeIfRest, restApiUrl } from './rest-test-client';
 
 const service = new RestMarketApiService(restApiUrl);
 

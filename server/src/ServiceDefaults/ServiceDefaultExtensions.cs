@@ -53,7 +53,6 @@ public static class ServiceDefaultExtensions {
             !context.Request.Path.StartsWithSegments(HealthEndpointPath, StringComparison.OrdinalIgnoreCase) &&
             !context.Request.Path.StartsWithSegments(AlivenessEndpointPath, StringComparison.OrdinalIgnoreCase)
         )
-        .AddGrpcClientInstrumentation()
         .AddHttpClientInstrumentation());
 
     builder.AddOpenTelemetryExporters();

@@ -7,4 +7,3 @@ appsettings.*.json
 
 # tests
 test/
-src/GrpcApi/

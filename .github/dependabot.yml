@@ -69,7 +69,7 @@ updates:
     directories:
       - "/client"
       - "/scraper"
-      - "/server/src/GrpcApi"
+      - "/server/src/RestApi"
       - "/server/src/MigrationService"
     schedule:
       interval: "weekly"

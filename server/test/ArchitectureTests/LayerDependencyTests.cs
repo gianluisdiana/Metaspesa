@@ -13,7 +13,6 @@ public class LayerDependencyTests {
   [InlineData("Metaspesa.Application")]
   [InlineData("Metaspesa.Database")]
   [InlineData("Metaspesa.Infrastructure")]
-  [InlineData("Metaspesa.GrpcApi")]
   [InlineData("Metaspesa.RestApi")]
   [InlineData("Metaspesa.MigrationService")]
   public void Domain_DoesNotDependOnOuterLayer(string forbiddenNamespace) =>
@@ -22,7 +21,6 @@ public class LayerDependencyTests {
   [Theory(DisplayName = "Application has no dependency on implementation layers")]
   [InlineData("Metaspesa.Database")]
   [InlineData("Metaspesa.Infrastructure")]
-  [InlineData("Metaspesa.GrpcApi")]
   [InlineData("Metaspesa.RestApi")]
   [InlineData("Metaspesa.MigrationService")]
   public void Application_DoesNotDependOnImplementationLayer(
@@ -30,7 +28,6 @@ public class LayerDependencyTests {
   ) => AssertNoDependency(ApplicationAssembly, forbiddenNamespace);
 
   [Theory(DisplayName = "View layers expose no Domain response models")]
-  [InlineData("GrpcApi", "Metaspesa.GrpcApi.Services")]
   [InlineData("RestApi", "Metaspesa.RestApi")]
   [InlineData("MigrationService", "Metaspesa.MigrationService")]
   public void ViewLayer_DoesNotExposeDomainResponseModels(
@@ -56,11 +53,7 @@ public class LayerDependencyTests {
   }
 
   [Theory(DisplayName = "View layers have no dependency on other views")]
-  [InlineData("GrpcApi", "Metaspesa.MigrationService")]
-  [InlineData("GrpcApi", "Metaspesa.RestApi")]
-  [InlineData("MigrationService", "Metaspesa.GrpcApi")]
   [InlineData("MigrationService", "Metaspesa.RestApi")]
-  [InlineData("RestApi", "Metaspesa.GrpcApi")]
   [InlineData("RestApi", "Metaspesa.MigrationService")]
   public void ViewLayer_DoesNotDependOnOtherView(
     string assemblyName,

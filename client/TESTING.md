@@ -16,22 +16,21 @@ Tests are split by cost and system boundary.
 ## Connected Tests
 
 - Integration: `pnpm run test:integration`
-  - Stack: Vitest with real REST and `@grpc/grpc-js` clients.
-  - Scope: REST authentication plus client-to-server gRPC contracts for shopping lists and market reads.
-  - Requires `GRPC_SERVER_URL` and `REST_API_URL`; specs without their required URLs are skipped.
+  - Stack: Vitest with real REST client.
+  - Scope: REST authentication contract for shopping lists and market reads.
+  - Requires `REST_API_URL`; specs are skipped when it is unset.
 
 Start required services from repository root against a fresh test database:
 
 ```powershell
 docker compose up -d db
 docker compose --profile tools run --rm -e SEED_PROFILE=integration migrations
-docker compose up -d server rest-api
+docker compose up -d rest-api
 ```
 
 Then run integration tests from `client/`:
 
 ```powershell
-$env:GRPC_SERVER_URL = 'localhost:4000'
 $env:REST_API_URL = 'http://localhost:4001/api/v1'
 pnpm run test:integration
 ```

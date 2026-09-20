@@ -20,7 +20,6 @@
     <ProjectReference Include="..\..\src\Application\Application.csproj" />
     <ProjectReference Include="..\..\src\Domain\Domain.csproj" />
     <ProjectReference Include="..\..\src\MigrationService\MigrationService.csproj" />
-    <ProjectReference Include="..\..\src\GrpcApi\GrpcApi.csproj" />
     <ProjectReference Include="..\..\src\RestApi\RestApi.csproj" />
   </ItemGroup>
 

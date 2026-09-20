@@ -3,7 +3,6 @@
     <Project Path="src/Application/Application.csproj" />
     <Project Path="src/Database/Database.csproj" />
     <Project Path="src/Domain/Domain.csproj" />
-    <Project Path="src/GrpcApi/GrpcApi.csproj" />
     <Project Path="src/Infrastructure/Infrastructure.csproj" />
     <Project Path="src/MigrationService/MigrationService.csproj" />
     <Project Path="src/RestApi/RestApi.csproj" />
@@ -20,7 +19,6 @@
     <Project Path="test/UnitTests/Application.UnitTests/Application.UnitTests.csproj" />
     <Project Path="test/UnitTests/Database.UnitTests/Database.UnitTests.csproj" />
     <Project Path="test/UnitTests/Domain.UnitTests/Domain.UnitTests.csproj" />
-    <Project Path="test/UnitTests/GrpcApi.UnitTests/GrpcApi.UnitTests.csproj" />
     <Project Path="test/UnitTests/Infrastructure.UnitTests/Infrastructure.UnitTests.csproj" />
     <Project Path="test/UnitTests/RestApi.UnitTests/RestApi.UnitTests.csproj" />
   </Folder>

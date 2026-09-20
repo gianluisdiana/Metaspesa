@@ -219,10 +219,6 @@ jobs:
         include:
           - name: server
             context: ./server
-            dockerfile: ./server/src/GrpcApi/Dockerfile
-
-          - name: rest-api
-            context: ./server
             dockerfile: ./server/src/RestApi/Dockerfile
 
           - name: migrations
@@ -322,83 +318,59 @@ jobs:
             --env SEED_PROFILE=integration \
             metaspesa-migrations-ci
 
-      - name: Build APIs
+      - name: Build API
         run: |
           docker build \
-            --file server/src/GrpcApi/Dockerfile \
-            --tag metaspesa-grpc-api-ci \
-            server
-
-          docker build \
             --file server/src/RestApi/Dockerfile \
-            --tag metaspesa-rest-api-ci \
+            --tag metaspesa-server-ci \
             server
 
       - name: Start APIs
         run: |
-          start_api() {
-            local name="$1"
-            local image="$2"
-            local port="$3"
-
-            docker run \
-              --detach \
-              --name "$name" \
-              --network "$DOCKER_NETWORK" \
-              --publish "$port:8080" \
-              --env ASPNETCORE_ENVIRONMENT=Development \
-              --env ASPNETCORE_URLS=http://+:8080 \
-              --env POSTGRES_CONNECTION_STRING \
-              --env "Jwt__Key=$JWT_KEY" \
-              "$image"
-          }
-
-          start_api grpc-api metaspesa-grpc-api-ci 4000
-          start_api rest-api metaspesa-rest-api-ci 4001
+          docker run \
+            --detach \
+            --name server \
+            --network "$DOCKER_NETWORK" \
+            --publish "4001:8080" \
+            --env ASPNETCORE_ENVIRONMENT=Development \
+            --env ASPNETCORE_URLS=http://+:8080 \
+            --env POSTGRES_CONNECTION_STRING \
+            --env "Jwt__Key=$JWT_KEY" \
+            metaspesa-server-ci
 
       - name: Wait for APIs
         shell: bash
         run: |
-          wait_for_api() {
-            local name="$1"
-            local port="$2"
+          for _ in {1..30}; do
+            if (echo > "/dev/tcp/127.0.0.1/4001") 2>/dev/null; then
+              return 0
+            fi
 
-            for _ in {1..30}; do
-              if (echo > "/dev/tcp/127.0.0.1/$port") 2>/dev/null; then
-                return 0
-              fi
+            if [[ "$(docker inspect -f '{{.State.Running}}' "server")" != "true" ]]; then
+              docker logs "server"
+              return 1
+            fi
 
-              if [[ "$(docker inspect -f '{{.State.Running}}' "$name")" != "true" ]]; then
-                docker logs "$name"
-                return 1
-              fi
+            sleep 1
+          done
 
-              sleep 1
-            done
-
-            docker logs "$name"
-            return 1
-          }
-
-          wait_for_api grpc-api 4000
-          wait_for_api rest-api 4001
+          docker logs "server"
+          return 1
 
       - name: Run client integration tests
         working-directory: client
         env:
-          GRPC_SERVER_URL: localhost:4000
           REST_API_URL: http://localhost:4001/api/v1
         run: pnpm run test:integration
 
       - name: Print container logs on failure
         if: failure()
         run: |
-          docker logs grpc-api || true
-          docker logs rest-api || true
+          docker logs server || true
           docker logs db || true
 
       - name: Clean up containers
         if: always()
         run: |
-          docker rm -f grpc-api rest-api db 2>/dev/null || true
+          docker rm -f server db 2>/dev/null || true
           docker network rm "$DOCKER_NETWORK" 2>/dev/null || true
