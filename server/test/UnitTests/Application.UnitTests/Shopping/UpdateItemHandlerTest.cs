@@ -16,13 +16,13 @@ public class UpdateItemHandlerTest {
       ownerId, "Weekly", ShoppingTestData.Item(3));
     IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
     repository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
     IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
     var handler = new Handler(repository, unitOfWork);
 
     await handler.Handle(
-      new Command(ownerId, "Weekly", 3, 4, true),
+      new Command(ownerId, 1, 3, 4, true),
       TestContext.Current.CancellationToken);
 
     Assert.Equal(4, list.Items.Single().Amount.Value);
@@ -38,13 +38,13 @@ public class UpdateItemHandlerTest {
       ownerId, "Weekly", ShoppingTestData.Item(3));
     IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
     repository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
     IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
     var handler = new Handler(repository, unitOfWork);
 
     await Assert.ThrowsAsync<EmptyShoppingItemUpdateException>(() => handler.Handle(
-      new Command(ownerId, "Weekly", 3, null, null),
+      new Command(ownerId, 1, 3, null, null),
       TestContext.Current.CancellationToken));
 
     await unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
@@ -56,13 +56,13 @@ public class UpdateItemHandlerTest {
     ShoppingList list = ShoppingTestData.List(ownerId, "Weekly");
     IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
     repository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
     IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
     var handler = new Handler(repository, unitOfWork);
 
     await Assert.ThrowsAsync<ShoppingItemNotFoundException>(() => handler.Handle(
-      new Command(ownerId, "Weekly", 3, 4, null),
+      new Command(ownerId, 1, 3, 4, null),
       TestContext.Current.CancellationToken));
 
     await repository.DidNotReceive().UpdateAsync(

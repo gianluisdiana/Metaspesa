@@ -24,7 +24,6 @@ public class CheckoutShoppingListHandlerTests {
   private readonly IPurchaseRepository _purchaseRepository =
     Substitute.For<IPurchaseRepository>();
   private readonly IClock _clock = Substitute.For<IClock>();
-  private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
 
   [Fact(DisplayName = "Creates purchase, resets list, and commits once")]
   public async Task Handle_ChecksOutNamedList_WhenCheckedItemsHaveSnapshots() {
@@ -37,7 +36,7 @@ public class CheckoutShoppingListHandlerTests {
       Item(4, 2, true));
     _shoppingRepository.GetAsync(
       new UserId(ownerId),
-      new ShoppingListName("Weekly"),
+      new ShoppingListId(1),
       TestContext.Current.CancellationToken)
       .Returns(list);
     _snapshotReader.GetLatestAsync(
@@ -48,12 +47,15 @@ public class CheckoutShoppingListHandlerTests {
         [new ProductFormatId(4)] = new PriceSnapshotId(40),
       });
     _clock.GetCurrentTime().Returns(PurchasedAt);
+    _purchaseRepository.AddAsync(Arg.Any<Purchase>(),
+      TestContext.Current.CancellationToken).Returns(18);
     Handler handler = CreateHandler();
 
-    await handler.Handle(
-      new Command(ownerId, "Weekly"), TestContext.Current.CancellationToken);
+    int purchaseId = await handler.Handle(
+      new Command(ownerId, 1), TestContext.Current.CancellationToken);
 
-    _purchaseRepository.Received(1).Add(Arg.Is<Purchase>(purchase =>
+    Assert.Equal(18, purchaseId);
+    await _purchaseRepository.Received(1).AddAsync(Arg.Is<Purchase>(purchase =>
       purchase.Id == null &&
       purchase.BuyerId == new UserId(ownerId) &&
       purchase.ShoppingListId == new ShoppingListId(1) &&
@@ -64,12 +66,11 @@ public class CheckoutShoppingListHandlerTests {
         item.Amount == new PositiveAmount(3)) &&
       purchase.Items.Any(item =>
         item.PriceSnapshotId == new PriceSnapshotId(40) &&
-        item.Amount == new PositiveAmount(2))));
+        item.Amount == new PositiveAmount(2))),
+      TestContext.Current.CancellationToken);
     Assert.All(list.Items, item => Assert.False(item.IsChecked));
     await _shoppingRepository.Received(1).UpdateAsync(
       list, TestContext.Current.CancellationToken);
-    await _unitOfWork.Received(1).SaveChangesAsync(
-      TestContext.Current.CancellationToken);
   }
 
   [Fact(DisplayName = "Loads temporary list by missing name")]
@@ -77,7 +78,7 @@ public class CheckoutShoppingListHandlerTests {
     var ownerId = Guid.CreateVersion7();
     ShoppingList list = List(ownerId, null, Item(2, isChecked: true));
     _shoppingRepository.GetAsync(
-      new UserId(ownerId), null, TestContext.Current.CancellationToken)
+      new UserId(ownerId), new ShoppingListId(1), TestContext.Current.CancellationToken)
       .Returns(list);
     _snapshotReader.GetLatestAsync(
       Arg.Any<IReadOnlyCollection<ProductFormatId>>(),
@@ -89,12 +90,37 @@ public class CheckoutShoppingListHandlerTests {
     Handler handler = CreateHandler();
 
     await handler.Handle(
-      new Command(ownerId, null), TestContext.Current.CancellationToken);
+      new Command(ownerId, 1), TestContext.Current.CancellationToken);
 
     await _shoppingRepository.Received(1).GetAsync(
-      new UserId(ownerId), null, TestContext.Current.CancellationToken);
-    _purchaseRepository.Received(1).Add(Arg.Is<Purchase>(purchase =>
-      purchase.ShoppingListId == new ShoppingListId(1)));
+      new UserId(ownerId), new ShoppingListId(1), TestContext.Current.CancellationToken);
+    await _purchaseRepository.Received(1).AddAsync(
+      Arg.Is<Purchase>(purchase => purchase.ShoppingListId == new ShoppingListId(1)),
+      TestContext.Current.CancellationToken);
+  }
+
+  [Fact]
+  public async Task Handle_ChecksOutOwnedListById() {
+    var ownerId = Guid.CreateVersion7();
+    ShoppingList list = List(ownerId, "Weekly", Item(2, isChecked: true));
+    _shoppingRepository.GetAsync(new UserId(ownerId), new ShoppingListId(1),
+      TestContext.Current.CancellationToken)
+      .Returns(list);
+    _snapshotReader.GetLatestAsync(
+      Arg.Any<IReadOnlyCollection<ProductFormatId>>(),
+      TestContext.Current.CancellationToken)
+      .Returns(new Dictionary<ProductFormatId, PriceSnapshotId> {
+        [new ProductFormatId(2)] = new PriceSnapshotId(20),
+      });
+    _clock.GetCurrentTime().Returns(PurchasedAt);
+    _purchaseRepository.AddAsync(Arg.Any<Purchase>(),
+      TestContext.Current.CancellationToken).Returns(18);
+    Handler handler = CreateHandler();
+
+    int purchaseId = await handler.Handle(
+      new Command(ownerId, 1), TestContext.Current.CancellationToken);
+
+    Assert.Equal(18, purchaseId);
   }
 
   [Fact(DisplayName = "Rejects missing list without checkout work")]
@@ -102,14 +128,14 @@ public class CheckoutShoppingListHandlerTests {
     Handler handler = CreateHandler();
 
     await Assert.ThrowsAsync<ShoppingListNotFoundException>(() => handler.Handle(
-      new Command(Guid.CreateVersion7(), "Weekly"),
+      new Command(Guid.CreateVersion7(), 1),
       TestContext.Current.CancellationToken));
 
     await _snapshotReader.DidNotReceive().GetLatestAsync(
       Arg.Any<IReadOnlyCollection<ProductFormatId>>(),
       Arg.Any<CancellationToken>());
-    _purchaseRepository.DidNotReceive().Add(Arg.Any<Purchase>());
-    await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    await _purchaseRepository.DidNotReceive().AddAsync(
+      Arg.Any<Purchase>(), Arg.Any<CancellationToken>());
   }
 
   [Fact(DisplayName = "Rejects list without checked items")]
@@ -117,17 +143,18 @@ public class CheckoutShoppingListHandlerTests {
     var ownerId = Guid.CreateVersion7();
     ShoppingList list = List(ownerId, "Weekly", Item(2, isChecked: false));
     _shoppingRepository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
     Handler handler = CreateHandler();
 
     await Assert.ThrowsAsync<EmptyPurchaseItemsException>(() => handler.Handle(
-      new Command(ownerId, "Weekly"), TestContext.Current.CancellationToken));
+      new Command(ownerId, 1), TestContext.Current.CancellationToken));
 
     await _snapshotReader.DidNotReceive().GetLatestAsync(
       Arg.Any<IReadOnlyCollection<ProductFormatId>>(),
       Arg.Any<CancellationToken>());
-    _purchaseRepository.DidNotReceive().Add(Arg.Any<Purchase>());
+    await _purchaseRepository.DidNotReceive().AddAsync(
+      Arg.Any<Purchase>(), Arg.Any<CancellationToken>());
     Assert.False(list.Items.Single().IsChecked);
   }
 
@@ -137,7 +164,7 @@ public class CheckoutShoppingListHandlerTests {
     ShoppingList list = List(
       ownerId, "Weekly", Item(2, isChecked: true), Item(3, isChecked: true));
     _shoppingRepository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
     _snapshotReader.GetLatestAsync(
       Arg.Any<IReadOnlyCollection<ProductFormatId>>(),
@@ -149,14 +176,14 @@ public class CheckoutShoppingListHandlerTests {
 
     await Assert.ThrowsAsync<PurchasePriceSnapshotNotFoundException>(() =>
       handler.Handle(
-        new Command(ownerId, "Weekly"),
+        new Command(ownerId, 1),
         TestContext.Current.CancellationToken));
 
-    _purchaseRepository.DidNotReceive().Add(Arg.Any<Purchase>());
+    await _purchaseRepository.DidNotReceive().AddAsync(
+      Arg.Any<Purchase>(), Arg.Any<CancellationToken>());
     Assert.All(list.Items, item => Assert.True(item.IsChecked));
     await _shoppingRepository.DidNotReceive().UpdateAsync(
       Arg.Any<ShoppingList>(), Arg.Any<CancellationToken>());
-    await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
   }
 
   [Fact(DisplayName = "Propagates snapshot cancellation without mutation")]
@@ -164,7 +191,7 @@ public class CheckoutShoppingListHandlerTests {
     var ownerId = Guid.CreateVersion7();
     ShoppingList list = List(ownerId, "Weekly", Item(2, isChecked: true));
     _shoppingRepository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
     _snapshotReader.GetLatestAsync(
       Arg.Any<IReadOnlyCollection<ProductFormatId>>(),
@@ -174,19 +201,18 @@ public class CheckoutShoppingListHandlerTests {
     Handler handler = CreateHandler();
 
     await Assert.ThrowsAsync<OperationCanceledException>(() => handler.Handle(
-      new Command(ownerId, "Weekly"), TestContext.Current.CancellationToken));
+      new Command(ownerId, 1), TestContext.Current.CancellationToken));
 
-    _purchaseRepository.DidNotReceive().Add(Arg.Any<Purchase>());
+    await _purchaseRepository.DidNotReceive().AddAsync(
+      Arg.Any<Purchase>(), Arg.Any<CancellationToken>());
     Assert.True(list.Items.Single().IsChecked);
-    await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
   }
 
   private Handler CreateHandler() => new(
     _shoppingRepository,
     _snapshotReader,
     _purchaseRepository,
-    _clock,
-    _unitOfWork);
+    _clock);
 
   private static ShoppingList List(
     Guid ownerId,

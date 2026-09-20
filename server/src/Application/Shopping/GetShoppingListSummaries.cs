@@ -6,7 +6,7 @@ namespace Metaspesa.Application.Shopping;
 
 public static class GetShoppingListSummaries {
   public record Query(Guid UserUid);
-  public record Response(string? Name);
+  public record Response(string? Name, int Id, bool IsTemporary);
 
   public class Handler(IShoppingListRepository shoppingListRepository) {
     public async Task<IReadOnlyCollection<Response>> Handle(
@@ -14,11 +14,12 @@ public static class GetShoppingListSummaries {
     ) {
       ArgumentNullException.ThrowIfNull(query);
 
-      UserId ownerId = ShoppingListRequest.Owner(query.UserUid);
+      var ownerId = new UserId(query.UserUid);
       IReadOnlyCollection<ShoppingList> lists =
         await shoppingListRepository.GetByOwnerAsync(ownerId, cancellationToken);
 
-      return [.. lists.Select(list => new Response(list.Name?.Value))];
+      return [.. lists.Select(list => new Response(
+        list.Name?.Value, list.Id!.Value.Value, list.IsTemporary))];
     }
   }
 }

@@ -10,12 +10,15 @@ namespace Metaspesa.Application.Shopping;
 
 public static class GetShoppingList {
   public record ResponseItem(
-    string ProductName, int Amount, MarketProductFormat Format, bool IsChecked);
+    string ProductName, string BrandName, MarketSummary? Market,
+    int Amount, MarketProductFormat Format, bool IsChecked);
   public record Response(
     string? ShoppingListName,
-    IReadOnlyCollection<ResponseItem> Items
+    IReadOnlyCollection<ResponseItem> Items,
+    int Id,
+    bool IsTemporary
   );
-  public record Query(Guid UserUid, string? ShoppingListName);
+  public record Query(Guid UserUid, int ShoppingListId);
 
   public class Handler(
     IShoppingListRepository shoppingListRepository,
@@ -26,11 +29,9 @@ public static class GetShoppingList {
     ) {
       ArgumentNullException.ThrowIfNull(query);
 
-      UserId ownerId = ShoppingListRequest.Owner(query.UserUid);
-      ShoppingListName? name = ShoppingListRequest.Name(query.ShoppingListName);
       ShoppingList shoppingList = await shoppingListRepository.GetAsync(
-        ownerId, name, cancellationToken) ??
-        throw ShoppingListRequest.NotFound();
+        new UserId(query.UserUid), new ShoppingListId(query.ShoppingListId),
+        cancellationToken) ?? throw new ShoppingListNotFoundException();
 
       IReadOnlyCollection<int> formatIds = [
         .. shoppingList.Items.Select(item => item.ProductFormatId.Value)
@@ -46,12 +47,15 @@ public static class GetShoppingList {
 
         items.Add(new ResponseItem(
           product.Name,
+          product.BrandName,
+          product.Market,
           item.Amount.Value,
-          product.Formats.First(),
+          product.Formats.Single(),
           item.IsChecked));
       }
 
-      return new Response(shoppingList.Name?.Value, items);
+      return new Response(shoppingList.Name?.Value, items,
+        shoppingList.Id!.Value.Value, shoppingList.IsTemporary);
     }
   }
 }

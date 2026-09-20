@@ -4,13 +4,14 @@ using Metaspesa.Domain.Identity;
 using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.SharedKernel;
 using Metaspesa.Domain.Shopping;
+using Metaspesa.Domain.Shopping.Errors;
 
 namespace Metaspesa.Application.Shopping;
 
 public static class UpdateItem {
   public record Command(
     Guid UserUid,
-    string? ShoppingListName,
+    int ShoppingListId,
     int ProductFormatUid,
     int? Amount,
     bool? IsChecked
@@ -25,11 +26,9 @@ public static class UpdateItem {
     ) {
       ArgumentNullException.ThrowIfNull(command);
 
-      UserId ownerId = ShoppingListRequest.Owner(command.UserUid);
-      ShoppingListName? name = ShoppingListRequest.Name(command.ShoppingListName);
       ShoppingList shoppingList = await shoppingListRepository.GetAsync(
-        ownerId, name, cancellationToken) ??
-        throw ShoppingListRequest.NotFound();
+        new UserId(command.UserUid), new ShoppingListId(command.ShoppingListId),
+        cancellationToken) ?? throw new ShoppingListNotFoundException();
 
       shoppingList.UpdateItem(
         new ProductFormatId(command.ProductFormatUid),

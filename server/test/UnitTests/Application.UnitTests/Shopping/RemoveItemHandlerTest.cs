@@ -16,13 +16,13 @@ public class RemoveItemHandlerTest {
       ownerId, "Weekly", ShoppingTestData.Item(3));
     IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
     repository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
     IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
     var handler = new Handler(repository, unitOfWork);
 
     await handler.Handle(
-      new Command(ownerId, "Weekly", 3), TestContext.Current.CancellationToken);
+      new Command(ownerId, 1, 3), TestContext.Current.CancellationToken);
 
     Assert.Empty(list.Items);
     await repository.Received(1).UpdateAsync(list, TestContext.Current.CancellationToken);
@@ -36,7 +36,7 @@ public class RemoveItemHandlerTest {
     var handler = new Handler(repository, unitOfWork);
 
     await Assert.ThrowsAsync<ShoppingListNotFoundException>(() => handler.Handle(
-      new Command(Guid.CreateVersion7(), "Weekly", 3),
+      new Command(Guid.CreateVersion7(), 1, 3),
       TestContext.Current.CancellationToken));
 
     await unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
@@ -48,13 +48,13 @@ public class RemoveItemHandlerTest {
     ShoppingList list = ShoppingTestData.List(ownerId, "Weekly");
     IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
     repository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
     IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
     var handler = new Handler(repository, unitOfWork);
 
     await Assert.ThrowsAsync<ShoppingItemNotFoundException>(() => handler.Handle(
-      new Command(ownerId, "Weekly", 3),
+      new Command(ownerId, 1, 3),
       TestContext.Current.CancellationToken));
 
     await repository.DidNotReceive().UpdateAsync(

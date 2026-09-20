@@ -7,10 +7,11 @@ namespace Metaspesa.Database.Repositories;
 internal class PostgreSqlPurchaseRepository(
   MainContext context
 ) : IPurchaseRepository {
-  public void Add(Purchase purchase) => PostgreSqlExceptionMapper.Map(() => {
+  public async Task<int> AddAsync(
+    Purchase purchase, CancellationToken cancellationToken
+  ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
     ArgumentNullException.ThrowIfNull(purchase);
-
-    context.Purchases.Add(new PurchaseDbEntity {
+    var entity = new PurchaseDbEntity {
       UserUid = purchase.BuyerId?.Value,
       ShoppingListId = purchase.ShoppingListId?.Value,
       PurchasedAt = purchase.PurchasedAt,
@@ -18,6 +19,9 @@ internal class PostgreSqlPurchaseRepository(
         PriceSnapshotId = item.PriceSnapshotId.Value,
         Amount = item.Amount.Value,
       })],
-    });
-  }, "Couldn't add purchase.");
+    };
+    context.Purchases.Add(entity);
+    await context.SaveChangesAsync(cancellationToken);
+    return entity.Id;
+  }, "Couldn't create purchase.");
 }

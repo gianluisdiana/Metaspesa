@@ -14,7 +14,7 @@ public class GetShoppingListHandlerTest {
     var ownerId = Guid.CreateVersion7();
     IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
     repository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(ShoppingTestData.List(
         ownerId, "Weekly", ShoppingTestData.Item(7, 2, true)));
     IProductRepository productRepository = Substitute.For<IProductRepository>();
@@ -26,7 +26,7 @@ public class GetShoppingListHandlerTest {
     var handler = new Handler(repository, productRepository);
 
     Response result = await handler.Handle(
-      new Query(ownerId, "Weekly"), TestContext.Current.CancellationToken);
+      new Query(ownerId, 1), TestContext.Current.CancellationToken);
 
     Assert.Equal("Weekly", result.ShoppingListName);
     ResponseItem item = Assert.Single(result.Items);
@@ -40,7 +40,7 @@ public class GetShoppingListHandlerTest {
     var ownerId = Guid.CreateVersion7();
     IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
     repository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(ShoppingTestData.List(ownerId));
     IProductRepository productRepository = Substitute.For<IProductRepository>();
     productRepository.GetProductsAsync(
@@ -49,7 +49,7 @@ public class GetShoppingListHandlerTest {
     var handler = new Handler(repository, productRepository);
 
     Response result = await handler.Handle(
-      new Query(ownerId, "Weekly"), TestContext.Current.CancellationToken);
+      new Query(ownerId, 1), TestContext.Current.CancellationToken);
 
     Assert.Empty(result.Items);
   }
@@ -61,7 +61,7 @@ public class GetShoppingListHandlerTest {
     var handler = new Handler(repository, productRepository);
 
     await Assert.ThrowsAsync<ShoppingListNotFoundException>(() => handler.Handle(
-      new Query(Guid.CreateVersion7(), "Weekly"),
+      new Query(Guid.CreateVersion7(), 1),
       TestContext.Current.CancellationToken));
   }
 
@@ -70,7 +70,7 @@ public class GetShoppingListHandlerTest {
     var ownerId = Guid.CreateVersion7();
     IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
     repository.GetAsync(
-      new UserId(ownerId), null, TestContext.Current.CancellationToken)
+      new UserId(ownerId), new ShoppingListId(1), TestContext.Current.CancellationToken)
       .Returns(ShoppingTestData.List(ownerId, null, ShoppingTestData.Item(7)));
     IProductRepository productRepository = Substitute.For<IProductRepository>();
     productRepository.GetProductsAsync(
@@ -79,7 +79,7 @@ public class GetShoppingListHandlerTest {
     var handler = new Handler(repository, productRepository);
 
     await Assert.ThrowsAsync<ShoppingProductFormatNotFoundException>(() => handler.Handle(
-      new Query(ownerId, null), TestContext.Current.CancellationToken));
+      new Query(ownerId, 1), TestContext.Current.CancellationToken));
   }
 
   [Fact(DisplayName = "Does not load products when list is missing")]
@@ -89,10 +89,37 @@ public class GetShoppingListHandlerTest {
     var handler = new Handler(repository, productRepository);
 
     await Assert.ThrowsAsync<ShoppingListNotFoundException>(() => handler.Handle(
-      new Query(Guid.CreateVersion7(), "Weekly"),
+      new Query(Guid.CreateVersion7(), 1),
       TestContext.Current.CancellationToken));
 
     await productRepository.DidNotReceive().GetProductsAsync(
       Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>());
+  }
+
+  [Fact]
+  public async Task Handle_ReturnsOwnedListSelectedById() {
+    var ownerId = Guid.CreateVersion7();
+    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
+    repository.GetAsync(new UserId(ownerId), new ShoppingListId(1),
+      TestContext.Current.CancellationToken)
+      .Returns(ShoppingTestData.List(ownerId, "Weekly"));
+    IProductRepository productRepository = Substitute.For<IProductRepository>();
+    var handler = new Handler(repository, productRepository);
+
+    Response result = await handler.Handle(
+      new Query(ownerId, 1), TestContext.Current.CancellationToken);
+
+    Assert.Equal(1, result.Id);
+  }
+
+  [Fact]
+  public async Task Handle_RejectsListIdNotOwnedByUser() {
+    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
+    IProductRepository productRepository = Substitute.For<IProductRepository>();
+    var handler = new Handler(repository, productRepository);
+
+    await Assert.ThrowsAsync<ShoppingListNotFoundException>(() =>
+      handler.Handle(new Query(Guid.CreateVersion7(), 7),
+        TestContext.Current.CancellationToken));
   }
 }

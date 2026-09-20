@@ -7,7 +7,7 @@ using Metaspesa.Domain.Shopping.Errors;
 namespace Metaspesa.Application.Shopping;
 
 public static class UpdateShoppingList {
-  public record Command(Guid UserUid, string? ShoppingListName, string? NewName);
+  public record Command(Guid UserUid, int ShoppingListId, string? NewName);
 
   public class Handler(
     IShoppingListRepository shoppingListRepository,
@@ -18,14 +18,13 @@ public static class UpdateShoppingList {
     ) {
       ArgumentNullException.ThrowIfNull(command);
 
-      UserId ownerId = ShoppingListRequest.Owner(command.UserUid);
-      ShoppingListName? currentName = ShoppingListRequest.Name(command.ShoppingListName);
+      var ownerId = new UserId(command.UserUid);
       var newName = new ShoppingListName(command.NewName ?? string.Empty);
       ShoppingList shoppingList = await shoppingListRepository.GetAsync(
-        ownerId, currentName, cancellationToken) ??
-        throw ShoppingListRequest.NotFound();
+        ownerId, new ShoppingListId(command.ShoppingListId),
+        cancellationToken) ?? throw new ShoppingListNotFoundException();
 
-      if (newName != currentName &&
+      if (newName != shoppingList.Name &&
         await shoppingListRepository.ExistsAsync(ownerId, newName, cancellationToken)) {
         throw new ShoppingListAlreadyExistsException();
       }

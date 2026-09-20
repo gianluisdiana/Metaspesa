@@ -22,7 +22,8 @@ internal class PostgreSqlShoppingListRepository(
         .Include(list => list.Ownerships)
         .Include(list => list.Items)
         .Where(list => list.Ownerships.Any(
-          ownership => ownership.UserUid == ownerId.Value))
+          ownership => ownership.UserUid == ownerId.Value) &&
+          list.DeletedAt == null)
         .OrderBy(list => list.Name == null)
         .ThenBy(list => list.Name)
         .ToListAsync(cancellationToken);
@@ -33,22 +34,16 @@ internal class PostgreSqlShoppingListRepository(
 
   public async Task<ShoppingList?> GetAsync(
     UserId ownerId,
-    ShoppingListName? name,
+    ShoppingListId id,
     CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync(
     async () => {
-      string? nameValue = name?.Value;
       ShoppingListDbEntity? entity = await context.ShoppingLists
         .AsNoTracking()
         .Include(list => list.Ownerships)
         .Include(list => list.Items)
-        .Where(list => list.Ownerships.Any(
-          ownership => ownership.UserUid == ownerId.Value) && (
-          list.Name == null && nameValue == null ||
-          list.Name != null &&
-          nameValue != null &&
-          EF.Functions.ILike(list.Name, nameValue)
-        ))
+        .Where(list => list.Id == id.Value && list.DeletedAt == null &&
+          list.Ownerships.Any(ownership => ownership.UserUid == ownerId.Value))
         .FirstOrDefaultAsync(cancellationToken);
 
       return entity is null ? null : ToDomain(entity);
@@ -63,28 +58,33 @@ internal class PostgreSqlShoppingListRepository(
     async () => {
       string? nameValue = name?.Value;
       return await context.ShoppingListOwnerships.AnyAsync(
-        ownership => ownership.UserUid == ownerId.Value && (
+        ownership => ownership.UserUid == ownerId.Value &&
+          ownership.ShoppingList.DeletedAt == null && (
           ownership.ShoppingList.Name == null && nameValue == null ||
           ownership.ShoppingList.Name != null &&
           nameValue != null &&
-          EF.Functions.ILike(ownership.ShoppingList.Name, nameValue)
+          EF.Functions.ILike(ownership.ShoppingList.Name,
+            EscapeLike(nameValue), "\\")
         ),
         cancellationToken);
     },
     "Couldn't check if shopping list exists.");
 
-  public void Add(ShoppingList shoppingList) =>
-    PostgreSqlExceptionMapper.Map(() => {
-      var entity = new ShoppingListDbEntity {
-        Name = shoppingList.Name?.Value,
-        IsTemporary = shoppingList.IsTemporary,
-        DeletedAt = shoppingList.DeletedAt,
-        Ownerships = [.. shoppingList.OwnerIds.Select(ownerId =>
+  public async Task<int> AddAsync(
+    ShoppingList shoppingList, CancellationToken cancellationToken
+  ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
+    var entity = new ShoppingListDbEntity {
+      Name = shoppingList.Name?.Value,
+      IsTemporary = shoppingList.IsTemporary,
+      DeletedAt = shoppingList.DeletedAt,
+      Ownerships = [.. shoppingList.OwnerIds.Select(ownerId =>
           new ShoppingListOwnershipDbEntity { UserUid = ownerId.Value })],
-        Items = [.. shoppingList.Items.Select(ToEntity)],
-      };
-      context.ShoppingLists.Add(entity);
-    }, "Couldn't add shopping list.");
+      Items = [.. shoppingList.Items.Select(ToEntity)],
+    };
+    context.ShoppingLists.Add(entity);
+    await context.SaveChangesAsync(cancellationToken);
+    return entity.Id;
+  }, "Couldn't add shopping list.");
 
   public async Task UpdateAsync(
     ShoppingList shoppingList, CancellationToken cancellationToken
@@ -135,4 +135,9 @@ internal class PostgreSqlShoppingListRepository(
     Amount = item.Amount.Value,
     IsChecked = item.IsChecked,
   };
+
+  private static string EscapeLike(string value) => value
+    .Replace("\\", "\\\\", StringComparison.Ordinal)
+    .Replace("%", "\\%", StringComparison.Ordinal)
+    .Replace("_", "\\_", StringComparison.Ordinal);
 }

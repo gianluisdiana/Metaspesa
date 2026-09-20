@@ -21,7 +21,7 @@ public class AddItemsToListHandlerTest {
     var ownerId = Guid.CreateVersion7();
     ShoppingList list = ShoppingTestData.List(ownerId);
     _repository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
     _productRepository.GetProductsAsync(
       Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>())
@@ -31,7 +31,7 @@ public class AddItemsToListHandlerTest {
     var handler = new Handler(_repository, _productRepository, _unitOfWork);
 
     await handler.Handle(
-      new Command(ownerId, "Weekly", [new CommandItem(10, 2, true)]),
+      new Command(ownerId, 1, [new CommandItem(10, 2, true)]),
       TestContext.Current.CancellationToken);
 
     ShoppingItem item = Assert.Single(list.Items);
@@ -48,7 +48,7 @@ public class AddItemsToListHandlerTest {
     var handler = new Handler(_repository, _productRepository, _unitOfWork);
 
     await Assert.ThrowsAsync<EmptyShoppingItemsException>(() => handler.Handle(
-      new Command(Guid.CreateVersion7(), "Weekly", []),
+      new Command(Guid.CreateVersion7(), 1, []),
       TestContext.Current.CancellationToken));
 
     await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
@@ -59,7 +59,7 @@ public class AddItemsToListHandlerTest {
     var ownerId = Guid.CreateVersion7();
     ShoppingList list = ShoppingTestData.List(ownerId);
     _repository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
     _productRepository.GetProductsAsync(
       Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>())
@@ -67,7 +67,7 @@ public class AddItemsToListHandlerTest {
     var handler = new Handler(_repository, _productRepository, _unitOfWork);
 
     await Assert.ThrowsAsync<ShoppingProductFormatNotFoundException>(() => handler.Handle(
-      new Command(ownerId, "Weekly", [new CommandItem(10, 2, false)]),
+      new Command(ownerId, 1, [new CommandItem(10, 2, false)]),
       TestContext.Current.CancellationToken));
 
     Assert.Empty(list.Items);
@@ -76,11 +76,11 @@ public class AddItemsToListHandlerTest {
   }
 
   [Fact(DisplayName = "Loads owner list and distinct product formats")]
-  public async Task Handle_UsesOwnerNameAndDistinctFormatIds() {
+  public async Task Handle_UsesOwnerIdAndDistinctFormatIds() {
     var ownerId = Guid.CreateVersion7();
     ShoppingList list = ShoppingTestData.List(ownerId, null);
     _repository.GetAsync(
-      new UserId(ownerId), null, TestContext.Current.CancellationToken)
+      new UserId(ownerId), new ShoppingListId(1), TestContext.Current.CancellationToken)
       .Returns(list);
     _productRepository.GetProductsAsync(
       Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>())
@@ -90,14 +90,14 @@ public class AddItemsToListHandlerTest {
     var handler = new Handler(_repository, _productRepository, _unitOfWork);
 
     await Assert.ThrowsAsync<DuplicateShoppingItemException>(() => handler.Handle(
-      new Command(ownerId, null, [
+      new Command(ownerId, 1, [
         new CommandItem(10, 1, false),
         new CommandItem(10, 2, true),
       ]),
       TestContext.Current.CancellationToken));
 
     await _repository.Received(1).GetAsync(
-      new UserId(ownerId), null, TestContext.Current.CancellationToken);
+      new UserId(ownerId), new ShoppingListId(1), TestContext.Current.CancellationToken);
     await _productRepository.Received(1).GetProductsAsync(
       Arg.Is<IReadOnlyCollection<int>>(ids => ids.Count == 1 && ids.Single() == 10),
       TestContext.Current.CancellationToken);

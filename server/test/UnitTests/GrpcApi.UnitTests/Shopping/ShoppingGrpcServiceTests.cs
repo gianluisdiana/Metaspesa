@@ -48,7 +48,7 @@ public class ShoppingGrpcServiceTests {
     var fixture = new ServiceFixture();
     var ownerId = Guid.CreateVersion7();
     fixture.ShoppingRepository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(PersistedList(
         ownerId,
         "Weekly",
@@ -78,7 +78,7 @@ public class ShoppingGrpcServiceTests {
     var fixture = new ServiceFixture();
     var ownerId = Guid.CreateVersion7();
     fixture.ShoppingRepository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(PersistedList(
         ownerId,
         "Weekly",
@@ -103,14 +103,14 @@ public class ShoppingGrpcServiceTests {
     var fixture = new ServiceFixture();
     var ownerId = Guid.CreateVersion7();
     fixture.ShoppingRepository.GetAsync(
-      new UserId(ownerId), null, TestContext.Current.CancellationToken)
+      new UserId(ownerId), new ShoppingListId(1), TestContext.Current.CancellationToken)
       .Returns(PersistedList(ownerId, null));
 
     ShoppingListResponse response = await fixture.Service.GetShoppingList(
       new GetShoppingListRequest(), CreateServerCallContext(ownerId));
 
     await fixture.ShoppingRepository.Received(1).GetAsync(
-      new UserId(ownerId), null, TestContext.Current.CancellationToken);
+      new UserId(ownerId), new ShoppingListId(1), TestContext.Current.CancellationToken);
     Assert.False(response.ShoppingList.HasName);
   }
 
@@ -118,14 +118,17 @@ public class ShoppingGrpcServiceTests {
   public async Task CreateShoppingList_UsesConcreteHandler() {
     var fixture = new ServiceFixture();
     var ownerId = Guid.CreateVersion7();
+    fixture.ShoppingRepository.GetAsync(new UserId(ownerId),
+      new ShoppingListId(1), TestContext.Current.CancellationToken)
+      .Returns(PersistedList(ownerId, "Weekly"));
 
     CreateShoppingListResponse response = await fixture.Service.CreateShoppingList(
       new CreateShoppingListRequest { Name = " Weekly " },
       CreateServerCallContext(ownerId));
 
-    fixture.ShoppingRepository.Received(1).Add(Arg.Is<ShoppingList>(list =>
+    await fixture.ShoppingRepository.Received(1).AddAsync(Arg.Is<ShoppingList>(list =>
       list.OwnerIds.Single() == new UserId(ownerId) &&
-      list.Name == new ShoppingListName("Weekly")));
+      list.Name == new ShoppingListName("Weekly")), TestContext.Current.CancellationToken);
     Assert.Equal(" Weekly ", response.Name);
   }
 
@@ -133,12 +136,12 @@ public class ShoppingGrpcServiceTests {
   public async Task CreateShoppingList_MapsAbsentName_ToTemporaryList() {
     var fixture = new ServiceFixture();
     var ownerId = Guid.CreateVersion7();
-
     CreateShoppingListResponse response = await fixture.Service.CreateShoppingList(
       new CreateShoppingListRequest(), CreateServerCallContext(ownerId));
 
-    fixture.ShoppingRepository.Received(1).Add(Arg.Is<ShoppingList>(list =>
-      list.IsTemporary && list.OwnerIds.Single() == new UserId(ownerId)));
+    await fixture.ShoppingRepository.Received(1).AddAsync(Arg.Is<ShoppingList>(list =>
+      list.IsTemporary && list.OwnerIds.Single() == new UserId(ownerId)),
+      TestContext.Current.CancellationToken);
     Assert.False(response.HasName);
   }
 
@@ -148,7 +151,7 @@ public class ShoppingGrpcServiceTests {
     var ownerId = Guid.CreateVersion7();
     ShoppingList list = PersistedList(ownerId, "Weekly");
     fixture.ShoppingRepository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
     fixture.ProductRepository.GetProductsAsync(
       Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>())
@@ -175,7 +178,7 @@ public class ShoppingGrpcServiceTests {
     ShoppingList list = PersistedList(ownerId, "Café semanal");
     fixture.ShoppingRepository.GetAsync(
       new UserId(ownerId),
-      new ShoppingListName("Café semanal"),
+      new ShoppingListId(1),
       TestContext.Current.CancellationToken)
       .Returns(list);
     fixture.ProductRepository.GetProductsAsync(
@@ -188,7 +191,7 @@ public class ShoppingGrpcServiceTests {
 
     await fixture.ShoppingRepository.Received(1).GetAsync(
       new UserId(ownerId),
-      new ShoppingListName("Café semanal"),
+      new ShoppingListId(1),
       TestContext.Current.CancellationToken);
   }
 
@@ -201,7 +204,7 @@ public class ShoppingGrpcServiceTests {
       "Weekly",
       new ShoppingItem(new ProductFormatId(7), new PositiveAmount(1), false));
     fixture.ShoppingRepository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
 
     await fixture.Service.UpdateItem(new UpdateItemRequest {
@@ -224,7 +227,7 @@ public class ShoppingGrpcServiceTests {
       "Weekly",
       new ShoppingItem(new ProductFormatId(7), new PositiveAmount(3), false));
     fixture.ShoppingRepository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
 
     await fixture.Service.UpdateItem(new UpdateItemRequest {
@@ -243,7 +246,7 @@ public class ShoppingGrpcServiceTests {
     var ownerId = Guid.CreateVersion7();
     ShoppingList list = PersistedList(ownerId, null);
     fixture.ShoppingRepository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
 
     await fixture.Service.UpdateShoppingList(new UpdateShoppingListRequest {
@@ -263,7 +266,7 @@ public class ShoppingGrpcServiceTests {
       "Weekly",
       new ShoppingItem(new ProductFormatId(7), new PositiveAmount(1), false));
     fixture.ShoppingRepository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
 
     await fixture.Service.RemoveItem(new RemoveItemRequest {
@@ -284,7 +287,7 @@ public class ShoppingGrpcServiceTests {
       new ShoppingItem(new ProductFormatId(7), new PositiveAmount(2), true));
     fixture.ShoppingRepository.GetAsync(
       new UserId(ownerId),
-      new ShoppingListName("Weekly"),
+      new ShoppingListId(1),
       TestContext.Current.CancellationToken)
       .Returns(list);
     fixture.SnapshotReader.GetLatestAsync(
@@ -301,10 +304,11 @@ public class ShoppingGrpcServiceTests {
       CreateServerCallContext(ownerId));
 
     Assert.NotNull(response);
-    fixture.PurchaseRepository.Received(1).Add(Arg.Is<Purchase>(purchase =>
+    await fixture.PurchaseRepository.Received(1).AddAsync(Arg.Is<Purchase>(purchase =>
       purchase.BuyerId == new UserId(ownerId) &&
       purchase.ShoppingListId == new ShoppingListId(1) &&
-      purchase.Items.Single().PriceSnapshotId == new PriceSnapshotId(12)));
+      purchase.Items.Single().PriceSnapshotId == new PriceSnapshotId(12)),
+      TestContext.Current.CancellationToken);
     Assert.False(list.Items.Single().IsChecked);
   }
 
@@ -317,7 +321,7 @@ public class ShoppingGrpcServiceTests {
       null,
       new ShoppingItem(new ProductFormatId(7), new PositiveAmount(1), true));
     fixture.ShoppingRepository.GetAsync(
-      new UserId(ownerId), null, TestContext.Current.CancellationToken)
+      new UserId(ownerId), new ShoppingListId(1), TestContext.Current.CancellationToken)
       .Returns(list);
     fixture.SnapshotReader.GetLatestAsync(
       Arg.Any<IReadOnlyCollection<ProductFormatId>>(),
@@ -332,7 +336,7 @@ public class ShoppingGrpcServiceTests {
       new RecordShoppingListRequest(), CreateServerCallContext(ownerId));
 
     await fixture.ShoppingRepository.Received(1).GetAsync(
-      new UserId(ownerId), null, TestContext.Current.CancellationToken);
+      new UserId(ownerId), new ShoppingListId(1), TestContext.Current.CancellationToken);
   }
 
   private sealed class ServiceFixture {
@@ -349,6 +353,13 @@ public class ShoppingGrpcServiceTests {
     public ShoppingGrpcService Service { get; }
 
     public ServiceFixture() {
+      ShoppingRepository.GetByOwnerAsync(
+        Arg.Any<UserId>(), Arg.Any<CancellationToken>())
+        .Returns([
+          PersistedList(Guid.CreateVersion7(), "Weekly"),
+          PersistedList(Guid.CreateVersion7(), null),
+          PersistedList(Guid.CreateVersion7(), "Café semanal"),
+        ]);
       Service = new ShoppingGrpcService(
         new GetShoppingListSummaries.Handler(ShoppingRepository),
         new GetShoppingList.Handler(ShoppingRepository, ProductRepository),
@@ -356,9 +367,8 @@ public class ShoppingGrpcServiceTests {
           ShoppingRepository,
           SnapshotReader,
           PurchaseRepository,
-          Clock,
-          UnitOfWork),
-        new CreateShoppingList.Handler(ShoppingRepository, UnitOfWork),
+          Clock),
+        new CreateShoppingList.Handler(ShoppingRepository),
         new AddItemsToList.Handler(
           ShoppingRepository, ProductRepository, UnitOfWork),
         new UpdateItem.Handler(ShoppingRepository, UnitOfWork),

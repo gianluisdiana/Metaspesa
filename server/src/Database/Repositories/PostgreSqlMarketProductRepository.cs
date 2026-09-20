@@ -114,6 +114,8 @@ internal partial class PostgreSqlMarketProductRepository(
       .AsNoTracking()
       .Include(format => format.Product)
       .ThenInclude(product => product.Brand)
+      .Include(format => format.Product)
+      .ThenInclude(product => product.SuperMarket)
       .Include(format => format.UnitOfMeasure)
       .Include(format => format.PriceSnapshots)
       .Where(format =>
@@ -126,7 +128,10 @@ internal partial class PostgreSqlMarketProductRepository(
       format => new MarketProduct(
         format.Product.Name,
         format.Product.Brand.Name,
-        [ToReadModel(format)]));
+        [ToReadModel(format)],
+        new MarketSummary(format.Product.SuperMarketId,
+          format.Product.SuperMarket.Name,
+          ToUri(format.Product.SuperMarket.LogoUrl))));
   }, "Couldn't get market products by references.");
 
   public async Task<IReadOnlyCollection<BrandName>> GetBrandsAsync(

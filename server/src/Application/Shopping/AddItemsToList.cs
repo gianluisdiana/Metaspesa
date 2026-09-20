@@ -14,7 +14,7 @@ public static class AddItemsToList {
   public record CommandItem(int ProductFormatUid, int Amount, bool IsChecked);
   public record Command(
     Guid UserUid,
-    string? ShoppingListName,
+    int ShoppingListId,
     IReadOnlyCollection<CommandItem> Items
   );
 
@@ -32,11 +32,9 @@ public static class AddItemsToList {
         throw new EmptyShoppingItemsException();
       }
 
-      UserId ownerId = ShoppingListRequest.Owner(command.UserUid);
-      ShoppingListName? name = ShoppingListRequest.Name(command.ShoppingListName);
       ShoppingList shoppingList = await shoppingListRepository.GetAsync(
-        ownerId, name, cancellationToken) ??
-        throw ShoppingListRequest.NotFound();
+        new UserId(command.UserUid), new ShoppingListId(command.ShoppingListId),
+        cancellationToken) ?? throw new ShoppingListNotFoundException();
 
       var items = command.Items.Select(item => new ShoppingItem(
         new ProductFormatId(item.ProductFormatUid),

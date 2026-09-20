@@ -11,27 +11,23 @@ using Metaspesa.Domain.Shopping.Errors;
 namespace Metaspesa.Application.Purchasing;
 
 public static class CheckoutShoppingList {
-  public record Command(Guid UserUid, string? ShoppingListName);
+  public record Command(Guid UserUid, int ShoppingListId);
 
   public class Handler(
     IShoppingListRepository shoppingListRepository,
     IPurchasePriceSnapshotReader priceSnapshotReader,
     IPurchaseRepository purchaseRepository,
-    IClock clock,
-    IUnitOfWork unitOfWork
+    IClock clock
   ) {
-    public async Task Handle(
+    public async Task<int> Handle(
       Command command, CancellationToken cancellationToken = default
     ) {
       ArgumentNullException.ThrowIfNull(command);
 
       var ownerId = new UserId(command.UserUid);
-      ShoppingListName? name = string.IsNullOrWhiteSpace(command.ShoppingListName)
-        ? null
-        : new ShoppingListName(command.ShoppingListName);
       ShoppingList shoppingList = await shoppingListRepository.GetAsync(
-        ownerId, name, cancellationToken) ??
-        throw new ShoppingListNotFoundException();
+        ownerId, new ShoppingListId(command.ShoppingListId),
+        cancellationToken) ?? throw new ShoppingListNotFoundException();
 
       IReadOnlyCollection<ShoppingItem> checkedItems = shoppingList.CheckedItems();
       if (checkedItems.Count == 0) {
@@ -50,10 +46,9 @@ public static class CheckoutShoppingList {
         purchaseItems,
         clock.GetCurrentTime());
 
-      purchaseRepository.Add(purchase);
       shoppingList.ResetCheckedItems();
       await shoppingListRepository.UpdateAsync(shoppingList, cancellationToken);
-      await unitOfWork.SaveChangesAsync(cancellationToken);
+      return await purchaseRepository.AddAsync(purchase, cancellationToken);
     }
 
     private async Task<List<PurchaseItem>> CreatePurchaseItemsAsync(

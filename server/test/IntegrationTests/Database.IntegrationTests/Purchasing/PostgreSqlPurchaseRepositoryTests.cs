@@ -55,8 +55,8 @@ public class PostgreSqlPurchaseRepositoryTests : IAsyncLifetime {
       ],
       PurchasedAt);
 
-    _repository.Add(purchase);
-    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    await _repository.AddAsync(
+      purchase, TestContext.Current.CancellationToken);
 
     PurchaseDbEntity entity = await _context.Purchases
       .AsNoTracking()
@@ -87,8 +87,8 @@ public class PostgreSqlPurchaseRepositoryTests : IAsyncLifetime {
       [new PurchaseItem(snapshotId, new PositiveAmount(1))],
       PurchasedAt);
 
-    _repository.Add(purchase);
-    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    await _repository.AddAsync(
+      purchase, TestContext.Current.CancellationToken);
 
     PurchaseDbEntity entity = await _context.Purchases
       .AsNoTracking()
@@ -102,12 +102,11 @@ public class PostgreSqlPurchaseRepositoryTests : IAsyncLifetime {
     UserId buyerId = await SeedUserAsync();
     ShoppingListId listId = await SeedShoppingListAsync(buyerId);
     PriceSnapshotId snapshotId = await SeedSnapshotAsync("Milk", 1.25m);
-    _repository.Add(Purchase.Create(
+    await _repository.AddAsync(Purchase.Create(
       buyerId,
       listId,
       [new PurchaseItem(snapshotId, new PositiveAmount(1))],
-      PurchasedAt));
-    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+      PurchasedAt), TestContext.Current.CancellationToken);
 
     await _context.Users
       .Where(user => user.Uid == buyerId.Value)

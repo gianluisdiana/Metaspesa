@@ -3,11 +3,12 @@ using Metaspesa.Application.Abstractions.Shopping;
 using Metaspesa.Domain.Identity;
 using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.Shopping;
+using Metaspesa.Domain.Shopping.Errors;
 
 namespace Metaspesa.Application.Shopping;
 
 public static class RemoveItem {
-  public record Command(Guid UserUid, string? ShoppingListName, int ProductFormatUid);
+  public record Command(Guid UserUid, int ShoppingListId, int ProductFormatUid);
 
   public class Handler(
     IShoppingListRepository shoppingListRepository,
@@ -18,11 +19,9 @@ public static class RemoveItem {
     ) {
       ArgumentNullException.ThrowIfNull(command);
 
-      UserId ownerId = ShoppingListRequest.Owner(command.UserUid);
-      ShoppingListName? name = ShoppingListRequest.Name(command.ShoppingListName);
       ShoppingList shoppingList = await shoppingListRepository.GetAsync(
-        ownerId, name, cancellationToken) ??
-        throw ShoppingListRequest.NotFound();
+        new UserId(command.UserUid), new ShoppingListId(command.ShoppingListId),
+        cancellationToken) ?? throw new ShoppingListNotFoundException();
 
       shoppingList.RemoveItem(new ProductFormatId(command.ProductFormatUid));
       await shoppingListRepository.UpdateAsync(shoppingList, cancellationToken);

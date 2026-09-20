@@ -15,13 +15,13 @@ public class UpdateShoppingListHandlerTest {
     ShoppingList list = ShoppingTestData.List(ownerId, null);
     IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
     repository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
     IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
     var handler = new Handler(repository, unitOfWork);
 
     await handler.Handle(
-      new Command(ownerId, null, "Weekly"), TestContext.Current.CancellationToken);
+      new Command(ownerId, 1, "Weekly"), TestContext.Current.CancellationToken);
 
     Assert.Equal(new ShoppingListName("Weekly"), list.Name);
     Assert.False(list.IsTemporary);
@@ -35,7 +35,7 @@ public class UpdateShoppingListHandlerTest {
     ShoppingList list = ShoppingTestData.List(ownerId, null);
     IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
     repository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
     repository.ExistsAsync(
       Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
@@ -44,7 +44,7 @@ public class UpdateShoppingListHandlerTest {
     var handler = new Handler(repository, unitOfWork);
 
     await Assert.ThrowsAsync<ShoppingListAlreadyExistsException>(() => handler.Handle(
-      new Command(ownerId, null, "Weekly"), TestContext.Current.CancellationToken));
+      new Command(ownerId, 1, "Weekly"), TestContext.Current.CancellationToken));
 
     Assert.True(list.IsTemporary);
     await unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
@@ -56,13 +56,13 @@ public class UpdateShoppingListHandlerTest {
     ShoppingList list = ShoppingTestData.List(ownerId, "Weekly");
     IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
     repository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
     IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
     var handler = new Handler(repository, unitOfWork);
 
     await handler.Handle(
-      new Command(ownerId, "Weekly", " Weekly "),
+      new Command(ownerId, 1, " Weekly "),
       TestContext.Current.CancellationToken);
 
     await repository.DidNotReceive().ExistsAsync(

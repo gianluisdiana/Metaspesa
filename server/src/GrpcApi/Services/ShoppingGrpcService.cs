@@ -3,6 +3,7 @@ using Grpc.Core;
 using Metaspesa.Application.Purchasing;
 using Metaspesa.Application.Shopping;
 using Metaspesa.Domain.Identity;
+using Metaspesa.Domain.Shopping.Errors;
 using Metaspesa.GrpcApi.Extensions;
 using Metaspesa.GrpcApi.Protos.Shopping;
 using Metaspesa.Infrastructure;
@@ -39,11 +40,11 @@ internal class ShoppingGrpcService(
   public override async Task<ShoppingListResponse> GetShoppingList(
     GetShoppingListRequest request, ServerCallContext context
   ) {
+    int shoppingListId = await ResolveListIdAsync(
+      request.HasShoppingListName ? request.ShoppingListName : null, context);
     var query = new GetShoppingList.Query(
       UserUid: context.GetHttpContext().GetUserUid(),
-      ShoppingListName: request.HasShoppingListName
-        ? TextSanitizer.Sanitize(request.ShoppingListName)
-        : null);
+      ShoppingListId: shoppingListId);
 
     GetShoppingList.Response result = await getShoppingListHandler
       .Handle(query, context.CancellationToken);
@@ -74,11 +75,11 @@ internal class ShoppingGrpcService(
   public override async Task<Empty> AddItemsToList(
     AddItemsToListRequest request, ServerCallContext context
   ) {
+    int shoppingListId = await ResolveListIdAsync(
+      request.HasShoppingListName ? request.ShoppingListName : null, context);
     var command = new AddItemsToList.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
-      ShoppingListName: request.HasShoppingListName
-        ? TextSanitizer.Sanitize(request.ShoppingListName)
-        : null,
+      ShoppingListId: shoppingListId,
       Items: [.. request.Items.Select(i => i.ToAddItemsCommand())]);
 
     await addItemsToListHandler.Handle(command, context.CancellationToken);
@@ -89,9 +90,10 @@ internal class ShoppingGrpcService(
   public override async Task<Empty> UpdateItem(
     UpdateItemRequest request, ServerCallContext context
   ) {
+    int shoppingListId = await ResolveListIdAsync(request.ShoppingListName, context);
     var command = new UpdateItem.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
-      ShoppingListName: TextSanitizer.Sanitize(request.ShoppingListName),
+      ShoppingListId: shoppingListId,
       ProductFormatUid: request.ProductFormatUid,
       Amount: request.HasAmount ? request.Amount : null,
       IsChecked: request.HasIsChecked ? request.IsChecked : null);
@@ -108,11 +110,10 @@ internal class ShoppingGrpcService(
       throw new RpcException(new Status(StatusCode.Internal, "Update shopping list handler is not configured."));
     }
 
+    int shoppingListId = await ResolveListIdAsync(request.ShoppingListName, context);
     var command = new UpdateShoppingList.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
-      ShoppingListName: string.IsNullOrWhiteSpace(request.ShoppingListName)
-        ? null
-        : TextSanitizer.Sanitize(request.ShoppingListName),
+      ShoppingListId: shoppingListId,
       NewName: request.HasListName
         ? TextSanitizer.Sanitize(request.ListName)
         : null);
@@ -125,9 +126,10 @@ internal class ShoppingGrpcService(
   public override async Task<Empty> RemoveItem(
     RemoveItemRequest request, ServerCallContext context
   ) {
+    int shoppingListId = await ResolveListIdAsync(request.ShoppingListName, context);
     var command = new RemoveItem.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
-      ShoppingListName: TextSanitizer.Sanitize(request.ShoppingListName),
+      ShoppingListId: shoppingListId,
       ProductFormatUid: request.ProductFormatUid);
 
     await removeItemHandler.Handle(command, context.CancellationToken);
@@ -138,12 +140,27 @@ internal class ShoppingGrpcService(
   public override async Task<Empty> RecordShoppingList(
     RecordShoppingListRequest request, ServerCallContext context
   ) {
+    int shoppingListId = await ResolveListIdAsync(request.ShoppingListName, context);
     var command = new CheckoutShoppingList.Command(
       UserUid: context.GetHttpContext().GetUserUid(),
-      ShoppingListName: TextSanitizer.Sanitize(request.ShoppingListName));
+      ShoppingListId: shoppingListId);
 
     await checkoutShoppingListHandler.Handle(command, context.CancellationToken);
 
     return new Empty();
+  }
+
+  private async Task<int> ResolveListIdAsync(
+    string? name, ServerCallContext context
+  ) {
+    string? sanitizedName = string.IsNullOrWhiteSpace(name)
+      ? null : TextSanitizer.Sanitize(name).Trim();
+    IReadOnlyCollection<GetShoppingListSummaries.Response> lists =
+      await getShoppingListSummariesHandler.Handle(
+        new GetShoppingListSummaries.Query(context.GetHttpContext().GetUserUid()),
+        context.CancellationToken);
+    return lists.FirstOrDefault(list =>
+      string.Equals(list.Name, sanitizedName, StringComparison.OrdinalIgnoreCase))
+      ?.Id ?? throw new ShoppingListNotFoundException();
   }
 }

@@ -1,4 +1,3 @@
-using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Shopping;
 using Metaspesa.Domain.Identity;
 using Metaspesa.Domain.Shopping;
@@ -11,49 +10,63 @@ namespace Metaspesa.Application.UnitTests.Shopping;
 public class CreateShoppingListHandlerTest {
   private readonly IShoppingListRepository _repository =
     Substitute.For<IShoppingListRepository>();
-  private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
 
-  [Fact(DisplayName = "Creates aggregate and commits")]
-  public async Task Handle_AddsAggregateAndCommits_WhenRequestIsValid() {
+  [Fact]
+  public async Task Handle_ReturnsPersistedIdForNamedList() {
     var ownerId = Guid.CreateVersion7();
-    var handler = new Handler(_repository, _unitOfWork);
+    _repository.AddAsync(Arg.Any<ShoppingList>(),
+      TestContext.Current.CancellationToken).Returns(7);
+    var handler = new Handler(_repository);
 
-    await handler.Handle(
-      new Command(ownerId, "  Weekly  "), TestContext.Current.CancellationToken);
+    int id = await handler.Handle(new Command(ownerId, "  Weekly  "),
+      TestContext.Current.CancellationToken);
 
-    _repository.Received(1).Add(Arg.Is<ShoppingList>(list =>
-      list.Id == null &&
+    Assert.Equal(7, id);
+    await _repository.Received(1).AddAsync(Arg.Is<ShoppingList>(list =>
       list.Name == new ShoppingListName("Weekly") &&
-      list.OwnerIds.Single() == new UserId(ownerId)));
-    await _unitOfWork.Received(1).SaveChangesAsync(
+      list.OwnerIds.Single() == new UserId(ownerId)),
       TestContext.Current.CancellationToken);
   }
 
-  [Fact(DisplayName = "Creates temporary list when name is missing")]
-  public async Task Handle_AddsTemporaryAggregate_WhenNameIsMissing() {
+  [Fact]
+  public async Task Handle_CreatesTemporaryListWhenNameIsMissing() {
     var ownerId = Guid.CreateVersion7();
-    var handler = new Handler(_repository, _unitOfWork);
+    var handler = new Handler(_repository);
 
-    await handler.Handle(
-      new Command(ownerId, null), TestContext.Current.CancellationToken);
+    await handler.Handle(new Command(ownerId, null),
+      TestContext.Current.CancellationToken);
 
-    _repository.Received(1).Add(Arg.Is<ShoppingList>(list =>
-      list.IsTemporary &&
-      list.OwnerIds.Single() == new UserId(ownerId)));
+    await _repository.Received(1).AddAsync(Arg.Is<ShoppingList>(list =>
+      list.IsTemporary && list.OwnerIds.Single() == new UserId(ownerId)),
+      TestContext.Current.CancellationToken);
   }
 
-  [Fact(DisplayName = "Throws conflict and does not commit")]
-  public async Task Handle_ThrowsExactException_WhenListAlreadyExists() {
-    _repository.ExistsAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
-      .Returns(true);
-    var handler = new Handler(_repository, _unitOfWork);
+  [Fact]
+  public async Task Handle_RejectsDuplicateNamedList() {
+    _repository.ExistsAsync(Arg.Any<UserId>(),
+      Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>()).Returns(true);
+    var handler = new Handler(_repository);
 
-    await Assert.ThrowsAsync<ShoppingListAlreadyExistsException>(() => handler.Handle(
-      new Command(Guid.CreateVersion7(), "Weekly"),
-      TestContext.Current.CancellationToken));
+    await Assert.ThrowsAsync<ShoppingListAlreadyExistsException>(() =>
+      handler.Handle(new Command(Guid.CreateVersion7(), "Weekly"),
+        TestContext.Current.CancellationToken));
 
-    _repository.DidNotReceive().Add(Arg.Any<ShoppingList>());
-    await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    await _repository.DidNotReceive().AddAsync(Arg.Any<ShoppingList>(),
+      Arg.Any<CancellationToken>());
+  }
+
+  [Fact]
+  public async Task Handle_UsesDistinctCodeForDuplicateTemporaryList() {
+    var ownerId = Guid.CreateVersion7();
+    _repository.ExistsAsync(new UserId(ownerId), null,
+      TestContext.Current.CancellationToken).Returns(true);
+    var handler = new Handler(_repository);
+
+    TemporaryShoppingListAlreadyExistsException exception =
+      await Assert.ThrowsAsync<TemporaryShoppingListAlreadyExistsException>(() =>
+        handler.Handle(new Command(ownerId, null),
+          TestContext.Current.CancellationToken));
+
+    Assert.Equal("ShoppingList.Temporary.AlreadyExists", exception.Code);
   }
 }

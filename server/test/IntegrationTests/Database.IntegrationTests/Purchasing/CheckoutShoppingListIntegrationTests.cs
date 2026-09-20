@@ -32,8 +32,7 @@ public class CheckoutShoppingListIntegrationTests : IAsyncLifetime {
       _shoppingRepository,
       new PostgreSqlPurchasePriceSnapshotReader(_context),
       new PostgreSqlPurchaseRepository(_context),
-      clock,
-      _context);
+      clock);
   }
 
   public async ValueTask InitializeAsync() {
@@ -64,11 +63,11 @@ public class CheckoutShoppingListIntegrationTests : IAsyncLifetime {
     var list = ShoppingList.Create(ownerId, new ShoppingListName("Weekly"));
     list.AddItem(milkId, new PositiveAmount(2), true);
     list.AddItem(breadId, new PositiveAmount(3), false);
-    _shoppingRepository.Add(list);
-    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    int listId = await _shoppingRepository.AddAsync(
+      list, TestContext.Current.CancellationToken);
 
     await _handler.Handle(
-      new CheckoutShoppingList.Command(ownerId.Value, "Weekly"),
+      new CheckoutShoppingList.Command(ownerId.Value, listId),
       TestContext.Current.CancellationToken);
 
     PurchaseDbEntity purchase = await _context.Purchases
@@ -83,7 +82,7 @@ public class CheckoutShoppingListIntegrationTests : IAsyncLifetime {
     Assert.Equal(PurchasedAt, purchase.PurchasedAt);
     ShoppingList reset = (await _shoppingRepository.GetAsync(
       ownerId,
-      new ShoppingListName("Weekly"),
+      new ShoppingListId(listId),
       TestContext.Current.CancellationToken))!;
     Assert.All(reset.Items, value => Assert.False(value.IsChecked));
   }
@@ -94,12 +93,12 @@ public class CheckoutShoppingListIntegrationTests : IAsyncLifetime {
     ProductFormatId formatId = await SeedFormatAsync("Milk");
     var list = ShoppingList.Create(ownerId, new ShoppingListName("Weekly"));
     list.AddItem(formatId, new PositiveAmount(2), true);
-    _shoppingRepository.Add(list);
-    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    int listId = await _shoppingRepository.AddAsync(
+      list, TestContext.Current.CancellationToken);
 
     await Assert.ThrowsAsync<PurchasePriceSnapshotNotFoundException>(() =>
       _handler.Handle(
-        new CheckoutShoppingList.Command(ownerId.Value, "Weekly"),
+        new CheckoutShoppingList.Command(ownerId.Value, listId),
         TestContext.Current.CancellationToken));
 
     Assert.Empty(await _context.Purchases
@@ -107,7 +106,7 @@ public class CheckoutShoppingListIntegrationTests : IAsyncLifetime {
       .ToListAsync(TestContext.Current.CancellationToken));
     ShoppingList unchanged = (await _shoppingRepository.GetAsync(
       ownerId,
-      new ShoppingListName("Weekly"),
+      new ShoppingListId(listId),
       TestContext.Current.CancellationToken))!;
     Assert.True(unchanged.Items.Single().IsChecked);
   }
