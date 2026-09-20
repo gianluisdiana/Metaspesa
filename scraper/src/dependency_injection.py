@@ -7,7 +7,6 @@ from application.abstractions import (
     MarketWebScraper,
     ProductRepository,
 )
-from application.clock import SystemClock
 from application.product_processors import (
     BrandExtractor,
     BrandSimplifier,
@@ -30,6 +29,7 @@ from infrastructure.playwright_driver import PlaywrightDriver
 from infrastructure.rest.rest_product_repository import RestProductRepository
 from infrastructure.rest.rest_token_client import RestTokenClient
 from infrastructure.secrets import LocalSecretVault, SecretNotFoundError
+from infrastructure.system_clock import SystemClock
 from infrastructure.telemetry.instrumented_playwright_driver import (
     InstrumentedPlaywrightDriver,
 )

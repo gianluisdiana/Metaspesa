@@ -3,12 +3,12 @@ import logging
 from datetime import date
 
 from application.abstractions import (
+    Clock,
     FallbackProductRepository,
     MarketWebScraper,
     ProductRepository,
     RepositorySaveException,
 )
-from application.clock import Clock, SystemClock
 from application.product_processors import ProductProcessor
 from domain import Product
 
@@ -25,13 +25,13 @@ class ScrapeMarketsCommandHandler:
         fallback_repository: FallbackProductRepository,
         market_web_scrapers: dict[str, MarketWebScraper],
         product_processor: ProductProcessor,
-        clock: Clock | None = None,
+        clock: Clock,
     ) -> None:
         self.__main_repository = main_repository
         self.__fallback_repository = fallback_repository
         self.__market_web_scrapers = market_web_scrapers
         self.__product_processor = product_processor
-        self.__clock = clock or SystemClock()
+        self.__clock = clock
         self.__logger = logging.getLogger(self.__class__.__name__)
 
     async def handle(self, postal_code: str) -> None:

@@ -1,11 +1,7 @@
-from abc import ABC, abstractmethod
 from datetime import date
 from typing import override
 
-
-class Clock(ABC):
-    @abstractmethod
-    def today(self) -> date: ...
+from application.abstractions import Clock
 
 
 class SystemClock(Clock):
