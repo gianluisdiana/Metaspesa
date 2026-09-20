@@ -282,7 +282,7 @@ jobs:
         working-directory: client
         run: |
           pnpm install --frozen-lockfile
-          pnpm run generate-proto
+          pnpm run generate-api
 
       - name: Start database
         run: |
