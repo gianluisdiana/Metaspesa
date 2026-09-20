@@ -1,7 +1,9 @@
 using Metaspesa.Database.Exceptions;
 using Metaspesa.Domain.Identity.Errors;
 using Metaspesa.Domain.Markets.Errors;
+using Metaspesa.Domain.Purchasing.Errors;
 using Metaspesa.Domain.SharedKernel.Errors;
+using Metaspesa.Domain.Shopping.Errors;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,6 +29,36 @@ internal sealed partial class RestExceptionHandler(
         identity.Code,
         "Invalid credentials",
         "invalid-credentials"),
+      UnauthorizedAccessException => (
+        StatusCodes.Status401Unauthorized,
+        "Auth.InvalidUser", "Invalid user", "invalid-user"),
+      ShoppingListNotFoundException shopping => (
+        StatusCodes.Status404NotFound, shopping.Code,
+        "Shopping list not found", "shopping-list-not-found"),
+      ShoppingItemNotFoundException shopping => (
+        StatusCodes.Status404NotFound, shopping.Code,
+        "Shopping item not found", "shopping-item-not-found"),
+      ShoppingProductFormatNotFoundException shopping => (
+        StatusCodes.Status404NotFound, shopping.Code,
+        "Product format not found", "product-format-not-found"),
+      TemporaryShoppingListAlreadyExistsException shopping => (
+        StatusCodes.Status409Conflict, shopping.Code,
+        "Temporary shopping list already exists", "temporary-shopping-list-already-exists"),
+      ShoppingListAlreadyExistsException shopping => (
+        StatusCodes.Status409Conflict, shopping.Code,
+        "Shopping list already exists", "shopping-list-already-exists"),
+      DuplicateShoppingItemException shopping => (
+        StatusCodes.Status409Conflict, shopping.Code,
+        "Shopping item already exists", "shopping-item-already-exists"),
+      EmptyPurchaseItemsException purchase => (
+        StatusCodes.Status409Conflict, purchase.Code,
+        "No checked items", "no-checked-items"),
+      PurchasePriceSnapshotNotFoundException purchase => (
+        StatusCodes.Status409Conflict, purchase.Code,
+        "Price snapshot not found", "price-snapshot-not-found"),
+      ShoppingDomainException shopping => (
+        StatusCodes.Status400BadRequest, shopping.Code,
+        shopping.Message, "shopping-validation"),
       IdentityDomainException identity => (
         StatusCodes.Status400BadRequest,
         identity.Code,

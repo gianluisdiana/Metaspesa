@@ -262,8 +262,397 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+  /api/v1/shopping-lists:
+    get:
+      tags:
+        - GetShoppingListsEndpoint
+      summary: List the shopper's shopping lists.
+      description: Return named and temporary lists owned by the authenticated shopper. Requires the Shopper role.
+      operationId: GetShoppingLists
+      responses:
+        '200':
+          description: Shopping list summaries; the collection can be empty.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShoppingListCollectionResponse'
+        '401':
+          description: No valid authentication token was provided.
+        '403':
+          description: The authenticated user lacks the Shopper role.
+        '500':
+          description: An unexpected server or database failure occurred.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+    post:
+      tags:
+        - CreateShoppingListEndpoint
+      summary: Create a shopping list.
+      description: Supply a name for a named list or null for a temporary list. Requires the Shopper role.
+      operationId: CreateShoppingList
+      requestBody:
+        description: Details for a new named or temporary shopping list.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateShoppingListRequest'
+        required: true
+      responses:
+        '201':
+          description: List created; the response contains its ID and the Location header identifies it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdResponse'
+        '400':
+          description: The list name is invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: A list with this name or a temporary list already exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '401':
+          description: No valid authentication token was provided.
+        '403':
+          description: The authenticated user lacks the Shopper role.
+        '500':
+          description: An unexpected server or database failure occurred.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  '/api/v1/shopping-lists/{listId}':
+    get:
+      tags:
+        - GetShoppingListEndpoint
+      summary: Get a shopping list.
+      description: Return the list and its items with current product details for its owner. Requires the Shopper role.
+      operationId: GetShoppingList
+      parameters:
+        - name: listId
+          in: path
+          description: ID of the shopping list to retrieve.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: The shopping list and its items.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShoppingListResponse'
+        '400':
+          description: The list ID is invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: The list or a referenced product format was not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '401':
+          description: No valid authentication token was provided.
+        '403':
+          description: The authenticated user lacks the Shopper role.
+        '500':
+          description: An unexpected server or database failure occurred.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+    patch:
+      tags:
+        - RenameShoppingListEndpoint
+      summary: Rename a shopping list.
+      description: 'Assign a nonblank name to an owned list, including a temporary list. Requires the Shopper role.'
+      operationId: RenameShoppingList
+      parameters:
+        - name: listId
+          in: path
+          description: ID of the shopping list to rename.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      requestBody:
+        description: New name for a shopping list.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameShoppingListRequest'
+        required: true
+      responses:
+        '204':
+          description: List renamed; no response body.
+        '400':
+          description: The list ID or new name is invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: The list was not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: Another list already has this name.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '401':
+          description: No valid authentication token was provided.
+        '403':
+          description: The authenticated user lacks the Shopper role.
+        '500':
+          description: An unexpected server or database failure occurred.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  '/api/v1/shopping-lists/{listId}/items':
+    post:
+      tags:
+        - AddShoppingItemsEndpoint
+      summary: Add items to a shopping list.
+      description: Add one or more product formats to an owned list. Each format may appear only once in the list. Requires the Shopper role.
+      operationId: AddShoppingItems
+      parameters:
+        - name: listId
+          in: path
+          description: ID of the shopping list to update.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      requestBody:
+        description: Items to add to a shopping list.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddShoppingItemsRequest'
+        required: true
+      responses:
+        '204':
+          description: Items added; no response body.
+        '400':
+          description: 'The list ID or items are invalid, or the collection is empty.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: The list or a product format was not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: A product format is already in the list or repeated in the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '401':
+          description: No valid authentication token was provided.
+        '403':
+          description: The authenticated user lacks the Shopper role.
+        '500':
+          description: An unexpected server or database failure occurred.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  '/api/v1/shopping-lists/{listId}/items/{productFormatId}':
+    patch:
+      tags:
+        - UpdateShoppingItemEndpoint
+      summary: Update a shopping item.
+      description: 'Change the amount, checked state, or both for an item in an owned list. Requires the Shopper role.'
+      operationId: UpdateShoppingItem
+      parameters:
+        - name: listId
+          in: path
+          description: ID of the shopping list containing the item.
+          required: true
+          schema:
+            type: integer
+            format: int32
+        - name: productFormatId
+          in: path
+          description: ID of the item's product format.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      requestBody:
+        description: Changes to a shopping item; at least one field is required.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateShoppingItemRequest'
+        required: true
+      responses:
+        '204':
+          description: Item updated; no response body.
+        '400':
+          description: 'An ID or amount is invalid, or neither field was supplied.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '401':
+          description: No valid authentication token was provided.
+        '403':
+          description: The authenticated user lacks the Shopper role.
+        '404':
+          description: The list or item was not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: An unexpected server or database failure occurred.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+    delete:
+      tags:
+        - RemoveShoppingItemEndpoint
+      summary: Remove a shopping item.
+      description: Remove a product format from an owned shopping list. Requires the Shopper role.
+      operationId: RemoveShoppingItem
+      parameters:
+        - name: listId
+          in: path
+          description: ID of the shopping list containing the item.
+          required: true
+          schema:
+            type: integer
+            format: int32
+        - name: productFormatId
+          in: path
+          description: ID of the item's product format.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '204':
+          description: Item removed; no response body.
+        '400':
+          description: The list or product format ID is invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: The list or item was not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '401':
+          description: No valid authentication token was provided.
+        '403':
+          description: The authenticated user lacks the Shopper role.
+        '500':
+          description: An unexpected server or database failure occurred.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  '/api/v1/shopping-lists/{listId}/checkouts':
+    post:
+      tags:
+        - CheckoutShoppingListEndpoint
+      summary: Check out a shopping list.
+      description: 'Record a purchase from checked items at their latest observed prices, then clear their checked states. Requires the Shopper role.'
+      operationId: CheckoutShoppingList
+      parameters:
+        - name: listId
+          in: path
+          description: ID of the shopping list to check out.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '201':
+          description: Purchase recorded; the response contains its ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseResponse'
+        '400':
+          description: The list ID is invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: The list was not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: No items are checked or a checked item has no price snapshot.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '401':
+          description: No valid authentication token was provided.
+        '403':
+          description: The authenticated user lacks the Shopper role.
+        '500':
+          description: An unexpected server or database failure occurred.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
 components:
   schemas:
+    AddShoppingItemsRequest:
+      required:
+        - items
+      type: object
+      properties:
+        items:
+          type:
+            - 'null'
+            - array
+          items:
+            $ref: '#/components/schemas/ShoppingItemRequest'
+          description: Non-empty array of items with distinct product format IDs.
+      description: Items to add to a shopping list.
+    CreateShoppingListRequest:
+      required:
+        - name
+      type: object
+      properties:
+        name:
+          type:
+            - 'null'
+            - string
+          description: 'List name, or null to create a temporary list.'
+      description: Details for a new named or temporary shopping list.
     CredentialsRequest:
       required:
         - username
@@ -305,6 +694,16 @@ components:
             - string
           description: Absolute product image URL when available; otherwise omitted.
       description: Purchasable product format with its latest price observation.
+    IdResponse:
+      required:
+        - id
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Stable shopping list ID.
+          format: int32
+      description: Identifier of a newly created shopping list.
     MarketListResponse:
       required:
         - items
@@ -447,6 +846,16 @@ components:
             $ref: '#/components/schemas/FormatResponse'
           description: Available quantities and their latest observed prices.
       description: One market-owned product. IDs do not imply cross-market equivalence.
+    PurchaseResponse:
+      required:
+        - purchaseId
+      type: object
+      properties:
+        purchaseId:
+          type: integer
+          description: Stable purchase ID.
+          format: int32
+      description: Identifier of a recorded purchase.
     QuantityResponse:
       required:
         - amount
@@ -461,6 +870,180 @@ components:
           type: string
           description: 'Unit of measure, such as kg, g, or l.'
       description: Quantity associated with one product format.
+    RenameShoppingListRequest:
+      required:
+        - name
+      type: object
+      properties:
+        name:
+          type:
+            - 'null'
+            - string
+          description: Required nonblank name for the list.
+      description: New name for a shopping list.
+    ShoppingItemRequest:
+      required:
+        - productFormatId
+        - amount
+        - checked
+      type: object
+      properties:
+        productFormatId:
+          type: integer
+          description: ID of an existing product format.
+          format: int32
+        amount:
+          type: integer
+          description: Positive number of units to buy.
+          format: int32
+        checked:
+          type: boolean
+          description: Whether the item is marked for checkout.
+      description: One product format to add to a shopping list.
+    ShoppingItemResponse:
+      required:
+        - productFormatId
+        - productName
+        - brand
+        - market
+        - quantity
+        - unitPrice
+        - amount
+        - checked
+        - imageUrl
+      type: object
+      properties:
+        productFormatId:
+          type: integer
+          description: Stable format ID used to update or remove this item.
+          format: int32
+        productName:
+          type: string
+          description: Product display name.
+        brand:
+          type: string
+          description: Product brand display name.
+        market:
+          description: Market that sells the product.
+          $ref: '#/components/schemas/ShoppingMarketResponse'
+        quantity:
+          description: Quantity sold in one product format.
+          $ref: '#/components/schemas/ShoppingQuantityResponse'
+        unitPrice:
+          description: Latest observed price for one product format.
+          $ref: '#/components/schemas/ShoppingMoneyResponse'
+        amount:
+          type: integer
+          description: Positive number of units on the list.
+          format: int32
+        checked:
+          type: boolean
+          description: Whether this item is marked for checkout.
+        imageUrl:
+          type:
+            - 'null'
+            - string
+          description: Absolute product image URL when available; otherwise omitted.
+      description: Shopping item with current product and price information.
+    ShoppingListCollectionResponse:
+      required:
+        - items
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShoppingListSummaryResponse'
+          description: List summaries; empty when the shopper owns no lists.
+      description: Shopping lists owned by the authenticated shopper.
+    ShoppingListResponse:
+      required:
+        - id
+        - name
+        - isTemporary
+        - items
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Stable shopping list ID.
+          format: int32
+        name:
+          type:
+            - 'null'
+            - string
+          description: 'List name, omitted for a temporary list.'
+        isTemporary:
+          type: boolean
+          description: Whether this is an unnamed temporary list.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShoppingItemResponse'
+          description: Items in the list; empty when it has no items.
+      description: Shopping list and its current items.
+    ShoppingListSummaryResponse:
+      required:
+        - id
+        - name
+        - isTemporary
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Stable shopping list ID.
+          format: int32
+        name:
+          type:
+            - 'null'
+            - string
+          description: 'List name, omitted for a temporary list.'
+        isTemporary:
+          type: boolean
+          description: Whether this is the shopper's unnamed temporary list.
+      description: Shopping list identity and display information.
+    ShoppingMarketResponse:
+      required:
+        - id
+        - name
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Stable market ID.
+          format: int32
+        name:
+          type: string
+          description: Market display name.
+      description: Market that sells a shopping item.
+    ShoppingMoneyResponse:
+      required:
+        - amount
+        - currency
+      type: object
+      properties:
+        amount:
+          type: number
+          description: Price in the stated currency.
+          format: double
+        currency:
+          type: string
+          description: 'Currency code of the price, such as EUR.'
+      description: Latest observed price for one product format.
+    ShoppingQuantityResponse:
+      required:
+        - amount
+        - unit
+      type: object
+      properties:
+        amount:
+          type: number
+          description: Numeric quantity of the format.
+          format: double
+        unit:
+          type: string
+          description: 'Unit of measure, such as kg, g, or l.'
+      description: Quantity sold in one product format.
     SnapshotItem:
       required:
         - name
@@ -531,6 +1114,24 @@ components:
           description: UTC instant after which the token is invalid.
           format: date-time
       description: Bearer token issued after successful machine authentication.
+    UpdateShoppingItemRequest:
+      required:
+        - amount
+        - checked
+      type: object
+      properties:
+        amount:
+          type:
+            - 'null'
+            - integer
+          description: 'New positive amount, or null to keep the current amount.'
+          format: int32
+        checked:
+          type:
+            - 'null'
+            - boolean
+          description: 'New checked state, or null to keep the current state.'
+      description: Changes to a shopping item; at least one field is required.
 tags:
   - name: RegisterEndpoint
   - name: CreateSessionEndpoint
@@ -538,3 +1139,11 @@ tags:
   - name: GetMarketsEndpoint
   - name: GetProductsEndpoint
   - name: SnapshotEndpoint
+  - name: GetShoppingListsEndpoint
+  - name: CreateShoppingListEndpoint
+  - name: GetShoppingListEndpoint
+  - name: RenameShoppingListEndpoint
+  - name: AddShoppingItemsEndpoint
+  - name: UpdateShoppingItemEndpoint
+  - name: RemoveShoppingItemEndpoint
+  - name: CheckoutShoppingListEndpoint

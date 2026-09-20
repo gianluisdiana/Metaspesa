@@ -4,6 +4,7 @@ using Metaspesa.Infrastructure;
 using Metaspesa.RestApi;
 using Metaspesa.RestApi.Identity;
 using Metaspesa.RestApi.Markets;
+using Metaspesa.RestApi.Shopping;
 using Metaspesa.ServiceDefaults;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -26,6 +27,7 @@ if (app.Environment.IsDevelopment()) {
 }
 app.MapIdentityEndpoints();
 app.MapMarketEndpoints();
+app.MapShoppingEndpoints();
 app.MapDefaultEndpoints();
 
 if (args is ["--generate-openapi", string outputPath]) {
