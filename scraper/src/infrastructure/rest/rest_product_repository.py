@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from http import HTTPStatus
 from typing import TypedDict, cast, override
@@ -8,7 +9,12 @@ import httpx
 
 from application.abstractions import ProductRepository, RepositorySaveException
 from domain import Product
-from infrastructure.rest.rest_token_client import Token, TokenClient, TokenRequestError
+
+
+@dataclass(frozen=True)
+class Token:
+    value: str
+    expires_at: datetime
 
 
 class SnapshotItemPayload(TypedDict):
@@ -30,45 +36,18 @@ class RestProductRepository(ProductRepository):
         http_client: httpx.AsyncClient,
         username: str,
         password: str,
-        token_client: TokenClient,
     ) -> None:
         self.__http_client = http_client
         self.__username = username
         self.__password = password
-        self.__token_client = token_client
+        self.__token_path = "/auth/tokens"
         self.__token: Token | None = None
         self.__logger = logging.getLogger(self.__class__.__name__)
 
     @override
     async def save(self, market_name: str, date: date, products: list[Product]) -> None:
         try:
-            if self.__token is None or self.__token.expires_at <= datetime.now(UTC):
-                self.__token = await self.__token_client.create_token(
-                    self.__username, self.__password
-                )
-            payload: SnapshotPayload = {
-                "items": [
-                    {
-                        "name": product.name,
-                        "price": product.price,
-                        "quantity": product.quantity,
-                        "unitOfMeasure": product.unit_of_measure,
-                        "brandName": product.brand,
-                        "imageUrl": product.image_url,
-                    }
-                    for product in products
-                    if product.brand is not None
-                ]
-            }
-            response = await self.__http_client.post(
-                f"/markets/{quote(market_name, safe='')}/snapshots/{date.isoformat()}",
-                headers={"Authorization": f"Bearer {self.__token.value}"},
-                json=payload,
-                timeout=120,
-            )
-            response.raise_for_status()
-            if response.status_code != HTTPStatus.NO_CONTENT:
-                raise RepositorySaveException("Unexpected ingestion response.")
+            await self.__try_save(market_name, date, products)
         except httpx.HTTPStatusError as error:
             reason = self.__response_reason(error.response)
             self.__logger.error(
@@ -81,8 +60,40 @@ class RestProductRepository(ProductRepository):
                 },
             )
             raise RepositorySaveException(reason) from error
-        except (httpx.HTTPError, TokenRequestError, TypeError, ValueError) as error:
+        except (httpx.HTTPError, KeyError, TypeError, ValueError) as error:
             raise RepositorySaveException("Could not save market snapshot.") from error
+
+    async def __try_save(
+        self, market_name: str, date: date, products: list[Product]
+    ) -> None:
+        if self.__token is None or self.__token.expires_at <= datetime.now(UTC):
+            self.__token = await self.__create_token()
+        payload: SnapshotPayload = {
+            "items": [
+                {
+                    "name": product.name,
+                    "price": product.price,
+                    "quantity": product.quantity,
+                    "unitOfMeasure": product.unit_of_measure,
+                    "brandName": product.brand,
+                    "imageUrl": product.image_url,
+                }
+                for product in products
+                if product.brand is not None
+            ]
+        }
+        snapshot_path = (
+            f"/markets/{quote(market_name, safe='')}/snapshots/{date.isoformat()}"
+        )
+        response = await self.__http_client.post(
+            snapshot_path,
+            headers={"Authorization": f"Bearer {self.__token.value}"},
+            json=payload,
+            timeout=120,
+        )
+        response.raise_for_status()
+        if response.status_code != HTTPStatus.NO_CONTENT:
+            raise RepositorySaveException("Unexpected ingestion response.")
 
     @staticmethod
     def __response_reason(response: httpx.Response) -> str:
@@ -101,3 +112,17 @@ class RestProductRepository(ProductRepository):
             if isinstance(value, str) and value:
                 parts.append(f"{key}={value}")
         return " | ".join(parts)
+
+    async def __create_token(self) -> Token:
+        response = await self.__http_client.post(
+            self.__token_path,
+            json={"username": self.__username, "password": self.__password},
+        )
+        response.raise_for_status()
+        content = response.json()
+        if content["tokenType"] != "Bearer":
+            raise ValueError("Unsupported token type")
+        return Token(
+            value=content["accessToken"],
+            expires_at=datetime.fromisoformat(content["expiresAt"]),
+        )
