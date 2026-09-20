@@ -1,11 +1,11 @@
-import ApiService from '@/lib/api-service';
+import RestShoppingApiService from '@/infrastructure/rest-shopping-api-service';
 import {
   ShoppingListMessage,
   ShoppingListSummaryMessage,
 } from '@/lib/shopping-list-contracts';
 
 export type ShoppingPageData = {
-  selectedListName?: string;
+  selectedListId?: number;
   shoppingList: ShoppingListMessage;
   shoppingListSummaries: ShoppingListSummaryMessage[];
 };
@@ -13,38 +13,41 @@ export type ShoppingPageData = {
 const emptyShoppingList: ShoppingListMessage = { products: [] };
 
 export async function loadShoppingPage(
-  service: Pick<ApiService, 'getShoppingList' | 'getShoppingListSummaries'>,
-  requestedListName?: string,
+  service: Pick<
+    RestShoppingApiService,
+    'getShoppingList' | 'getShoppingListSummaries'
+  >,
+  requestedListId?: number,
 ): Promise<ShoppingPageData> {
   const shoppingListSummaries = await service.getShoppingListSummaries();
-  const selectedListName = selectListName(
-    shoppingListSummaries,
-    requestedListName,
-  );
+  const selectedListId = selectListId(shoppingListSummaries, requestedListId);
 
   if (shoppingListSummaries.length === 0) {
     return {
-      selectedListName,
+      selectedListId,
       shoppingList: emptyShoppingList,
       shoppingListSummaries,
     };
   }
 
   return {
-    selectedListName,
-    shoppingList: await service.getShoppingList(selectedListName),
+    selectedListId,
+    shoppingList: await service.getShoppingList(selectedListId!),
     shoppingListSummaries,
   };
 }
 
-function selectListName(
+function selectListId(
   summaries: ShoppingListSummaryMessage[],
-  requestedListName?: string,
-): string | undefined {
-  if (requestedListName) {
-    return requestedListName;
+  requestedListId?: number,
+): number | undefined {
+  if (
+    requestedListId &&
+    summaries.some(summary => summary.id === requestedListId)
+  ) {
+    return requestedListId;
   }
 
-  const temporaryList = summaries.find(summary => !summary.name);
-  return temporaryList ? undefined : summaries[0]?.name;
+  const temporaryList = summaries.find(summary => summary.isTemporary);
+  return temporaryList?.id ?? summaries[0]?.id;
 }

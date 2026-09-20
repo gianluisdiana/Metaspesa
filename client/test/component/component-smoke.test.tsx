@@ -121,7 +121,7 @@ describe('component smoke tests', () => {
             ],
           }}
           initialShoppingListSummaries={[{ name: 'Groceries' }]}
-          initialSelectedListName="Groceries"
+          initialSelectedListId={7}
         />
       </ToastProvider>,
     );

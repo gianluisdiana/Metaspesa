@@ -1,61 +1,83 @@
 import { loadShoppingPage } from '@/app/(protected)/shopping/shopping-page-loader';
 import { describe, expect, it, vi } from 'vitest';
 
-import ApiService from '@/lib/api-service';
+import RestShoppingApiService from '@/infrastructure/rest-shopping-api-service';
 
 function createService({
   lists,
   shoppingList,
 }: {
-  lists: { name?: string }[];
+  lists: { id: number; name?: string; isTemporary: boolean }[];
   shoppingList?: { name?: string; products: [] };
 }) {
   return {
     getShoppingList: vi.fn().mockResolvedValue(shoppingList),
     getShoppingListSummaries: vi.fn().mockResolvedValue(lists),
-  } satisfies Pick<ApiService, 'getShoppingList' | 'getShoppingListSummaries'>;
+  } satisfies Pick<
+    RestShoppingApiService,
+    'getShoppingList' | 'getShoppingListSummaries'
+  >;
 }
 
 describe('shopping page loader', () => {
   it('loads the first available named list when no list is selected', async () => {
     const groceries = { name: 'Groceries', products: [] as [] };
     const service = createService({
-      lists: [{ name: 'Groceries' }, { name: 'Weekly' }],
+      lists: [
+        { id: 7, isTemporary: false, name: 'Groceries' },
+        { id: 8, isTemporary: false, name: 'Weekly' },
+      ],
       shoppingList: groceries,
     });
 
     await expect(loadShoppingPage(service)).resolves.toEqual({
-      selectedListName: 'Groceries',
+      selectedListId: 7,
       shoppingList: groceries,
-      shoppingListSummaries: [{ name: 'Groceries' }, { name: 'Weekly' }],
+      shoppingListSummaries: [
+        { id: 7, isTemporary: false, name: 'Groceries' },
+        { id: 8, isTemporary: false, name: 'Weekly' },
+      ],
     });
   });
 
   it('loads the temporary list by default when one is available', async () => {
     const temporaryList = { products: [] as [] };
     const service = createService({
-      lists: [{ name: 'Groceries' }, {}],
+      lists: [
+        { id: 7, isTemporary: false, name: 'Groceries' },
+        { id: 9, isTemporary: true },
+      ],
       shoppingList: temporaryList,
     });
 
     await expect(loadShoppingPage(service)).resolves.toEqual({
-      selectedListName: undefined,
+      selectedListId: 9,
       shoppingList: temporaryList,
-      shoppingListSummaries: [{ name: 'Groceries' }, {}],
+      shoppingListSummaries: [
+        { id: 7, isTemporary: false, name: 'Groceries' },
+        { id: 9, isTemporary: true },
+      ],
     });
   });
 
   it('loads the requested named list', async () => {
+    const requestedListId = 8;
     const weekly = { name: 'Weekly', products: [] as [] };
     const service = createService({
-      lists: [{ name: 'Groceries' }, { name: 'Weekly' }],
+      lists: [
+        { id: 7, isTemporary: false, name: 'Groceries' },
+        { id: requestedListId, isTemporary: false, name: 'Weekly' },
+      ],
       shoppingList: weekly,
     });
 
-    await expect(loadShoppingPage(service, 'Weekly')).resolves.toEqual({
-      selectedListName: 'Weekly',
+    await expect(loadShoppingPage(service, requestedListId)).resolves.toEqual({
+      selectedListId: requestedListId,
       shoppingList: weekly,
-      shoppingListSummaries: [{ name: 'Groceries' }, { name: 'Weekly' }],
+      shoppingListSummaries: [
+        { id: 7, isTemporary: false, name: 'Groceries' },
+        { id: requestedListId, isTemporary: false, name: 'Weekly' },
+      ],
     });
   });
 
@@ -63,7 +85,7 @@ describe('shopping page loader', () => {
     const service = createService({ lists: [] });
 
     await expect(loadShoppingPage(service)).resolves.toEqual({
-      selectedListName: undefined,
+      selectedListId: undefined,
       shoppingList: { products: [] },
       shoppingListSummaries: [],
     });

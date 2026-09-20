@@ -3,11 +3,25 @@
 import * as z from 'zod';
 
 /**
+ * Details for a new named or temporary shopping list.
+ */
+export const zCreateShoppingListRequest = z.object({
+    name: z.string().nullable()
+});
+
+/**
  * Credentials supplied when registering or authenticating a shopper.
  */
 export const zCredentialsRequest = z.object({
     username: z.string(),
     password: z.string()
+});
+
+/**
+ * Identifier of a newly created shopping list.
+ */
+export const zIdResponse = z.object({
+    id: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
 });
 
 /**
@@ -35,7 +49,7 @@ export const zMoneyResponse = z.object({
 });
 
 /**
- * Error response. The code identifies the failure and traceId helps correlate logs.
+ * Error response with a machine-readable code and request trace identifier.
  */
 export const zProblemDetails = z.object({
     type: z.string().nullish(),
@@ -45,6 +59,13 @@ export const zProblemDetails = z.object({
     instance: z.string().nullish(),
     code: z.string(),
     traceId: z.string()
+});
+
+/**
+ * Identifier of a recorded purchase.
+ */
+export const zPurchaseResponse = z.object({
+    purchaseId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
 });
 
 /**
@@ -67,7 +88,7 @@ export const zFormatResponse = z.object({
 });
 
 /**
- * One product owned by one market. Product IDs do not imply cross-market equivalence.
+ * One market-owned product. IDs do not imply cross-market equivalence.
  */
 export const zProductResponse = z.object({
     id: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
@@ -86,6 +107,94 @@ export const zProductPageResponse = z.object({
     pageSize: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     totalItems: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     totalPages: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+});
+
+/**
+ * New name for a shopping list.
+ */
+export const zRenameShoppingListRequest = z.object({
+    name: z.string().nullable()
+});
+
+/**
+ * One product format to add to a shopping list.
+ */
+export const zShoppingItemRequest = z.object({
+    productFormatId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    amount: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    checked: z.boolean()
+});
+
+/**
+ * Items to add to a shopping list.
+ */
+export const zAddShoppingItemsRequest = z.object({
+    items: z.array(zShoppingItemRequest).nullable()
+});
+
+/**
+ * Shopping list identity and display information.
+ */
+export const zShoppingListSummaryResponse = z.object({
+    id: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    name: z.string().nullable(),
+    isTemporary: z.boolean()
+});
+
+/**
+ * Shopping lists owned by the authenticated shopper.
+ */
+export const zShoppingListCollectionResponse = z.object({
+    items: z.array(zShoppingListSummaryResponse)
+});
+
+/**
+ * Market that sells a shopping item.
+ */
+export const zShoppingMarketResponse = z.object({
+    id: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    name: z.string()
+});
+
+/**
+ * Latest observed price for one product format.
+ */
+export const zShoppingMoneyResponse = z.object({
+    amount: z.number(),
+    currency: z.string()
+});
+
+/**
+ * Quantity sold in one product format.
+ */
+export const zShoppingQuantityResponse = z.object({
+    amount: z.number(),
+    unit: z.string()
+});
+
+/**
+ * Shopping item with current product and price information.
+ */
+export const zShoppingItemResponse = z.object({
+    productFormatId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    productName: z.string(),
+    brand: z.string(),
+    market: zShoppingMarketResponse,
+    quantity: zShoppingQuantityResponse,
+    unitPrice: zShoppingMoneyResponse,
+    amount: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    checked: z.boolean(),
+    imageUrl: z.string().nullable()
+});
+
+/**
+ * Shopping list and its current items.
+ */
+export const zShoppingListResponse = z.object({
+    id: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    name: z.string().nullable(),
+    isTemporary: z.boolean(),
+    items: z.array(zShoppingItemResponse)
 });
 
 /**
@@ -117,22 +226,30 @@ export const zTokenResponse = z.object({
 });
 
 /**
- * Credentials for the new shopper account.
+ * Changes to a shopping item; at least one field is required.
+ */
+export const zUpdateShoppingItemRequest = z.object({
+    amount: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).nullable(),
+    checked: z.boolean().nullable()
+});
+
+/**
+ * Credentials supplied when registering or authenticating a shopper.
  */
 export const zRegisterShopperBody = zCredentialsRequest;
 
 /**
- * Credentials used to create the browser session.
+ * Credentials supplied when registering or authenticating a shopper.
  */
 export const zCreateBrowserSessionBody = zCredentialsRequest;
 
 /**
- * Authenticated. A session cookie is set; the response has no body.
+ * Authenticated. A session cookie is set; no response body.
  */
 export const zCreateBrowserSessionResponse = z.void();
 
 /**
- * Credentials used to obtain a bearer token.
+ * Credentials supplied when registering or authenticating a shopper.
  */
 export const zCreateMachineTokenBody = zCredentialsRequest;
 
@@ -142,7 +259,7 @@ export const zCreateMachineTokenBody = zCredentialsRequest;
 export const zCreateMachineTokenResponse = zTokenResponse;
 
 /**
- * Available markets, including identifiers for the marketId filter.
+ * Available markets and their stable IDs.
  */
 export const zGetMarketsResponse = zMarketListResponse;
 
@@ -160,12 +277,12 @@ export const zGetProductsQuery = z.object({
 });
 
 /**
- * Matching products and pagination counts. An empty page has an empty items array.
+ * Matching products and pagination counts. An empty page has no items.
  */
 export const zGetProductsResponse = zProductPageResponse;
 
 /**
- * Product observations to import for the specified market and date.
+ * Batch of market product observations.
  */
 export const zAddMarketSnapshotBody = zSnapshotRequest;
 
@@ -175,6 +292,92 @@ export const zAddMarketSnapshotPath = z.object({
 });
 
 /**
- * Snapshot imported. The response has no body.
+ * Snapshot imported; no response body.
  */
 export const zAddMarketSnapshotResponse = z.void();
+
+/**
+ * Shopping list summaries; the collection can be empty.
+ */
+export const zGetShoppingListsResponse = zShoppingListCollectionResponse;
+
+/**
+ * Details for a new named or temporary shopping list.
+ */
+export const zCreateShoppingListBody = zCreateShoppingListRequest;
+
+/**
+ * List created; the response contains its ID and the Location header identifies it.
+ */
+export const zCreateShoppingListResponse = zIdResponse;
+
+export const zGetShoppingListPath = z.object({
+    listId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+});
+
+/**
+ * The shopping list and its items.
+ */
+export const zGetShoppingListResponse = zShoppingListResponse;
+
+/**
+ * New name for a shopping list.
+ */
+export const zRenameShoppingListBody = zRenameShoppingListRequest;
+
+export const zRenameShoppingListPath = z.object({
+    listId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+});
+
+/**
+ * List renamed; no response body.
+ */
+export const zRenameShoppingListResponse = z.void();
+
+/**
+ * Items to add to a shopping list.
+ */
+export const zAddShoppingItemsBody = zAddShoppingItemsRequest;
+
+export const zAddShoppingItemsPath = z.object({
+    listId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+});
+
+/**
+ * Items added; no response body.
+ */
+export const zAddShoppingItemsResponse = z.void();
+
+export const zRemoveShoppingItemPath = z.object({
+    listId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    productFormatId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+});
+
+/**
+ * Item removed; no response body.
+ */
+export const zRemoveShoppingItemResponse = z.void();
+
+/**
+ * Changes to a shopping item; at least one field is required.
+ */
+export const zUpdateShoppingItemBody = zUpdateShoppingItemRequest;
+
+export const zUpdateShoppingItemPath = z.object({
+    listId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    productFormatId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+});
+
+/**
+ * Item updated; no response body.
+ */
+export const zUpdateShoppingItemResponse = z.void();
+
+export const zCheckoutShoppingListPath = z.object({
+    listId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+});
+
+/**
+ * Purchase recorded; the response contains its ID.
+ */
+export const zCheckoutShoppingListResponse = zPurchaseResponse;

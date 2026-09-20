@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import GrpcApiService from '@/infrastructure/grpc-api-service';
+import RestShoppingApiService from '@/infrastructure/rest-shopping-api-service';
 import { PageSearchParams, stringParam } from '@/lib/search-params';
 import { pageMetadata } from '@/lib/seo';
 import { getAuthToken } from '@/lib/server/auth-cookie';
@@ -20,13 +20,15 @@ export default async function ShoppingPage({
   searchParams: Promise<PageSearchParams>;
 }>) {
   const [params, token] = await Promise.all([searchParams, getAuthToken()]);
-  const selectedListName = stringParam(params, 'name');
-  const service = new GrpcApiService(token);
-  const pageData = await loadShoppingPage(service, selectedListName);
+  const idParam = Number(stringParam(params, 'listId'));
+  const selectedListId =
+    Number.isSafeInteger(idParam) && idParam > 0 ? idParam : undefined;
+  const service = new RestShoppingApiService(token);
+  const pageData = await loadShoppingPage(service, selectedListId);
 
   return (
     <ShoppingListContainer
-      initialSelectedListName={pageData.selectedListName}
+      initialSelectedListId={pageData.selectedListId}
       initialShoppingList={pageData.shoppingList}
       initialShoppingListSummaries={pageData.shoppingListSummaries}
     />

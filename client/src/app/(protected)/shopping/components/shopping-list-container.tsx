@@ -9,16 +9,16 @@ import { ShoppingListView } from './shopping-list-view';
 import { useShoppingListController } from './use-shopping-list-controller';
 
 export default function ShoppingListContainer({
-  initialSelectedListName,
+  initialSelectedListId,
   initialShoppingList,
   initialShoppingListSummaries,
 }: Readonly<{
-  initialSelectedListName?: string;
+  initialSelectedListId?: number;
   initialShoppingList: ShoppingListMessage;
   initialShoppingListSummaries: ShoppingListSummaryMessage[];
 }>) {
   const controller = useShoppingListController({
-    initialSelectedListName,
+    initialSelectedListId,
     initialShoppingList,
     initialShoppingListSummaries,
   });

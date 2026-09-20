@@ -64,7 +64,7 @@ export function useProductGridController({
     setIsModalOpen(false);
   }
 
-  async function addSelectedProductToList(listName?: string) {
+  async function addSelectedProductToList(listId: number) {
     if (!selectedProduct) {
       return;
     }
@@ -72,16 +72,15 @@ export function useProductGridController({
       throw new Error('Product format UID is required to add an item.');
     }
 
-    const result = await client.addItemsToList(listName, [
+    await client.addItemsToList(listId, [
       {
         checked: false,
-        name: selectedProduct.name,
-        price: selectedProduct.priceValue,
         productFormatUid: selectedProduct.productFormatUid,
-        quantity: selectedProduct.unit || undefined,
       },
     ]);
-    setShoppingListSummaries(result.shoppingListSummaries);
+    const summaries = await client.getShoppingListSummaries();
+    setShoppingListSummaries(summaries);
+    const listName = summaries.find(summary => summary.id === listId)?.name;
     showToast({
       message: `Item added to ${listName ?? 'Temporary List'}.`,
       tone: 'success',
@@ -91,9 +90,8 @@ export function useProductGridController({
   async function handleCreateList() {
     closeAddToListModal();
     try {
-      const result = await client.createTemporaryList();
-      setShoppingListSummaries(result.shoppingListSummaries);
-      await addSelectedProductToList(undefined);
+      const id = await client.createShoppingList();
+      await addSelectedProductToList(id);
     } catch (requestError) {
       showToast({
         message:
@@ -105,10 +103,10 @@ export function useProductGridController({
     }
   }
 
-  async function handleSelectList(listName?: string) {
+  async function handleSelectList(listId: number) {
     closeAddToListModal();
     try {
-      await addSelectedProductToList(listName);
+      await addSelectedProductToList(listId);
     } catch (requestError) {
       showToast({
         message:

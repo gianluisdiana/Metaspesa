@@ -7,12 +7,15 @@ export interface ProductMessage {
 }
 
 export interface ShoppingListMessage {
+  id?: number;
   products: ProductMessage[];
   name?: string;
 }
 
 export interface ShoppingListSummaryMessage {
+  id?: number;
   name?: string;
+  isTemporary?: boolean;
 }
 
 export interface ShoppingItemUpdateMessage {

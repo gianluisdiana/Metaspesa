@@ -33,7 +33,7 @@ export function ProductGridView({
   onCloseModal: () => void;
   onCreateList: () => void;
   onRetry: () => void;
-  onSelectList: (listName?: string) => void;
+  onSelectList: (listId: number) => void;
   selectedProduct?: Product;
   sentinelRef: RefObject<HTMLDivElement | null>;
   shoppingListSummaries: ShoppingListSummaryMessage[];

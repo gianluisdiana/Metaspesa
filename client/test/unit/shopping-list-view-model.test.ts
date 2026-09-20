@@ -123,8 +123,8 @@ describe('ShoppingListTabsViewModel', () => {
 
   it('marks the selected named tab active', () => {
     const viewModel = new ShoppingListTabsViewModel(
-      [{ name: 'Groceries' }],
-      'Groceries',
+      [{ id: 7, name: 'Groceries' }],
+      7,
     );
 
     expect(viewModel.tabs[0].active).toBe(true);
@@ -147,7 +147,7 @@ describe('ShoppingListTabsViewModel', () => {
   it('sorts tabs with temporary list first and then alphabetically', () => {
     const viewModel = new ShoppingListTabsViewModel(
       [{ name: 'Vegetables' }, {}, { name: 'Fruits' }, { name: 'Dairy' }],
-      'Fruits',
+      undefined,
     );
 
     expect(viewModel.tabs).toHaveLength(4);

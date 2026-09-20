@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { ShoppingApiError } from '@/infrastructure/rest-shopping-api-service';
 import {
   ShoppingListClient,
   ShoppingListTabsViewModel,
@@ -16,11 +17,11 @@ import {
 import { useToast } from '../../components/toast-provider';
 
 export function useShoppingListController({
-  initialSelectedListName,
+  initialSelectedListId,
   initialShoppingList,
   initialShoppingListSummaries,
 }: Readonly<{
-  initialSelectedListName?: string;
+  initialSelectedListId?: number;
   initialShoppingList: ShoppingListMessage;
   initialShoppingListSummaries: ShoppingListSummaryMessage[];
 }>) {
@@ -29,9 +30,7 @@ export function useShoppingListController({
   const [shoppingListSummaries, setShoppingListSummaries] = useState(
     initialShoppingListSummaries,
   );
-  const [selectedListName, setSelectedListName] = useState(
-    initialSelectedListName,
-  );
+  const [selectedListId, setSelectedListId] = useState(initialSelectedListId);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [itemPendingDelete, setItemPendingDelete] = useState<{
@@ -45,18 +44,25 @@ export function useShoppingListController({
   const viewModel = new ShoppingListViewModel(shoppingList);
   const tabsViewModel = new ShoppingListTabsViewModel(
     shoppingListSummaries,
-    selectedListName,
+    selectedListId,
     shoppingList,
   );
 
-  async function handleSelectList(name?: string) {
-    setSelectedListName(name);
+  async function refreshList(id: number) {
+    const [list, summaries] = await Promise.all([
+      client.getShoppingList(id),
+      client.getShoppingListSummaries(),
+    ]);
+    setShoppingList(list);
+    setShoppingListSummaries(summaries);
+  }
+
+  async function handleSelectList(id: number) {
     setIsLoading(true);
     try {
-      setShoppingList(await client.getShoppingList(name));
-      router.push(
-        name ? `/shopping?name=${encodeURIComponent(name)}` : '/shopping?name=',
-      );
+      setShoppingList(await client.getShoppingList(id));
+      setSelectedListId(id);
+      router.push(`/shopping?listId=${id}`);
     } catch (requestError) {
       showToast({
         message:
@@ -73,38 +79,28 @@ export function useShoppingListController({
   async function handleCreateList() {
     setIsCreating(true);
     try {
-      const result = await client.createTemporaryList();
-      setShoppingList(result.shoppingList);
-      setShoppingListSummaries(result.shoppingListSummaries);
-
-      if (result.requiresTemporaryListName) {
-        setTemporaryListNamePrompt(
-          result.message ??
-            'Temporary list already exists. Name it and create a new one?',
-        );
-        return;
-      }
-
-      setSelectedListName(undefined);
-      showToast({
-        message: result.message ?? 'Shopping list created.',
-        tone: 'success',
-      });
-      router.push('/shopping');
+      const id = await client.createShoppingList();
+      await refreshList(id);
+      setSelectedListId(id);
+      router.push(`/shopping?listId=${id}`);
+      showToast({ message: 'Shopping list created.', tone: 'success' });
     } catch (requestError) {
-      showToast({
-        message:
-          requestError instanceof Error
-            ? requestError.message
-            : 'Could not create a temporary list.',
-        tone: 'error',
-      });
-      setIsLoading(true);
-      try {
-        setShoppingList(await client.getShoppingList(selectedListName));
+      if (
+        requestError instanceof ShoppingApiError &&
+        requestError.code === 'ShoppingList.Temporary.AlreadyExists'
+      ) {
         setShoppingListSummaries(await client.getShoppingListSummaries());
-      } finally {
-        setIsLoading(false);
+        setTemporaryListNamePrompt(
+          'Temporary list already exists. Name it and create a new one?',
+        );
+      } else {
+        showToast({
+          message:
+            requestError instanceof Error
+              ? requestError.message
+              : 'Could not create a temporary list.',
+          tone: 'error',
+        });
       }
     } finally {
       setIsCreating(false);
@@ -112,18 +108,22 @@ export function useShoppingListController({
   }
 
   async function handleConfirmTemporaryListName(name: string) {
+    const temporary = shoppingListSummaries.find(
+      summary => summary.isTemporary,
+    );
+    if (!temporary?.id) {
+      showToast({ message: 'Temporary list was not found.', tone: 'error' });
+      return;
+    }
     setIsCreating(true);
     try {
-      const result = await client.nameTemporaryListAndCreateNew(name);
+      await client.renameShoppingList(temporary.id, name);
+      const id = await client.createShoppingList();
+      await refreshList(id);
+      setSelectedListId(id);
       setTemporaryListNamePrompt(undefined);
-      setShoppingList(result.shoppingList);
-      setShoppingListSummaries(result.shoppingListSummaries);
-      setSelectedListName(undefined);
-      showToast({
-        message: result.message ?? 'Shopping list created.',
-        tone: 'success',
-      });
-      router.push('/shopping');
+      router.push(`/shopping?listId=${id}`);
+      showToast({ message: 'Shopping list created.', tone: 'success' });
     } catch (requestError) {
       showToast({
         message:
@@ -138,32 +138,22 @@ export function useShoppingListController({
   }
 
   async function handleConfirmDeleteItem() {
-    if (!itemPendingDelete) {
+    if (!itemPendingDelete || !selectedListId) {
       return;
     }
-
     const previousShoppingList = shoppingList;
-    const deletedItemName = itemPendingDelete.name;
-    const deletedProductFormatUid = itemPendingDelete.productFormatUid;
+    const { name, productFormatUid } = itemPendingDelete;
     setItemPendingDelete(undefined);
     setShoppingList({
       ...shoppingList,
       products: shoppingList.products.filter(
-        product => product.name !== deletedItemName,
+        product => product.productFormatUid !== productFormatUid,
       ),
     });
-
     try {
-      const result = await client.removeItem(
-        selectedListName,
-        deletedProductFormatUid,
-      );
-      setShoppingList(result.shoppingList);
-      setShoppingListSummaries(result.shoppingListSummaries);
-      showToast({
-        message: `${deletedItemName} deleted.`,
-        tone: 'success',
-      });
+      await client.removeItem(selectedListId, productFormatUid);
+      await refreshList(selectedListId);
+      showToast({ message: `${name} deleted.`, tone: 'success' });
     } catch (requestError) {
       setShoppingList(previousShoppingList);
       showToast({
@@ -180,6 +170,7 @@ export function useShoppingListController({
     productFormatUid: number,
     checked: boolean,
   ) {
+    if (!selectedListId) return;
     const previousShoppingList = shoppingList;
     setShoppingList({
       ...shoppingList,
@@ -189,15 +180,9 @@ export function useShoppingListController({
           : product,
       ),
     });
-
     try {
-      const result = await client.updateItem(
-        selectedListName,
-        productFormatUid,
-        { checked },
-      );
-      setShoppingList(result.shoppingList);
-      setShoppingListSummaries(result.shoppingListSummaries);
+      await client.updateItem(selectedListId, productFormatUid, { checked });
+      await refreshList(selectedListId);
     } catch (requestError) {
       setShoppingList(previousShoppingList);
       showToast({

@@ -8,10 +8,7 @@ export {
 export { ShoppingListViewModel } from './list-view-model';
 export { ShoppingPriceViewModel } from './price-view-model';
 export { ShoppingProgressViewModel } from './progress-view-model';
-export {
-  ShoppingListClient,
-  type CreateListResponse,
-} from './shopping-list-client';
+export { ShoppingListClient } from './shopping-list-client';
 export {
   ShoppingListTabsViewModel,
   ShoppingListTabViewModel,

@@ -5,24 +5,28 @@ import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const navigationMocks = vi.hoisted(() => ({
-  push: vi.fn(),
-  replace: vi.fn(),
-}));
+const httpStatus = { conflict: 409, created: 201, ok: 200 } as const;
+
+const navigationMocks = vi.hoisted(() => ({ push: vi.fn() }));
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: navigationMocks.push,
-    replace: navigationMocks.replace,
-  }),
+  useRouter: () => ({ push: navigationMocks.push }),
 }));
+
+function jsonResponse(body: unknown, status: number = httpStatus.ok): Response {
+  return new Response(JSON.stringify(body), {
+    headers: { 'Content-Type': 'application/json' },
+    status,
+  });
+}
 
 function renderShoppingList() {
   render(
     <ToastProvider>
       <ShoppingListContainer
-        initialSelectedListName="Groceries"
+        initialSelectedListId={7}
         initialShoppingList={{
+          id: 7,
           name: 'Groceries',
           products: [
             {
@@ -40,7 +44,9 @@ function renderShoppingList() {
             },
           ],
         }}
-        initialShoppingListSummaries={[{ name: 'Groceries' }]}
+        initialShoppingListSummaries={[
+          { id: 7, isTemporary: false, name: 'Groceries' },
+        ]}
       />
     </ToastProvider>,
   );
@@ -57,30 +63,6 @@ function renderUserWithoutShoppingLists() {
   );
 }
 
-function shoppingListResponse(body: unknown, ok = true) {
-  return {
-    json: () => Promise.resolve(body),
-    ok,
-  };
-}
-
-function temporaryListConflictResponse() {
-  return shoppingListResponse({
-    message: 'Temporary list already exists. Name it and create a new one?',
-    requiresTemporaryListName: true,
-    shoppingList: { name: undefined, products: [] },
-    shoppingListSummaries: [{ name: undefined }],
-  });
-}
-
-function temporaryListCreatedResponse() {
-  return shoppingListResponse({
-    message: 'Temporary list created.',
-    shoppingList: { name: undefined, products: [] },
-    shoppingListSummaries: [{ name: 'Groceries' }, { name: undefined }],
-  });
-}
-
 describe('shopping list component', () => {
   afterEach(() => {
     cleanup();
@@ -88,13 +70,15 @@ describe('shopping list component', () => {
     vi.clearAllMocks();
   });
 
-  it('renders selected shopping list name', () => {
+  it('renders selected shopping list and totals', () => {
     renderShoppingList();
 
     expect(screen.getByRole('heading', { name: 'Groceries' })).toBeVisible();
+    expect(screen.getByText('2 items')).toBeVisible();
+    expect(screen.getByText('$3.60')).toBeVisible();
   });
 
-  it('guides users who do not have a shopping list', () => {
+  it('guides users without shopping lists', () => {
     renderUserWithoutShoppingLists();
 
     expect(
@@ -102,23 +86,17 @@ describe('shopping list component', () => {
     ).toBeVisible();
   });
 
-  it('does not show a temporary list when none exists', () => {
-    renderUserWithoutShoppingLists();
-
-    expect(screen.queryByText('Temporary List')).not.toBeInTheDocument();
-  });
-
-  it('creates the first shopping list from the empty state', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
-        shoppingListResponse({
-          message: 'Shopping list created.',
-          shoppingList: { name: undefined, products: [] },
-          shoppingListSummaries: [{ name: undefined }],
-        }),
-      ),
-    );
+  it('creates temporary list and navigates by stable ID', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ id: 9 }, httpStatus.created))
+      .mockResolvedValueOnce(
+        jsonResponse({ id: 9, isTemporary: true, items: [] }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ items: [{ id: 9, isTemporary: true }] }),
+      );
+    vi.stubGlobal('fetch', fetcher);
     const user = userEvent.setup();
     renderUserWithoutShoppingLists();
 
@@ -129,123 +107,31 @@ describe('shopping list component', () => {
     expect(
       await screen.findByRole('heading', { name: 'Temporary List' }),
     ).toBeVisible();
+    expect(navigationMocks.push).toHaveBeenCalledWith('/shopping?listId=9');
   });
 
-  it('renders item count label', () => {
-    renderShoppingList();
-
-    expect(screen.getByText('2 items')).toBeVisible();
-  });
-
-  it('renders unchecked item name', () => {
-    renderShoppingList();
-
-    expect(screen.getByText('Milk')).toBeVisible();
-  });
-
-  it('renders checked item name', () => {
-    renderShoppingList();
-
-    expect(screen.getAllByText('Bread')[0]).toBeVisible();
-  });
-
-  it('renders estimated total', () => {
-    renderShoppingList();
-
-    expect(screen.getByText('$3.60')).toBeVisible();
-  });
-
-  it('renders checked total', () => {
-    renderShoppingList();
-
-    expect(screen.getAllByText('$2.35')[0]).toBeVisible();
-  });
-
-  it('shows a naming dialog when creating a temporary list that already exists', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(temporaryListConflictResponse()),
-    );
-    const user = userEvent.setup();
-    renderShoppingList();
-
-    await user.click(
-      screen.getByRole('button', {
-        name: 'Create shopping list',
-      }),
-    );
-
-    expect(
-      await screen.findByText(
-        'Temporary list already exists. Name it and create a new one?',
-      ),
-    ).toBeVisible();
-  });
-
-  it('navigates to the new temporary list after naming the existing temporary list', async () => {
-    const fetchMock = vi
+  it('offers naming when temporary list already exists', async () => {
+    const fetcher = vi
       .fn()
-      .mockResolvedValueOnce(temporaryListConflictResponse())
-      .mockResolvedValueOnce(temporaryListCreatedResponse());
-    vi.stubGlobal('fetch', fetchMock);
-    const user = userEvent.setup();
-    renderShoppingList();
-
-    await user.click(
-      screen.getByRole('button', {
-        name: 'Create shopping list',
-      }),
-    );
-    await user.type(await screen.findByLabelText('List name'), 'Groceries');
-    await user.click(screen.getByRole('button', { name: 'Create' }));
-
-    expect(navigationMocks.push).toHaveBeenCalledWith('/shopping');
-  });
-
-  it('disables create action until the temporary list name has text', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(temporaryListConflictResponse()),
-    );
-    const user = userEvent.setup();
-    renderShoppingList();
-
-    await user.click(
-      screen.getByRole('button', {
-        name: 'Create shopping list',
-      }),
-    );
-
-    expect(
-      await screen.findByRole('button', { name: 'Create' }),
-    ).toBeDisabled();
-  });
-
-  it('keeps naming dialog open when naming the temporary list fails', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(temporaryListConflictResponse())
       .mockResolvedValueOnce(
-        shoppingListResponse(
+        jsonResponse(
           {
-            message: 'Could not create a temporary list.',
-            shoppingList: { name: undefined, products: [] },
-            shoppingListSummaries: [{ name: undefined }],
+            code: 'ShoppingList.Temporary.AlreadyExists',
+            title: 'Temporary shopping list already exists',
           },
-          false,
+          httpStatus.conflict,
         ),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ items: [{ id: 9, isTemporary: true }] }),
       );
-    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('fetch', fetcher);
     const user = userEvent.setup();
     renderShoppingList();
 
     await user.click(
-      screen.getByRole('button', {
-        name: 'Create shopping list',
-      }),
+      screen.getByRole('button', { name: 'Create shopping list' }),
     );
-    await user.type(await screen.findByLabelText('List name'), 'Groceries');
-    await user.click(screen.getByRole('button', { name: 'Create' }));
 
     expect(
       await screen.findByText(

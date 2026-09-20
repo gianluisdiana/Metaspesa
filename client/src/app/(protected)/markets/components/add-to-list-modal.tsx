@@ -10,7 +10,7 @@ type Props = {
   shoppingListSummaries: ShoppingListSummaryMessage[];
   onClose: () => void;
   onCreateList: () => void;
-  onSelectList: (listName?: string) => void;
+  onSelectList: (listId: number) => void;
 };
 
 function listLabel(summary: ShoppingListSummaryMessage): string {
@@ -27,9 +27,9 @@ export default function AddToListModal({
   productName,
   shoppingListSummaries,
 }: Readonly<Props>) {
-  const [selectedListName, setSelectedListName] = useState<string>();
+  const [selectedListId, setSelectedListId] = useState<number>();
   const hasShoppingLists = shoppingListSummaries.length > 0;
-  const selectedName = selectedListName ?? shoppingListSummaries[0]?.name;
+  const selectedId = selectedListId ?? shoppingListSummaries[0]?.id;
 
   if (!isOpen) {
     return null;
@@ -37,7 +37,7 @@ export default function AddToListModal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-on-surface/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-100 flex items-center justify-center bg-on-surface/40 p-4 backdrop-blur-sm"
       role="presentation"
       onClick={onClose}
     >
@@ -78,13 +78,12 @@ export default function AddToListModal({
                 return a.name.localeCompare(b.name);
               })
               .map(summary => {
-                const { name } = summary;
-                const inputValue = name ?? '';
-                const selected = selectedName === name;
+                const { id } = summary;
+                const selected = selectedId === id;
 
                 return (
                   <label
-                    key={inputValue || 'temporary-list'}
+                    key={id}
                     className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors ${
                       selected
                         ? 'border-primary bg-primary-container/20'
@@ -96,8 +95,8 @@ export default function AddToListModal({
                       className="accent-primary"
                       name="shopping-list"
                       type="radio"
-                      value={inputValue}
-                      onChange={() => setSelectedListName(name)}
+                      value={id}
+                      onChange={() => setSelectedListId(id)}
                     />
                     <span className="font-label-md text-label-md text-on-surface">
                       {listLabel(summary)}
@@ -121,7 +120,9 @@ export default function AddToListModal({
           className="flex w-full items-center justify-center gap-2 rounded-full btn-gradient px-4 py-3 font-label-md text-label-md text-on-primary-fixed-variant transition-opacity hover:opacity-90"
           type="button"
           onClick={() =>
-            hasShoppingLists ? onSelectList(selectedName) : onCreateList()
+            hasShoppingLists && selectedId
+              ? onSelectList(selectedId)
+              : onCreateList()
           }
         >
           <span className="material-symbols-outlined icon-fill text-[20px]">

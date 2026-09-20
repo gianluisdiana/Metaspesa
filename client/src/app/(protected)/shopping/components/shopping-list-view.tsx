@@ -39,7 +39,7 @@ export function ShoppingListView({
   onConfirmTemporaryListName: (name: string) => void;
   onCreateList: () => void;
   onRequestDeleteItem: (productFormatUid: number, itemName: string) => void;
-  onSelectList: (name?: string) => void;
+  onSelectList: (id: number) => void;
   onToggleItemChecked: (productFormatUid: number, checked: boolean) => void;
   tabs: ShoppingListTabViewModel[];
   temporaryListNamePrompt?: string;

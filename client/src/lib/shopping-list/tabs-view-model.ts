@@ -9,11 +9,11 @@ const NAMED_LIST_SORT_ORDER = 1;
 export class ShoppingListTabViewModel {
   public constructor(
     private readonly summary: ShoppingListSummaryMessage,
-    private readonly selectedListName?: string,
+    private readonly selectedListId?: number,
   ) {}
 
   public get active(): boolean {
-    return this.name === this.selectedListName;
+    return this.id === this.selectedListId;
   }
 
   public get label(): string {
@@ -25,12 +25,16 @@ export class ShoppingListTabViewModel {
       ? this.summary.name
       : undefined;
   }
+
+  public get id(): number | undefined {
+    return this.summary.id;
+  }
 }
 
 export class ShoppingListTabsViewModel {
   public constructor(
     private readonly summaries: ShoppingListSummaryMessage[],
-    private readonly selectedListName?: string,
+    private readonly selectedListId?: number,
     private readonly fallbackList?: ShoppingListMessage,
   ) {}
 
@@ -42,7 +46,7 @@ export class ShoppingListTabsViewModel {
         return a.name.localeCompare(b.name);
       })
       .map(
-        summary => new ShoppingListTabViewModel(summary, this.selectedListName),
+        summary => new ShoppingListTabViewModel(summary, this.selectedListId),
       );
   }
 
@@ -51,6 +55,6 @@ export class ShoppingListTabsViewModel {
       return this.summaries;
     }
 
-    return [{ name: this.fallbackList?.name }];
+    return [{ id: this.fallbackList?.id, name: this.fallbackList?.name }];
   }
 }

@@ -3,10 +3,15 @@ import AddToListModal from '@/app/(protected)/markets/components/add-to-list-mod
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+const namedListId = 7;
+
 function renderModal({
   onCreateList = vi.fn(),
   onSelectList = vi.fn(),
-  shoppingListSummaries = [{}, { name: 'Weekly' }],
+  shoppingListSummaries = [
+    { id: 9, isTemporary: true },
+    { id: namedListId, isTemporary: false, name: 'Weekly' },
+  ],
 } = {}) {
   render(
     <AddToListModal
@@ -49,7 +54,7 @@ describe('add to list modal component', () => {
     fireEvent.click(screen.getByLabelText('Weekly'));
     fireEvent.click(screen.getByText('Add to list'));
 
-    expect(onSelectList).toHaveBeenCalledWith('Weekly');
+    expect(onSelectList).toHaveBeenCalledWith(namedListId);
   });
 
   it('creates shopping list when no choices exist', () => {

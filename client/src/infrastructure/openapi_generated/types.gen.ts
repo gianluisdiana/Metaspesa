@@ -5,6 +5,26 @@ export type ClientOptions = {
 };
 
 /**
+ * Items to add to a shopping list.
+ */
+export type AddShoppingItemsRequest = {
+    /**
+     * Non-empty array of items with distinct product format IDs.
+     */
+    items: null | Array<ShoppingItemRequest>;
+};
+
+/**
+ * Details for a new named or temporary shopping list.
+ */
+export type CreateShoppingListRequest = {
+    /**
+     * List name, or null to create a temporary list.
+     */
+    name: null | string;
+};
+
+/**
  * Credentials supplied when registering or authenticating a shopper.
  */
 export type CredentialsRequest = {
@@ -13,7 +33,7 @@ export type CredentialsRequest = {
      */
     username: string;
     /**
-     * Plaintext password supplied for this request; never returned in responses.
+     * Plaintext password for this request; never returned in responses.
      */
     password: string;
 };
@@ -45,6 +65,16 @@ export type FormatResponse = {
 };
 
 /**
+ * Identifier of a newly created shopping list.
+ */
+export type IdResponse = {
+    /**
+     * Stable shopping list ID.
+     */
+    id: number;
+};
+
+/**
  * Markets available in the catalog.
  */
 export type MarketListResponse = {
@@ -67,7 +97,7 @@ export type MarketResponse = {
      */
     name: string;
     /**
-     * Absolute logo URL when one is available; otherwise omitted.
+     * Absolute logo URL when available; otherwise omitted.
      */
     logoUrl?: null | string;
 };
@@ -87,7 +117,7 @@ export type MoneyResponse = {
 };
 
 /**
- * Error response. The code identifies the failure and traceId helps correlate logs.
+ * Error response with a machine-readable code and request trace identifier.
  */
 export type ProblemDetails = {
     /**
@@ -125,7 +155,7 @@ export type ProblemDetails = {
  */
 export type ProductPageResponse = {
     /**
-     * Products in this page; never includes formats without observed prices.
+     * Products in this page; empty when none match.
      */
     items: Array<ProductResponse>;
     /**
@@ -141,17 +171,17 @@ export type ProductPageResponse = {
      */
     totalItems: number;
     /**
-     * Number of pages at this pageSize; zero when no products match.
+     * Number of pages at this page size; zero when none match.
      */
     totalPages: number;
 };
 
 /**
- * One product owned by one market. Product IDs do not imply cross-market equivalence.
+ * One market-owned product. IDs do not imply cross-market equivalence.
  */
 export type ProductResponse = {
     /**
-     * Stable ID of this market-owned product.
+     * Stable ID of this product.
      */
     id: number;
     /**
@@ -173,6 +203,16 @@ export type ProductResponse = {
 };
 
 /**
+ * Identifier of a recorded purchase.
+ */
+export type PurchaseResponse = {
+    /**
+     * Stable purchase ID.
+     */
+    purchaseId: number;
+};
+
+/**
  * Quantity associated with one product format.
  */
 export type QuantityResponse = {
@@ -181,7 +221,169 @@ export type QuantityResponse = {
      */
     amount: number;
     /**
-     * Unit of measure, such as kg, g, l, or unit.
+     * Unit of measure, such as kg, g, or l.
+     */
+    unit: string;
+};
+
+/**
+ * New name for a shopping list.
+ */
+export type RenameShoppingListRequest = {
+    /**
+     * Required nonblank name for the list.
+     */
+    name: null | string;
+};
+
+/**
+ * One product format to add to a shopping list.
+ */
+export type ShoppingItemRequest = {
+    /**
+     * ID of an existing product format.
+     */
+    productFormatId: number;
+    /**
+     * Positive number of units to buy.
+     */
+    amount: number;
+    /**
+     * Whether the item is marked for checkout.
+     */
+    checked: boolean;
+};
+
+/**
+ * Shopping item with current product and price information.
+ */
+export type ShoppingItemResponse = {
+    /**
+     * Stable format ID used to update or remove this item.
+     */
+    productFormatId: number;
+    /**
+     * Product display name.
+     */
+    productName: string;
+    /**
+     * Product brand display name.
+     */
+    brand: string;
+    /**
+     * Market that sells the product.
+     */
+    market: ShoppingMarketResponse;
+    /**
+     * Quantity sold in one product format.
+     */
+    quantity: ShoppingQuantityResponse;
+    /**
+     * Latest observed price for one product format.
+     */
+    unitPrice: ShoppingMoneyResponse;
+    /**
+     * Positive number of units on the list.
+     */
+    amount: number;
+    /**
+     * Whether this item is marked for checkout.
+     */
+    checked: boolean;
+    /**
+     * Absolute product image URL when available; otherwise omitted.
+     */
+    imageUrl: null | string;
+};
+
+/**
+ * Shopping lists owned by the authenticated shopper.
+ */
+export type ShoppingListCollectionResponse = {
+    /**
+     * List summaries; empty when the shopper owns no lists.
+     */
+    items: Array<ShoppingListSummaryResponse>;
+};
+
+/**
+ * Shopping list and its current items.
+ */
+export type ShoppingListResponse = {
+    /**
+     * Stable shopping list ID.
+     */
+    id: number;
+    /**
+     * List name, omitted for a temporary list.
+     */
+    name: null | string;
+    /**
+     * Whether this is an unnamed temporary list.
+     */
+    isTemporary: boolean;
+    /**
+     * Items in the list; empty when it has no items.
+     */
+    items: Array<ShoppingItemResponse>;
+};
+
+/**
+ * Shopping list identity and display information.
+ */
+export type ShoppingListSummaryResponse = {
+    /**
+     * Stable shopping list ID.
+     */
+    id: number;
+    /**
+     * List name, omitted for a temporary list.
+     */
+    name: null | string;
+    /**
+     * Whether this is the shopper's unnamed temporary list.
+     */
+    isTemporary: boolean;
+};
+
+/**
+ * Market that sells a shopping item.
+ */
+export type ShoppingMarketResponse = {
+    /**
+     * Stable market ID.
+     */
+    id: number;
+    /**
+     * Market display name.
+     */
+    name: string;
+};
+
+/**
+ * Latest observed price for one product format.
+ */
+export type ShoppingMoneyResponse = {
+    /**
+     * Price in the stated currency.
+     */
+    amount: number;
+    /**
+     * Currency code of the price, such as EUR.
+     */
+    currency: string;
+};
+
+/**
+ * Quantity sold in one product format.
+ */
+export type ShoppingQuantityResponse = {
+    /**
+     * Numeric quantity of the format.
+     */
+    amount: number;
+    /**
+     * Unit of measure, such as kg, g, or l.
      */
     unit: string;
 };
@@ -191,7 +393,7 @@ export type QuantityResponse = {
  */
 export type SnapshotItem = {
     /**
-     * Product name. Required by product validation.
+     * Required nonblank product name.
      */
     name: null | string;
     /**
@@ -203,7 +405,7 @@ export type SnapshotItem = {
      */
     quantity: number;
     /**
-     * Unit of the quantity; must be supported by the catalog.
+     * Unit of the quantity; must be supported.
      */
     unitOfMeasure: null | string;
     /**
@@ -221,7 +423,7 @@ export type SnapshotItem = {
  */
 export type SnapshotRequest = {
     /**
-     * Observations to import. Must be a non-empty array of valid products.
+     * Non-empty array of valid product observations.
      */
     items: null | Array<SnapshotItem>;
 };
@@ -231,7 +433,7 @@ export type SnapshotRequest = {
  */
 export type TokenResponse = {
     /**
-     * JWT to send in the Authorization: Bearer header.
+     * JWT sent in the Authorization Bearer header.
      */
     accessToken: string;
     /**
@@ -239,14 +441,28 @@ export type TokenResponse = {
      */
     tokenType: string;
     /**
-     * UTC instant after which the token is no longer valid.
+     * UTC instant after which the token is invalid.
      */
     expiresAt: string;
 };
 
+/**
+ * Changes to a shopping item; at least one field is required.
+ */
+export type UpdateShoppingItemRequest = {
+    /**
+     * New positive amount, or null to keep the current amount.
+     */
+    amount: null | number;
+    /**
+     * New checked state, or null to keep the current state.
+     */
+    checked: null | boolean;
+};
+
 export type RegisterShopperData = {
     /**
-     * Credentials for the new shopper account.
+     * Credentials supplied when registering or authenticating a shopper.
      */
     body: CredentialsRequest;
     path?: never;
@@ -256,7 +472,7 @@ export type RegisterShopperData = {
 
 export type RegisterShopperErrors = {
     /**
-     * Username or password violates registration rules, or the request body is invalid.
+     * Username or password violates registration rules, or the body is invalid.
      */
     400: ProblemDetails;
     /**
@@ -268,7 +484,7 @@ export type RegisterShopperErrors = {
      */
     409: ProblemDetails;
     /**
-     * An unexpected server or database failure occurred. Use traceId when reporting it.
+     * An unexpected server or database failure occurred.
      */
     500: ProblemDetails;
 };
@@ -277,14 +493,14 @@ export type RegisterShopperError = RegisterShopperErrors[keyof RegisterShopperEr
 
 export type RegisterShopperResponses = {
     /**
-     * Account created. The response has no body.
+     * Account created; no response body.
      */
     201: unknown;
 };
 
 export type CreateBrowserSessionData = {
     /**
-     * Credentials used to create the browser session.
+     * Credentials supplied when registering or authenticating a shopper.
      */
     body: CredentialsRequest;
     path?: never;
@@ -306,7 +522,7 @@ export type CreateBrowserSessionErrors = {
      */
     403: ProblemDetails;
     /**
-     * An unexpected server or database failure occurred. Use traceId when reporting it.
+     * An unexpected server or database failure occurred.
      */
     500: ProblemDetails;
 };
@@ -315,7 +531,7 @@ export type CreateBrowserSessionError = CreateBrowserSessionErrors[keyof CreateB
 
 export type CreateBrowserSessionResponses = {
     /**
-     * Authenticated. A session cookie is set; the response has no body.
+     * Authenticated. A session cookie is set; no response body.
      */
     204: void;
 };
@@ -324,7 +540,7 @@ export type CreateBrowserSessionResponse = CreateBrowserSessionResponses[keyof C
 
 export type CreateMachineTokenData = {
     /**
-     * Credentials used to obtain a bearer token.
+     * Credentials supplied when registering or authenticating a shopper.
      */
     body: CredentialsRequest;
     path?: never;
@@ -342,7 +558,7 @@ export type CreateMachineTokenErrors = {
      */
     401: ProblemDetails;
     /**
-     * An unexpected server or database failure occurred. Use traceId when reporting it.
+     * An unexpected server or database failure occurred.
      */
     500: ProblemDetails;
 };
@@ -367,7 +583,7 @@ export type GetMarketsData = {
 
 export type GetMarketsErrors = {
     /**
-     * An unexpected server or database failure occurred. Use traceId when reporting it.
+     * An unexpected server or database failure occurred.
      */
     500: ProblemDetails;
 };
@@ -376,7 +592,7 @@ export type GetMarketsError = GetMarketsErrors[keyof GetMarketsErrors];
 
 export type GetMarketsResponses = {
     /**
-     * Available markets, including identifiers for the marketId filter.
+     * Available markets and their stable IDs.
      */
     200: MarketListResponse;
 };
@@ -392,7 +608,7 @@ export type GetProductsData = {
          */
         query?: string;
         /**
-         * Repeat this parameter to include products from several markets. Each ID must be positive.
+         * Repeat to include products from several markets. IDs must be positive.
          */
         marketId?: Array<number>;
         /**
@@ -408,7 +624,7 @@ export type GetProductsData = {
          */
         pageSize?: number;
         /**
-         * Sort by name, or by the lowest latest format price in ascending or descending order. Defaults to name.
+         * Sort by name or lowest latest format price. Defaults to name.
          */
         sort?: 'name' | 'priceAsc' | 'priceDesc';
     };
@@ -417,11 +633,11 @@ export type GetProductsData = {
 
 export type GetProductsErrors = {
     /**
-     * A filter, page value, market ID, or sort value is invalid.
+     * A filter, market ID, page value, or sort value is invalid.
      */
     400: ProblemDetails;
     /**
-     * An unexpected server or database failure occurred. Use traceId when reporting it.
+     * An unexpected server or database failure occurred.
      */
     500: ProblemDetails;
 };
@@ -430,7 +646,7 @@ export type GetProductsError = GetProductsErrors[keyof GetProductsErrors];
 
 export type GetProductsResponses = {
     /**
-     * Matching products and pagination counts. An empty page has an empty items array.
+     * Matching products and pagination counts. An empty page has no items.
      */
     200: ProductPageResponse;
 };
@@ -439,12 +655,12 @@ export type GetProductsResponse = GetProductsResponses[keyof GetProductsResponse
 
 export type AddMarketSnapshotData = {
     /**
-     * Product observations to import for the specified market and date.
+     * Batch of market product observations.
      */
     body: SnapshotRequest;
     path: {
         /**
-         * Name of the market whose products are being observed.
+         * Name of the observed market.
          */
         marketName: string;
         /**
@@ -470,7 +686,7 @@ export type AddMarketSnapshotErrors = {
      */
     403: unknown;
     /**
-     * An unexpected server or database failure occurred. Use traceId when reporting it.
+     * An unexpected server or database failure occurred.
      */
     500: ProblemDetails;
 };
@@ -479,9 +695,391 @@ export type AddMarketSnapshotError = AddMarketSnapshotErrors[keyof AddMarketSnap
 
 export type AddMarketSnapshotResponses = {
     /**
-     * Snapshot imported. The response has no body.
+     * Snapshot imported; no response body.
      */
     204: void;
 };
 
 export type AddMarketSnapshotResponse = AddMarketSnapshotResponses[keyof AddMarketSnapshotResponses];
+
+export type GetShoppingListsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/shopping-lists';
+};
+
+export type GetShoppingListsErrors = {
+    /**
+     * No valid authentication token was provided.
+     */
+    401: unknown;
+    /**
+     * The authenticated user lacks the Shopper role.
+     */
+    403: unknown;
+    /**
+     * An unexpected server or database failure occurred.
+     */
+    500: ProblemDetails;
+};
+
+export type GetShoppingListsError = GetShoppingListsErrors[keyof GetShoppingListsErrors];
+
+export type GetShoppingListsResponses = {
+    /**
+     * Shopping list summaries; the collection can be empty.
+     */
+    200: ShoppingListCollectionResponse;
+};
+
+export type GetShoppingListsResponse = GetShoppingListsResponses[keyof GetShoppingListsResponses];
+
+export type CreateShoppingListData = {
+    /**
+     * Details for a new named or temporary shopping list.
+     */
+    body: CreateShoppingListRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/shopping-lists';
+};
+
+export type CreateShoppingListErrors = {
+    /**
+     * The list name is invalid.
+     */
+    400: ProblemDetails;
+    /**
+     * No valid authentication token was provided.
+     */
+    401: unknown;
+    /**
+     * The authenticated user lacks the Shopper role.
+     */
+    403: unknown;
+    /**
+     * A list with this name or a temporary list already exists.
+     */
+    409: ProblemDetails;
+    /**
+     * An unexpected server or database failure occurred.
+     */
+    500: ProblemDetails;
+};
+
+export type CreateShoppingListError = CreateShoppingListErrors[keyof CreateShoppingListErrors];
+
+export type CreateShoppingListResponses = {
+    /**
+     * List created; the response contains its ID and the Location header identifies it.
+     */
+    201: IdResponse;
+};
+
+export type CreateShoppingListResponse = CreateShoppingListResponses[keyof CreateShoppingListResponses];
+
+export type GetShoppingListData = {
+    body?: never;
+    path: {
+        /**
+         * ID of the shopping list to retrieve.
+         */
+        listId: number;
+    };
+    query?: never;
+    url: '/api/v1/shopping-lists/{listId}';
+};
+
+export type GetShoppingListErrors = {
+    /**
+     * The list ID is invalid.
+     */
+    400: ProblemDetails;
+    /**
+     * No valid authentication token was provided.
+     */
+    401: unknown;
+    /**
+     * The authenticated user lacks the Shopper role.
+     */
+    403: unknown;
+    /**
+     * The list or a referenced product format was not found.
+     */
+    404: ProblemDetails;
+    /**
+     * An unexpected server or database failure occurred.
+     */
+    500: ProblemDetails;
+};
+
+export type GetShoppingListError = GetShoppingListErrors[keyof GetShoppingListErrors];
+
+export type GetShoppingListResponses = {
+    /**
+     * The shopping list and its items.
+     */
+    200: ShoppingListResponse;
+};
+
+export type GetShoppingListResponse = GetShoppingListResponses[keyof GetShoppingListResponses];
+
+export type RenameShoppingListData = {
+    /**
+     * New name for a shopping list.
+     */
+    body: RenameShoppingListRequest;
+    path: {
+        /**
+         * ID of the shopping list to rename.
+         */
+        listId: number;
+    };
+    query?: never;
+    url: '/api/v1/shopping-lists/{listId}';
+};
+
+export type RenameShoppingListErrors = {
+    /**
+     * The list ID or new name is invalid.
+     */
+    400: ProblemDetails;
+    /**
+     * No valid authentication token was provided.
+     */
+    401: unknown;
+    /**
+     * The authenticated user lacks the Shopper role.
+     */
+    403: unknown;
+    /**
+     * The list was not found.
+     */
+    404: ProblemDetails;
+    /**
+     * Another list already has this name.
+     */
+    409: ProblemDetails;
+    /**
+     * An unexpected server or database failure occurred.
+     */
+    500: ProblemDetails;
+};
+
+export type RenameShoppingListError = RenameShoppingListErrors[keyof RenameShoppingListErrors];
+
+export type RenameShoppingListResponses = {
+    /**
+     * List renamed; no response body.
+     */
+    204: void;
+};
+
+export type RenameShoppingListResponse = RenameShoppingListResponses[keyof RenameShoppingListResponses];
+
+export type AddShoppingItemsData = {
+    /**
+     * Items to add to a shopping list.
+     */
+    body: AddShoppingItemsRequest;
+    path: {
+        /**
+         * ID of the shopping list to update.
+         */
+        listId: number;
+    };
+    query?: never;
+    url: '/api/v1/shopping-lists/{listId}/items';
+};
+
+export type AddShoppingItemsErrors = {
+    /**
+     * The list ID or items are invalid, or the collection is empty.
+     */
+    400: ProblemDetails;
+    /**
+     * No valid authentication token was provided.
+     */
+    401: unknown;
+    /**
+     * The authenticated user lacks the Shopper role.
+     */
+    403: unknown;
+    /**
+     * The list or a product format was not found.
+     */
+    404: ProblemDetails;
+    /**
+     * A product format is already in the list or repeated in the request.
+     */
+    409: ProblemDetails;
+    /**
+     * An unexpected server or database failure occurred.
+     */
+    500: ProblemDetails;
+};
+
+export type AddShoppingItemsError = AddShoppingItemsErrors[keyof AddShoppingItemsErrors];
+
+export type AddShoppingItemsResponses = {
+    /**
+     * Items added; no response body.
+     */
+    204: void;
+};
+
+export type AddShoppingItemsResponse = AddShoppingItemsResponses[keyof AddShoppingItemsResponses];
+
+export type RemoveShoppingItemData = {
+    body?: never;
+    path: {
+        /**
+         * ID of the shopping list containing the item.
+         */
+        listId: number;
+        /**
+         * ID of the item's product format.
+         */
+        productFormatId: number;
+    };
+    query?: never;
+    url: '/api/v1/shopping-lists/{listId}/items/{productFormatId}';
+};
+
+export type RemoveShoppingItemErrors = {
+    /**
+     * The list or product format ID is invalid.
+     */
+    400: ProblemDetails;
+    /**
+     * No valid authentication token was provided.
+     */
+    401: unknown;
+    /**
+     * The authenticated user lacks the Shopper role.
+     */
+    403: unknown;
+    /**
+     * The list or item was not found.
+     */
+    404: ProblemDetails;
+    /**
+     * An unexpected server or database failure occurred.
+     */
+    500: ProblemDetails;
+};
+
+export type RemoveShoppingItemError = RemoveShoppingItemErrors[keyof RemoveShoppingItemErrors];
+
+export type RemoveShoppingItemResponses = {
+    /**
+     * Item removed; no response body.
+     */
+    204: void;
+};
+
+export type RemoveShoppingItemResponse = RemoveShoppingItemResponses[keyof RemoveShoppingItemResponses];
+
+export type UpdateShoppingItemData = {
+    /**
+     * Changes to a shopping item; at least one field is required.
+     */
+    body: UpdateShoppingItemRequest;
+    path: {
+        /**
+         * ID of the shopping list containing the item.
+         */
+        listId: number;
+        /**
+         * ID of the item's product format.
+         */
+        productFormatId: number;
+    };
+    query?: never;
+    url: '/api/v1/shopping-lists/{listId}/items/{productFormatId}';
+};
+
+export type UpdateShoppingItemErrors = {
+    /**
+     * An ID or amount is invalid, or neither field was supplied.
+     */
+    400: ProblemDetails;
+    /**
+     * No valid authentication token was provided.
+     */
+    401: unknown;
+    /**
+     * The authenticated user lacks the Shopper role.
+     */
+    403: unknown;
+    /**
+     * The list or item was not found.
+     */
+    404: ProblemDetails;
+    /**
+     * An unexpected server or database failure occurred.
+     */
+    500: ProblemDetails;
+};
+
+export type UpdateShoppingItemError = UpdateShoppingItemErrors[keyof UpdateShoppingItemErrors];
+
+export type UpdateShoppingItemResponses = {
+    /**
+     * Item updated; no response body.
+     */
+    204: void;
+};
+
+export type UpdateShoppingItemResponse = UpdateShoppingItemResponses[keyof UpdateShoppingItemResponses];
+
+export type CheckoutShoppingListData = {
+    body?: never;
+    path: {
+        /**
+         * ID of the shopping list to check out.
+         */
+        listId: number;
+    };
+    query?: never;
+    url: '/api/v1/shopping-lists/{listId}/checkouts';
+};
+
+export type CheckoutShoppingListErrors = {
+    /**
+     * The list ID is invalid.
+     */
+    400: ProblemDetails;
+    /**
+     * No valid authentication token was provided.
+     */
+    401: unknown;
+    /**
+     * The authenticated user lacks the Shopper role.
+     */
+    403: unknown;
+    /**
+     * The list was not found.
+     */
+    404: ProblemDetails;
+    /**
+     * No items are checked or a checked item has no price snapshot.
+     */
+    409: ProblemDetails;
+    /**
+     * An unexpected server or database failure occurred.
+     */
+    500: ProblemDetails;
+};
+
+export type CheckoutShoppingListError = CheckoutShoppingListErrors[keyof CheckoutShoppingListErrors];
+
+export type CheckoutShoppingListResponses = {
+    /**
+     * Purchase recorded; the response contains its ID.
+     */
+    201: PurchaseResponse;
+};
+
+export type CheckoutShoppingListResponse = CheckoutShoppingListResponses[keyof CheckoutShoppingListResponses];

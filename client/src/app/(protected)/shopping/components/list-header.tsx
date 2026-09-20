@@ -39,7 +39,7 @@ export function ListPageHeader({
 
 type ListTabProps = {
   tab: ShoppingListTabViewModel;
-  onSelectList: (name?: string) => void;
+  onSelectList: (id: number) => void;
 };
 
 function ListTab({ onSelectList, tab }: Readonly<ListTabProps>) {
@@ -50,7 +50,7 @@ function ListTab({ onSelectList, tab }: Readonly<ListTabProps>) {
   return (
     <button
       className={`whitespace-nowrap px-5 py-2 rounded-full font-label-md text-label-md ${tab.active ? activeClass : inactiveClass}`}
-      onClick={() => onSelectList(tab.name)}
+      onClick={() => tab.id && onSelectList(tab.id)}
       type="button"
     >
       {tab.label}
@@ -66,14 +66,14 @@ export default function ListTabs({
 }: Readonly<{
   isCreating: boolean;
   onCreateList: () => void;
-  onSelectList: (name?: string) => void;
+  onSelectList: (id: number) => void;
   tabs: ShoppingListTabViewModel[];
 }>) {
   return (
     <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
       {tabs.map(tab => (
         <ListTab
-          key={tab.name ?? 'temporary'}
+          key={tab.id ?? 'temporary'}
           onSelectList={onSelectList}
           tab={tab}
         />
