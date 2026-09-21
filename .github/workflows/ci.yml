@@ -15,7 +15,7 @@ permissions:
 
 env:
   DOTNET_VERSION: "10.0.100"
-  NODE_VERSION: "26.8.0"
+  NODE_VERSION: "26.9.0"
   PYTHON_VERSION: "3.14"
 
 jobs:
