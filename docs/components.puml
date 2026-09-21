@@ -1,43 +1,61 @@
 @startuml metaspesa_components
 
+title Metaspesa components
 skinparam componentStyle uml1
 
-interface MainSchema
-database SecretDb
-SecretDb -right- MainSchema
+actor User
+component "Browser\n(Next.js client components)" as Browser
 
-interface gRPC as VaultInterface
-component SecretVault
-VaultInterface -right- SecretVault
-SecretVault -down-> MainSchema
+package "Client (Next.js)" {
+  component "Pages, server components\nand server actions" as NextServer
+}
 
-interface UserSchema
-interface ProductSchema
-database ShopDb
-ShopDb -- UserSchema
-ShopDb -- ProductSchema
+package "Server (.NET)" {
+  component "RestApi\nHTTP /api/v1" as RestApi
+  component "MigrationService\noptional tools profile" as Migrations
+}
 
-interface gRPC as ServerInterface
-component Server
-ServerInterface -right- Server
-Server -down-> VaultInterface
-Server -down-> UserSchema
-Server -down-> ProductSchema
+package "Scraper (Python)" {
+  component "Market scrapers\nPlaywright" as Scraper
+  component "CSV fallback\n/app/data" as CsvFallback
+}
 
-component Website
-Website -down-> ServerInterface
+database "PostgreSQL\nshopping, catalog, prices" as Postgres
+component "Docker secrets\nlocal files mounted at /run/secrets" as Secrets
+cloud "Alcampo and Mercadona\nwebsites" as Markets
 
-interface ShopApi
-component ShopScraper
-ShopScraper -down-> ShopApi
-ShopScraper -down-> ProductSchema
+package "Observability" {
+  component "Alloy\nOTLP collector" as Alloy
+  component "Loki\nlogs" as Loki
+  component "Mimir\nmetrics" as Mimir
+  component "Tempo\ntraces" as Tempo
+  component "Grafana\ndashboards" as Grafana
+}
 
-component TelemetryDashboard
-TelemetryDashboard -down-> ShopDb
-TelemetryDashboard -down-> SecretDb
-TelemetryDashboard -down-> SecretVault
-TelemetryDashboard -down-> Server
-TelemetryDashboard -down-> Website
-TelemetryDashboard -down-> ShopScraper
+User --> Browser
+Browser --> NextServer : pages and server actions
+Browser --> RestApi : HTTP/JSON (client-side fetch)
+NextServer --> RestApi : HTTP/JSON (SSR and actions)
+
+RestApi --> Postgres : configures persistence
+Migrations --> Postgres : runs EF Core migrations
+RestApi --> Secrets : JWT signing key
+
+Scraper --> Markets : scrape product pages
+Scraper --> RestApi : HTTP/JSON (auth and snapshots)
+Scraper --> CsvFallback : save/retry failed uploads
+Scraper --> Secrets : market credentials
+
+NextServer --> Alloy : OTLP traces, metrics, logs
+RestApi --> Alloy : OTLP traces, metrics, logs
+Migrations --> Alloy : OTLP traces, metrics, logs
+Scraper --> Alloy : OTLP traces, metrics, logs
+Alloy --> Loki : logs
+Alloy --> Mimir : metrics
+Alloy --> Tempo : traces
+Grafana --> Loki : queries
+Grafana --> Mimir : queries
+Grafana --> Tempo : queries
+Grafana --> Postgres : SQL dashboards
 
 @enduml
