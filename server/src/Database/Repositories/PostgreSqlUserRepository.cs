@@ -24,7 +24,7 @@ internal partial class PostgreSqlUserRepository(
     });
   }
 
-  public async Task<User?> GetUserByUsernameAsync(
+  public async Task<User?> GetUserAsync(
     Username username, CancellationToken cancellationToken = default
   ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
     UserDbEntity? entity = await context.Users

@@ -11,29 +11,43 @@ using NSubstitute;
 
 namespace Metaspesa.RestApi.UnitTests.Identity.CreateSession;
 
-public static class CreateSessionEndpointTests {
-  [Fact(DisplayName = "Browser login returns 204 No Content")]
-  public static async Task Handle_ReturnsNoContent_WhenCredentialsAreValid() {
+public class CreateSessionEndpointTests {
+  private class FakeLoginUserHandler : LoginUser.Handler {
+    public FakeLoginUserHandler(
+      IUserRepository repository, IHasher hasher, ITokenProvider tokenProvider
+    ) : base(repository, hasher, tokenProvider) {
+      var user = User.CreateShopper(
+        new UserId(Guid.CreateVersion7()),
+        new Username("estela"),
+        new PasswordHash("hashed"));
+      repository.GetUserAsync(
+        Arg.Any<Username>(), TestContext.Current.CancellationToken)
+        .Returns(user);
+      hasher.HashPassword(Arg.Any<string>()).Returns(user.PasswordHash);
+      tokenProvider.GenerateToken(user).Returns(
+        new Token("jwt-token", DateTime.UtcNow.AddHours(1)));
+    }
+  }
+
+  private readonly LoginUser.Handler _handler;
+  private readonly DefaultHttpContext _context;
+
+  public CreateSessionEndpointTests() {
     IUserRepository repository = Substitute.For<IUserRepository>();
     IHasher hasher = Substitute.For<IHasher>();
     ITokenProvider tokenProvider = Substitute.For<ITokenProvider>();
-    var user = User.CreateShopper(
-      new UserId(Guid.CreateVersion7()),
-      new Username("estela"),
-      new PasswordHash("hashed"));
-    repository.GetUserByUsernameAsync(
-      Arg.Any<Username>(), TestContext.Current.CancellationToken)
-      .Returns(user);
-    hasher.VerifyHash("SecurePass1!", "hashed").Returns(true);
-    tokenProvider.GenerateToken(user).Returns(
-      new Token("jwt-token", DateTime.UtcNow.AddHours(1)));
-    var handler = new LoginUser.Handler(repository, hasher, tokenProvider);
-    var context = new DefaultHttpContext();
+    _handler = new FakeLoginUserHandler(repository, hasher, tokenProvider);
+    _context = new DefaultHttpContext();
+  }
+
+  [Fact(DisplayName = "Browser login returns 204 No Content")]
+  public async Task Handle_ReturnsNoContent_WhenCredentialsAreValid() {
+    var request = new CredentialsRequest("estela", "SecurePass1!");
 
     IResult result = await CreateSessionEndpoint.HandleAsync(
-      new CredentialsRequest("estela", "SecurePass1!"),
-      handler,
-      context,
+      request,
+      _handler,
+      _context,
       Options.Create(new SessionCookieOptions { CookieName = "metaspesa_session" }),
       TestContext.Current.CancellationToken);
 
@@ -41,119 +55,63 @@ public static class CreateSessionEndpointTests {
   }
 
   [Fact(DisplayName = "Browser login uses configured session cookie name")]
-  public static async Task Handle_UsesConfiguredSessionCookieName_WhenCredentialsAreValid() {
-    IUserRepository repository = Substitute.For<IUserRepository>();
-    IHasher hasher = Substitute.For<IHasher>();
-    ITokenProvider tokenProvider = Substitute.For<ITokenProvider>();
-    var user = User.CreateShopper(
-      new UserId(Guid.CreateVersion7()),
-      new Username("estela"),
-      new PasswordHash("hashed"));
-    repository.GetUserByUsernameAsync(
-      Arg.Any<Username>(), TestContext.Current.CancellationToken)
-      .Returns(user);
-    hasher.VerifyHash("SecurePass1!", "hashed").Returns(true);
-    tokenProvider.GenerateToken(user).Returns(
-      new Token("jwt-token", DateTime.UtcNow.AddHours(1)));
-    var handler = new LoginUser.Handler(repository, hasher, tokenProvider);
-    var context = new DefaultHttpContext();
+  public async Task Handle_UsesConfiguredSessionCookieName_WhenCredentialsAreValid() {
+    var request = new CredentialsRequest("estela", "SecurePass1!");
 
     await CreateSessionEndpoint.HandleAsync(
-      new CredentialsRequest("estela", "SecurePass1!"),
-      handler,
-      context,
+      request,
+      _handler,
+      _context,
       Options.Create(new SessionCookieOptions { CookieName = "custom_session" }),
       TestContext.Current.CancellationToken);
 
-    string setCookie = context.Response.Headers.SetCookie.ToString();
+    string setCookie = _context.Response.Headers.SetCookie.ToString();
     Assert.StartsWith(
       "custom_session=jwt-token;", setCookie, StringComparison.Ordinal);
   }
 
   [Fact(DisplayName = "Browser login session cookie is HttpOnly")]
-  public static async Task Handle_SetsHttpOnlyCookie_WhenCredentialsAreValid() {
-    IUserRepository repository = Substitute.For<IUserRepository>();
-    IHasher hasher = Substitute.For<IHasher>();
-    ITokenProvider tokenProvider = Substitute.For<ITokenProvider>();
-    var user = User.CreateShopper(
-      new UserId(Guid.CreateVersion7()),
-      new Username("estela"),
-      new PasswordHash("hashed"));
-    repository.GetUserByUsernameAsync(
-      Arg.Any<Username>(), TestContext.Current.CancellationToken)
-      .Returns(user);
-    hasher.VerifyHash("SecurePass1!", "hashed").Returns(true);
-    tokenProvider.GenerateToken(user).Returns(
-      new Token("jwt-token", DateTime.UtcNow.AddHours(1)));
-    var handler = new LoginUser.Handler(repository, hasher, tokenProvider);
-    var context = new DefaultHttpContext();
+  public async Task Handle_SetsHttpOnlyCookie_WhenCredentialsAreValid() {
+    var request = new CredentialsRequest("estela", "SecurePass1!");
 
     await CreateSessionEndpoint.HandleAsync(
-      new CredentialsRequest("estela", "SecurePass1!"),
-      handler,
-      context,
+      request,
+      _handler,
+      _context,
       Options.Create(new SessionCookieOptions { CookieName = "metaspesa_session" }),
       TestContext.Current.CancellationToken);
 
-    string setCookie = context.Response.Headers.SetCookie.ToString();
+    string setCookie = _context.Response.Headers.SetCookie.ToString();
     Assert.Contains("httponly", setCookie, StringComparison.OrdinalIgnoreCase);
   }
 
   [Fact(DisplayName = "Browser login session cookie uses SameSite Lax")]
-  public static async Task Handle_SetsSameSiteLaxCookie_WhenCredentialsAreValid() {
-    IUserRepository repository = Substitute.For<IUserRepository>();
-    IHasher hasher = Substitute.For<IHasher>();
-    ITokenProvider tokenProvider = Substitute.For<ITokenProvider>();
-    var user = User.CreateShopper(
-      new UserId(Guid.CreateVersion7()),
-      new Username("estela"),
-      new PasswordHash("hashed"));
-    repository.GetUserByUsernameAsync(
-      Arg.Any<Username>(), TestContext.Current.CancellationToken)
-      .Returns(user);
-    hasher.VerifyHash("SecurePass1!", "hashed").Returns(true);
-    tokenProvider.GenerateToken(user).Returns(
-      new Token("jwt-token", DateTime.UtcNow.AddHours(1)));
-    var handler = new LoginUser.Handler(repository, hasher, tokenProvider);
-    var context = new DefaultHttpContext();
+  public async Task Handle_SetsSameSiteLaxCookie_WhenCredentialsAreValid() {
+    var request = new CredentialsRequest("estela", "SecurePass1!");
 
     await CreateSessionEndpoint.HandleAsync(
-      new CredentialsRequest("estela", "SecurePass1!"),
-      handler,
-      context,
+      request,
+      _handler,
+      _context,
       Options.Create(new SessionCookieOptions { CookieName = "metaspesa_session" }),
       TestContext.Current.CancellationToken);
 
-    string setCookie = context.Response.Headers.SetCookie.ToString();
+    string setCookie = _context.Response.Headers.SetCookie.ToString();
     Assert.Contains("samesite=lax", setCookie, StringComparison.OrdinalIgnoreCase);
   }
 
   [Fact(DisplayName = "Browser login session cookie is always secure")]
-  public static async Task Handle_AlwaysSetsSecureCookie() {
-    IUserRepository repository = Substitute.For<IUserRepository>();
-    IHasher hasher = Substitute.For<IHasher>();
-    ITokenProvider tokenProvider = Substitute.For<ITokenProvider>();
-    var user = User.CreateShopper(
-      new UserId(Guid.CreateVersion7()),
-      new Username("estela"),
-      new PasswordHash("hashed"));
-    repository.GetUserByUsernameAsync(
-      Arg.Any<Username>(), TestContext.Current.CancellationToken)
-      .Returns(user);
-    hasher.VerifyHash("SecurePass1!", "hashed").Returns(true);
-    tokenProvider.GenerateToken(user).Returns(
-      new Token("jwt-token", DateTime.UtcNow.AddHours(1)));
-    var handler = new LoginUser.Handler(repository, hasher, tokenProvider);
-    var context = new DefaultHttpContext();
+  public async Task Handle_AlwaysSetsSecureCookie() {
+    var request = new CredentialsRequest("estela", "SecurePass1!");
 
     await CreateSessionEndpoint.HandleAsync(
-      new CredentialsRequest("estela", "SecurePass1!"),
-      handler,
-      context,
+      request,
+      _handler,
+      _context,
       Options.Create(new SessionCookieOptions { CookieName = "metaspesa_session" }),
       TestContext.Current.CancellationToken);
 
-    string setCookie = context.Response.Headers.SetCookie.ToString();
+    string setCookie = _context.Response.Headers.SetCookie.ToString();
     Assert.Contains("secure", setCookie, StringComparison.OrdinalIgnoreCase);
   }
 }

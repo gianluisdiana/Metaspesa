@@ -1,6 +1,8 @@
+using Metaspesa.Domain.Identity;
+
 namespace Metaspesa.Application.Abstractions.Users;
 
 public interface IHasher {
   string Hash(string value);
-  bool VerifyHash(string plainValue, string hashedValue);
+  PasswordHash HashPassword(string password);
 }

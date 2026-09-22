@@ -25,7 +25,7 @@ public class LoginUserHandlerTest {
     var query = new Query("estela", "SecurePass1!");
 
     _userRepository
-      .GetUserByUsernameAsync(
+      .GetUserAsync(
         Arg.Is<Username>(u => u.Value == query.Username),
         TestContext.Current.CancellationToken)
       .Returns((User?)null);
@@ -47,12 +47,12 @@ public class LoginUserHandlerTest {
     var query = new Query("estela", "WrongPassword");
 
     _userRepository
-      .GetUserByUsernameAsync(
+      .GetUserAsync(
         Arg.Is<Username>(u => u.Value == query.Username),
         TestContext.Current.CancellationToken)
       .Returns(user);
 
-    _hasher.VerifyHash(query.Password, user.PasswordHash.Value).Returns(false);
+    _hasher.HashPassword(query.Password).Returns(new PasswordHash("other hashed"));
 
     // Act
     async Task action() => await _handler.Handle(query, TestContext.Current.CancellationToken);
@@ -71,12 +71,12 @@ public class LoginUserHandlerTest {
     var query = new Query("estela", "WrongPassword");
 
     _userRepository
-      .GetUserByUsernameAsync(
+      .GetUserAsync(
         Arg.Is<Username>(u => u.Value == query.Username),
         TestContext.Current.CancellationToken)
       .Returns(user);
 
-    _hasher.VerifyHash(query.Password, user.PasswordHash.Value).Returns(false);
+    _hasher.HashPassword(query.Password).Returns(new PasswordHash("other hashed"));
 
     // Act
     await Assert.ThrowsAsync<InvalidCredentialsException>(
@@ -96,12 +96,12 @@ public class LoginUserHandlerTest {
     var query = new Query("estela", "SecurePass1!");
 
     _userRepository
-      .GetUserByUsernameAsync(
+      .GetUserAsync(
         Arg.Is<Username>(u => u.Value == query.Username),
         TestContext.Current.CancellationToken)
       .Returns(user);
 
-    _hasher.VerifyHash(query.Password, user.PasswordHash.Value).Returns(true);
+    _hasher.HashPassword(query.Password).Returns(user.PasswordHash);
 
     var expectedToken = new Token("jwt-value", DateTime.UtcNow.AddHours(1));
     _tokenProvider.GenerateToken(user).Returns(expectedToken);
@@ -123,12 +123,12 @@ public class LoginUserHandlerTest {
     var query = new Query("estela", "SecurePass1!");
 
     _userRepository
-      .GetUserByUsernameAsync(
+      .GetUserAsync(
         Arg.Is<Username>(u => u.Value == query.Username),
         TestContext.Current.CancellationToken)
       .Returns(user);
 
-    _hasher.VerifyHash(query.Password, user.PasswordHash.Value).Returns(true);
+    _hasher.HashPassword(query.Password).Returns(user.PasswordHash);
 
     _tokenProvider.GenerateToken(Arg.Any<User>())
       .Returns(new Token("token", DateTime.UtcNow));

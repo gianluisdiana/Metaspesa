@@ -6,6 +6,6 @@ public interface IUserRepository {
   Task<bool> CheckUsernameExistsAsync(
     Username username, CancellationToken cancellationToken = default);
   void SaveUser(User user);
-  Task<User?> GetUserByUsernameAsync(
+  Task<User?> GetUserAsync(
     Username username, CancellationToken cancellationToken = default);
 }

@@ -17,13 +17,13 @@ public static class LoginUser {
     ) {
       ArgumentNullException.ThrowIfNull(query);
 
-      User? user = await userRepository.GetUserByUsernameAsync(
-        new Username(query.Username),
-        cancellationToken);
-
-      if (user is null || !hasher.VerifyHash(query.Password, user.PasswordHash.Value)) {
+      User user = await userRepository.GetUserAsync(
+        new Username(query.Username), cancellationToken) ??
         throw new InvalidCredentialsException();
-      }
+
+      PasswordHash hashedPassword = hasher.HashPassword(query.Password);
+
+      user.EnsureHasSamePassword(hashedPassword);
 
       return tokenProvider.GenerateToken(user);
     }

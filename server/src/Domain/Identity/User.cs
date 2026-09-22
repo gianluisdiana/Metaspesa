@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Metaspesa.Domain.Identity.Errors;
 
 namespace Metaspesa.Domain.Identity;
@@ -31,6 +32,15 @@ public class User {
     PasswordHash passwordHash,
     Role role
   ) => new(id, username, passwordHash, role);
+
+  public void EnsureHasSamePassword(PasswordHash passwordHash) {
+    if (!HasSamePassword(passwordHash)) {
+      throw new InvalidCredentialsException();
+    }
+  }
+
+  private bool HasSamePassword(PasswordHash passwordHash) =>
+    PasswordHash == passwordHash;
 
   private static void EnsureValidRole(Role role) {
     if (role is Role.None || !Enum.IsDefined(role)) {

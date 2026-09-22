@@ -142,7 +142,7 @@ public static class PostgreSqlUserRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
-      User? retrieved = await _repository.GetUserByUsernameAsync(
+      User? retrieved = await _repository.GetUserAsync(
         new Username("carol"), TestContext.Current.CancellationToken);
       Assert.Equal(HashedPassword, retrieved!.PasswordHash.Value);
     }
@@ -165,7 +165,7 @@ public static class PostgreSqlUserRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Assert
-      User? retrieved = await _repository.GetUserByUsernameAsync(
+      User? retrieved = await _repository.GetUserAsync(
         new Username("dave"), TestContext.Current.CancellationToken);
       Assert.Equal(Role.Shopper, retrieved!.Role);
     }
@@ -196,7 +196,7 @@ public static class PostgreSqlUserRepositoryTests {
       DisplayName = "Returns null when user does not exist")]
     public async Task GetUserByUsernameAsync_ReturnsNull_WhenUserDoesNotExist() {
       // Act
-      User? result = await _repository.GetUserByUsernameAsync(
+      User? result = await _repository.GetUserAsync(
         new Username("nobody"), TestContext.Current.CancellationToken);
 
       // Assert
@@ -219,7 +219,7 @@ public static class PostgreSqlUserRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      User? result = await _repository.GetUserByUsernameAsync(
+      User? result = await _repository.GetUserAsync(
         new Username("eve"), TestContext.Current.CancellationToken);
 
       // Assert
@@ -243,7 +243,7 @@ public static class PostgreSqlUserRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      User? result = await _repository.GetUserByUsernameAsync(
+      User? result = await _repository.GetUserAsync(
         new Username("FRANK"), TestContext.Current.CancellationToken);
 
       // Assert
@@ -266,7 +266,7 @@ public static class PostgreSqlUserRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      User? result = await _repository.GetUserByUsernameAsync(
+      User? result = await _repository.GetUserAsync(
         new Username("grace"), TestContext.Current.CancellationToken);
 
       // Assert
@@ -290,7 +290,7 @@ public static class PostgreSqlUserRepositoryTests {
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
-      User? result = await _repository.GetUserByUsernameAsync(
+      User? result = await _repository.GetUserAsync(
         new Username("henry"), TestContext.Current.CancellationToken);
 
       // Assert

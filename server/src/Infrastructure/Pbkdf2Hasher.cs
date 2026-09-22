@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Metaspesa.Application.Abstractions.Users;
+using Metaspesa.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 
@@ -16,18 +17,9 @@ internal partial class Pbkdf2Hasher(
     return _hasher.HashPassword(string.Empty, value);
   }
 
-  public bool VerifyHash(string plainValue, string hashedValue) {
-    Debug.Assert(plainValue is not null);
-    Debug.Assert(hashedValue is not null);
-
-    PasswordVerificationResult result = _hasher.VerifyHashedPassword(
-      string.Empty, hashedValue, plainValue);
-
-    if (result is PasswordVerificationResult.SuccessRehashNeeded) {
-      LogPasswordRehashNeeded();
-    }
-
-    return result is not PasswordVerificationResult.Failed;
+  public PasswordHash HashPassword(string password) {
+    string hash = _hasher.HashPassword(string.Empty, password);
+    return new PasswordHash(hash);
   }
 
   [LoggerMessage(
