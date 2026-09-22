@@ -1,4 +1,3 @@
-using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Users;
 using Metaspesa.Application.Identity;
 using Metaspesa.RestApi.Identity;
@@ -11,8 +10,8 @@ namespace Metaspesa.RestApi.UnitTests.Identity.Register;
 public class RegisterEndpointTests {
   private sealed class FakeRegisterUserHandler : RegisterUser.Handler {
     public FakeRegisterUserHandler(
-      IHasher hasher, IUserRepository repository, IUnitOfWork unitOfWork
-    ) : base(hasher, repository, unitOfWork) {
+      IHasher hasher, IUserRepository repository
+    ) : base(hasher, repository) {
       hasher.Hash("SecurePass1!").Returns("hashed");
     }
   }
@@ -22,8 +21,7 @@ public class RegisterEndpointTests {
   public RegisterEndpointTests() {
     _handler = new FakeRegisterUserHandler(
       Substitute.For<IHasher>(),
-      Substitute.For<IUserRepository>(),
-      Substitute.For<IUnitOfWork>());
+      Substitute.For<IUserRepository>());
   }
 
   [Fact(DisplayName = "Registration returns 201 Created")]

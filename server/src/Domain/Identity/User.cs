@@ -19,11 +19,15 @@ public class User {
     Role = role;
   }
 
-  public static User CreateShopper(
-    UserId id,
-    Username username,
-    PasswordHash passwordHash
-  ) => new(id, username, passwordHash, Role.Shopper);
+  public static User Create(
+    string primitiveUsername, string primitivePasswordHash
+  ) {
+    var id = new UserId(Guid.CreateVersion7());
+    var username = new Username(primitiveUsername);
+    var passwordHash = new PasswordHash(primitivePasswordHash);
+
+    return new User(id, username, passwordHash, Role.Shopper);
+  }
 
   public static User Rehydrate(
     UserId id,

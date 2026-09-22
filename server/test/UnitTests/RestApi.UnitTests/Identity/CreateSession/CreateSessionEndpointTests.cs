@@ -16,10 +16,7 @@ public class CreateSessionEndpointTests {
     public FakeLoginUserHandler(
       IUserRepository repository, IHasher hasher, ITokenProvider tokenProvider
     ) : base(repository, hasher, tokenProvider) {
-      var user = User.CreateShopper(
-        new UserId(Guid.CreateVersion7()),
-        new Username("estela"),
-        new PasswordHash("hashed"));
+      var user = User.Create("estela", "hashed");
       repository.GetUserByUsernameAsync(
           Arg.Any<Username>(), TestContext.Current.CancellationToken)
         .Returns(user);
