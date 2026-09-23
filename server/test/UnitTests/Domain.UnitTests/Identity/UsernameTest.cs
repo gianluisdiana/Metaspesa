@@ -4,19 +4,41 @@ using Metaspesa.Domain.Identity.Errors;
 namespace Metaspesa.Domain.UnitTests.Identity;
 
 public static class UsernameTest {
-  [Fact(DisplayName = "Creates username from non-empty value")]
-  public static void Username_Created_WhenValueIsNotEmpty() {
+  [Theory(DisplayName = "Creates username from valid value")]
+  [InlineData("estela")]
+  [InlineData("ESTELA")]
+  [InlineData("123456")]
+  [InlineData("_")]
+  [InlineData("Estela_123")]
+  public static void Username_Created_WhenValueContainsOnlyAllowedCharacters(
+    string value
+  ) {
     // Act
-    var username = new Username("estela");
+    var username = new Username(value);
 
     // Assert
-    Assert.Equal("estela", username.Value);
+    Assert.Equal(value, username.Value);
+  }
+
+  [Fact(DisplayName = "Trims surrounding whitespace from username")]
+  public static void Username_Trimmed_WhenValueHasSurroundingWhitespace() {
+    // Act
+    var username = new Username("  Estela_123  ");
+
+    // Assert
+    Assert.Equal("Estela_123", username.Value);
   }
 
   [Theory(DisplayName = "Throws specific exception when username is invalid")]
   [InlineData(null)]
   [InlineData("")]
-  [InlineData(" ")]
+  [InlineData(" ")] // empty
+  [InlineData("user name")] // has space
+  [InlineData("user-name")] // has hyphen
+  [InlineData("user.name")] // has dot
+  [InlineData("user@name")] // has @
+  [InlineData("user!")] // has exclamation mark
+  [InlineData("estelá")] // has accent
   public static void Username_ThrowsInvalidUsernameException_WhenValueIsInvalid(
     string? value
   ) {

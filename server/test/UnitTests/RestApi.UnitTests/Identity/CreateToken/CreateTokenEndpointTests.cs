@@ -9,28 +9,45 @@ using NSubstitute;
 
 namespace Metaspesa.RestApi.UnitTests.Identity.CreateToken;
 
-public static class CreateTokenEndpointTests {
-  [Fact(DisplayName = "Machine login returns access token")]
-  public static async Task Handle_ReturnsAccessToken_WhenProductManagerLogsIn() {
+public class CreateTokenEndpointTests {
+  private class FakeLoginUserHandler : LoginUser.Handler {
+    private readonly ITokenProvider _tokenProvider;
+
+    public FakeLoginUserHandler(
+      IUserRepository repository, IHasher hasher, ITokenProvider tokenProvider
+    ) : base(repository, hasher, tokenProvider) {
+      _tokenProvider = tokenProvider;
+      var user = User.Create("estela", "hashed");
+      repository.GetUserByUsernameAsync(
+          Arg.Any<Username>(), TestContext.Current.CancellationToken)
+        .Returns(user);
+      hasher.VerifyHash(Arg.Any<string>(), user.PasswordHash.Value).Returns(true);
+      _tokenProvider.GenerateToken(user).Returns(
+        new Token("jwt-token", DateTime.UtcNow.AddHours(1)));
+    }
+
+    public void WithTokenExpiration(DateTime expiresAt) {
+      _tokenProvider.GenerateToken(Arg.Any<User>())
+        .Returns(new Token("jwt-token", expiresAt));
+    }
+  }
+
+  private readonly LoginUser.Handler _handler;
+
+  public CreateTokenEndpointTests() {
     IUserRepository repository = Substitute.For<IUserRepository>();
     IHasher hasher = Substitute.For<IHasher>();
     ITokenProvider tokenProvider = Substitute.For<ITokenProvider>();
-    var user = User.Rehydrate(
-      new UserId(Guid.CreateVersion7()),
-      new Username("scraper"),
-      new PasswordHash("hashed"),
-      Role.ProductManager);
-    repository.GetUserByUsernameAsync(
-      Arg.Any<Username>(), TestContext.Current.CancellationToken)
-      .Returns(user);
-    hasher.VerifyHash("SecurePass1!", "hashed").Returns(true);
-    var expiresAt = new DateTime(2026, 9, 13, 12, 0, 0, DateTimeKind.Utc);
-    tokenProvider.GenerateToken(user).Returns(new Token("jwt-token", expiresAt));
-    var handler = new LoginUser.Handler(repository, hasher, tokenProvider);
+    _handler = new FakeLoginUserHandler(repository, hasher, tokenProvider);
+  }
+
+  [Fact(DisplayName = "Machine login returns access token")]
+  public async Task Handle_ReturnsAccessToken_WhenProductManagerLogsIn() {
+    var request = new CredentialsRequest("estela", "SecurePass1!");
 
     IResult result = await CreateTokenEndpoint.HandleAsync(
-      new CredentialsRequest("scraper", "SecurePass1!"),
-      handler,
+      request,
+      _handler,
       TestContext.Current.CancellationToken);
 
     Ok<TokenResponse> response = Assert.IsType<Ok<TokenResponse>>(result);
@@ -38,26 +55,12 @@ public static class CreateTokenEndpointTests {
   }
 
   [Fact(DisplayName = "Machine login returns Bearer token type")]
-  public static async Task Handle_ReturnsBearerType_WhenProductManagerLogsIn() {
-    IUserRepository repository = Substitute.For<IUserRepository>();
-    IHasher hasher = Substitute.For<IHasher>();
-    ITokenProvider tokenProvider = Substitute.For<ITokenProvider>();
-    var user = User.Rehydrate(
-      new UserId(Guid.CreateVersion7()),
-      new Username("scraper"),
-      new PasswordHash("hashed"),
-      Role.ProductManager);
-    repository.GetUserByUsernameAsync(
-      Arg.Any<Username>(), TestContext.Current.CancellationToken)
-      .Returns(user);
-    hasher.VerifyHash("SecurePass1!", "hashed").Returns(true);
-    var expiresAt = new DateTime(2026, 9, 13, 12, 0, 0, DateTimeKind.Utc);
-    tokenProvider.GenerateToken(user).Returns(new Token("jwt-token", expiresAt));
-    var handler = new LoginUser.Handler(repository, hasher, tokenProvider);
+  public async Task Handle_ReturnsBearerType_WhenProductManagerLogsIn() {
+    var request = new CredentialsRequest("estela", "SecurePass1!");
 
     IResult result = await CreateTokenEndpoint.HandleAsync(
-      new CredentialsRequest("scraper", "SecurePass1!"),
-      handler,
+      request,
+      _handler,
       TestContext.Current.CancellationToken);
 
     Ok<TokenResponse> response = Assert.IsType<Ok<TokenResponse>>(result);
@@ -65,26 +68,14 @@ public static class CreateTokenEndpointTests {
   }
 
   [Fact(DisplayName = "Machine login returns token expiration")]
-  public static async Task Handle_ReturnsExpiration_WhenProductManagerLogsIn() {
-    IUserRepository repository = Substitute.For<IUserRepository>();
-    IHasher hasher = Substitute.For<IHasher>();
-    ITokenProvider tokenProvider = Substitute.For<ITokenProvider>();
-    var user = User.Rehydrate(
-      new UserId(Guid.CreateVersion7()),
-      new Username("scraper"),
-      new PasswordHash("hashed"),
-      Role.ProductManager);
-    repository.GetUserByUsernameAsync(
-      Arg.Any<Username>(), TestContext.Current.CancellationToken)
-      .Returns(user);
-    hasher.VerifyHash("SecurePass1!", "hashed").Returns(true);
-    var expiresAt = new DateTime(2026, 9, 13, 12, 0, 0, DateTimeKind.Utc);
-    tokenProvider.GenerateToken(user).Returns(new Token("jwt-token", expiresAt));
-    var handler = new LoginUser.Handler(repository, hasher, tokenProvider);
+  public async Task Handle_ReturnsExpiration_WhenProductManagerLogsIn() {
+    var request = new CredentialsRequest("estela", "SecurePass1!");
+    DateTime expiresAt = DateTime.UtcNow.AddHours(2);
+    (_handler as FakeLoginUserHandler)!.WithTokenExpiration(expiresAt);
 
     IResult result = await CreateTokenEndpoint.HandleAsync(
-      new CredentialsRequest("scraper", "SecurePass1!"),
-      handler,
+      request,
+      _handler,
       TestContext.Current.CancellationToken);
 
     Ok<TokenResponse> response = Assert.IsType<Ok<TokenResponse>>(result);

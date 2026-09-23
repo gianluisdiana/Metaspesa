@@ -1,4 +1,3 @@
-using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Users;
 using Metaspesa.Domain.Identity;
 using Metaspesa.Domain.Identity.Errors;
@@ -10,15 +9,13 @@ namespace Metaspesa.Application.UnitTests.Identity;
 public class RegisterUserHandlerTest {
   private readonly IHasher _hasher;
   private readonly IUserRepository _userRepository;
-  private readonly IUnitOfWork _unitOfWork;
   private readonly Handler _handler;
 
   public RegisterUserHandlerTest() {
     _hasher = Substitute.For<IHasher>();
     _userRepository = Substitute.For<IUserRepository>();
-    _unitOfWork = Substitute.For<IUnitOfWork>();
     _hasher.Hash(Arg.Any<string>()).Returns("hashed");
-    _handler = new Handler(_hasher, _userRepository, _unitOfWork);
+    _handler = new Handler(_hasher, _userRepository);
   }
 
   [Fact(DisplayName = "Throws password validation exception when password is invalid")]
@@ -53,7 +50,7 @@ public class RegisterUserHandlerTest {
     var command = new Command(Username, "SecurePass1!");
     _userRepository
       .CheckUsernameExistsAsync(
-        Arg.Is<Username>(u => u.Value == Username),
+        Username,
         TestContext.Current.CancellationToken)
       .Returns(true);
 
@@ -88,8 +85,9 @@ public class RegisterUserHandlerTest {
     await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
-    _userRepository.Received(1).SaveUser(
-      Arg.Is<User>(u => u.PasswordHash.Value == HashedPassword));
+    await _userRepository.Received(1).SaveAsync(
+      Arg.Is<User>(u => u.PasswordHash.Value == HashedPassword),
+      TestContext.Current.CancellationToken);
   }
 
   [Fact(DisplayName = "Saves user as Shopper role via repository")]
@@ -101,12 +99,13 @@ public class RegisterUserHandlerTest {
     await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
-    _userRepository.Received(1).SaveUser(
-      Arg.Is<User>(u => u.Role == Role.Shopper));
+    await _userRepository.Received(1).SaveAsync(
+      Arg.Is<User>(u => u.Role == Role.Shopper),
+      TestContext.Current.CancellationToken);
   }
 
-  [Fact(DisplayName = "Saves changes to unit of work")]
-  public async Task Handler_SavesChangesToUnitOfWork() {
+  [Fact(DisplayName = "Saves user through repository")]
+  public async Task Handler_SavesUserThroughRepository() {
     // Arrange
     var command = new Command("estela", "SecurePass1!");
 
@@ -114,7 +113,8 @@ public class RegisterUserHandlerTest {
     await _handler.Handle(command, TestContext.Current.CancellationToken);
 
     // Assert
-    await _unitOfWork.Received(1).SaveChangesAsync(TestContext.Current.CancellationToken);
+    await _userRepository.Received(1).SaveAsync(
+      Arg.Any<User>(), TestContext.Current.CancellationToken);
   }
 
   [Fact(DisplayName = "Completes when handling is successful")]

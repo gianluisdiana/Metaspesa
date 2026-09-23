@@ -40,10 +40,7 @@ public class LoginUserHandlerTest {
   [Fact(DisplayName = "Throws invalid credentials when password does not match")]
   public async Task Handler_ThrowsInvalidCredentialsException_WhenPasswordDoesNotMatch() {
     // Arrange
-    var user = User.CreateShopper(
-      new UserId(Guid.CreateVersion7()),
-      new Username("estela"),
-      new PasswordHash("hashed"));
+    var user = User.Create("estela", "hashed");
     var query = new Query("estela", "WrongPassword");
 
     _userRepository
@@ -64,10 +61,7 @@ public class LoginUserHandlerTest {
   [Fact(DisplayName = "Does not generate token when password does not match")]
   public async Task Handler_DoesNotGenerateToken_WhenPasswordDoesNotMatch() {
     // Arrange
-    var user = User.CreateShopper(
-      new UserId(Guid.CreateVersion7()),
-      new Username("estela"),
-      new PasswordHash("hashed"));
+    var user = User.Create("estela", "hashed");
     var query = new Query("estela", "WrongPassword");
 
     _userRepository
@@ -89,10 +83,7 @@ public class LoginUserHandlerTest {
   [Fact(DisplayName = "Returns token when credentials are valid")]
   public async Task Handler_ReturnsToken_WhenCredentialsAreValid() {
     // Arrange
-    var user = User.CreateShopper(
-      new UserId(Guid.CreateVersion7()),
-      new Username("estela"),
-      new PasswordHash("hashed"));
+    var user = User.Create("estela", "hashed");
     var query = new Query("estela", "SecurePass1!");
 
     _userRepository
@@ -116,10 +107,7 @@ public class LoginUserHandlerTest {
   [Fact(DisplayName = "Generates token with the loaded user")]
   public async Task Handler_GeneratesToken_WithLoadedUser() {
     // Arrange
-    var user = User.CreateShopper(
-      new UserId(Guid.CreateVersion7()),
-      new Username("estela"),
-      new PasswordHash("hashed"));
+    var user = User.Create("estela", "hashed");
     var query = new Query("estela", "SecurePass1!");
 
     _userRepository
