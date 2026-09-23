@@ -4,8 +4,8 @@ namespace Metaspesa.Application.Abstractions.Users;
 
 public interface IUserRepository {
   Task<bool> CheckUsernameExistsAsync(
-    Username username, CancellationToken cancellationToken = default);
-  void SaveUser(User user);
+    string username, CancellationToken cancellationToken = default);
+  Task SaveAsync(User user, CancellationToken cancellationToken = default);
   Task<User?> GetUserByUsernameAsync(
     Username username, CancellationToken cancellationToken = default);
 }
