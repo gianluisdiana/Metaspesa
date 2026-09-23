@@ -23,7 +23,7 @@ internal static class GetMarketsEndpoint {
     CancellationToken cancellationToken
   ) {
     IReadOnlyCollection<MarketSummary> markets = await handler.Handle(
-      new GetMarketsUseCase.Query(), cancellationToken);
+      cancellationToken);
     return Results.Ok(new MarketListResponse(
       [.. markets.Select(MarketResponse.FromSummary)]));
   }
