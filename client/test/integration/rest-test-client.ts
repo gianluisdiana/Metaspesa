@@ -13,7 +13,7 @@ export async function registerAndLogin(): Promise<{
 }> {
   const credentials = {
     password,
-    username: `client_it_${randomUUID()}`,
+    username: `client_it_${randomUUID().replace('-', '_')}`,
   };
 
   const registration = await fetch(`${restApiUrl}/auth/registrations`, {
