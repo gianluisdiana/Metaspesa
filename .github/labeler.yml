@@ -1,0 +1,35 @@
+javascript:
+  - changed-files:
+      - any-glob-to-any-file: "client/**"
+
+"python:uv":
+  - changed-files:
+      - any-glob-to-any-file: "scraper/**"
+
+".NET":
+  - changed-files:
+      - any-glob-to-any-file: "server/**"
+
+docker_compose:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "compose*.yml"
+          - "compose*.yaml"
+          - "**/compose*.yml"
+          - "**/compose*.yaml"
+          - "docker-compose*.yml"
+          - "docker-compose*.yaml"
+          - "**/docker-compose*.yml"
+          - "**/docker-compose*.yaml"
+
+docker:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "Dockerfile*"
+          - "**/Dockerfile*"
+          - ".dockerignore"
+          - "**/.dockerignore"
+
+github_actions:
+  - changed-files:
+      - any-glob-to-any-file: ".github/**"

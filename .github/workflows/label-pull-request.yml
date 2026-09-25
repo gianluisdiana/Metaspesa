@@ -1,0 +1,34 @@
+name: Label pull request
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  label:
+    name: Label changed areas
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Ensure labels exist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create "javascript" --repo "$GITHUB_REPOSITORY" --color "F7DF1E" --force
+          gh label create "python:uv" --repo "$GITHUB_REPOSITORY" --color "3776AB" --force
+          gh label create ".NET" --repo "$GITHUB_REPOSITORY" --color "512BD4" --force
+          gh label create "docker_compose" --repo "$GITHUB_REPOSITORY" --color "2496ED" --force
+          gh label create "docker" --repo "$GITHUB_REPOSITORY" --color "0DB7ED" --force
+          gh label create "github_actions" --repo "$GITHUB_REPOSITORY" --color "2088FF" --force
+
+      - name: Apply labels
+        uses: actions/labeler@v6
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          sync-labels: true
