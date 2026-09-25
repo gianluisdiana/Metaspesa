@@ -164,8 +164,8 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
       new ShoppingListName("Weekly")), TestContext.Current.CancellationToken);
 
     bool exists = await _repository.ExistsAsync(
-      ownerId,
-      new ShoppingListName("WEEKLY"),
+      ownerId.Value,
+      "WEEKLY",
       TestContext.Current.CancellationToken);
 
     Assert.True(exists);
@@ -179,7 +179,7 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
       TestContext.Current.CancellationToken);
 
     bool exists = await _repository.ExistsAsync(
-      ownerId, null, TestContext.Current.CancellationToken);
+      ownerId.Value, null, TestContext.Current.CancellationToken);
 
     Assert.False(exists);
   }

@@ -11,9 +11,7 @@ public interface IShoppingListRepository {
     ShoppingListId id,
     CancellationToken cancellationToken);
   Task<bool> ExistsAsync(
-    UserId ownerId,
-    ShoppingListName? name,
-    CancellationToken cancellationToken);
+    Guid ownerId, string? name, CancellationToken cancellationToken);
   Task<int> AddAsync(ShoppingList shoppingList, CancellationToken cancellationToken);
   Task UpdateAsync(
     ShoppingList shoppingList, CancellationToken cancellationToken);

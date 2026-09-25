@@ -1,4 +1,5 @@
 using Metaspesa.Domain.Identity;
+using Metaspesa.Domain.Identity.Errors;
 using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.SharedKernel;
 using Metaspesa.Domain.Shopping;
@@ -8,6 +9,48 @@ namespace Metaspesa.Domain.UnitTests.Shopping;
 
 public class ShoppingListTests {
   private static readonly UserId OwnerId = new(Guid.Parse("11111111-1111-1111-1111-111111111111"));
+
+  [Fact(DisplayName = "Creates list without id")]
+  public void Create_CreatesNamedList_FromPrimitiveValues() {
+    var list = ShoppingList.Create(OwnerId.Value, "Weekly");
+
+    Assert.Null(list.Id);
+  }
+
+  [Fact(DisplayName = "Creates list with given name")]
+  public void Create_CreatesNamedList_WithNormalizedName() {
+    var list = ShoppingList.Create(OwnerId.Value, "Weekly");
+
+    Assert.Equal(new ShoppingListName("Weekly"), list.Name);
+    Assert.Null(list.DeletedAt);
+  }
+
+  [Fact(DisplayName = "Creates list with single owner")]
+  public void Create_CreatesList_WithSingleOwner() {
+    var list = ShoppingList.Create(OwnerId.Value, "Weekly");
+
+    Assert.Equal(OwnerId, Assert.Single(list.OwnerIds));
+  }
+
+  [Fact(DisplayName = "Creates list without items")]
+  public void Create_CreatesList_WithoutItems() {
+    var list = ShoppingList.Create(OwnerId.Value, "Weekly");
+
+    Assert.Empty(list.Items);
+  }
+
+  [Fact(DisplayName = "Creates list without deleted timestamp")]
+  public void Create_CreatesList_WithoutDeletedTimestamp() {
+    var list = ShoppingList.Create(OwnerId.Value, "Weekly");
+
+    Assert.Null(list.DeletedAt);
+  }
+
+  [Fact(DisplayName = "Rejects invalid primitive owner ID")]
+  public void Create_ThrowsExactException_WhenPrimitiveOwnerIdIsInvalid() {
+    Assert.Throws<InvalidUserIdException>(() =>
+      ShoppingList.Create(Guid.Empty, "Weekly"));
+  }
 
   [Fact(DisplayName = "Creates temporary list without name")]
   public void Create_CreatesTemporaryList_WhenNameIsMissing() {

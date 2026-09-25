@@ -41,9 +41,6 @@ internal sealed partial class RestExceptionHandler(
       ShoppingProductFormatNotFoundException shopping => (
         StatusCodes.Status404NotFound, shopping.Code,
         "Product format not found", "product-format-not-found"),
-      TemporaryShoppingListAlreadyExistsException shopping => (
-        StatusCodes.Status409Conflict, shopping.Code,
-        "Temporary shopping list already exists", "temporary-shopping-list-already-exists"),
       ShoppingListAlreadyExistsException shopping => (
         StatusCodes.Status409Conflict, shopping.Code,
         "Shopping list already exists", "shopping-list-already-exists"),
