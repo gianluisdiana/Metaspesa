@@ -164,8 +164,22 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
       new ShoppingListName("Weekly")), TestContext.Current.CancellationToken);
 
     bool exists = await _repository.ExistsAsync(
-      ownerId,
-      new ShoppingListName("WEEKLY"),
+      ownerId.Value,
+      "WEEKLY",
+      TestContext.Current.CancellationToken);
+
+    Assert.True(exists);
+  }
+
+  [Fact(DisplayName = "Finds named list trimming name")]
+  public async Task ExistsAsync_MatchesNamedList_TrimmingName() {
+    UserId ownerId = await SeedUserAsync();
+    await _repository.AddAsync(ShoppingList.Create(ownerId,
+      new ShoppingListName("Weekly")), TestContext.Current.CancellationToken);
+
+    bool exists = await _repository.ExistsAsync(
+      ownerId.Value,
+      "   Weekly   ",
       TestContext.Current.CancellationToken);
 
     Assert.True(exists);
@@ -179,7 +193,7 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
       TestContext.Current.CancellationToken);
 
     bool exists = await _repository.ExistsAsync(
-      ownerId, null, TestContext.Current.CancellationToken);
+      ownerId.Value, null, TestContext.Current.CancellationToken);
 
     Assert.False(exists);
   }

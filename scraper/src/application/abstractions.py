@@ -40,3 +40,8 @@ class FallbackProductRepository(ProductRepository):
 
 class RepositorySaveException(Exception):
     pass
+
+
+class Clock(ABC):
+    @abstractmethod
+    def today(self) -> date: ...

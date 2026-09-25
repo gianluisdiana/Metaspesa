@@ -1,5 +1,4 @@
 using Metaspesa.Application.Abstractions.Shopping;
-using Metaspesa.Domain.Identity;
 using Metaspesa.Domain.Shopping;
 using Metaspesa.Domain.Shopping.Errors;
 
@@ -16,19 +15,15 @@ public static class CreateShoppingList {
     ) {
       ArgumentNullException.ThrowIfNull(command);
 
-      var ownerId = new UserId(command.UserUid);
-      ShoppingListName? name = string.IsNullOrWhiteSpace(command.ShoppingListName)
-        ? null : new ShoppingListName(command.ShoppingListName);
+      Guid ownerId = command.UserUid;
+      string? name = command.ShoppingListName;
 
       if (await shoppingListRepository.ExistsAsync(ownerId, name, cancellationToken)) {
-        if (name is null) {
-          throw new TemporaryShoppingListAlreadyExistsException();
-        }
-        throw new ShoppingListAlreadyExistsException();
+        throw new ShoppingListAlreadyExistsException(ownerId, name);
       }
 
-      return await shoppingListRepository.AddAsync(
-        ShoppingList.Create(ownerId, name), cancellationToken);
+      var shoppingList = ShoppingList.Create(ownerId, name);
+      return await shoppingListRepository.AddAsync(shoppingList, cancellationToken);
     }
   }
 }

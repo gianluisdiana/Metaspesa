@@ -38,7 +38,7 @@ public class UpdateShoppingListHandlerTest {
       Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
     repository.ExistsAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>())
+      Arg.Any<Guid>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
       .Returns(true);
     IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
     var handler = new Handler(repository, unitOfWork);
@@ -66,7 +66,7 @@ public class UpdateShoppingListHandlerTest {
       TestContext.Current.CancellationToken);
 
     await repository.DidNotReceive().ExistsAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListName?>(), Arg.Any<CancellationToken>());
+      Arg.Any<Guid>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     await unitOfWork.Received(1).SaveChangesAsync(TestContext.Current.CancellationToken);
   }
 }

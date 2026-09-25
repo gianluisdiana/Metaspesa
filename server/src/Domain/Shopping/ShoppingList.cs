@@ -21,8 +21,8 @@ public sealed class ShoppingList {
     ShoppingListId? id,
     IEnumerable<UserId> ownerIds,
     ShoppingListName? name,
-    DateTime? deletedAt,
-    IEnumerable<ShoppingItem>? items
+    IEnumerable<ShoppingItem>? items,
+    DateTime? deletedAt
   ) {
     _ownerIds = [.. ownerIds];
     if (_ownerIds.Count == 0) {
@@ -53,6 +53,17 @@ public sealed class ShoppingList {
     }
   }
 
+  public static ShoppingList Create(
+    Guid primitiveOwnerId,
+    string? primitiveName
+  ) {
+    var ownerId = new UserId(primitiveOwnerId);
+    ShoppingListName? name = string.IsNullOrWhiteSpace(primitiveName)
+      ? null : new ShoppingListName(primitiveName);
+
+    return new ShoppingList(null, [ownerId], name, [], null);
+  }
+
   public static ShoppingList Create(UserId ownerId, ShoppingListName? name) =>
     new(null, [ownerId], name, null, null);
 
@@ -62,7 +73,7 @@ public sealed class ShoppingList {
     ShoppingListName? name,
     DateTime? deletedAt,
     IEnumerable<ShoppingItem> items
-  ) => new(id, ownerIds, name, deletedAt, items);
+  ) => new(id, ownerIds, name, items, deletedAt);
 
   public void Rename(ShoppingListName name) {
     Name = name;

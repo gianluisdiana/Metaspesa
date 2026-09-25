@@ -51,24 +51,18 @@ internal class PostgreSqlShoppingListRepository(
     "Couldn't get shopping list.");
 
   public async Task<bool> ExistsAsync(
-    UserId ownerId,
-    ShoppingListName? name,
-    CancellationToken cancellationToken
-  ) => await PostgreSqlExceptionMapper.MapAsync(
-    async () => {
-      string? nameValue = name?.Value;
-      return await context.ShoppingListOwnerships.AnyAsync(
-        ownership => ownership.UserUid == ownerId.Value &&
-          ownership.ShoppingList.DeletedAt == null && (
-          ownership.ShoppingList.Name == null && nameValue == null ||
-          ownership.ShoppingList.Name != null &&
-          nameValue != null &&
-          EF.Functions.ILike(ownership.ShoppingList.Name,
-            EscapeLike(nameValue), "\\")
-        ),
-        cancellationToken);
-    },
-    "Couldn't check if shopping list exists.");
+    Guid ownerId, string? name, CancellationToken cancellationToken
+  ) {
+    return await context.ShoppingListOwnerships.AnyAsync(
+      ownership => ownership.UserUid == ownerId &&
+        ownership.ShoppingList.DeletedAt == null && (
+        ownership.ShoppingList.Name == null && name == null ||
+        ownership.ShoppingList.Name != null &&
+        name != null &&
+        EF.Functions.ILike(ownership.ShoppingList.Name, EscapeLike(name).Trim(), "\\")
+      ),
+      cancellationToken);
+  }
 
   public async Task<int> AddAsync(
     ShoppingList shoppingList, CancellationToken cancellationToken

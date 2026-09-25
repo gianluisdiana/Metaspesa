@@ -11,8 +11,7 @@ from conftest import (
     SpyProductRepository,
 )
 
-from application.abstractions import MarketWebScraper
-from application.clock import Clock
+from application.abstractions import Clock, MarketWebScraper
 from application.product_processors import ProductProcessor
 from application.use_cases import (
     MissingMarketWebScrapersError,
@@ -102,6 +101,7 @@ def make_handler(**kwargs: Any) -> ScrapeMarketsCommandHandler:
         fallback_repository=DummyFallbackRepository(),
         market_web_scrapers={"Market": SpyMarketWebScraper()},
         product_processor=DummyProductProcessor(),
+        clock=FixedClock(date(2026, 5, 18)),
     )
     defaults.update(kwargs)
     return ScrapeMarketsCommandHandler(**defaults)

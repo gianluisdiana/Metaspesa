@@ -25,8 +25,8 @@ public static class UpdateShoppingList {
         cancellationToken) ?? throw new ShoppingListNotFoundException();
 
       if (newName != shoppingList.Name &&
-        await shoppingListRepository.ExistsAsync(ownerId, newName, cancellationToken)) {
-        throw new ShoppingListAlreadyExistsException();
+        await shoppingListRepository.ExistsAsync(command.UserUid, command.NewName, cancellationToken)) {
+        throw new ShoppingListAlreadyExistsException(command.UserUid, command.NewName);
       }
 
       shoppingList.Rename(newName);

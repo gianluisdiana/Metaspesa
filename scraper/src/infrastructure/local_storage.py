@@ -23,7 +23,7 @@ class CsvProductRepository(FallbackProductRepository):
             writer = csv.writer(f, delimiter=";", quoting=csv.QUOTE_ALL)
             writer.writerow(
                 [
-                    "OriginalName",
+                    "RawContent",
                     "Name",
                     "Price",
                     "Quantity",
@@ -79,7 +79,7 @@ class CsvProductRepository(FallbackProductRepository):
                 brand = row["Brand"]
                 products.append(
                     Product(
-                        raw_content=row["OriginalName"],
+                        raw_content=row["RawContent"],
                         name=row["Name"],
                         price=float(row["Price"]),
                         quantity=float(row["Quantity"]),

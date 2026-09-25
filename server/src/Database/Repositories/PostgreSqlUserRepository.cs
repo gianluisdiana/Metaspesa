@@ -9,19 +9,22 @@ internal partial class PostgreSqlUserRepository(
   MainContext context
   ) : IUserRepository {
   public async Task<bool> CheckUsernameExistsAsync(
-    Username username, CancellationToken cancellationToken = default
+    string username, CancellationToken cancellationToken = default
   ) => await PostgreSqlExceptionMapper.MapAsync(
     async () => await context.Users.AnyAsync(
-      u => EF.Functions.ILike(u.Username, username.Value), cancellationToken),
+      u => EF.Functions.ILike(u.Username, username.Trim()), cancellationToken),
     "Couldn't check if username exists.");
 
-  public void SaveUser(User user) {
+  public async Task SaveAsync(
+    User user, CancellationToken cancellationToken = default
+  ) {
     context.Users.Add(new UserDbEntity {
       Uid = user.Id.Value,
       Username = user.Username.Value,
       EncryptedPassword = user.PasswordHash.Value,
       RoleId = (int)user.Role,
     });
+    await context.SaveChangesAsync(cancellationToken);
   }
 
   public async Task<User?> GetUserByUsernameAsync(

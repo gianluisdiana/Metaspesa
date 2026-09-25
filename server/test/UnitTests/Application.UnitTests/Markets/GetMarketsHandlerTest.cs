@@ -26,7 +26,7 @@ public class GetMarketsHandlerTest {
 
     // Act
     IReadOnlyCollection<MarketSummary> result =
-      await _handler.Handle(new GetMarkets.Query(), TestContext.Current.CancellationToken);
+      await _handler.Handle(TestContext.Current.CancellationToken);
 
     // Assert
     Assert.Equal(2, result.Count);
@@ -41,7 +41,7 @@ public class GetMarketsHandlerTest {
 
     // Act
     IReadOnlyCollection<MarketSummary> result =
-      await _handler.Handle(new GetMarkets.Query(), TestContext.Current.CancellationToken);
+      await _handler.Handle(TestContext.Current.CancellationToken);
 
     // Assert
     Assert.Empty(result);
@@ -55,7 +55,7 @@ public class GetMarketsHandlerTest {
       .Returns([]);
 
     // Act
-    await _handler.Handle(new GetMarkets.Query(), TestContext.Current.CancellationToken);
+    await _handler.Handle(TestContext.Current.CancellationToken);
 
     // Assert
     await _marketRepository.Received(1).GetMarketSummariesAsync(TestContext.Current.CancellationToken);
