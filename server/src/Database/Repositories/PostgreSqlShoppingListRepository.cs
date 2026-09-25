@@ -59,7 +59,7 @@ internal class PostgreSqlShoppingListRepository(
         ownership.ShoppingList.Name == null && name == null ||
         ownership.ShoppingList.Name != null &&
         name != null &&
-        EF.Functions.ILike(ownership.ShoppingList.Name.Trim(), EscapeLike(name), "\\")
+        EF.Functions.ILike(ownership.ShoppingList.Name, EscapeLike(name).Trim(), "\\")
       ),
       cancellationToken);
   }

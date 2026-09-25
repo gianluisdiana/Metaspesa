@@ -12,7 +12,7 @@ internal partial class PostgreSqlUserRepository(
     string username, CancellationToken cancellationToken = default
   ) => await PostgreSqlExceptionMapper.MapAsync(
     async () => await context.Users.AnyAsync(
-      u => EF.Functions.ILike(u.Username, username), cancellationToken),
+      u => EF.Functions.ILike(u.Username, username.Trim()), cancellationToken),
     "Couldn't check if username exists.");
 
   public async Task SaveAsync(

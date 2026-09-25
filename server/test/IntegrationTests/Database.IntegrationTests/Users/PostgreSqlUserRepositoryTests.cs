@@ -78,6 +78,24 @@ public static class PostgreSqlUserRepositoryTests {
       // Assert
       Assert.True(result);
     }
+
+    [Fact(
+      DisplayName = "Returns true after trimming")]
+    public async Task CheckUsernameExistsAsync_ReturnsTrue_AfterTrimming() {
+      // Arrange
+      var uid = Guid.CreateVersion7();
+      _context.Users.Add(new UserDbEntity {
+        Uid = uid, Username = "Alice", EncryptedPassword = "x", Role = TestRole
+      });
+      await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+      // Act
+      bool result = await _repository.CheckUsernameExistsAsync(
+        "   Alice   ", TestContext.Current.CancellationToken);
+
+      // Assert
+      Assert.True(result);
+    }
   }
 
   [Collection("Database")]
