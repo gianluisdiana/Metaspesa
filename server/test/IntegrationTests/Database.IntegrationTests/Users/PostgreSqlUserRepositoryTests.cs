@@ -85,13 +85,13 @@ public static class PostgreSqlUserRepositoryTests {
       // Arrange
       var uid = Guid.CreateVersion7();
       _context.Users.Add(new UserDbEntity {
-        Uid = uid, Username = "Alice", EncryptedPassword = "x", Role = TestRole
+        Uid = uid, Username = "Pedro", EncryptedPassword = "x", Role = TestRole
       });
       await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
       // Act
       bool result = await _repository.CheckUsernameExistsAsync(
-        "   Alice   ", TestContext.Current.CancellationToken);
+        "   Pedro   ", TestContext.Current.CancellationToken);
 
       // Assert
       Assert.True(result);
