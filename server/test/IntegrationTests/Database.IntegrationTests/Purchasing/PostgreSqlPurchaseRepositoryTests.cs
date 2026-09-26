@@ -66,16 +66,9 @@ public class PostgreSqlPurchaseRepositoryTests : IAsyncLifetime {
         TestContext.Current.CancellationToken);
     Assert.Equal(listId.Value, entity.ShoppingListId);
     Assert.Equal(PurchasedAt, entity.PurchasedAt);
-    Assert.Collection(
-      entity.Items.OrderBy(item => item.PriceSnapshotId),
-      item => {
-        Assert.Equal(firstSnapshotId.Value, item.PriceSnapshotId);
-        Assert.Equal(2, item.Amount);
-      },
-      item => {
-        Assert.Equal(secondSnapshotId.Value, item.PriceSnapshotId);
-        Assert.Equal(3, item.Amount);
-      });
+    var itemsBySnapshotId = entity.Items.ToDictionary(item => item.PriceSnapshotId);
+    Assert.Equal(2, itemsBySnapshotId[firstSnapshotId.Value].Amount);
+    Assert.Equal(3, itemsBySnapshotId[secondSnapshotId.Value].Amount);
   }
 
   [Fact(DisplayName = "Persists purchase with nullable external references")]
@@ -127,13 +120,13 @@ public class PostgreSqlPurchaseRepositoryTests : IAsyncLifetime {
 
   private async Task EnsureShopperRoleAsync() {
     if (await _context.UserRoles.AnyAsync(
-      role => role.Id == (int)Role.Shopper,
+      role => role.Id == UserRoleIds.Shopper,
       TestContext.Current.CancellationToken)) {
       return;
     }
 
     _context.UserRoles.Add(new UserRoleDbEntity {
-      Id = (int)Role.Shopper,
+      Id = UserRoleIds.Shopper,
       Name = nameof(Role.Shopper),
       Description = "Regular user who manages shopping lists",
     });
@@ -146,7 +139,7 @@ public class PostgreSqlPurchaseRepositoryTests : IAsyncLifetime {
       Uid = id.Value,
       Username = id.ToString(),
       EncryptedPassword = "x",
-      RoleId = (int)Role.Shopper,
+      RoleId = UserRoleIds.Shopper,
     });
     await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     return id;

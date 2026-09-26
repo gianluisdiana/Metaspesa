@@ -13,7 +13,7 @@ Project metaspesa {
 Table identity.roles {
   note: 'User roles for access control'
 
-  id integer [pk]
+  id guid [pk]
   name varchar(100) [not null, unique]
   description varchar(255) [not null]
 
@@ -28,7 +28,7 @@ Table identity.users {
   uid guid [pk]
   username varchar(255) [not null, unique]
   encrypted_password varchar(255) [not null]
-  role_id integer [not null]
+  role_id guid [not null]
 
   indexes {
     username [name: 'idx_user_username']

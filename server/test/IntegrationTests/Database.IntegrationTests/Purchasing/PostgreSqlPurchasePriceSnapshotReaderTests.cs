@@ -64,9 +64,13 @@ public class PostgreSqlPurchasePriceSnapshotReaderTests : IAsyncLifetime {
   public async Task GetLatestAsync_ReturnsHighestId_WhenTimesAreEqual() {
     ProductFormatId formatId = await SeedFormatAsync("Milk");
     DateTime observedAt = UtcDate(2026, 8, 19);
-    await SeedSnapshotAsync(formatId, observedAt, 1.25m);
-    PriceSnapshotId highestId = await SeedSnapshotAsync(
+    PriceSnapshotId firstId = await SeedSnapshotAsync(
+      formatId, observedAt, 1.25m);
+    PriceSnapshotId secondId = await SeedSnapshotAsync(
       formatId, observedAt, 1.50m);
+    PriceSnapshotId highestId = firstId.Value.CompareTo(secondId.Value) > 0
+      ? firstId
+      : secondId;
 
     IReadOnlyDictionary<ProductFormatId, PriceSnapshotId> result =
       await _reader.GetLatestAsync(

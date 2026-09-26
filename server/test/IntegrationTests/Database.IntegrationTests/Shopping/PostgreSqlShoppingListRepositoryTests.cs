@@ -28,10 +28,10 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
 
   public async ValueTask InitializeAsync() {
     if (!await _context.UserRoles.AnyAsync(
-      role => role.Id == (int)Role.Shopper,
+      role => role.Id == UserRoleIds.Shopper,
       TestContext.Current.CancellationToken)) {
       _context.UserRoles.Add(new UserRoleDbEntity {
-        Id = (int)Role.Shopper,
+        Id = UserRoleIds.Shopper,
         Name = nameof(Role.Shopper),
         Description = "Regular user who manages shopping lists",
       });
@@ -339,7 +339,7 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
       Uid = id.Value,
       Username = id.ToString(),
       EncryptedPassword = "x",
-      RoleId = (int)Role.Shopper,
+      RoleId = UserRoleIds.Shopper,
     });
     await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     return id;

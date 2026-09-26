@@ -4,7 +4,7 @@ internal class UserDbEntity {
   public Guid Uid { get; set; }
   public string Username { get; set; } = null!;
   public string EncryptedPassword { get; set; } = null!;
-  public int RoleId { get; set; }
+  public Guid RoleId { get; set; }
 
   public UserRoleDbEntity Role { get; set; } = null!;
   public ICollection<ShoppingListOwnershipDbEntity> Ownerships { get; set; } = [];

@@ -113,13 +113,13 @@ public class CheckoutShoppingListIntegrationTests : IAsyncLifetime {
 
   private async Task EnsureShopperRoleAsync() {
     if (await _context.UserRoles.AnyAsync(
-      role => role.Id == (int)Role.Shopper,
+      role => role.Id == UserRoleIds.Shopper,
       TestContext.Current.CancellationToken)) {
       return;
     }
 
     _context.UserRoles.Add(new UserRoleDbEntity {
-      Id = (int)Role.Shopper,
+      Id = UserRoleIds.Shopper,
       Name = nameof(Role.Shopper),
       Description = "Regular user who manages shopping lists",
     });
@@ -132,7 +132,7 @@ public class CheckoutShoppingListIntegrationTests : IAsyncLifetime {
       Uid = id.Value,
       Username = id.ToString(),
       EncryptedPassword = "x",
-      RoleId = (int)Role.Shopper,
+      RoleId = UserRoleIds.Shopper,
     });
     await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     return id;

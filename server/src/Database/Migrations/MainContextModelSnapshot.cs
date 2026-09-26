@@ -421,8 +421,8 @@ namespace Metaspesa.Database.Migrations
                         .HasColumnType("character varying(255)")
                         .HasColumnName("encrypted_password");
 
-                    b.Property<int>("RoleId")
-                        .HasColumnType("integer")
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uuid")
                         .HasColumnName("role_id");
 
                     b.Property<string>("Username")
@@ -447,8 +447,8 @@ namespace Metaspesa.Database.Migrations
 
             modelBuilder.Entity("Metaspesa.Database.Entities.UserRoleDbEntity", b =>
                 {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer")
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
                         .HasColumnName("id");
 
                     b.Property<string>("Description")
@@ -477,13 +477,13 @@ namespace Metaspesa.Database.Migrations
                     b.HasData(
                         new
                         {
-                            Id = 1,
+                            Id = new Guid("00000000-0000-7000-8000-000000000001"),
                             Description = "Regular user who manages shopping lists",
                             Name = "Shopper"
                         },
                         new
                         {
-                            Id = 2,
+                            Id = new Guid("00000000-0000-7000-8000-000000000002"),
                             Description = "User who manages market products",
                             Name = "ProductManager"
                         });
