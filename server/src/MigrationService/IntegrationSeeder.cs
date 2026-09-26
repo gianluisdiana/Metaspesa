@@ -1,5 +1,6 @@
 using Metaspesa.Database;
 using Metaspesa.Database.Entities;
+using Metaspesa.Domain.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -36,14 +37,20 @@ internal sealed class IntegrationSeeder(MainContext context) {
     SuperMarketDbEntity? market = await context.SuperMarkets.SingleOrDefaultAsync(
       value => value.Name == fixture.Market, cancellationToken);
     if (market is null) {
-      market = new SuperMarketDbEntity { Name = fixture.Market };
+      market = new SuperMarketDbEntity {
+        Id = Uid.Create(),
+        Name = fixture.Market,
+      };
       context.SuperMarkets.Add(market);
     }
 
     ProductBrandDbEntity? brand = await context.ProductBrands.SingleOrDefaultAsync(
       value => value.Name == "Integration Brand", cancellationToken);
     if (brand is null) {
-      brand = new ProductBrandDbEntity { Name = "Integration Brand" };
+      brand = new ProductBrandDbEntity {
+        Id = Uid.Create(),
+        Name = "Integration Brand",
+      };
       context.ProductBrands.Add(brand);
     }
 
@@ -51,6 +58,7 @@ internal sealed class IntegrationSeeder(MainContext context) {
       value => value.Code == fixture.UnitCode, cancellationToken);
     if (unit is null) {
       unit = new UnitOfMeasureDbEntity {
+        Id = Uid.Create(),
         Code = fixture.UnitCode, Name = fixture.UnitName,
       };
       context.UnitsOfMeasure.Add(unit);
@@ -63,6 +71,7 @@ internal sealed class IntegrationSeeder(MainContext context) {
         value.BrandId == brand.Id, cancellationToken);
     if (product is null) {
       product = new ProductDbEntity {
+        Id = Uid.Create(),
         Name = fixture.Product, SuperMarketId = market.Id, BrandId = brand.Id,
       };
       context.Products.Add(product);
@@ -74,6 +83,7 @@ internal sealed class IntegrationSeeder(MainContext context) {
         value.UnitOfMeasureId == unit.Id, cancellationToken);
     if (format is null) {
       format = new ProductFormatDbEntity {
+        Id = Uid.Create(),
         ProductId = product.Id, Quantity = fixture.Quantity,
         UnitOfMeasureId = unit.Id, ImageUrl = "",
       };
@@ -92,6 +102,7 @@ internal sealed class IntegrationSeeder(MainContext context) {
 
     if (snapshots.Count == 0) {
       context.PriceSnapshots.Add(new PriceSnapshotDbEntity {
+        Id = Uid.Create(),
         ProductFormatId = format.Id, PriceAmount = fixture.Price,
         CurrencyCode = "EUR", ObservedAt = ObservedAt,
       });
