@@ -10,6 +10,8 @@ using static Metaspesa.Application.Shopping.AddItemsToList;
 namespace Metaspesa.Application.UnitTests.Shopping;
 
 public class AddItemsToListHandlerTest {
+  private static readonly Guid FormatId = Guid.CreateVersion7();
+
   private readonly IShoppingListRepository _repository =
     Substitute.For<IShoppingListRepository>();
   private readonly IProductRepository _productRepository =
@@ -24,18 +26,18 @@ public class AddItemsToListHandlerTest {
       Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
     _productRepository.GetProductsAsync(
-      Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>())
-      .Returns(new Dictionary<int, MarketProduct> {
-        [10] = ShoppingTestData.MarketProduct(10),
+      Arg.Any<IReadOnlyCollection<Guid>>(), Arg.Any<CancellationToken>())
+      .Returns(new Dictionary<Guid, MarketProduct> {
+        [FormatId] = ShoppingTestData.MarketProduct(FormatId),
       });
     var handler = new Handler(_repository, _productRepository, _unitOfWork);
 
     await handler.Handle(
-      new Command(ownerId, 1, [new CommandItem(10, 2, true)]),
+      new Command(ownerId, ShoppingTestData.ListId, [new CommandItem(FormatId, 2, true)]),
       TestContext.Current.CancellationToken);
 
     ShoppingItem item = Assert.Single(list.Items);
-    Assert.Equal(10, item.ProductFormatId.Value);
+    Assert.Equal(FormatId, item.ProductFormatId.Value);
     Assert.Equal(2, item.Amount.Value);
     Assert.True(item.IsChecked);
     await _repository.Received(1).UpdateAsync(list, TestContext.Current.CancellationToken);
@@ -48,7 +50,7 @@ public class AddItemsToListHandlerTest {
     var handler = new Handler(_repository, _productRepository, _unitOfWork);
 
     await Assert.ThrowsAsync<EmptyShoppingItemsException>(() => handler.Handle(
-      new Command(Guid.CreateVersion7(), 1, []),
+      new Command(Guid.CreateVersion7(), ShoppingTestData.ListId, []),
       TestContext.Current.CancellationToken));
 
     await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
@@ -62,12 +64,12 @@ public class AddItemsToListHandlerTest {
       Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
       .Returns(list);
     _productRepository.GetProductsAsync(
-      Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>())
-      .Returns(new Dictionary<int, MarketProduct>());
+      Arg.Any<IReadOnlyCollection<Guid>>(), Arg.Any<CancellationToken>())
+      .Returns(new Dictionary<Guid, MarketProduct>());
     var handler = new Handler(_repository, _productRepository, _unitOfWork);
 
     await Assert.ThrowsAsync<ShoppingProductFormatNotFoundException>(() => handler.Handle(
-      new Command(ownerId, 1, [new CommandItem(10, 2, false)]),
+      new Command(ownerId, ShoppingTestData.ListId, [new CommandItem(FormatId, 2, false)]),
       TestContext.Current.CancellationToken));
 
     Assert.Empty(list.Items);
@@ -80,26 +82,27 @@ public class AddItemsToListHandlerTest {
     var ownerId = Guid.CreateVersion7();
     ShoppingList list = ShoppingTestData.List(ownerId, null);
     _repository.GetAsync(
-      new UserId(ownerId), new ShoppingListId(1), TestContext.Current.CancellationToken)
+      new UserId(ownerId), new ShoppingListId(ShoppingTestData.ListId), TestContext.Current.CancellationToken)
       .Returns(list);
     _productRepository.GetProductsAsync(
-      Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>())
-      .Returns(new Dictionary<int, MarketProduct> {
-        [10] = ShoppingTestData.MarketProduct(10),
+      Arg.Any<IReadOnlyCollection<Guid>>(), Arg.Any<CancellationToken>())
+      .Returns(new Dictionary<Guid, MarketProduct> {
+        [FormatId] = ShoppingTestData.MarketProduct(FormatId),
       });
     var handler = new Handler(_repository, _productRepository, _unitOfWork);
 
     await Assert.ThrowsAsync<DuplicateShoppingItemException>(() => handler.Handle(
-      new Command(ownerId, 1, [
-        new CommandItem(10, 1, false),
-        new CommandItem(10, 2, true),
+      new Command(ownerId, ShoppingTestData.ListId, [
+        new CommandItem(FormatId, 1, false),
+        new CommandItem(FormatId, 2, true),
       ]),
       TestContext.Current.CancellationToken));
 
     await _repository.Received(1).GetAsync(
-      new UserId(ownerId), new ShoppingListId(1), TestContext.Current.CancellationToken);
+      new UserId(ownerId), new ShoppingListId(ShoppingTestData.ListId), TestContext.Current.CancellationToken);
     await _productRepository.Received(1).GetProductsAsync(
-      Arg.Is<IReadOnlyCollection<int>>(ids => ids.Count == 1 && ids.Single() == 10),
+      Arg.Is<IReadOnlyCollection<Guid>>(ids =>
+        ids.Count == 1 && ids.Single() == FormatId),
       TestContext.Current.CancellationToken);
     await _unitOfWork.DidNotReceive().SaveChangesAsync(
       Arg.Any<CancellationToken>());

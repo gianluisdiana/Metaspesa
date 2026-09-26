@@ -9,7 +9,7 @@ public sealed class ShoppingList {
   private readonly List<UserId> _ownerIds;
   private readonly List<ShoppingItem> _items;
 
-  public ShoppingListId? Id { get; }
+  public ShoppingListId Id { get; }
   public ShoppingListName? Name { get; private set; }
   public DateTime? DeletedAt { get; }
   public IReadOnlyCollection<UserId> OwnerIds => _ownerIds.AsReadOnly();
@@ -18,7 +18,7 @@ public sealed class ShoppingList {
   public bool IsTemporary => Name is null;
 
   private ShoppingList(
-    ShoppingListId? id,
+    ShoppingListId id,
     IEnumerable<UserId> ownerIds,
     ShoppingListName? name,
     IEnumerable<ShoppingItem>? items,
@@ -57,15 +57,16 @@ public sealed class ShoppingList {
     Guid primitiveOwnerId,
     string? primitiveName
   ) {
+    var id = new ShoppingListId(Uid.Create());
     var ownerId = new UserId(primitiveOwnerId);
     ShoppingListName? name = string.IsNullOrWhiteSpace(primitiveName)
       ? null : new ShoppingListName(primitiveName);
 
-    return new ShoppingList(null, [ownerId], name, [], null);
+    return new ShoppingList(id, [ownerId], name, [], null);
   }
 
   public static ShoppingList Create(UserId ownerId, ShoppingListName? name) =>
-    new(null, [ownerId], name, null, null);
+    Create(ownerId.Value, name?.Value);
 
   public static ShoppingList Rehydrate(
     ShoppingListId id,

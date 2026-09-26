@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { z } from 'zod';
 
 import RestMarketApiService from '@/infrastructure/rest-market-api-service';
 import { MarketFilter } from '@/lib/market-api-service';
@@ -112,8 +113,7 @@ export default function ProductGrid({
   const params = useSearchParams();
   const marketIds = params
     .getAll('marketId')
-    .map(Number)
-    .filter(id => Number.isSafeInteger(id) && id > 0)
+    .filter(id => z.uuid().safeParse(id).success)
     .join(',');
   const query = params.get('query') ?? '';
   const brand = params.get('brand') ?? '';
@@ -123,7 +123,7 @@ export default function ProductGrid({
   const filter: MarketFilter = useMemo(
     () => ({
       brand: brand || undefined,
-      marketId: marketIds ? marketIds.split(',').map(Number) : undefined,
+      marketId: marketIds ? marketIds.split(',') : undefined,
       page: 1,
       pageSize: PAGE_SIZE,
       query: query || undefined,

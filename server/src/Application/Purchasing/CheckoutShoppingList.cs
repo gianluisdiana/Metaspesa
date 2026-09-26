@@ -11,7 +11,7 @@ using Metaspesa.Domain.Shopping.Errors;
 namespace Metaspesa.Application.Purchasing;
 
 public static class CheckoutShoppingList {
-  public record Command(Guid UserUid, int ShoppingListId);
+  public record Command(Guid UserUid, Guid ShoppingListId);
 
   public class Handler(
     IShoppingListRepository shoppingListRepository,
@@ -19,7 +19,7 @@ public static class CheckoutShoppingList {
     IPurchaseRepository purchaseRepository,
     IClock clock
   ) {
-    public async Task<int> Handle(
+    public async Task<Guid> Handle(
       Command command, CancellationToken cancellationToken = default
     ) {
       ArgumentNullException.ThrowIfNull(command);
@@ -37,9 +37,7 @@ public static class CheckoutShoppingList {
       List<PurchaseItem> purchaseItems = await CreatePurchaseItemsAsync(
         checkedItems, cancellationToken);
 
-      ShoppingListId shoppingListId = shoppingList.Id ??
-        throw new InvalidOperationException(
-          "Cannot checkout an unpersisted shopping list.");
+      ShoppingListId shoppingListId = shoppingList.Id;
       var purchase = Purchase.Create(
         ownerId,
         shoppingListId,

@@ -5,19 +5,25 @@ using Metaspesa.Application.Markets;
 using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.Markets.Errors;
 using Metaspesa.RestApi.Markets.GetProducts;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 
 namespace Metaspesa.RestApi.UnitTests.Markets.GetProducts;
 
 public static class GetProductsEndpointTests {
-  private static readonly string[] MarketIds = ["2", "4"];
+  private static readonly Guid MarketId = Guid.CreateVersion7();
+  private static readonly Guid ProductId = Guid.CreateVersion7();
+  private static readonly Guid FormatId = Guid.CreateVersion7();
+  private static readonly Guid FirstFilterMarketId = Guid.CreateVersion7();
+  private static readonly Guid SecondFilterMarketId = Guid.CreateVersion7();
 
   [Fact]
   public static void ParseFilter_UsesDocumentedDefaults() {
     GetMarketProductsFilter filter = GetProductsEndpoint.ParseFilter(
-      new QueryCollection());
+      new GetProductsRequest());
 
     Assert.Equal(1, filter.Pagination.Index);
     Assert.Equal(24, filter.Pagination.Size);
@@ -26,19 +32,20 @@ public static class GetProductsEndpointTests {
   }
 
   [Fact]
-  public static void ParseFilter_AcceptsRepeatedMarketsAndSort() {
-    var query = new QueryCollection(new Dictionary<string, Microsoft.Extensions.Primitives.StringValues> {
-      ["marketId"] = new(MarketIds),
-      ["sort"] = "priceDesc",
-      ["page"] = "3",
-      ["pageSize"] = "10",
-      ["query"] = "milk",
-      ["brand"] = "Brand",
-    });
+  public static void ParseFilter_AcceptsMarketsAndSort() {
+    var request = new GetProductsRequest {
+      Query = "milk",
+      MarketId = [FirstFilterMarketId, SecondFilterMarketId],
+      Brand = "Brand",
+      Page = 3,
+      PageSize = 10,
+      Sort = "priceDesc",
+    };
 
-    GetMarketProductsFilter filter = GetProductsEndpoint.ParseFilter(query);
+    GetMarketProductsFilter filter = GetProductsEndpoint.ParseFilter(request);
 
-    Assert.Equal([new MarketId(2), new MarketId(4)], filter.MarketIds);
+    Assert.Equal([new MarketId(FirstFilterMarketId),
+      new MarketId(SecondFilterMarketId)], filter.MarketIds);
     Assert.Equal(CatalogSort.PriceDesc, filter.Sort);
     Assert.Equal(3, filter.Pagination.Index);
     Assert.Equal(10, filter.Pagination.Size);
@@ -46,26 +53,41 @@ public static class GetProductsEndpointTests {
     Assert.Equal("Brand", filter.BrandNameSegment);
   }
 
-  [Theory]
-  [InlineData("pageSize", "101")]
-  [InlineData("page", "0")]
-  [InlineData("marketId", "abc")]
-  [InlineData("sort", "newest")]
-  public static void ParseFilter_RejectsInvalidValues(string key, string value) {
-    var query = new QueryCollection(new Dictionary<string, Microsoft.Extensions.Primitives.StringValues> {
-      [key] = value,
-    });
+  [Fact]
+  public static void ParseFilter_RejectsInvalidPagination() {
+    var request = new GetProductsRequest { Page = 0, PageSize = 101 };
 
-    Assert.Throws<BadHttpRequestException>(() => GetProductsEndpoint.ParseFilter(query));
+    Assert.Throws<BadHttpRequestException>(() => GetProductsEndpoint.ParseFilter(request));
+  }
+
+  [Fact]
+  public static void ParseFilter_RejectsInvalidSort() {
+    var request = new GetProductsRequest { Sort = "newest" };
+
+    Assert.Throws<BadHttpRequestException>(() => GetProductsEndpoint.ParseFilter(request));
   }
 
   [Fact]
   public static void ParseFilter_UsesDomainExceptionForInvalidMarketId() {
-    var query = new QueryCollection(new Dictionary<string, Microsoft.Extensions.Primitives.StringValues> {
-      ["marketId"] = "0",
-    });
+    var request = new GetProductsRequest { MarketId = [Guid.Empty] };
 
-    Assert.Throws<InvalidMarketIdException>(() => GetProductsEndpoint.ParseFilter(query));
+    Assert.Throws<InvalidMarketIdException>(() => GetProductsEndpoint.ParseFilter(request));
+  }
+
+  [Fact]
+  public static async Task MapQueryProductsEndpoint_MapsOnlyQueryVerb() {
+    WebApplicationBuilder builder = WebApplication.CreateBuilder();
+    builder.Services.AddScoped<GetMarketProducts.Handler>();
+    await using WebApplication app = builder.Build();
+
+    app.MapQueryProductsEndpoint();
+
+    RouteEndpoint endpoint = Assert.IsType<RouteEndpoint>(
+      ((IEndpointRouteBuilder)app).DataSources.SelectMany(source => source.Endpoints)
+        .Single());
+    HttpMethodMetadata metadata = Assert.IsType<HttpMethodMetadata>(
+      endpoint.Metadata.GetMetadata<IHttpMethodMetadata>());
+    Assert.Equal([HttpMethods.Query], metadata.HttpMethods);
   }
 
   [Fact]
@@ -73,9 +95,9 @@ public static class GetProductsEndpointTests {
     IProductRepository repository = Substitute.For<IProductRepository>();
     repository.GetProductsAsync(Arg.Any<GetMarketProductsFilter>(), Arg.Any<CancellationToken>())
       .Returns(new PagedResult<CatalogProduct>([
-        new CatalogProduct(41, "Whole milk", "Hacendado",
-          new MarketSummary(1, "Mercadona", null), [
-            new CatalogFormat(93, 1, "l", 1.04m, "EUR", null,
+        new CatalogProduct(ProductId, "Whole milk", "Hacendado",
+          new MarketSummary(MarketId, "Mercadona", null), [
+            new CatalogFormat(FormatId, 1, "l", 1.04m, "EUR", null,
               new DateTime(2026, 8, 20, 0, 0, 0, DateTimeKind.Utc)),
           ]),
       ], 25));
@@ -85,7 +107,8 @@ public static class GetProductsEndpointTests {
     context.Response.Body = new MemoryStream();
 
     IResult response = await GetProductsEndpoint.GetProductsAsync(
-      context.Request, new GetMarketProducts.Handler(repository),
+      new GetProductsRequest(),
+      new GetMarketProducts.Handler(repository),
       TestContext.Current.CancellationToken);
     await response.ExecuteAsync(context);
     context.Response.Body.Position = 0;
@@ -99,11 +122,11 @@ public static class GetProductsEndpointTests {
     Assert.Equal(25, root.GetProperty("totalItems").GetInt32());
     Assert.Equal(2, root.GetProperty("totalPages").GetInt32());
     JsonElement product = root.GetProperty("items")[0];
-    Assert.Equal(41, product.GetProperty("id").GetInt32());
-    Assert.Equal(1, product.GetProperty("market").GetProperty("id").GetInt32());
+    Assert.Equal(ProductId, product.GetProperty("id").GetGuid());
+    Assert.Equal(MarketId, product.GetProperty("market").GetProperty("id").GetGuid());
     Assert.False(product.GetProperty("market").TryGetProperty("logoUrl", out _));
     JsonElement format = product.GetProperty("formats")[0];
-    Assert.Equal(93, format.GetProperty("id").GetInt32());
+    Assert.Equal(FormatId, format.GetProperty("id").GetGuid());
     Assert.Equal("EUR", format.GetProperty("currentPrice").GetProperty("currency").GetString());
     Assert.False(format.TryGetProperty("imageUrl", out _));
   }

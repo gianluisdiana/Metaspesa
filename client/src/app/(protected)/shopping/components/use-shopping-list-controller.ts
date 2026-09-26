@@ -21,7 +21,7 @@ export function useShoppingListController({
   initialShoppingList,
   initialShoppingListSummaries,
 }: Readonly<{
-  initialSelectedListId?: number;
+  initialSelectedListId?: string;
   initialShoppingList: ShoppingListMessage;
   initialShoppingListSummaries: ShoppingListSummaryMessage[];
 }>) {
@@ -35,7 +35,7 @@ export function useShoppingListController({
   const [isCreating, setIsCreating] = useState(false);
   const [itemPendingDelete, setItemPendingDelete] = useState<{
     name: string;
-    productFormatUid: number;
+    productFormatUid: string;
   }>();
   const [temporaryListNamePrompt, setTemporaryListNamePrompt] =
     useState<string>();
@@ -48,7 +48,7 @@ export function useShoppingListController({
     shoppingList,
   );
 
-  async function refreshList(id: number) {
+  async function refreshList(id: string) {
     const [list, summaries] = await Promise.all([
       client.getShoppingList(id),
       client.getShoppingListSummaries(),
@@ -57,7 +57,7 @@ export function useShoppingListController({
     setShoppingListSummaries(summaries);
   }
 
-  async function handleSelectList(id: number) {
+  async function handleSelectList(id: string) {
     setIsLoading(true);
     try {
       setShoppingList(await client.getShoppingList(id));
@@ -167,7 +167,7 @@ export function useShoppingListController({
   }
 
   async function handleToggleItemChecked(
-    productFormatUid: number,
+    productFormatUid: string,
     checked: boolean,
   ) {
     if (!selectedListId) return;
@@ -201,7 +201,7 @@ export function useShoppingListController({
     handleConfirmDeleteItem,
     handleConfirmTemporaryListName,
     handleCreateList,
-    handleRequestDeleteItem: (productFormatUid: number, name: string) =>
+    handleRequestDeleteItem: (productFormatUid: string, name: string) =>
       setItemPendingDelete({ name, productFormatUid }),
     handleSelectList,
     handleToggleItemChecked,

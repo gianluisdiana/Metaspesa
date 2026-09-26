@@ -1,9 +1,9 @@
 namespace Metaspesa.Database.Entities;
 
 internal class PurchaseDbEntity {
-  public int Id { get; set; }
+  public Guid Id { get; set; }
   public Guid? UserUid { get; set; }
-  public int? ShoppingListId { get; set; }
+  public Guid? ShoppingListId { get; set; }
   public DateTime PurchasedAt { get; set; }
 
   public UserDbEntity? User { get; set; }

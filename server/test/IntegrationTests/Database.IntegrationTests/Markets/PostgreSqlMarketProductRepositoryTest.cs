@@ -186,7 +186,7 @@ public class PostgreSqlMarketProductRepositoryTests : IAsyncLifetime {
   [Fact(DisplayName = "Catalog applies market, brand, name, and pagination filters")]
   public async Task Repository_AppliesCatalogFilters_AndPagination() {
     await ResolveAndAppendAsync();
-    int marketId = await _context.SuperMarkets.Select(market => market.Id)
+    Guid marketId = await _context.SuperMarkets.Select(market => market.Id)
       .SingleAsync(TestContext.Current.CancellationToken);
 
     PagedResult<CatalogProduct> matching =
@@ -201,7 +201,7 @@ public class PostgreSqlMarketProductRepositoryTests : IAsyncLifetime {
       await _productRepository.GetProductsAsync(
       new GetMarketProductsFilter(
         null,
-        [new MarketId(int.MaxValue)],
+        [new MarketId(Guid.Parse("00000000-0000-7000-8000-00007fffffff"))],
         null,
         new Pagination(1, 24)),
       TestContext.Current.CancellationToken);
@@ -254,14 +254,14 @@ public class PostgreSqlMarketProductRepositoryTests : IAsyncLifetime {
       secondImport, UtcDate(2026, 7, 28), TestContext.Current.CancellationToken);
     await _snapshotRepository.AppendAsync(
       yogurt.PriceObservations, TestContext.Current.CancellationToken);
-    int marketId = await _context.SuperMarkets.Select(market => market.Id)
+    Guid marketId = await _context.SuperMarkets.Select(market => market.Id)
       .SingleAsync(TestContext.Current.CancellationToken);
     PagedResult<CatalogProduct> result = await _productRepository.GetProductsAsync(
       new GetMarketProductsFilter(null, [new MarketId(marketId)], null,
         new Pagination(1, 1),
         CatalogSort.PriceAsc), TestContext.Current.CancellationToken);
     PagedResult<CatalogProduct> missing = await _productRepository.GetProductsAsync(
-      new GetMarketProductsFilter(null, [new MarketId(int.MaxValue)], null,
+      new GetMarketProductsFilter(null, [new MarketId(Guid.Parse("00000000-0000-7000-8000-00007fffffff"))], null,
         new Pagination(1, 24),
         CatalogSort.Name), TestContext.Current.CancellationToken);
 
@@ -279,7 +279,7 @@ public class PostgreSqlMarketProductRepositoryTests : IAsyncLifetime {
     ProductImportResult result = await ResolveAndAppendAsync();
     ProductFormatId formatId = Assert.Single(result.PriceObservations).ProductFormatId;
 
-    IReadOnlyDictionary<int, MarketProduct> products =
+    IReadOnlyDictionary<Guid, MarketProduct> products =
       await _productRepository.GetProductsAsync(
         [formatId.Value],
         TestContext.Current.CancellationToken);
@@ -295,13 +295,13 @@ public class PostgreSqlMarketProductRepositoryTests : IAsyncLifetime {
     ProductImportResult import = await ResolveAndAppendAsync();
     ProductFormatId existingId = Assert.Single(import.PriceObservations).ProductFormatId;
 
-    IReadOnlyDictionary<int, MarketProduct> products =
+    IReadOnlyDictionary<Guid, MarketProduct> products =
       await _productRepository.GetProductsAsync(
-        [existingId.Value, int.MaxValue],
+        [existingId.Value, Guid.CreateVersion7()],
         TestContext.Current.CancellationToken);
 
     Assert.True(products.ContainsKey(existingId.Value));
-    Assert.False(products.ContainsKey(int.MaxValue));
+    Assert.Single(products);
   }
 
   [Fact(DisplayName = "Deletes only requested brand")]
@@ -381,7 +381,10 @@ public class PostgreSqlMarketProductRepositoryTests : IAsyncLifetime {
   }
 
   private async Task<MarketImport> CreateMarketImportAsync() {
-    _context.SuperMarkets.Add(new SuperMarketDbEntity { Name = "Mercadona" });
+    _context.SuperMarkets.Add(new SuperMarketDbEntity {
+      Id = Uid.Create(),
+      Name = "Mercadona",
+    });
     await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
     await _productRepository.AddBrandsAsync(
@@ -408,6 +411,7 @@ public class PostgreSqlMarketProductRepositoryTests : IAsyncLifetime {
     }
 
     _context.UnitsOfMeasure.Add(new UnitOfMeasureDbEntity {
+      Id = Uid.Create(),
       Code = code,
       Name = $"Test unit {code}",
     });

@@ -64,7 +64,7 @@ export function useProductGridController({
     setIsModalOpen(false);
   }
 
-  async function addSelectedProductToList(listId: number) {
+  async function addSelectedProductToList(listId: string) {
     if (!selectedProduct) {
       return;
     }
@@ -103,7 +103,7 @@ export function useProductGridController({
     }
   }
 
-  async function handleSelectList(listId: number) {
+  async function handleSelectList(listId: string) {
     closeAddToListModal();
     try {
       await addSelectedProductToList(listId);

@@ -16,7 +16,7 @@ export class CheckedShoppingItemViewModel {
     return String(this.productFormatUid);
   }
 
-  public get productFormatUid(): number {
+  public get productFormatUid(): string {
     return this.product.productFormatUid;
   }
 
@@ -47,7 +47,7 @@ export class UncheckedShoppingItemViewModel {
     return String(this.productFormatUid);
   }
 
-  public get productFormatUid(): number {
+  public get productFormatUid(): string {
     return this.product.productFormatUid;
   }
 

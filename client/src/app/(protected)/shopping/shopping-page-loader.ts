@@ -5,7 +5,7 @@ import {
 } from '@/lib/shopping-list-contracts';
 
 export type ShoppingPageData = {
-  selectedListId?: number;
+  selectedListId?: string;
   shoppingList: ShoppingListMessage;
   shoppingListSummaries: ShoppingListSummaryMessage[];
 };
@@ -17,7 +17,7 @@ export async function loadShoppingPage(
     RestShoppingApiService,
     'getShoppingList' | 'getShoppingListSummaries'
   >,
-  requestedListId?: number,
+  requestedListId?: string,
 ): Promise<ShoppingPageData> {
   const shoppingListSummaries = await service.getShoppingListSummaries();
   const selectedListId = selectListId(shoppingListSummaries, requestedListId);
@@ -39,8 +39,8 @@ export async function loadShoppingPage(
 
 function selectListId(
   summaries: ShoppingListSummaryMessage[],
-  requestedListId?: number,
-): number | undefined {
+  requestedListId?: string,
+): string | undefined {
   if (
     requestedListId &&
     summaries.some(summary => summary.id === requestedListId)

@@ -64,7 +64,7 @@ export default class RestShoppingApiService {
     }));
   }
 
-  public async getShoppingList(listId: number): Promise<ShoppingListMessage> {
+  public async getShoppingList(listId: string): Promise<ShoppingListMessage> {
     const response = await this.request(`/shopping-lists/${listId}`, 'GET');
     const body = shoppingDetailSchema.parse(await response.json());
     return {
@@ -80,7 +80,7 @@ export default class RestShoppingApiService {
     };
   }
 
-  public async createShoppingList(name?: string): Promise<number> {
+  public async createShoppingList(name?: string): Promise<string> {
     const response = await this.request(
       '/shopping-lists',
       'POST',
@@ -89,12 +89,12 @@ export default class RestShoppingApiService {
     return zCreateShoppingListResponse.parse(await response.json()).id;
   }
 
-  public async renameShoppingList(listId: number, name: string): Promise<void> {
+  public async renameShoppingList(listId: string, name: string): Promise<void> {
     await this.request(`/shopping-lists/${listId}`, 'PATCH', { name });
   }
 
   public async addItemsToList(
-    listId: number,
+    listId: string,
     items: Pick<ProductMessage, 'productFormatUid' | 'checked'>[],
   ): Promise<void> {
     await this.request(`/shopping-lists/${listId}/items`, 'POST', {
@@ -107,8 +107,8 @@ export default class RestShoppingApiService {
   }
 
   public async updateItem(
-    listId: number,
-    productFormatId: number,
+    listId: string,
+    productFormatId: string,
     update: ShoppingItemUpdateMessage,
   ): Promise<void> {
     await this.request(
@@ -119,8 +119,8 @@ export default class RestShoppingApiService {
   }
 
   public async removeItem(
-    listId: number,
-    productFormatId: number,
+    listId: string,
+    productFormatId: string,
   ): Promise<void> {
     await this.request(
       `/shopping-lists/${listId}/items/${productFormatId}`,
@@ -128,7 +128,7 @@ export default class RestShoppingApiService {
     );
   }
 
-  public async checkoutShoppingList(listId: number): Promise<number> {
+  public async checkoutShoppingList(listId: string): Promise<string> {
     const response = await this.request(
       `/shopping-lists/${listId}/checkouts`,
       'POST',

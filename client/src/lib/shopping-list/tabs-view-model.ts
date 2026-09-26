@@ -9,7 +9,7 @@ const NAMED_LIST_SORT_ORDER = 1;
 export class ShoppingListTabViewModel {
   public constructor(
     private readonly summary: ShoppingListSummaryMessage,
-    private readonly selectedListId?: number,
+    private readonly selectedListId?: string,
   ) {}
 
   public get active(): boolean {
@@ -26,7 +26,7 @@ export class ShoppingListTabViewModel {
       : undefined;
   }
 
-  public get id(): number | undefined {
+  public get id(): string | undefined {
     return this.summary.id;
   }
 }
@@ -34,7 +34,7 @@ export class ShoppingListTabViewModel {
 export class ShoppingListTabsViewModel {
   public constructor(
     private readonly summaries: ShoppingListSummaryMessage[],
-    private readonly selectedListId?: number,
+    private readonly selectedListId?: string,
     private readonly fallbackList?: ShoppingListMessage,
   ) {}
 

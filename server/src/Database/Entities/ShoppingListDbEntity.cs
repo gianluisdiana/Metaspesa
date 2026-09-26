@@ -1,7 +1,7 @@
 namespace Metaspesa.Database.Entities;
 
 internal class ShoppingListDbEntity {
-  public int Id { get; set; }
+  public Guid Id { get; set; }
   public string? Name { get; set; }
   public bool IsTemporary { get; set; }
   public DateTime? DeletedAt { get; set; }

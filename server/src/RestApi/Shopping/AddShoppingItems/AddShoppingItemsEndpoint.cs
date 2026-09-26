@@ -7,7 +7,7 @@ internal static class AddShoppingItemsEndpoint {
   public static IEndpointRouteBuilder MapAddShoppingItemsEndpoint(
     this IEndpointRouteBuilder endpoints
   ) {
-    endpoints.MapPost("/{listId:int}/items", AddItemsAsync)
+    endpoints.MapPost("/{listId:guid}/items", AddItemsAsync)
       .WithName("AddShoppingItems")
       .Produces(StatusCodes.Status204NoContent)
       .ProducesProblem(StatusCodes.Status400BadRequest)
@@ -35,7 +35,7 @@ internal static class AddShoppingItemsEndpoint {
   /// <response code="403">The authenticated user lacks the Shopper role.</response>
   /// <response code="500">An unexpected server or database failure occurred.</response>
   internal static async Task<IResult> AddItemsAsync(
-    int listId, AddShoppingItemsRequest request, HttpContext context,
+    Guid listId, AddShoppingItemsRequest request, HttpContext context,
     AddItemsToList.Handler handler, CancellationToken cancellationToken
   ) {
     if (request.Items is null || request.Items.Any(item => item is null)) {

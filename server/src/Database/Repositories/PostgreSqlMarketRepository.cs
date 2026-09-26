@@ -1,6 +1,7 @@
 using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Database.Entities;
 using Metaspesa.Domain.Markets;
+using Metaspesa.Domain.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 
 namespace Metaspesa.Database.Repositories;
@@ -42,6 +43,7 @@ internal class PostgreSqlMarketRepository(
   ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
     context.SuperMarkets.AddRange(
       marketNames.Select(name => new SuperMarketDbEntity {
+        Id = Uid.Create(),
         Name = name.Value,
       }));
     await context.SaveChangesAsync(cancellationToken);
@@ -52,7 +54,7 @@ internal class PostgreSqlMarketRepository(
     CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
     string[] names = [.. marketNames.Select(name => name.Value)];
-    List<int> productIds = await context.Products
+    List<Guid> productIds = await context.Products
       .Where(product => names.Contains(product.SuperMarket.Name))
       .Select(product => product.Id)
       .ToListAsync(cancellationToken);

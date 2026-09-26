@@ -1,18 +1,17 @@
-using System.Globalization;
 using Metaspesa.Domain.Markets.Errors;
 
 namespace Metaspesa.Domain.Markets;
 
 public readonly record struct ProductFormatId {
-  public int Value { get; }
+  public Guid Value { get; }
 
-  public ProductFormatId(int value) {
-    if (value <= 0) {
+  public ProductFormatId(Guid value) {
+    if (value == Guid.Empty) {
       throw new InvalidProductFormatIdException(value);
     }
 
     Value = value;
   }
 
-  public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
+  public override string ToString() => Value.ToString();
 }

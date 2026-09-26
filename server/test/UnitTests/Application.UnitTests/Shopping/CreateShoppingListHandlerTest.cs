@@ -1,4 +1,5 @@
 using Metaspesa.Application.Abstractions.Shopping;
+using Metaspesa.Domain.SharedKernel;
 using Metaspesa.Domain.Shopping;
 using Metaspesa.Domain.Shopping.Errors;
 using NSubstitute;
@@ -49,12 +50,12 @@ public class CreateShoppingListHandlerTest {
   public async Task Handle_ReturnsPersistedIdForNamedList() {
     var command = new Command(Guid.CreateVersion7(), "Weekly");
 
-    const int expectedId = 7;
+    Guid expectedId = Uid.Create();
     _repository
       .AddAsync(Arg.Any<ShoppingList>(), TestContext.Current.CancellationToken)
       .Returns(expectedId);
 
-    int id = await _handler.Handle(command,
+    Guid id = await _handler.Handle(command,
       TestContext.Current.CancellationToken);
 
     Assert.Equal(expectedId, id);

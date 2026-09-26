@@ -39,7 +39,7 @@ export function ListPageHeader({
 
 type ListTabProps = {
   tab: ShoppingListTabViewModel;
-  onSelectList: (id: number) => void;
+  onSelectList: (id: string) => void;
 };
 
 function ListTab({ onSelectList, tab }: Readonly<ListTabProps>) {
@@ -66,7 +66,7 @@ export default function ListTabs({
 }: Readonly<{
   isCreating: boolean;
   onCreateList: () => void;
-  onSelectList: (id: number) => void;
+  onSelectList: (id: string) => void;
   tabs: ShoppingListTabViewModel[];
 }>) {
   return (

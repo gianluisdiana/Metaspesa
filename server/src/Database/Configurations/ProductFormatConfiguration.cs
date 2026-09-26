@@ -16,7 +16,7 @@ internal class ProductFormatConfiguration : IEntityTypeConfiguration<ProductForm
 
     builder.Property(e => e.Id)
       .HasColumnName("id")
-      .ValueGeneratedOnAdd();
+      .ValueGeneratedNever();
 
     builder.Property(e => e.ProductId)
       .HasColumnName("product_id")

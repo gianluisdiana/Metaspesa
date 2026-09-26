@@ -11,12 +11,12 @@ public static class ProductTests {
   [Fact(DisplayName = "Product references market by id and owns formats")]
   public static void Product_Created_WithBoundedFormats() {
     var format = new ProductFormat(
-      new ProductFormatId(10),
+      new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-00000000000a")),
       new Quantity(1, new UnitOfMeasure("kg")),
       Image);
     Product product = CreateProduct([format]);
 
-    Assert.Equal(new MarketId(1), product.MarketId);
+    Assert.Equal(new MarketId(Guid.Parse("00000000-0000-7000-8000-000000000001")), product.MarketId);
     Assert.Equal(format, Assert.Single(product.Formats));
     Assert.DoesNotContain(
       typeof(Product).GetProperties(),
@@ -29,7 +29,7 @@ public static class ProductTests {
   [Fact(DisplayName = "Adds a product format")]
   public static void Product_AddFormat_AddsValidFormat() {
     Product product = CreateProduct();
-    var id = new ProductFormatId(10);
+    var id = new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-00000000000a"));
     var quantity = new Quantity(1, new UnitOfMeasure("kg"));
 
     product.AddFormat(id, quantity, Image);
@@ -42,7 +42,7 @@ public static class ProductTests {
 
   [Fact(DisplayName = "Rejects duplicate product format without mutation")]
   public static void Product_AddFormat_ThrowsSpecificException_WhenIdExists() {
-    var id = new ProductFormatId(10);
+    var id = new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-00000000000a"));
     var original = new ProductFormat(
       id,
       new Quantity(1, new UnitOfMeasure("kg")),
@@ -59,7 +59,7 @@ public static class ProductTests {
 
   [Fact(DisplayName = "Updates an owned product format")]
   public static void Product_UpdateFormat_UpdatesValues() {
-    var id = new ProductFormatId(10);
+    var id = new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-00000000000a"));
     var format = new ProductFormat(
       id,
       new Quantity(1, new UnitOfMeasure("kg")),
@@ -77,14 +77,14 @@ public static class ProductTests {
   [Fact(DisplayName = "Rejects unknown product format without mutation")]
   public static void Product_UpdateFormat_ThrowsSpecificException_WhenIdIsUnknown() {
     var original = new ProductFormat(
-      new ProductFormatId(10),
+      new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-00000000000a")),
       new Quantity(1, new UnitOfMeasure("kg")),
       Image);
     Product product = CreateProduct([original]);
 
     Assert.Throws<ProductFormatNotFoundException>(
       () => product.UpdateFormat(
-        new ProductFormatId(20),
+        new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000014")),
         new Quantity(2, new UnitOfMeasure("kg")),
         Image));
     Assert.Same(original, Assert.Single(product.Formats));
@@ -92,7 +92,7 @@ public static class ProductTests {
 
   [Fact(DisplayName = "Rejects duplicate formats when rehydrating product")]
   public static void Product_ThrowsSpecificException_WhenFormatsContainDuplicateId() {
-    var id = new ProductFormatId(10);
+    var id = new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-00000000000a"));
 
     Assert.Throws<DuplicateProductFormatException>(
       () => CreateProduct([
@@ -104,9 +104,9 @@ public static class ProductTests {
   private static Product CreateProduct(
     IEnumerable<ProductFormat>? formats = null
   ) => new(
-    new ProductId(1),
+    new ProductId(Guid.Parse("00000000-0000-7000-8000-000000000001")),
     new ProductName("Milk"),
     new BrandName("Acme"),
-    new MarketId(1),
+    new MarketId(Guid.Parse("00000000-0000-7000-8000-000000000001")),
     formats);
 }

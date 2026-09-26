@@ -21,8 +21,8 @@ export default function ItemsContainer({
 }: Readonly<{
   checkedItems: CheckedShoppingItemViewModel[];
   hasItems: boolean;
-  onRequestDeleteItem: (productFormatUid: number, itemName: string) => void;
-  onToggleItemChecked: (productFormatUid: number, checked: boolean) => void;
+  onRequestDeleteItem: (productFormatUid: string, itemName: string) => void;
+  onToggleItemChecked: (productFormatUid: string, checked: boolean) => void;
   uncheckedSections: ShoppingItemSectionViewModel[];
 }>) {
   if (!hasItems) {

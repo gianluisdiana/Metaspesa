@@ -7,6 +7,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -51,20 +52,20 @@ describe('product grid component', () => {
     navigationMocks.pathname = '/markets';
     navigationMocks.push.mockReset();
     navigationMocks.searchParams = new URLSearchParams();
-    marketServiceMocks.getMarketProducts.mockResolvedValue({
+    marketServiceMocks.getMarketProducts.mockReset().mockResolvedValue({
       items: [
         {
           brand: 'Hacendado',
           formats: [
             {
               currentPrice: { amount: 1.29, currency: 'EUR' },
-              id: 10,
+              id: '10',
               observedAt: '2026-08-20T00:00:00Z',
               quantity: { amount: 1, unit: 'l' },
             },
           ],
-          id: 41,
-          market: { id: 1, name: 'Mercadona' },
+          id: '41',
+          market: { id: '1', name: 'Mercadona' },
           name: 'Whole Milk',
         },
       ],
@@ -101,19 +102,19 @@ describe('product grid component', () => {
             formats: [
               {
                 currentPrice: { amount: 1.29, currency: 'EUR' },
-                id: 10,
+                id: '10',
                 observedAt: '2026-08-20T00:00:00Z',
                 quantity: { amount: 1, unit: 'l' },
               },
               {
                 currentPrice: { amount: 2.29, currency: 'EUR' },
-                id: 11,
+                id: '11',
                 observedAt: '2026-08-20T00:00:00Z',
                 quantity: { amount: 2, unit: 'l' },
               },
             ],
-            id: 41,
-            market: { id: 1, name: 'Mercadona' },
+            id: '41',
+            market: { id: '1', name: 'Mercadona' },
             name: 'Whole Milk',
           },
         ]}
@@ -122,5 +123,29 @@ describe('product grid component', () => {
     );
 
     expect(screen.getAllByRole('button', { name: /add/i })).toHaveLength(2);
+  });
+
+  it('passes only UUID market filters to product query', async () => {
+    const firstMarketId = '00000000-0000-7000-8000-000000000001';
+    const secondMarketId = '00000000-0000-7000-8000-000000000002';
+    navigationMocks.searchParams = new URLSearchParams([
+      ['marketId', firstMarketId],
+      ['marketId', 'not-a-uuid'],
+      ['marketId', secondMarketId],
+    ]);
+
+    render(
+      <ToastProvider>
+        <ProductGrid isAuthenticated={false} shoppingListSummaries={[]} />
+      </ToastProvider>,
+    );
+
+    await waitFor(() =>
+      expect(marketServiceMocks.getMarketProducts).toHaveBeenCalledWith(
+        expect.objectContaining({
+          marketId: [firstMarketId, secondMarketId],
+        }),
+      ),
+    );
   });
 });

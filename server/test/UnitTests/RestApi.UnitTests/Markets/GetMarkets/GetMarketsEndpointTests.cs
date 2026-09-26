@@ -11,9 +11,10 @@ namespace Metaspesa.RestApi.UnitTests.Markets.GetMarkets;
 public static class GetMarketsEndpointTests {
   [Fact]
   public static async Task GetMarkets_ReturnsIdentifiers() {
+    var marketId = Guid.CreateVersion7();
     IMarketRepository repository = Substitute.For<IMarketRepository>();
     repository.GetMarketSummariesAsync(Arg.Any<CancellationToken>())
-      .Returns([new MarketSummary(7, "Market", null)]);
+      .Returns([new MarketSummary(marketId, "Market", null)]);
     var context = new DefaultHttpContext {
       RequestServices = new ServiceCollection().AddLogging().BuildServiceProvider(),
     };
@@ -26,7 +27,7 @@ public static class GetMarketsEndpointTests {
     using JsonDocument json = await JsonDocument.ParseAsync(context.Response.Body,
       cancellationToken: TestContext.Current.CancellationToken);
 
-    Assert.Equal(7, json.RootElement.GetProperty("items")[0]
-      .GetProperty("id").GetInt32());
+    Assert.Equal(marketId, json.RootElement.GetProperty("items")[0]
+      .GetProperty("id").GetGuid());
   }
 }

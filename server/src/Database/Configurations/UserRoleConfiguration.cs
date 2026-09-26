@@ -13,7 +13,7 @@ internal class UserRoleConfiguration : IEntityTypeConfiguration<UserRoleDbEntity
 
     builder.Property(e => e.Id)
       .HasColumnName("id")
-      .ValueGeneratedOnAdd();
+      .ValueGeneratedNever();
 
     builder.Property(e => e.Name)
       .HasColumnName("name")
@@ -29,8 +29,16 @@ internal class UserRoleConfiguration : IEntityTypeConfiguration<UserRoleDbEntity
       .IsRequired();
 
     builder.HasData(
-      new UserRoleDbEntity { Id = 1, Name = nameof(Role.Shopper), Description = "Regular user who manages shopping lists" },
-      new UserRoleDbEntity { Id = 2, Name = nameof(Role.ProductManager), Description = "User who manages market products" }
+      new UserRoleDbEntity {
+        Id = UserRoleIds.Shopper,
+        Name = nameof(Role.Shopper),
+        Description = "Regular user who manages shopping lists",
+      },
+      new UserRoleDbEntity {
+        Id = UserRoleIds.ProductManager,
+        Name = nameof(Role.ProductManager),
+        Description = "User who manages market products",
+      }
     );
   }
 }

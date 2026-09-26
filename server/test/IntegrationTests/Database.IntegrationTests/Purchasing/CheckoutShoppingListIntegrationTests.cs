@@ -63,7 +63,7 @@ public class CheckoutShoppingListIntegrationTests : IAsyncLifetime {
     var list = ShoppingList.Create(ownerId, new ShoppingListName("Weekly"));
     list.AddItem(milkId, new PositiveAmount(2), true);
     list.AddItem(breadId, new PositiveAmount(3), false);
-    int listId = await _shoppingRepository.AddAsync(
+    Guid listId = await _shoppingRepository.AddAsync(
       list, TestContext.Current.CancellationToken);
 
     await _handler.Handle(
@@ -80,10 +80,10 @@ public class CheckoutShoppingListIntegrationTests : IAsyncLifetime {
     Assert.Equal(latestMilk.Value, item.PriceSnapshotId);
     Assert.Equal(2, item.Amount);
     Assert.Equal(PurchasedAt, purchase.PurchasedAt);
-    ShoppingList reset = (await _shoppingRepository.GetAsync(
+    ShoppingList reset = Assert.IsType<ShoppingList>(await _shoppingRepository.GetAsync(
       ownerId,
       new ShoppingListId(listId),
-      TestContext.Current.CancellationToken))!;
+      TestContext.Current.CancellationToken));
     Assert.All(reset.Items, value => Assert.False(value.IsChecked));
   }
 
@@ -93,7 +93,7 @@ public class CheckoutShoppingListIntegrationTests : IAsyncLifetime {
     ProductFormatId formatId = await SeedFormatAsync("Milk");
     var list = ShoppingList.Create(ownerId, new ShoppingListName("Weekly"));
     list.AddItem(formatId, new PositiveAmount(2), true);
-    int listId = await _shoppingRepository.AddAsync(
+    Guid listId = await _shoppingRepository.AddAsync(
       list, TestContext.Current.CancellationToken);
 
     await Assert.ThrowsAsync<PurchasePriceSnapshotNotFoundException>(() =>
@@ -104,22 +104,22 @@ public class CheckoutShoppingListIntegrationTests : IAsyncLifetime {
     Assert.Empty(await _context.Purchases
       .AsNoTracking()
       .ToListAsync(TestContext.Current.CancellationToken));
-    ShoppingList unchanged = (await _shoppingRepository.GetAsync(
+    ShoppingList unchanged = Assert.IsType<ShoppingList>(await _shoppingRepository.GetAsync(
       ownerId,
       new ShoppingListId(listId),
-      TestContext.Current.CancellationToken))!;
+      TestContext.Current.CancellationToken));
     Assert.True(unchanged.Items.Single().IsChecked);
   }
 
   private async Task EnsureShopperRoleAsync() {
     if (await _context.UserRoles.AnyAsync(
-      role => role.Id == (int)Role.Shopper,
+      role => role.Id == UserRoleIds.Shopper,
       TestContext.Current.CancellationToken)) {
       return;
     }
 
     _context.UserRoles.Add(new UserRoleDbEntity {
-      Id = (int)Role.Shopper,
+      Id = UserRoleIds.Shopper,
       Name = nameof(Role.Shopper),
       Description = "Regular user who manages shopping lists",
     });
@@ -132,7 +132,7 @@ public class CheckoutShoppingListIntegrationTests : IAsyncLifetime {
       Uid = id.Value,
       Username = id.ToString(),
       EncryptedPassword = "x",
-      RoleId = (int)Role.Shopper,
+      RoleId = UserRoleIds.Shopper,
     });
     await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     return id;
@@ -140,17 +140,22 @@ public class CheckoutShoppingListIntegrationTests : IAsyncLifetime {
 
   private async Task<ProductFormatId> SeedFormatAsync(string name) {
     var format = new ProductFormatDbEntity {
+      Id = Uid.Create(),
       Product = new ProductDbEntity {
+        Id = Uid.Create(),
         Name = name,
         SuperMarket = new SuperMarketDbEntity {
+          Id = Uid.Create(),
           Name = $"Market {Guid.CreateVersion7()}",
         },
         Brand = new ProductBrandDbEntity {
+          Id = Uid.Create(),
           Name = $"Brand {Guid.CreateVersion7()}",
         },
       },
       Quantity = 1,
       UnitOfMeasure = new UnitOfMeasureDbEntity {
+        Id = Uid.Create(),
         Code = $"u{Guid.CreateVersion7():N}"[..16],
         Name = $"Unit {Guid.CreateVersion7()}",
       },
@@ -167,6 +172,7 @@ public class CheckoutShoppingListIntegrationTests : IAsyncLifetime {
     decimal price
   ) {
     var snapshot = new PriceSnapshotDbEntity {
+      Id = Uid.Create(),
       ProductFormatId = formatId.Value,
       PriceAmount = price,
       ObservedAt = observedAt,

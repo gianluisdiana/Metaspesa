@@ -21,7 +21,7 @@ public class UpdateShoppingListHandlerTest {
     var handler = new Handler(repository, unitOfWork);
 
     await handler.Handle(
-      new Command(ownerId, 1, "Weekly"), TestContext.Current.CancellationToken);
+      new Command(ownerId, ShoppingTestData.ListId, "Weekly"), TestContext.Current.CancellationToken);
 
     Assert.Equal(new ShoppingListName("Weekly"), list.Name);
     Assert.False(list.IsTemporary);
@@ -44,7 +44,7 @@ public class UpdateShoppingListHandlerTest {
     var handler = new Handler(repository, unitOfWork);
 
     await Assert.ThrowsAsync<ShoppingListAlreadyExistsException>(() => handler.Handle(
-      new Command(ownerId, 1, "Weekly"), TestContext.Current.CancellationToken));
+      new Command(ownerId, ShoppingTestData.ListId, "Weekly"), TestContext.Current.CancellationToken));
 
     Assert.True(list.IsTemporary);
     await unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
@@ -62,7 +62,7 @@ public class UpdateShoppingListHandlerTest {
     var handler = new Handler(repository, unitOfWork);
 
     await handler.Handle(
-      new Command(ownerId, 1, " Weekly "),
+      new Command(ownerId, ShoppingTestData.ListId, " Weekly "),
       TestContext.Current.CancellationToken);
 
     await repository.DidNotReceive().ExistsAsync(

@@ -17,8 +17,8 @@ public class GetMarketsHandlerTest {
   public async Task Handler_ReturnsMarkets_FromRepository() {
     // Arrange
     List<MarketSummary> summaries = [
-      new MarketSummary(1, "Mercadona", new Uri("https://example.com/mercadona.png")),
-      new MarketSummary(2, "Alcampo", null),
+      new MarketSummary(Guid.CreateVersion7(), "Mercadona", new Uri("https://example.com/mercadona.png")),
+      new MarketSummary(Guid.CreateVersion7(), "Alcampo", null),
     ];
     _marketRepository
       .GetMarketSummariesAsync(Arg.Any<CancellationToken>())

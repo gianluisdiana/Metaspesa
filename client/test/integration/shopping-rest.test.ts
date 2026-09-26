@@ -62,7 +62,7 @@ async function getMarketProducts(count: number): Promise<ProductMessage[]> {
       !format ||
       product.brand !== 'Integration Brand' ||
       format.currentPrice.amount !== fixture.price ||
-      format.id <= 0
+      format.id.length === 0
     ) {
       throw new Error(
         `Missing or changed integration fixture: ${fixture.name}.`,

@@ -13,7 +13,7 @@ internal class ProductBrandConfiguration : IEntityTypeConfiguration<ProductBrand
 
     builder.Property(e => e.Id)
       .HasColumnName("id")
-      .ValueGeneratedOnAdd();
+      .ValueGeneratedNever();
 
     builder.Property(e => e.Name)
       .HasColumnName("name")

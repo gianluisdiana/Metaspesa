@@ -8,8 +8,8 @@ public static class PriceSnapshotTests {
   [Fact(DisplayName = "Has same price when money values match")]
   public static void HasSamePrice_ReturnsTrue_WhenMoneyValuesMatch() {
     var snapshot = new PriceSnapshot(
-      new PriceSnapshotId(1),
-      new ProductFormatId(2),
+      new PriceSnapshotId(Guid.Parse("00000000-0000-7000-8000-000000000001")),
+      new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002")),
       new Money(3.45m),
       new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc));
 
@@ -21,8 +21,8 @@ public static class PriceSnapshotTests {
   [Fact(DisplayName = "Has same price when money values round equally")]
   public static void HasSamePrice_ReturnsTrue_WhenMoneyValuesRoundEqually() {
     var snapshot = new PriceSnapshot(
-      new PriceSnapshotId(1),
-      new ProductFormatId(2),
+      new PriceSnapshotId(Guid.Parse("00000000-0000-7000-8000-000000000001")),
+      new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002")),
       new Money(3.45m),
       new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc));
 
@@ -34,8 +34,8 @@ public static class PriceSnapshotTests {
   [Fact(DisplayName = "Does not have same price when money value increases")]
   public static void HasSamePrice_ReturnsFalse_WhenMoneyValueIncreases() {
     var snapshot = new PriceSnapshot(
-      new PriceSnapshotId(1),
-      new ProductFormatId(2),
+      new PriceSnapshotId(Guid.Parse("00000000-0000-7000-8000-000000000001")),
+      new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002")),
       new Money(3.45m),
       new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc));
 
@@ -47,8 +47,8 @@ public static class PriceSnapshotTests {
   [Fact(DisplayName = "Does not have same price when money value decreases")]
   public static void HasSamePrice_ReturnsFalse_WhenMoneyValueDecreases() {
     var snapshot = new PriceSnapshot(
-      new PriceSnapshotId(1),
-      new ProductFormatId(2),
+      new PriceSnapshotId(Guid.Parse("00000000-0000-7000-8000-000000000001")),
+      new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002")),
       new Money(3.45m),
       new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc));
 
@@ -61,13 +61,13 @@ public static class PriceSnapshotTests {
   public static void PriceSnapshot_Created_WithImmutableObservation() {
     var observedAt = new DateTime(2026, 7, 28, 12, 0, 0, DateTimeKind.Utc);
     var snapshot = new PriceSnapshot(
-      new PriceSnapshotId(1),
-      new ProductFormatId(2),
+      new PriceSnapshotId(Guid.Parse("00000000-0000-7000-8000-000000000001")),
+      new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002")),
       new Money(3.45m),
       observedAt);
 
-    Assert.Equal(new PriceSnapshotId(1), snapshot.Id);
-    Assert.Equal(new ProductFormatId(2), snapshot.ProductFormatId);
+    Assert.Equal(new PriceSnapshotId(Guid.Parse("00000000-0000-7000-8000-000000000001")), snapshot.Id);
+    Assert.Equal(new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002")), snapshot.ProductFormatId);
     Assert.Equal(new Money(3.45m), snapshot.Price);
     Assert.Equal(observedAt, snapshot.ObservedAt);
     Assert.All(
@@ -81,8 +81,8 @@ public static class PriceSnapshotTests {
     DateTime observedAt
   ) => Assert.Throws<InvalidPriceSnapshotObservedAtException>(
     () => new PriceSnapshot(
-      new PriceSnapshotId(1),
-      new ProductFormatId(2),
+      new PriceSnapshotId(Guid.Parse("00000000-0000-7000-8000-000000000001")),
+      new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002")),
       new Money(3.45m),
       observedAt));
 

@@ -16,12 +16,12 @@ export default interface ApiService {
   getShoppingListSummaries(): Promise<ShoppingListSummaryMessage[]>;
   removeItem(
     shoppingListName: string | undefined,
-    productFormatUid: number,
+    productFormatUid: string,
   ): Promise<void>;
   recordShoppingList(shoppingListName?: string): Promise<void>;
   updateItem(
     shoppingListName: string | undefined,
-    productFormatUid: number,
+    productFormatUid: string,
     update: ShoppingItemUpdateMessage,
   ): Promise<void>;
   updateShoppingList(

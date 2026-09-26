@@ -4,4 +4,4 @@ namespace Metaspesa.RestApi.Shopping.AddShoppingItems;
 /// <param name="ProductFormatId">ID of an existing product format.</param>
 /// <param name="Amount">Positive number of units to buy.</param>
 /// <param name="Checked">Whether the item is marked for checkout.</param>
-internal sealed record ShoppingItemRequest(int ProductFormatId, int Amount, bool Checked);
+internal sealed record ShoppingItemRequest(Guid ProductFormatId, int Amount, bool Checked);

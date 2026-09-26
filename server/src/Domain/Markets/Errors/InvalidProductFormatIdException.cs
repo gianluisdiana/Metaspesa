@@ -3,10 +3,10 @@ namespace Metaspesa.Domain.Markets.Errors;
 public class InvalidProductFormatIdException : MarketDomainException {
   public InvalidProductFormatIdException() { }
 
-  public InvalidProductFormatIdException(int value)
+  public InvalidProductFormatIdException(Guid value)
     : base(
       "Market.ProductFormat.Id.Invalid",
-      $"Product format id '{value}' must be greater than zero.") { }
+      $"Product format id '{value}' must not be empty.") { }
 
   public InvalidProductFormatIdException(string message) : base(message) { }
 

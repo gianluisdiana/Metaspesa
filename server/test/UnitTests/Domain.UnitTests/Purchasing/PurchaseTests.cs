@@ -14,14 +14,14 @@ public class PurchaseTests {
   [Fact(DisplayName = "Creates immutable purchase")]
   public void Create_ExposesReceiptState() {
     var buyerId = new UserId(Guid.CreateVersion7());
-    var shoppingListId = new ShoppingListId(4);
+    var shoppingListId = new ShoppingListId(Guid.Parse("00000000-0000-7000-8000-000000000004"));
     var purchase = Purchase.Create(
       buyerId,
       shoppingListId,
       [Item(7, 2)],
       PurchasedAt);
 
-    Assert.Null(purchase.Id);
+    Assert.Equal(7, purchase.Id.Value.Version);
     Assert.Equal(buyerId, purchase.BuyerId);
     Assert.Equal(shoppingListId, purchase.ShoppingListId);
     Assert.Equal(PurchasedAt, purchase.PurchasedAt);
@@ -34,9 +34,9 @@ public class PurchaseTests {
   [Fact(DisplayName = "Rehydrates purchase with deleted references")]
   public void Rehydrate_AcceptsMissingBuyerAndList() {
     var purchase = Purchase.Rehydrate(
-      new PurchaseId(5), null, null, [Item(7, 2)], PurchasedAt);
+      new PurchaseId(Guid.Parse("00000000-0000-7000-8000-000000000005")), null, null, [Item(7, 2)], PurchasedAt);
 
-    Assert.Equal(new PurchaseId(5), purchase.Id);
+    Assert.Equal(new PurchaseId(Guid.Parse("00000000-0000-7000-8000-000000000005")), purchase.Id);
     Assert.Null(purchase.BuyerId);
     Assert.Null(purchase.ShoppingListId);
   }
@@ -61,7 +61,9 @@ public class PurchaseTests {
   }
 
   private static PurchaseItem Item(int snapshotId, int amount) =>
-    new(new PriceSnapshotId(snapshotId), new PositiveAmount(amount));
+    new(new PriceSnapshotId(Guid.Parse(
+      $"00000000-0000-7000-8000-{snapshotId:x12}")),
+      new PositiveAmount(amount));
 
   private sealed class InvalidPurchaseTimes() : TheoryData<DateTime>(
     default,

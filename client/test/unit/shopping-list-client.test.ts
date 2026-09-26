@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import RestShoppingApiService from '@/infrastructure/rest-shopping-api-service';
 
 const httpStatus = { conflict: 409, ok: 200 } as const;
-const namedListId = 7;
-const productFormatId = 93;
+const namedListId = '00000000-0000-7000-8000-000000000007';
+const productFormatId = '00000000-0000-7000-8000-000000000093';
 
 function jsonResponse(body: unknown, status: number = httpStatus.ok): Response {
   return new Response(JSON.stringify(body), {
@@ -19,7 +19,7 @@ describe('REST shopping client', () => {
       jsonResponse({
         items: [
           { id: namedListId, isTemporary: false, name: 'Weekly' },
-          { id: 9, isTemporary: true },
+          { id: '00000000-0000-7000-8000-000000000009', isTemporary: true },
         ],
       }),
     );
@@ -31,7 +31,11 @@ describe('REST shopping client', () => {
 
     await expect(client.getShoppingListSummaries()).resolves.toEqual([
       { id: namedListId, isTemporary: false, name: 'Weekly' },
-      { id: 9, isTemporary: true, name: undefined },
+      {
+        id: '00000000-0000-7000-8000-000000000009',
+        isTemporary: true,
+        name: undefined,
+      },
     ]);
   });
 
@@ -45,7 +49,10 @@ describe('REST shopping client', () => {
             amount: 2,
             brand: 'Brand',
             checked: true,
-            market: { id: 1, name: 'Market' },
+            market: {
+              id: '00000000-0000-7000-8000-000000000001',
+              name: 'Market',
+            },
             productFormatId,
             productName: 'Milk',
             quantity: { amount: 1, unit: 'l' },
@@ -91,7 +98,7 @@ describe('REST shopping client', () => {
     ]);
 
     expect(fetcher).toHaveBeenCalledWith(
-      'http://api.test/api/v1/shopping-lists/7/items',
+      `http://api.test/api/v1/shopping-lists/${namedListId}/items`,
       expect.objectContaining({
         body: JSON.stringify({
           items: [{ amount: 1, checked: false, productFormatId }],
@@ -114,7 +121,7 @@ describe('REST shopping client', () => {
     await client.updateItem(namedListId, productFormatId, { checked: true });
 
     expect(fetcher).toHaveBeenCalledWith(
-      'http://api.test/api/v1/shopping-lists/7/items/93',
+      `http://api.test/api/v1/shopping-lists/${namedListId}/items/${productFormatId}`,
       expect.objectContaining({ body: '{"checked":true}', method: 'PATCH' }),
     );
   });

@@ -1,4 +1,5 @@
 using Metaspesa.Domain.Identity.Errors;
+using Metaspesa.Domain.SharedKernel;
 
 namespace Metaspesa.Domain.Identity;
 
@@ -22,7 +23,7 @@ public class User {
   public static User Create(
     string primitiveUsername, string primitivePasswordHash
   ) {
-    var id = new UserId(Guid.CreateVersion7());
+    var id = new UserId(Uid.Create());
     var username = new Username(primitiveUsername);
     var passwordHash = new PasswordHash(primitivePasswordHash);
 

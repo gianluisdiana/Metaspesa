@@ -10,7 +10,7 @@ public static class CreateShoppingList {
   public class Handler(
     IShoppingListRepository shoppingListRepository
   ) {
-    public async Task<int> Handle(
+    public async Task<Guid> Handle(
       Command command, CancellationToken cancellationToken = default
     ) {
       ArgumentNullException.ThrowIfNull(command);

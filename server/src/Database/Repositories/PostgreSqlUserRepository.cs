@@ -22,7 +22,7 @@ internal partial class PostgreSqlUserRepository(
       Uid = user.Id.Value,
       Username = user.Username.Value,
       EncryptedPassword = user.PasswordHash.Value,
-      RoleId = (int)user.Role,
+      RoleId = UserRoleIds.FromRole(user.Role),
     });
     await context.SaveChangesAsync(cancellationToken);
   }

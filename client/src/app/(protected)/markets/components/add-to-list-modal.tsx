@@ -10,7 +10,7 @@ type Props = {
   shoppingListSummaries: ShoppingListSummaryMessage[];
   onClose: () => void;
   onCreateList: () => void;
-  onSelectList: (listId: number) => void;
+  onSelectList: (listId: string) => void;
 };
 
 function listLabel(summary: ShoppingListSummaryMessage): string {
@@ -27,7 +27,7 @@ export default function AddToListModal({
   productName,
   shoppingListSummaries,
 }: Readonly<Props>) {
-  const [selectedListId, setSelectedListId] = useState<number>();
+  const [selectedListId, setSelectedListId] = useState<string>();
   const hasShoppingLists = shoppingListSummaries.length > 0;
   const selectedId = selectedListId ?? shoppingListSummaries[0]?.id;
 

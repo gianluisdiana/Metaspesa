@@ -20,7 +20,7 @@ internal class ShoppingListConfiguration : IEntityTypeConfiguration<ShoppingList
 
     builder.Property(e => e.Id)
       .HasColumnName("id")
-      .ValueGeneratedOnAdd();
+      .ValueGeneratedNever();
 
     builder.Property(e => e.Name)
       .HasColumnName("name")

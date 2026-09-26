@@ -124,7 +124,7 @@ public static class PostgreSqlUserRepositoryTests {
     public async Task SaveAsync_PersistsUser_SoUsernameCanBeFound() {
       // Arrange
       _context.UserRoles.Add(new UserRoleDbEntity {
-        Id = (int)Role.Shopper,
+        Id = UserRoleIds.Shopper,
         Name = Role.Shopper.ToString(),
         Description = "Shopper role for testing",
       });
@@ -145,7 +145,7 @@ public static class PostgreSqlUserRepositoryTests {
     public async Task SaveAsync_PersistsEncryptedPassword_Correctly() {
       // Arrange
       _context.UserRoles.Add(new UserRoleDbEntity {
-        Id = (int)Role.Shopper,
+        Id = UserRoleIds.Shopper,
         Name = Role.Shopper.ToString(),
         Description = "Shopper role for testing",
       });
@@ -168,7 +168,7 @@ public static class PostgreSqlUserRepositoryTests {
     public async Task SaveAsync_PersistsShopperRole_Correctly() {
       // Arrange
       _context.UserRoles.Add(new UserRoleDbEntity {
-        Id = (int)Role.Shopper,
+        Id = UserRoleIds.Shopper,
         Name = Role.Shopper.ToString(),
         Description = "Shopper role for testing",
       });
@@ -223,7 +223,7 @@ public static class PostgreSqlUserRepositoryTests {
     public async Task GetUserByUsernameAsync_ReturnsUser_WhenUsernameMatches() {
       // Arrange
       _context.UserRoles.Add(new UserRoleDbEntity {
-        Id = (int)Role.Shopper,
+        Id = UserRoleIds.Shopper,
         Name = Role.Shopper.ToString(),
         Description = "Shopper role for testing",
       });
@@ -246,7 +246,7 @@ public static class PostgreSqlUserRepositoryTests {
     public async Task GetUserByUsernameAsync_ReturnsUser_CaseInsensitively() {
       // Arrange
       _context.UserRoles.Add(new UserRoleDbEntity {
-        Id = (int)Role.Shopper,
+        Id = UserRoleIds.Shopper,
         Name = Role.Shopper.ToString(),
         Description = "Shopper role for testing",
       });
@@ -268,7 +268,7 @@ public static class PostgreSqlUserRepositoryTests {
     public async Task GetUserByUsernameAsync_ReturnsCorrectRole_ForUser() {
       // Arrange
       _context.UserRoles.Add(new UserRoleDbEntity {
-        Id = (int)Role.Shopper,
+        Id = UserRoleIds.Shopper,
         Name = Role.Shopper.ToString(),
         Description = "Shopper role for testing",
       });
@@ -290,7 +290,7 @@ public static class PostgreSqlUserRepositoryTests {
     public async Task GetUserByUsernameAsync_ReturnsCorrectUid_ForSavedUser() {
       // Arrange
       _context.UserRoles.Add(new UserRoleDbEntity {
-        Id = (int)Role.Shopper,
+        Id = UserRoleIds.Shopper,
         Name = Role.Shopper.ToString(),
         Description = "Shopper role for testing",
       });

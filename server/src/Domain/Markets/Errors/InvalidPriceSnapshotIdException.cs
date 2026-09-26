@@ -3,10 +3,10 @@ namespace Metaspesa.Domain.Markets.Errors;
 public class InvalidPriceSnapshotIdException : MarketDomainException {
   public InvalidPriceSnapshotIdException() { }
 
-  public InvalidPriceSnapshotIdException(int value)
+  public InvalidPriceSnapshotIdException(Guid value)
     : base(
       "Market.PriceSnapshot.Id.Invalid",
-      $"Price snapshot id '{value}' must be greater than zero.") { }
+      $"Price snapshot id '{value}' must not be empty.") { }
 
   public InvalidPriceSnapshotIdException(string message) : base(message) { }
 

@@ -13,7 +13,7 @@ export default function ShoppingListContainer({
   initialShoppingList,
   initialShoppingListSummaries,
 }: Readonly<{
-  initialSelectedListId?: number;
+  initialSelectedListId?: string;
   initialShoppingList: ShoppingListMessage;
   initialShoppingListSummaries: ShoppingListSummaryMessage[];
 }>) {

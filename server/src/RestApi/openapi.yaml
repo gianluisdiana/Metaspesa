@@ -147,75 +147,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
-  /api/v1/products:
-    get:
-      tags:
-        - GetProductsEndpoint
-      summary: Search catalog products.
-      description: 'Search market-owned products with optional filters. Each result includes formats with their latest observed prices. Pagination counts products, not formats.'
-      operationId: GetProducts
-      parameters:
-        - name: query
-          in: query
-          description: Case-insensitive product-name fragment. Omit to include all names.
-          schema:
-            type: string
-        - name: marketId
-          in: query
-          description: Repeat to include products from several markets. IDs must be positive.
-          schema:
-            type: array
-            items:
-              minimum: 1
-              type: integer
-        - name: brand
-          in: query
-          description: Case-insensitive brand-name fragment. Omit to include all brands.
-          schema:
-            type: string
-        - name: page
-          in: query
-          description: One-based page number; defaults to 1.
-          schema:
-            minimum: 1
-            type: integer
-            default: 1
-        - name: pageSize
-          in: query
-          description: 'Maximum products per page, from 1 to 100; defaults to 24.'
-          schema:
-            maximum: 100
-            minimum: 1
-            type: integer
-            default: 24
-        - name: sort
-          in: query
-          description: Sort by name or lowest latest format price. Defaults to name.
-          schema:
-            enum:
-              - name
-              - priceAsc
-              - priceDesc
-            type: string
-      responses:
-        '200':
-          description: Matching products and pagination counts. An empty page has no items.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProductPageResponse'
-        '400':
-          description: 'A filter, market ID, page value, or sort value is invalid.'
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetails'
-        '500':
-          description: An unexpected server or database failure occurred.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetails'
   '/api/v1/markets/{marketName}/snapshots/{date}':
     post:
       tags:
@@ -341,8 +272,8 @@ paths:
           description: ID of the shopping list to retrieve.
           required: true
           schema:
-            type: integer
-            format: int32
+            type: string
+            format: uuid
       responses:
         '200':
           description: The shopping list and its items.
@@ -384,8 +315,8 @@ paths:
           description: ID of the shopping list to rename.
           required: true
           schema:
-            type: integer
-            format: int32
+            type: string
+            format: uuid
       requestBody:
         description: New name for a shopping list.
         content:
@@ -437,8 +368,8 @@ paths:
           description: ID of the shopping list to update.
           required: true
           schema:
-            type: integer
-            format: int32
+            type: string
+            format: uuid
       requestBody:
         description: Items to add to a shopping list.
         content:
@@ -490,15 +421,15 @@ paths:
           description: ID of the shopping list containing the item.
           required: true
           schema:
-            type: integer
-            format: int32
+            type: string
+            format: uuid
         - name: productFormatId
           in: path
           description: ID of the item's product format.
           required: true
           schema:
-            type: integer
-            format: int32
+            type: string
+            format: uuid
       requestBody:
         description: Changes to a shopping item; at least one field is required.
         content:
@@ -543,15 +474,15 @@ paths:
           description: ID of the shopping list containing the item.
           required: true
           schema:
-            type: integer
-            format: int32
+            type: string
+            format: uuid
         - name: productFormatId
           in: path
           description: ID of the item's product format.
           required: true
           schema:
-            type: integer
-            format: int32
+            type: string
+            format: uuid
       responses:
         '204':
           description: Item removed; no response body.
@@ -590,8 +521,8 @@ paths:
           description: ID of the shopping list to check out.
           required: true
           schema:
-            type: integer
-            format: int32
+            type: string
+            format: uuid
       responses:
         '201':
           description: Purchase recorded; the response contains its ID.
@@ -675,9 +606,9 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
           description: Stable format ID used as the shopping-list item reference.
-          format: int32
+          format: uuid
         quantity:
           description: Amount and unit sold in this format.
           $ref: '#/components/schemas/QuantityResponse'
@@ -694,15 +625,54 @@ components:
             - string
           description: Absolute product image URL when available; otherwise omitted.
       description: Purchasable product format with its latest price observation.
+    GetProductsRequest:
+      type: object
+      properties:
+        query:
+          type:
+            - 'null'
+            - string
+          description: Case-insensitive product-name fragment. Omit to include all names.
+        marketId:
+          type:
+            - 'null'
+            - array
+          items:
+            type: string
+            format: uuid
+          description: Include products from several markets. IDs must be UUIDs.
+        brand:
+          type:
+            - 'null'
+            - string
+          description: Case-insensitive brand-name fragment. Omit to include all brands.
+        page:
+          type:
+            - 'null'
+            - integer
+          description: One-based page number; defaults to 1.
+          format: int32
+        pageSize:
+          type:
+            - 'null'
+            - integer
+          description: 'Maximum products per page, from 1 to 100; defaults to 24.'
+          format: int32
+        sort:
+          type:
+            - 'null'
+            - string
+          description: Sort by name or lowest latest format price. Defaults to name.
+      description: Product catalog query filters.
     IdResponse:
       required:
         - id
       type: object
       properties:
         id:
-          type: integer
+          type: string
           description: Stable shopping list ID.
-          format: int32
+          format: uuid
       description: Identifier of a newly created shopping list.
     MarketListResponse:
       required:
@@ -722,9 +692,9 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
           description: Stable market ID used by the catalog marketId filter.
-          format: int32
+          format: uuid
         name:
           type: string
           description: Display name of the market.
@@ -828,9 +798,9 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
           description: Stable ID of this product.
-          format: int32
+          format: uuid
         name:
           type: string
           description: Product display name.
@@ -852,9 +822,9 @@ components:
       type: object
       properties:
         purchaseId:
-          type: integer
+          type: string
           description: Stable purchase ID.
-          format: int32
+          format: uuid
       description: Identifier of a recorded purchase.
     QuantityResponse:
       required:
@@ -889,9 +859,9 @@ components:
       type: object
       properties:
         productFormatId:
-          type: integer
+          type: string
           description: ID of an existing product format.
-          format: int32
+          format: uuid
         amount:
           type: integer
           description: Positive number of units to buy.
@@ -914,9 +884,9 @@ components:
       type: object
       properties:
         productFormatId:
-          type: integer
+          type: string
           description: Stable format ID used to update or remove this item.
-          format: int32
+          format: uuid
         productName:
           type: string
           description: Product display name.
@@ -965,9 +935,9 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
           description: Stable shopping list ID.
-          format: int32
+          format: uuid
         name:
           type:
             - 'null'
@@ -990,9 +960,9 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
           description: Stable shopping list ID.
-          format: int32
+          format: uuid
         name:
           type:
             - 'null'
@@ -1009,9 +979,9 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
           description: Stable market ID.
-          format: int32
+          format: uuid
         name:
           type: string
           description: Market display name.

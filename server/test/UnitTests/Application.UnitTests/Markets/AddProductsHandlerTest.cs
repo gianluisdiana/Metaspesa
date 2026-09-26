@@ -354,7 +354,7 @@ public class AddProductsHandlerTest {
   public async Task Handler_ResolvesProducts_AndAppendsSnapshots() {
     Command command = CreateCommand();
     var observation = new PriceObservation(
-      new ProductFormatId(7),
+      new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000007")),
       new Money(1.99m),
       new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc));
     _productRepository
@@ -363,8 +363,8 @@ public class AddProductsHandlerTest {
         Arg.Any<DateTime>(),
         Arg.Any<CancellationToken>())
       .Returns(new ProductImportResult(
-        [new ProductId(3)],
-        [new ProductFormatId(7)],
+        [new ProductId(Guid.Parse("00000000-0000-7000-8000-000000000003"))],
+        [new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000007"))],
         [observation]));
 
     await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -397,9 +397,9 @@ public class AddProductsHandlerTest {
     var observedAt = registeredAt.ToDateTime(
       TimeOnly.MinValue, DateTimeKind.Utc);
     var observation = new PriceObservation(
-      new ProductFormatId(7), new Money(1.99m), observedAt);
+      new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000007")), new Money(1.99m), observedAt);
     var latestSnapshot = new PriceSnapshot(
-      new PriceSnapshotId(1),
+      new PriceSnapshotId(Guid.Parse("00000000-0000-7000-8000-000000000001")),
       observation.ProductFormatId,
       new Money(1.99m),
       observedAt);
@@ -426,9 +426,9 @@ public class AddProductsHandlerTest {
     var observedAt = registeredAt.ToDateTime(
       TimeOnly.MinValue, DateTimeKind.Utc);
     var observation = new PriceObservation(
-      new ProductFormatId(7), new Money(1.99m), observedAt);
+      new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000007")), new Money(1.99m), observedAt);
     var latestSnapshot = new PriceSnapshot(
-      new PriceSnapshotId(1),
+      new PriceSnapshotId(Guid.Parse("00000000-0000-7000-8000-000000000001")),
       observation.ProductFormatId,
       new Money(1.99m),
       new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc));
@@ -455,9 +455,9 @@ public class AddProductsHandlerTest {
     var observedAt = registeredAt.ToDateTime(
       TimeOnly.MinValue, DateTimeKind.Utc);
     var observation = new PriceObservation(
-      new ProductFormatId(7), new Money(2.49m), observedAt);
+      new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000007")), new Money(2.49m), observedAt);
     var latestSnapshot = new PriceSnapshot(
-      new PriceSnapshotId(1),
+      new PriceSnapshotId(Guid.Parse("00000000-0000-7000-8000-000000000001")),
       observation.ProductFormatId,
       new Money(1.99m),
       new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc));
@@ -488,9 +488,9 @@ public class AddProductsHandlerTest {
     var observedAt = registeredAt.ToDateTime(
       TimeOnly.MinValue, DateTimeKind.Utc);
     var observation = new PriceObservation(
-      new ProductFormatId(7), new Money(1.49m), observedAt);
+      new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000007")), new Money(1.49m), observedAt);
     var latestSnapshot = new PriceSnapshot(
-      new PriceSnapshotId(1),
+      new PriceSnapshotId(Guid.Parse("00000000-0000-7000-8000-000000000001")),
       observation.ProductFormatId,
       new Money(1.99m),
       new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc));
@@ -521,7 +521,7 @@ public class AddProductsHandlerTest {
     var observedAt = registeredAt.ToDateTime(
       TimeOnly.MinValue, DateTimeKind.Utc);
     var observation = new PriceObservation(
-      new ProductFormatId(7), new Money(1.99m), observedAt);
+      new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000007")), new Money(1.99m), observedAt);
     _productRepository.ResolveProductsAsync(
       Arg.Any<MarketImport>(), observedAt, Arg.Any<CancellationToken>())
       .Returns(new ProductImportResult([], [], [observation]));
@@ -544,7 +544,7 @@ public class AddProductsHandlerTest {
   public async Task Handler_DoesNotAddExistingMarketOrBrand() {
     _marketRepository.GetMarketsAsync(Arg.Any<CancellationToken>())
       .Returns([
-        new Market(new MarketId(1), new MarketName("MARKET")),
+        new Market(new MarketId(Guid.Parse("00000000-0000-7000-8000-000000000001")), new MarketName("MARKET")),
       ]);
     _productRepository.GetBrandsAsync(Arg.Any<CancellationToken>())
       .Returns([new BrandName("BRAND")]);
@@ -563,10 +563,10 @@ public class AddProductsHandlerTest {
   [Fact(DisplayName = "Rolls back records created before cancellation")]
   public async Task Handler_RollsBack_WhenSnapshotAppendIsCancelled() {
     var result = new ProductImportResult(
-      [new ProductId(3)],
-      [new ProductFormatId(7)],
+      [new ProductId(Guid.Parse("00000000-0000-7000-8000-000000000003"))],
+      [new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000007"))],
       [new PriceObservation(
-        new ProductFormatId(7),
+        new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000007")),
         new Money(1.99m),
         new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc))]);
     _productRepository
@@ -605,11 +605,11 @@ public class AddProductsHandlerTest {
       Arg.Any<CancellationToken>());
     await _productRepository.Received(1).DeleteProductsAsync(
       Arg.Is<IReadOnlyCollection<ProductId>>(ids =>
-        ids.Single() == new ProductId(3)),
+        ids.Single() == new ProductId(Guid.Parse("00000000-0000-7000-8000-000000000003"))),
       Arg.Any<CancellationToken>());
     await _productRepository.Received(1).DeleteProductFormatsAsync(
       Arg.Is<IReadOnlyCollection<ProductFormatId>>(ids =>
-        ids.Single() == new ProductFormatId(7)),
+        ids.Single() == new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000007"))),
       Arg.Any<CancellationToken>());
     await _productRepository.Received(1).DeleteBrandsAsync(
       Arg.Any<IReadOnlyCollection<BrandName>>(),
@@ -637,7 +637,7 @@ public class AddProductsHandlerTest {
   [Fact(DisplayName = "Rollback deletes only market and brand created by import")]
   public async Task Handler_RollbackPreservesExistingMarketAndBrand() {
     _marketRepository.GetMarketsAsync(Arg.Any<CancellationToken>())
-      .Returns([new Market(new MarketId(1), new MarketName("Existing"))]);
+      .Returns([new Market(new MarketId(Guid.Parse("00000000-0000-7000-8000-000000000001")), new MarketName("Existing"))]);
     _productRepository.GetBrandsAsync(Arg.Any<CancellationToken>())
       .Returns([new BrandName("Existing brand")]);
     _snapshotRepository.AppendAsync(

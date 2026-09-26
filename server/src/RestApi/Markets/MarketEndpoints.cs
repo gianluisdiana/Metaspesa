@@ -10,7 +10,7 @@ internal static class MarketEndpoints {
   ) {
     RouteGroupBuilder api = endpoints.MapGroup("/api/v1");
     api.MapGetMarketsEndpoint();
-    api.MapGetProductsEndpoint();
+    api.MapQueryProductsEndpoint();
     api.MapSnapshotEndpoint();
     return endpoints;
   }

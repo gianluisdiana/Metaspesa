@@ -7,7 +7,7 @@ using Metaspesa.Domain.Shopping.Errors;
 namespace Metaspesa.Application.Shopping;
 
 public static class UpdateShoppingList {
-  public record Command(Guid UserUid, int ShoppingListId, string? NewName);
+  public record Command(Guid UserUid, Guid ShoppingListId, string? NewName);
 
   public class Handler(
     IShoppingListRepository shoppingListRepository,

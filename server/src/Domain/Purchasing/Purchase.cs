@@ -1,6 +1,7 @@
 using Metaspesa.Domain.Identity;
 using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.Purchasing.Errors;
+using Metaspesa.Domain.SharedKernel;
 using Metaspesa.Domain.Shopping;
 
 namespace Metaspesa.Domain.Purchasing;
@@ -8,14 +9,14 @@ namespace Metaspesa.Domain.Purchasing;
 public sealed class Purchase {
   private readonly List<PurchaseItem> _items;
 
-  public PurchaseId? Id { get; }
+  public PurchaseId Id { get; }
   public UserId? BuyerId { get; }
   public ShoppingListId? ShoppingListId { get; }
   public DateTime PurchasedAt { get; }
   public IReadOnlyCollection<PurchaseItem> Items => _items.AsReadOnly();
 
   private Purchase(
-    PurchaseId? id,
+    PurchaseId id,
     UserId? buyerId,
     ShoppingListId? shoppingListId,
     IEnumerable<PurchaseItem> items,
@@ -51,7 +52,11 @@ public sealed class Purchase {
     ShoppingListId? shoppingListId,
     IEnumerable<PurchaseItem> items,
     DateTime purchasedAt
-  ) => new(null, buyerId, shoppingListId, items, purchasedAt);
+  ) {
+    var id = new PurchaseId(Uid.Create());
+
+    return new(id, buyerId, shoppingListId, items, purchasedAt);
+  }
 
   public static Purchase Rehydrate(
     PurchaseId id,

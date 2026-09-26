@@ -94,8 +94,8 @@ describe('component smoke tests', () => {
     const markup = renderToStaticMarkup(
       <FilterHeader
         markets={[
-          { id: 1, name: 'Mercadona' },
-          { id: 2, name: 'Hiperdino' },
+          { id: '1', name: 'Mercadona' },
+          { id: '2', name: 'Hiperdino' },
         ]}
       />,
     );
@@ -116,12 +116,12 @@ describe('component smoke tests', () => {
                 checked: true,
                 name: 'Milk',
                 price: 1.25,
-                productFormatUid: 1,
+                productFormatUid: '1',
               },
             ],
           }}
           initialShoppingListSummaries={[{ name: 'Groceries' }]}
-          initialSelectedListId={7}
+          initialSelectedListId="7"
         />
       </ToastProvider>,
     );

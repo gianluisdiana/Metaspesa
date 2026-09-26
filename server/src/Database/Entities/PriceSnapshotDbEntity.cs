@@ -4,8 +4,8 @@ using Metaspesa.Domain.SharedKernel;
 namespace Metaspesa.Database.Entities;
 
 internal class PriceSnapshotDbEntity {
-  public int Id { get; set; }
-  public int ProductFormatId { get; set; }
+  public Guid Id { get; set; }
+  public Guid ProductFormatId { get; set; }
   public decimal PriceAmount { get; set; }
   public string CurrencyCode { get; set; } = "EUR";
   public DateTime ObservedAt { get; set; }

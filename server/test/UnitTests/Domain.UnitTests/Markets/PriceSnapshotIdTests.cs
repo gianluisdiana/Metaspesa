@@ -6,15 +6,15 @@ namespace Metaspesa.Domain.UnitTests.Markets;
 public static class PriceSnapshotIdTests {
   [Fact(DisplayName = "Creates and compares price snapshots ids by value")]
   public static void PriceSnapshotId_CreatedAndEqual_WhenValueIsPositive() {
-    var id = new PriceSnapshotId(1);
+    var rawId = Guid.Parse("00000000-0000-7000-8000-000000000001");
+    var id = new PriceSnapshotId(rawId);
 
-    Assert.Equal(1, id.Value);
-    Assert.Equal(id, new PriceSnapshotId(1));
+    Assert.Equal(rawId, id.Value);
+    Assert.Equal(id, new PriceSnapshotId(rawId));
   }
 
-  [Theory(DisplayName = "Rejects non-positive price snapshot ids")]
-  [InlineData(0)]
-  [InlineData(-1)]
-  public static void PriceSnapshotId_ThrowsSpecificException_WhenValueIsInvalid(int value) =>
-    Assert.Throws<InvalidPriceSnapshotIdException>(() => new PriceSnapshotId(value));
+  [Fact(DisplayName = "Rejects empty price snapshot id")]
+  public static void PriceSnapshotId_ThrowsSpecificException_WhenValueIsInvalid() =>
+    Assert.Throws<InvalidPriceSnapshotIdException>(() =>
+      new PriceSnapshotId(Guid.Empty));
 }

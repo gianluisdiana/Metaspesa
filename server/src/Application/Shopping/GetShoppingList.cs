@@ -15,10 +15,10 @@ public static class GetShoppingList {
   public record Response(
     string? ShoppingListName,
     IReadOnlyCollection<ResponseItem> Items,
-    int Id,
+    Guid Id,
     bool IsTemporary
   );
-  public record Query(Guid UserUid, int ShoppingListId);
+  public record Query(Guid UserUid, Guid ShoppingListId);
 
   public class Handler(
     IShoppingListRepository shoppingListRepository,
@@ -33,10 +33,10 @@ public static class GetShoppingList {
         new UserId(query.UserUid), new ShoppingListId(query.ShoppingListId),
         cancellationToken) ?? throw new ShoppingListNotFoundException();
 
-      IReadOnlyCollection<int> formatIds = [
+      IReadOnlyCollection<Guid> formatIds = [
         .. shoppingList.Items.Select(item => item.ProductFormatId.Value)
       ];
-      IReadOnlyDictionary<int, MarketProduct> products =
+      IReadOnlyDictionary<Guid, MarketProduct> products =
         await productRepository.GetProductsAsync(formatIds, cancellationToken);
 
       List<ResponseItem> items = [];
@@ -55,7 +55,7 @@ public static class GetShoppingList {
       }
 
       return new Response(shoppingList.Name?.Value, items,
-        shoppingList.Id!.Value.Value, shoppingList.IsTemporary);
+        shoppingList.Id.Value, shoppingList.IsTemporary);
     }
   }
 }
