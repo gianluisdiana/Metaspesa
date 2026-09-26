@@ -11,8 +11,8 @@ function product(id: number): MarketProductMessage {
   return {
     brand: 'Brand',
     formats: [],
-    id,
-    market: { id: 1, name: 'Market' },
+    id: String(id),
+    market: { id: '1', name: 'Market' },
     name: `Product ${id}`,
   };
 }
@@ -45,6 +45,6 @@ describe('PaginatedMarketProductsState', () => {
   it('deduplicates by product ID across pages', () => {
     const state = PaginatedMarketProductsState.initial(page(1, 2, [1, 2]));
     const next = state.merge(page(2, 2, [2, 3]));
-    expect(next.products.map(item => item.id)).toEqual([1, 2, 3]);
+    expect(next.products.map(item => item.id)).toEqual(['1', '2', '3']);
   });
 });

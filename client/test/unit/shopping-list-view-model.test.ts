@@ -46,16 +46,16 @@ describe('ShoppingListViewModel', () => {
           checked: false,
           name: 'Milk',
           price: 1.2,
-          productFormatUid: 1,
+          productFormatUid: '1',
           quantity: '1 liter',
         },
         {
           checked: true,
           name: 'Bread',
           price: 2.345,
-          productFormatUid: 2,
+          productFormatUid: '2',
         },
-        { checked: true, name: 'Eggs', productFormatUid: 3 },
+        { checked: true, name: 'Eggs', productFormatUid: '3' },
       ],
     });
 
@@ -92,7 +92,7 @@ describe('ShoppingListViewModel', () => {
 
   it('uses a singular item count label', () => {
     const viewModel = new ShoppingListViewModel({
-      products: [{ checked: false, name: 'Milk', productFormatUid: 1 }],
+      products: [{ checked: false, name: 'Milk', productFormatUid: '1' }],
     });
 
     expect(viewModel.itemCountLabel).toBe('1 item');
@@ -123,8 +123,8 @@ describe('ShoppingListTabsViewModel', () => {
 
   it('marks the selected named tab active', () => {
     const viewModel = new ShoppingListTabsViewModel(
-      [{ id: 7, name: 'Groceries' }],
-      7,
+      [{ id: '7', name: 'Groceries' }],
+      '7',
     );
 
     expect(viewModel.tabs[0].active).toBe(true);

@@ -20,9 +20,7 @@ export default async function ShoppingPage({
   searchParams: Promise<PageSearchParams>;
 }>) {
   const [params, token] = await Promise.all([searchParams, getAuthToken()]);
-  const idParam = Number(stringParam(params, 'listId'));
-  const selectedListId =
-    Number.isSafeInteger(idParam) && idParam > 0 ? idParam : undefined;
+  const selectedListId = stringParam(params, 'listId');
   const service = new RestShoppingApiService(token);
   const pageData = await loadShoppingPage(service, selectedListId);
 

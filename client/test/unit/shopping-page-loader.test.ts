@@ -7,7 +7,7 @@ function createService({
   lists,
   shoppingList,
 }: {
-  lists: { id: number; name?: string; isTemporary: boolean }[];
+  lists: { id: string; name?: string; isTemporary: boolean }[];
   shoppingList?: { name?: string; products: [] };
 }) {
   return {
@@ -24,18 +24,18 @@ describe('shopping page loader', () => {
     const groceries = { name: 'Groceries', products: [] as [] };
     const service = createService({
       lists: [
-        { id: 7, isTemporary: false, name: 'Groceries' },
-        { id: 8, isTemporary: false, name: 'Weekly' },
+        { id: '7', isTemporary: false, name: 'Groceries' },
+        { id: '8', isTemporary: false, name: 'Weekly' },
       ],
       shoppingList: groceries,
     });
 
     await expect(loadShoppingPage(service)).resolves.toEqual({
-      selectedListId: 7,
+      selectedListId: '7',
       shoppingList: groceries,
       shoppingListSummaries: [
-        { id: 7, isTemporary: false, name: 'Groceries' },
-        { id: 8, isTemporary: false, name: 'Weekly' },
+        { id: '7', isTemporary: false, name: 'Groceries' },
+        { id: '8', isTemporary: false, name: 'Weekly' },
       ],
     });
   });
@@ -44,28 +44,28 @@ describe('shopping page loader', () => {
     const temporaryList = { products: [] as [] };
     const service = createService({
       lists: [
-        { id: 7, isTemporary: false, name: 'Groceries' },
-        { id: 9, isTemporary: true },
+        { id: '7', isTemporary: false, name: 'Groceries' },
+        { id: '9', isTemporary: true },
       ],
       shoppingList: temporaryList,
     });
 
     await expect(loadShoppingPage(service)).resolves.toEqual({
-      selectedListId: 9,
+      selectedListId: '9',
       shoppingList: temporaryList,
       shoppingListSummaries: [
-        { id: 7, isTemporary: false, name: 'Groceries' },
-        { id: 9, isTemporary: true },
+        { id: '7', isTemporary: false, name: 'Groceries' },
+        { id: '9', isTemporary: true },
       ],
     });
   });
 
   it('loads the requested named list', async () => {
-    const requestedListId = 8;
+    const requestedListId = '8';
     const weekly = { name: 'Weekly', products: [] as [] };
     const service = createService({
       lists: [
-        { id: 7, isTemporary: false, name: 'Groceries' },
+        { id: '7', isTemporary: false, name: 'Groceries' },
         { id: requestedListId, isTemporary: false, name: 'Weekly' },
       ],
       shoppingList: weekly,
@@ -75,7 +75,7 @@ describe('shopping page loader', () => {
       selectedListId: requestedListId,
       shoppingList: weekly,
       shoppingListSummaries: [
-        { id: 7, isTemporary: false, name: 'Groceries' },
+        { id: '7', isTemporary: false, name: 'Groceries' },
         { id: requestedListId, isTemporary: false, name: 'Weekly' },
       ],
     });

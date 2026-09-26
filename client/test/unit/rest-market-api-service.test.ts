@@ -4,11 +4,13 @@ import { ZodError } from 'zod';
 import RestMarketApiService from '@/infrastructure/rest-market-api-service';
 
 describe('RestMarketApiService', () => {
+  const marketId = '00000000-0000-7000-8000-000000000001';
+
   it('reads market items from REST API', async () => {
     const fetcher = vi
       .fn()
       .mockResolvedValue(
-        Response.json({ items: [{ id: 1, name: 'Mercadona' }] }),
+        Response.json({ items: [{ id: marketId, name: 'Mercadona' }] }),
       );
     const service = new RestMarketApiService(
       'https://api.example/api/v1',
@@ -17,7 +19,7 @@ describe('RestMarketApiService', () => {
 
     const markets = await service.getMarkets();
 
-    expect(markets).toEqual([{ id: 1, name: 'Mercadona' }]);
+    expect(markets).toEqual([{ id: marketId, name: 'Mercadona' }]);
   });
 
   it('sends repeatable market IDs and all product filters', async () => {
@@ -37,7 +39,7 @@ describe('RestMarketApiService', () => {
 
     await service.getMarketProducts({
       brand: 'Hacendado',
-      marketId: [1, 2],
+      marketId: [marketId, '00000000-0000-7000-8000-000000000002'],
       page: 2,
       pageSize: 24,
       query: 'milk',
@@ -45,7 +47,7 @@ describe('RestMarketApiService', () => {
     });
 
     expect(fetcher).toHaveBeenCalledWith(
-      'https://api.example/api/v1/products?query=milk&marketId=1&marketId=2&brand=Hacendado&page=2&pageSize=24&sort=priceAsc',
+      `https://api.example/api/v1/products?query=milk&marketId=${marketId}&marketId=00000000-0000-7000-8000-000000000002&brand=Hacendado&page=2&pageSize=24&sort=priceAsc`,
       expect.objectContaining({ credentials: 'include', method: 'GET' }),
     );
   });

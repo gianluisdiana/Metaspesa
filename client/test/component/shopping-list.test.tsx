@@ -6,6 +6,10 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const httpStatus = { conflict: 409, created: 201, ok: 200 } as const;
+const listId = '00000000-0000-7000-8000-000000000007';
+const temporaryListId = '00000000-0000-7000-8000-000000000009';
+const milkFormatId = '00000000-0000-7000-8000-000000000001';
+const breadFormatId = '00000000-0000-7000-8000-000000000002';
 
 const navigationMocks = vi.hoisted(() => ({ push: vi.fn() }));
 
@@ -24,28 +28,28 @@ function renderShoppingList() {
   render(
     <ToastProvider>
       <ShoppingListContainer
-        initialSelectedListId={7}
+        initialSelectedListId={listId}
         initialShoppingList={{
-          id: 7,
+          id: listId,
           name: 'Groceries',
           products: [
             {
               checked: false,
               name: 'Milk',
               price: 1.25,
-              productFormatUid: 1,
+              productFormatUid: milkFormatId,
               quantity: '1 l',
             },
             {
               checked: true,
               name: 'Bread',
               price: 2.35,
-              productFormatUid: 2,
+              productFormatUid: breadFormatId,
             },
           ],
         }}
         initialShoppingListSummaries={[
-          { id: 7, isTemporary: false, name: 'Groceries' },
+          { id: listId, isTemporary: false, name: 'Groceries' },
         ]}
       />
     </ToastProvider>,
@@ -89,12 +93,14 @@ describe('shopping list component', () => {
   it('creates temporary list and navigates by stable ID', async () => {
     const fetcher = vi
       .fn()
-      .mockResolvedValueOnce(jsonResponse({ id: 9 }, httpStatus.created))
       .mockResolvedValueOnce(
-        jsonResponse({ id: 9, isTemporary: true, items: [] }),
+        jsonResponse({ id: temporaryListId }, httpStatus.created),
       )
       .mockResolvedValueOnce(
-        jsonResponse({ items: [{ id: 9, isTemporary: true }] }),
+        jsonResponse({ id: temporaryListId, isTemporary: true, items: [] }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ items: [{ id: temporaryListId, isTemporary: true }] }),
       );
     vi.stubGlobal('fetch', fetcher);
     const user = userEvent.setup();
@@ -107,7 +113,9 @@ describe('shopping list component', () => {
     expect(
       await screen.findByRole('heading', { name: 'Temporary List' }),
     ).toBeVisible();
-    expect(navigationMocks.push).toHaveBeenCalledWith('/shopping?listId=9');
+    expect(navigationMocks.push).toHaveBeenCalledWith(
+      `/shopping?listId=${temporaryListId}`,
+    );
   });
 
   it('offers naming when temporary list already exists', async () => {
@@ -123,7 +131,7 @@ describe('shopping list component', () => {
         ),
       )
       .mockResolvedValueOnce(
-        jsonResponse({ items: [{ id: 9, isTemporary: true }] }),
+        jsonResponse({ items: [{ id: temporaryListId, isTemporary: true }] }),
       );
     vi.stubGlobal('fetch', fetcher);
     const user = userEvent.setup();

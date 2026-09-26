@@ -33,7 +33,7 @@ export function ProductGridView({
   onCloseModal: () => void;
   onCreateList: () => void;
   onRetry: () => void;
-  onSelectList: (listId: number) => void;
+  onSelectList: (listId: string) => void;
   selectedProduct?: Product;
   sentinelRef: RefObject<HTMLDivElement | null>;
   shoppingListSummaries: ShoppingListSummaryMessage[];
@@ -43,7 +43,7 @@ export function ProductGridView({
   }
 
   const grouped = new Map<
-    number,
+    string,
     { name: string; products: MarketProductMessage[] }
   >();
   products.forEach(product => {

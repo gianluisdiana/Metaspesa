@@ -1,5 +1,5 @@
 export interface ProductMessage {
-  productFormatUid: number;
+  productFormatUid: string;
   name: string;
   quantity?: string;
   price?: number;
@@ -7,13 +7,13 @@ export interface ProductMessage {
 }
 
 export interface ShoppingListMessage {
-  id?: number;
+  id?: string;
   products: ProductMessage[];
   name?: string;
 }
 
 export interface ShoppingListSummaryMessage {
-  id?: number;
+  id?: string;
   name?: string;
   isTemporary?: boolean;
 }

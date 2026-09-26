@@ -45,7 +45,7 @@ export type FormatResponse = {
     /**
      * Stable format ID used as the shopping-list item reference.
      */
-    id: number;
+    id: string;
     /**
      * Amount and unit sold in this format.
      */
@@ -71,7 +71,7 @@ export type IdResponse = {
     /**
      * Stable shopping list ID.
      */
-    id: number;
+    id: string;
 };
 
 /**
@@ -91,7 +91,7 @@ export type MarketResponse = {
     /**
      * Stable market ID used by the catalog marketId filter.
      */
-    id: number;
+    id: string;
     /**
      * Display name of the market.
      */
@@ -183,7 +183,7 @@ export type ProductResponse = {
     /**
      * Stable ID of this product.
      */
-    id: number;
+    id: string;
     /**
      * Product display name.
      */
@@ -209,7 +209,7 @@ export type PurchaseResponse = {
     /**
      * Stable purchase ID.
      */
-    purchaseId: number;
+    purchaseId: string;
 };
 
 /**
@@ -243,7 +243,7 @@ export type ShoppingItemRequest = {
     /**
      * ID of an existing product format.
      */
-    productFormatId: number;
+    productFormatId: string;
     /**
      * Positive number of units to buy.
      */
@@ -261,7 +261,7 @@ export type ShoppingItemResponse = {
     /**
      * Stable format ID used to update or remove this item.
      */
-    productFormatId: number;
+    productFormatId: string;
     /**
      * Product display name.
      */
@@ -313,7 +313,7 @@ export type ShoppingListResponse = {
     /**
      * Stable shopping list ID.
      */
-    id: number;
+    id: string;
     /**
      * List name, omitted for a temporary list.
      */
@@ -335,7 +335,7 @@ export type ShoppingListSummaryResponse = {
     /**
      * Stable shopping list ID.
      */
-    id: number;
+    id: string;
     /**
      * List name, omitted for a temporary list.
      */
@@ -353,7 +353,7 @@ export type ShoppingMarketResponse = {
     /**
      * Stable market ID.
      */
-    id: number;
+    id: string;
     /**
      * Market display name.
      */
@@ -608,9 +608,9 @@ export type GetProductsData = {
          */
         query?: string;
         /**
-         * Repeat to include products from several markets. IDs must be positive.
+         * Repeat to include products from several markets. IDs must be UUIDs.
          */
-        marketId?: Array<number>;
+        marketId?: Array<string>;
         /**
          * Case-insensitive brand-name fragment. Omit to include all brands.
          */
@@ -785,7 +785,7 @@ export type GetShoppingListData = {
         /**
          * ID of the shopping list to retrieve.
          */
-        listId: number;
+        listId: string;
     };
     query?: never;
     url: '/api/v1/shopping-lists/{listId}';
@@ -834,7 +834,7 @@ export type RenameShoppingListData = {
         /**
          * ID of the shopping list to rename.
          */
-        listId: number;
+        listId: string;
     };
     query?: never;
     url: '/api/v1/shopping-lists/{listId}';
@@ -887,7 +887,7 @@ export type AddShoppingItemsData = {
         /**
          * ID of the shopping list to update.
          */
-        listId: number;
+        listId: string;
     };
     query?: never;
     url: '/api/v1/shopping-lists/{listId}/items';
@@ -937,11 +937,11 @@ export type RemoveShoppingItemData = {
         /**
          * ID of the shopping list containing the item.
          */
-        listId: number;
+        listId: string;
         /**
          * ID of the item's product format.
          */
-        productFormatId: number;
+        productFormatId: string;
     };
     query?: never;
     url: '/api/v1/shopping-lists/{listId}/items/{productFormatId}';
@@ -990,11 +990,11 @@ export type UpdateShoppingItemData = {
         /**
          * ID of the shopping list containing the item.
          */
-        listId: number;
+        listId: string;
         /**
          * ID of the item's product format.
          */
-        productFormatId: number;
+        productFormatId: string;
     };
     query?: never;
     url: '/api/v1/shopping-lists/{listId}/items/{productFormatId}';
@@ -1040,7 +1040,7 @@ export type CheckoutShoppingListData = {
         /**
          * ID of the shopping list to check out.
          */
-        listId: number;
+        listId: string;
     };
     query?: never;
     url: '/api/v1/shopping-lists/{listId}/checkouts';

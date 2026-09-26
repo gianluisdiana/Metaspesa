@@ -24,8 +24,8 @@ function renderFilterHeader() {
   return render(
     <FilterHeader
       markets={[
-        { id: 1, name: 'Mercadona' },
-        { id: 2, name: 'Hiperdino' },
+        { id: '1', name: 'Mercadona' },
+        { id: '2', name: 'Hiperdino' },
       ]}
     />,
   );
@@ -90,8 +90,8 @@ describe('market filter header component', () => {
     rerender(
       <FilterHeader
         markets={[
-          { id: 1, name: 'Mercadona' },
-          { id: 2, name: 'Hiperdino' },
+          { id: '1', name: 'Mercadona' },
+          { id: '2', name: 'Hiperdino' },
         ]}
       />,
     );
@@ -108,8 +108,8 @@ describe('market filter header component', () => {
     rerender(
       <FilterHeader
         markets={[
-          { id: 1, name: 'Mercadona' },
-          { id: 2, name: 'Hiperdino' },
+          { id: '1', name: 'Mercadona' },
+          { id: '2', name: 'Hiperdino' },
         ]}
       />,
     );

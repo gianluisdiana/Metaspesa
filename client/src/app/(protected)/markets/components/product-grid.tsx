@@ -123,7 +123,7 @@ export default function ProductGrid({
   const filter: MarketFilter = useMemo(
     () => ({
       brand: brand || undefined,
-      marketId: marketIds ? marketIds.split(',').map(Number) : undefined,
+      marketId: marketIds ? marketIds.split(',') : undefined,
       page: 1,
       pageSize: PAGE_SIZE,
       query: query || undefined,

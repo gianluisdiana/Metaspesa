@@ -3,13 +3,13 @@ import AddToListModal from '@/app/(protected)/markets/components/add-to-list-mod
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const namedListId = 7;
+const namedListId = '00000000-0000-7000-8000-000000000007';
 
 function renderModal({
   onCreateList = vi.fn(),
   onSelectList = vi.fn(),
   shoppingListSummaries = [
-    { id: 9, isTemporary: true },
+    { id: '00000000-0000-7000-8000-000000000009', isTemporary: true },
     { id: namedListId, isTemporary: false, name: 'Weekly' },
   ],
 } = {}) {

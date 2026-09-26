@@ -58,13 +58,13 @@ describe('product grid component', () => {
           formats: [
             {
               currentPrice: { amount: 1.29, currency: 'EUR' },
-              id: 10,
+              id: '10',
               observedAt: '2026-08-20T00:00:00Z',
               quantity: { amount: 1, unit: 'l' },
             },
           ],
-          id: 41,
-          market: { id: 1, name: 'Mercadona' },
+          id: '41',
+          market: { id: '1', name: 'Mercadona' },
           name: 'Whole Milk',
         },
       ],
@@ -101,19 +101,19 @@ describe('product grid component', () => {
             formats: [
               {
                 currentPrice: { amount: 1.29, currency: 'EUR' },
-                id: 10,
+                id: '10',
                 observedAt: '2026-08-20T00:00:00Z',
                 quantity: { amount: 1, unit: 'l' },
               },
               {
                 currentPrice: { amount: 2.29, currency: 'EUR' },
-                id: 11,
+                id: '11',
                 observedAt: '2026-08-20T00:00:00Z',
                 quantity: { amount: 2, unit: 'l' },
               },
             ],
-            id: 41,
-            market: { id: 1, name: 'Mercadona' },
+            id: '41',
+            market: { id: '1', name: 'Mercadona' },
             name: 'Whole Milk',
           },
         ]}

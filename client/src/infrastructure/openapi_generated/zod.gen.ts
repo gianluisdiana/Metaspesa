@@ -21,14 +21,14 @@ export const zCredentialsRequest = z.object({
  * Identifier of a newly created shopping list.
  */
 export const zIdResponse = z.object({
-    id: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+    id: z.uuid()
 });
 
 /**
  * Market identity and display information.
  */
 export const zMarketResponse = z.object({
-    id: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    id: z.uuid(),
     name: z.string(),
     logoUrl: z.string().nullish()
 });
@@ -65,7 +65,7 @@ export const zProblemDetails = z.object({
  * Identifier of a recorded purchase.
  */
 export const zPurchaseResponse = z.object({
-    purchaseId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+    purchaseId: z.uuid()
 });
 
 /**
@@ -80,7 +80,7 @@ export const zQuantityResponse = z.object({
  * Purchasable product format with its latest price observation.
  */
 export const zFormatResponse = z.object({
-    id: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    id: z.uuid(),
     quantity: zQuantityResponse,
     currentPrice: zMoneyResponse,
     observedAt: z.iso.datetime(),
@@ -91,7 +91,7 @@ export const zFormatResponse = z.object({
  * One market-owned product. IDs do not imply cross-market equivalence.
  */
 export const zProductResponse = z.object({
-    id: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    id: z.uuid(),
     name: z.string(),
     brand: z.string(),
     market: zMarketResponse,
@@ -120,7 +120,7 @@ export const zRenameShoppingListRequest = z.object({
  * One product format to add to a shopping list.
  */
 export const zShoppingItemRequest = z.object({
-    productFormatId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    productFormatId: z.uuid(),
     amount: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     checked: z.boolean()
 });
@@ -136,7 +136,7 @@ export const zAddShoppingItemsRequest = z.object({
  * Shopping list identity and display information.
  */
 export const zShoppingListSummaryResponse = z.object({
-    id: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    id: z.uuid(),
     name: z.string().nullable(),
     isTemporary: z.boolean()
 });
@@ -152,7 +152,7 @@ export const zShoppingListCollectionResponse = z.object({
  * Market that sells a shopping item.
  */
 export const zShoppingMarketResponse = z.object({
-    id: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    id: z.uuid(),
     name: z.string()
 });
 
@@ -176,7 +176,7 @@ export const zShoppingQuantityResponse = z.object({
  * Shopping item with current product and price information.
  */
 export const zShoppingItemResponse = z.object({
-    productFormatId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    productFormatId: z.uuid(),
     productName: z.string(),
     brand: z.string(),
     market: zShoppingMarketResponse,
@@ -191,7 +191,7 @@ export const zShoppingItemResponse = z.object({
  * Shopping list and its current items.
  */
 export const zShoppingListResponse = z.object({
-    id: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    id: z.uuid(),
     name: z.string().nullable(),
     isTemporary: z.boolean(),
     items: z.array(zShoppingItemResponse)
@@ -265,7 +265,7 @@ export const zGetMarketsResponse = zMarketListResponse;
 
 export const zGetProductsQuery = z.object({
     query: z.string().optional(),
-    marketId: z.array(z.int().gte(1)).optional(),
+    marketId: z.array(z.uuid()).optional(),
     brand: z.string().optional(),
     page: z.int().gte(1).optional().default(1),
     pageSize: z.int().gte(1).lte(100).optional().default(24),
@@ -312,7 +312,7 @@ export const zCreateShoppingListBody = zCreateShoppingListRequest;
 export const zCreateShoppingListResponse = zIdResponse;
 
 export const zGetShoppingListPath = z.object({
-    listId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+    listId: z.uuid()
 });
 
 /**
@@ -326,7 +326,7 @@ export const zGetShoppingListResponse = zShoppingListResponse;
 export const zRenameShoppingListBody = zRenameShoppingListRequest;
 
 export const zRenameShoppingListPath = z.object({
-    listId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+    listId: z.uuid()
 });
 
 /**
@@ -340,7 +340,7 @@ export const zRenameShoppingListResponse = z.void();
 export const zAddShoppingItemsBody = zAddShoppingItemsRequest;
 
 export const zAddShoppingItemsPath = z.object({
-    listId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+    listId: z.uuid()
 });
 
 /**
@@ -349,8 +349,8 @@ export const zAddShoppingItemsPath = z.object({
 export const zAddShoppingItemsResponse = z.void();
 
 export const zRemoveShoppingItemPath = z.object({
-    listId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
-    productFormatId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+    listId: z.uuid(),
+    productFormatId: z.uuid()
 });
 
 /**
@@ -364,8 +364,8 @@ export const zRemoveShoppingItemResponse = z.void();
 export const zUpdateShoppingItemBody = zUpdateShoppingItemRequest;
 
 export const zUpdateShoppingItemPath = z.object({
-    listId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
-    productFormatId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+    listId: z.uuid(),
+    productFormatId: z.uuid()
 });
 
 /**
@@ -374,7 +374,7 @@ export const zUpdateShoppingItemPath = z.object({
 export const zUpdateShoppingItemResponse = z.void();
 
 export const zCheckoutShoppingListPath = z.object({
-    listId: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+    listId: z.uuid()
 });
 
 /**
