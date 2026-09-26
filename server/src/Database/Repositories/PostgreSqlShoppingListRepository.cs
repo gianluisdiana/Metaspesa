@@ -6,6 +6,7 @@ using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.SharedKernel;
 using Metaspesa.Domain.Shopping;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Metaspesa.Database.Repositories;
 
@@ -110,6 +111,68 @@ internal class PostgreSqlShoppingListRepository(
       entity.Items.Add(ToEntity(addition));
     }
   }, "Couldn't update shopping list.");
+
+  public async Task SaveAsync(
+    ShoppingList shoppingList, CancellationToken cancellationToken
+  ) {
+    Guid listId = shoppingList.Id.Value;
+    string? name = shoppingList.Name?.Value;
+    Guid[] ownerIds = [.. shoppingList.OwnerIds.Select(owner => owner.Value)];
+    ShoppingItem[] items = [.. shoppingList.Items];
+
+    var itemIds = new Guid[items.Length];
+    var productFormatIds = new Guid[items.Length];
+    int[] amounts = new int[items.Length];
+    bool[] checkedStates = new bool[items.Length];
+
+    for (int i = 0; i < items.Length; i++) {
+      ShoppingItem item = items[i];
+
+      itemIds[i] = Uid.Create();
+      productFormatIds[i] = item.ProductFormatId.Value;
+      amounts[i] = item.Amount.Value;
+      checkedStates[i] = item.IsChecked;
+    }
+
+    await using IDbContextTransaction transaction = await context.Database
+      .BeginTransactionAsync(cancellationToken);
+
+    await context.Database.ExecuteSqlInterpolatedAsync($"""
+      INSERT INTO shopping.shopping_lists (
+        id, name, is_temporary, deleted_at
+      )
+      VALUES (
+        {listId}, {name}, {shoppingList.IsTemporary}, {shoppingList.DeletedAt}
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        name = EXCLUDED.name,
+        is_temporary = EXCLUDED.is_temporary,
+        deleted_at = EXCLUDED.deleted_at;
+
+      DELETE FROM shopping.shopping_list_ownerships
+      WHERE shopping_list_id = {listId};
+
+      INSERT INTO shopping.shopping_list_ownerships (
+        shopping_list_id, user_uid
+      )
+      SELECT {listId}, owner_id
+      FROM unnest({ownerIds}) AS owners(owner_id);
+
+      DELETE FROM shopping.shopping_items
+      WHERE shopping_list_id = {listId};
+
+      INSERT INTO shopping.shopping_items (
+        id, shopping_list_id, product_format_id, amount, is_checked, deleted_at
+      )
+      SELECT
+        item_id, {listId}, product_format_id, amount, is_checked, NULL
+      FROM unnest(
+        {itemIds}, {productFormatIds}, {amounts}, {checkedStates}
+      ) AS items(item_id, product_format_id, amount, is_checked);
+      """, cancellationToken);
+
+    await transaction.CommitAsync(cancellationToken);
+  }
 
   private static ShoppingList ToDomain(ShoppingListDbEntity entity) =>
     ShoppingList.Rehydrate(

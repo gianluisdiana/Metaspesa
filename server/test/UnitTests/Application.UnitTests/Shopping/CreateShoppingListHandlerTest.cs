@@ -1,5 +1,4 @@
 using Metaspesa.Application.Abstractions.Shopping;
-using Metaspesa.Domain.SharedKernel;
 using Metaspesa.Domain.Shopping;
 using Metaspesa.Domain.Shopping.Errors;
 using NSubstitute;
@@ -31,7 +30,7 @@ public class CreateShoppingListHandlerTest {
   }
 
   [Fact]
-  public async Task Handle_AddsShoppingList_IfItDoesNotExist() {
+  public async Task Handle_SavesShoppingList_IfItDoesNotExist() {
     var command = new Command(Guid.CreateVersion7(), "Weekly");
     _repository.ExistsAsync(Arg.Any<Guid>(),
         Arg.Any<string?>(), TestContext.Current.CancellationToken)
@@ -39,7 +38,7 @@ public class CreateShoppingListHandlerTest {
 
     await _handler.Handle(command, TestContext.Current.CancellationToken);
 
-    await _repository.Received(1).AddAsync(
+    await _repository.Received(1).SaveAsync(
       Arg.Is<ShoppingList>(list =>
         list.OwnerIds.Single().Value == command.UserUid &&
         list.Name == new ShoppingListName(command.ShoppingListName!)),
@@ -47,17 +46,14 @@ public class CreateShoppingListHandlerTest {
   }
 
   [Fact]
-  public async Task Handle_ReturnsPersistedIdForNamedList() {
+  public async Task Handle_ReturnsIdFromNewList() {
     var command = new Command(Guid.CreateVersion7(), "Weekly");
 
-    Guid expectedId = Uid.Create();
-    _repository
-      .AddAsync(Arg.Any<ShoppingList>(), TestContext.Current.CancellationToken)
-      .Returns(expectedId);
+    Guid id = await _handler.Handle(
+      command, TestContext.Current.CancellationToken);
 
-    Guid id = await _handler.Handle(command,
+    await _repository.Received(1).SaveAsync(
+      Arg.Is<ShoppingList>(list => list.Id.Value == id),
       TestContext.Current.CancellationToken);
-
-    Assert.Equal(expectedId, id);
   }
 }

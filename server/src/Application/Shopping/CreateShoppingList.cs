@@ -7,9 +7,7 @@ namespace Metaspesa.Application.Shopping;
 public static class CreateShoppingList {
   public record Command(Guid UserUid, string? ShoppingListName);
 
-  public class Handler(
-    IShoppingListRepository shoppingListRepository
-  ) {
+  public class Handler(IShoppingListRepository repository) {
     public async Task<Guid> Handle(
       Command command, CancellationToken cancellationToken = default
     ) {
@@ -18,12 +16,14 @@ public static class CreateShoppingList {
       Guid ownerId = command.UserUid;
       string? name = command.ShoppingListName;
 
-      if (await shoppingListRepository.ExistsAsync(ownerId, name, cancellationToken)) {
+      if (await repository.ExistsAsync(ownerId, name, cancellationToken)) {
         throw new ShoppingListAlreadyExistsException(ownerId, name);
       }
 
       var shoppingList = ShoppingList.Create(ownerId, name);
-      return await shoppingListRepository.AddAsync(shoppingList, cancellationToken);
+      await repository.SaveAsync(shoppingList, cancellationToken);
+
+      return shoppingList.Id.Value;
     }
   }
 }

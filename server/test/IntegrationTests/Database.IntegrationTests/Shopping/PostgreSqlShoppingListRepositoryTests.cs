@@ -198,6 +198,399 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
     Assert.False(exists);
   }
 
+  [Fact(DisplayName = "Saves complete aggregate snapshot")]
+  public async Task SaveAsync_PersistsCompleteAggregateSnapshot() {
+    UserId ownerId = await SeedUserAsync();
+    ProductFormatId milkId = await SeedProductFormatAsync("Milk");
+    ProductFormatId breadId = await SeedProductFormatAsync("Bread");
+    var list = ShoppingList.Create(ownerId, new ShoppingListName("Weekly"));
+    list.AddItem(milkId, new PositiveAmount(2), true);
+    list.AddItem(breadId, new PositiveAmount(1), false);
+
+    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+
+    var persisted = new {
+      List = await _context.ShoppingLists
+        .AsNoTracking()
+        .Where(row => row.Id == list.Id.Value)
+        .Select(row => new {
+          row.Id,
+          row.Name,
+          row.IsTemporary,
+          row.DeletedAt,
+        })
+        .SingleAsync(TestContext.Current.CancellationToken),
+      Owners = await _context.ShoppingListOwnerships
+        .AsNoTracking()
+        .Where(row => row.ShoppingListId == list.Id.Value)
+        .Select(row => row.UserUid)
+        .OrderBy(id => id)
+        .ToArrayAsync(TestContext.Current.CancellationToken),
+      Items = await _context.ShoppingItems
+        .AsNoTracking()
+        .Where(row => row.ShoppingListId == list.Id.Value)
+        .OrderBy(row => row.ProductFormatId)
+        .Select(row => new {
+          row.ProductFormatId,
+          row.Amount,
+          row.IsChecked,
+          row.DeletedAt,
+        })
+        .ToArrayAsync(TestContext.Current.CancellationToken),
+    };
+    var expected = new {
+      List = new {
+        Id = list.Id.Value,
+        Name = "Weekly",
+        IsTemporary = false,
+        DeletedAt = (DateTime?)null,
+      },
+      Owners = new[] { ownerId.Value },
+      Items = new[] {
+        new {
+          ProductFormatId = milkId.Value,
+          Amount = 2,
+          IsChecked = true,
+          DeletedAt = (DateTime?)null,
+        },
+        new {
+          ProductFormatId = breadId.Value,
+          Amount = 1,
+          IsChecked = false,
+          DeletedAt = (DateTime?)null,
+        },
+      }.OrderBy(item => item.ProductFormatId).ToArray(),
+    };
+
+    Assert.Equivalent(expected, persisted, strict: true);
+  }
+
+  [Fact(DisplayName = "Updates existing root without creating another root")]
+  public async Task SaveAsync_UpdatesExistingRoot() {
+    UserId ownerId = await SeedUserAsync();
+    var list = ShoppingList.Create(ownerId, new ShoppingListName("Original"));
+    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+    list.Rename(new ShoppingListName("Renamed"));
+
+    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+
+    string?[] persistedNames = await _context.ShoppingLists
+      .AsNoTracking()
+      .Where(row => row.Id == list.Id.Value)
+      .Select(row => row.Name)
+      .ToArrayAsync(TestContext.Current.CancellationToken);
+    string?[] expectedNames = ["Renamed"];
+    Assert.Equal(expectedNames, persistedNames);
+  }
+
+  [Fact(DisplayName = "Physically removes ownership absent from aggregate")]
+  public async Task SaveAsync_RemovesOwnershipAbsentFromAggregate() {
+    UserId retainedOwnerId = await SeedUserAsync();
+    UserId removedOwnerId = await SeedUserAsync();
+    var original = ShoppingList.Rehydrate(
+      new ShoppingListId(Uid.Create()),
+      [retainedOwnerId, removedOwnerId],
+      new ShoppingListName("Shared"),
+      null,
+      []);
+    await _repository.SaveAsync(original, TestContext.Current.CancellationToken);
+    var replacement = ShoppingList.Rehydrate(
+      original.Id,
+      [retainedOwnerId],
+      original.Name,
+      original.DeletedAt,
+      original.Items);
+
+    await _repository.SaveAsync(replacement, TestContext.Current.CancellationToken);
+
+    Guid[] persistedOwners = await _context.ShoppingListOwnerships
+      .AsNoTracking()
+      .Where(row => row.ShoppingListId == original.Id.Value)
+      .Select(row => row.UserUid)
+      .ToArrayAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(new[] { retainedOwnerId.Value }, persistedOwners);
+  }
+
+  [Fact(DisplayName = "Inserts ownership added to aggregate")]
+  public async Task SaveAsync_InsertsOwnershipAddedToAggregate() {
+    UserId originalOwnerId = await SeedUserAsync();
+    UserId addedOwnerId = await SeedUserAsync();
+    var original = ShoppingList.Create(
+      originalOwnerId, new ShoppingListName("Shared"));
+    await _repository.SaveAsync(original, TestContext.Current.CancellationToken);
+    var replacement = ShoppingList.Rehydrate(
+      original.Id,
+      [originalOwnerId, addedOwnerId],
+      original.Name,
+      original.DeletedAt,
+      original.Items);
+
+    await _repository.SaveAsync(replacement, TestContext.Current.CancellationToken);
+
+    Guid[] persistedOwners = await _context.ShoppingListOwnerships
+      .AsNoTracking()
+      .Where(row => row.ShoppingListId == original.Id.Value)
+      .Select(row => row.UserUid)
+      .OrderBy(id => id)
+      .ToArrayAsync(TestContext.Current.CancellationToken);
+    Guid[] expectedOwners =
+      [.. new[] { originalOwnerId.Value, addedOwnerId.Value }.Order()];
+    Assert.Equal(expectedOwners, persistedOwners);
+  }
+
+  [Fact(DisplayName = "Physically removes item absent from aggregate")]
+  public async Task SaveAsync_RemovesItemAbsentFromAggregate() {
+    UserId ownerId = await SeedUserAsync();
+    ProductFormatId retainedFormatId = await SeedProductFormatAsync("Bread");
+    ProductFormatId removedFormatId = await SeedProductFormatAsync("Milk");
+    var list = ShoppingList.Create(ownerId, new ShoppingListName("Weekly"));
+    list.AddItem(retainedFormatId, new PositiveAmount(1), false);
+    list.AddItem(removedFormatId, new PositiveAmount(1), false);
+    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+    list.RemoveItem(removedFormatId);
+
+    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+
+    Guid[] persistedFormats = await _context.ShoppingItems
+      .AsNoTracking()
+      .Where(row => row.ShoppingListId == list.Id.Value)
+      .Select(row => row.ProductFormatId)
+      .ToArrayAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(new[] { retainedFormatId.Value }, persistedFormats);
+  }
+
+  [Fact(DisplayName = "Persists item added to aggregate")]
+  public async Task SaveAsync_PersistsItemAddedToAggregate() {
+    UserId ownerId = await SeedUserAsync();
+    ProductFormatId formatId = await SeedProductFormatAsync("Milk");
+    var list = ShoppingList.Create(ownerId, new ShoppingListName("Weekly"));
+    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+    list.AddItem(formatId, new PositiveAmount(2), true);
+
+    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+
+    var persistedItem = await _context.ShoppingItems
+      .AsNoTracking()
+      .Where(row => row.ShoppingListId == list.Id.Value)
+      .Select(row => new {
+        row.ProductFormatId,
+        row.Amount,
+        row.IsChecked,
+      })
+      .SingleAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(new {
+      ProductFormatId = formatId.Value,
+      Amount = 2,
+      IsChecked = true,
+    }, persistedItem);
+  }
+
+  [Fact(DisplayName = "Persists changed item amount and checked state")]
+  public async Task SaveAsync_PersistsChangedItemState() {
+    UserId ownerId = await SeedUserAsync();
+    ProductFormatId formatId = await SeedProductFormatAsync("Milk");
+    var list = ShoppingList.Create(ownerId, new ShoppingListName("Weekly"));
+    list.AddItem(formatId, new PositiveAmount(1), false);
+    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+    list.UpdateItem(formatId, new PositiveAmount(4), true);
+
+    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+
+    var persistedState = await _context.ShoppingItems
+      .AsNoTracking()
+      .Where(row => row.ShoppingListId == list.Id.Value)
+      .Select(row => new { row.Amount, row.IsChecked })
+      .SingleAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(new { Amount = 4, IsChecked = true }, persistedState);
+  }
+
+  [Fact(DisplayName = "Deletes every item when aggregate has no items")]
+  public async Task SaveAsync_DeletesAllItems_WhenAggregateHasNoItems() {
+    UserId ownerId = await SeedUserAsync();
+    ProductFormatId formatId = await SeedProductFormatAsync("Milk");
+    var list = ShoppingList.Create(ownerId, new ShoppingListName("Weekly"));
+    list.AddItem(formatId, new PositiveAmount(1), false);
+    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+    list.RemoveItem(formatId);
+
+    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+
+    int persistedItemCount = await _context.ShoppingItems
+      .AsNoTracking()
+      .CountAsync(row => row.ShoppingListId == list.Id.Value,
+        TestContext.Current.CancellationToken);
+    Assert.Equal(0, persistedItemCount);
+  }
+
+  [Fact(DisplayName = "Rolls back entire snapshot when child insert fails")]
+  public async Task SaveAsync_RollsBackAggregate_WhenChildInsertFails() {
+    UserId ownerId = await SeedUserAsync();
+    ProductFormatId formatId = await SeedProductFormatAsync("Milk");
+    var original = ShoppingList.Create(
+      ownerId, new ShoppingListName("Original"));
+    original.AddItem(formatId, new PositiveAmount(2), false);
+    await _repository.SaveAsync(original, TestContext.Current.CancellationToken);
+    var invalidReplacement = ShoppingList.Rehydrate(
+      original.Id,
+      original.OwnerIds,
+      new ShoppingListName("Replacement"),
+      original.DeletedAt,
+      [new ShoppingItem(
+        new ProductFormatId(Guid.CreateVersion7()),
+        new PositiveAmount(9),
+        true)]);
+
+    Exception? exception = await Record.ExceptionAsync(() =>
+      _repository.SaveAsync(
+        invalidReplacement, TestContext.Current.CancellationToken));
+
+    var persisted = new {
+      SaveFailed = exception is not null,
+      ListName = await _context.ShoppingLists
+        .AsNoTracking()
+        .Where(row => row.Id == original.Id.Value)
+        .Select(row => row.Name)
+        .SingleAsync(TestContext.Current.CancellationToken),
+      Owners = await _context.ShoppingListOwnerships
+        .AsNoTracking()
+        .Where(row => row.ShoppingListId == original.Id.Value)
+        .Select(row => row.UserUid)
+        .ToArrayAsync(TestContext.Current.CancellationToken),
+      Items = await _context.ShoppingItems
+        .AsNoTracking()
+        .Where(row => row.ShoppingListId == original.Id.Value)
+        .Select(row => new {
+          row.ProductFormatId,
+          row.Amount,
+          row.IsChecked,
+        })
+        .ToArrayAsync(TestContext.Current.CancellationToken),
+    };
+    var expected = new {
+      SaveFailed = true,
+      ListName = (string?)"Original",
+      Owners = new[] { ownerId.Value },
+      Items = new[] {
+        new {
+          ProductFormatId = formatId.Value,
+          Amount = 2,
+          IsChecked = false,
+        },
+      },
+    };
+
+    Assert.Equivalent(expected, persisted, strict: true);
+  }
+
+  [Fact(DisplayName = "Saves temporary aggregate without items")]
+  public async Task SaveAsync_PersistsTemporaryEmptyAggregateSnapshot() {
+    UserId ownerId = await SeedUserAsync();
+    var list = ShoppingList.Create(ownerId, null);
+
+    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+
+    var persisted = await _context.ShoppingLists
+      .AsNoTracking()
+      .Where(row => row.Id == list.Id.Value)
+      .Select(row => new {
+        row.Name,
+        row.IsTemporary,
+        OwnerCount = row.Ownerships.Count,
+        ItemCount = row.Items.Count,
+      })
+      .SingleAsync(TestContext.Current.CancellationToken);
+    var expected = new {
+      Name = (string?)null,
+      IsTemporary = true,
+      OwnerCount = 1,
+      ItemCount = 0,
+    };
+
+    Assert.Equal(expected, persisted);
+  }
+
+  [Fact(DisplayName = "Overwrites all rows owned by aggregate")]
+  public async Task SaveAsync_OverwritesCompleteAggregateSnapshot() {
+    UserId oldOwnerId = await SeedUserAsync();
+    UserId newOwnerId = await SeedUserAsync();
+    UserId sharedOwnerId = await SeedUserAsync();
+    ProductFormatId removedFormatId = await SeedProductFormatAsync("Milk");
+    ProductFormatId retainedFormatId = await SeedProductFormatAsync("Bread");
+    var original = ShoppingList.Create(
+      oldOwnerId, new ShoppingListName("Original"));
+    original.AddItem(removedFormatId, new PositiveAmount(1), false);
+    original.AddItem(retainedFormatId, new PositiveAmount(2), false);
+    await _repository.SaveAsync(
+      original, TestContext.Current.CancellationToken);
+    Guid[] replacedItemIds = await _context.ShoppingItems
+      .AsNoTracking()
+      .Where(row => row.ShoppingListId == original.Id.Value)
+      .Select(row => row.Id)
+      .ToArrayAsync(TestContext.Current.CancellationToken);
+    DateTime deletedAt = RemovedAt.AddDays(1);
+    var replacement = ShoppingList.Rehydrate(
+      original.Id,
+      [newOwnerId, sharedOwnerId],
+      new ShoppingListName("Replacement"),
+      deletedAt,
+      [new ShoppingItem(retainedFormatId, new PositiveAmount(5), true)]);
+
+    await _repository.SaveAsync(
+      replacement, TestContext.Current.CancellationToken);
+
+    var persisted = new {
+      List = await _context.ShoppingLists
+        .AsNoTracking()
+        .Where(row => row.Id == replacement.Id.Value)
+        .Select(row => new {
+          row.Name,
+          row.IsTemporary,
+          row.DeletedAt,
+        })
+        .SingleAsync(TestContext.Current.CancellationToken),
+      Owners = await _context.ShoppingListOwnerships
+        .AsNoTracking()
+        .Where(row => row.ShoppingListId == replacement.Id.Value)
+        .Select(row => row.UserUid)
+        .OrderBy(id => id)
+        .ToArrayAsync(TestContext.Current.CancellationToken),
+      Items = await _context.ShoppingItems
+        .AsNoTracking()
+        .Where(row => row.ShoppingListId == replacement.Id.Value)
+        .Select(row => new {
+          row.Id,
+          row.ProductFormatId,
+          row.Amount,
+          row.IsChecked,
+          row.DeletedAt,
+        })
+        .ToArrayAsync(TestContext.Current.CancellationToken),
+      ReplacedItemsRemain = await _context.ShoppingItems
+        .AsNoTracking()
+        .AnyAsync(row => replacedItemIds.Contains(row.Id),
+          TestContext.Current.CancellationToken),
+    };
+    var expected = new {
+      List = new {
+        Name = "Replacement",
+        IsTemporary = false,
+        DeletedAt = (DateTime?)deletedAt,
+      },
+      Owners = new[] { newOwnerId.Value, sharedOwnerId.Value }.Order().ToArray(),
+      Items = new[] {
+        new { persisted.Items.Single().Id,
+          ProductFormatId = retainedFormatId.Value,
+          Amount = 5,
+          IsChecked = true,
+          DeletedAt = (DateTime?)null,
+        },
+      },
+      ReplacedItemsRemain = false,
+    };
+
+    Assert.Equivalent(expected, persisted, strict: true);
+  }
+
   [Fact(DisplayName = "Updates aggregate state")]
   public async Task UpdateAsync_PersistsRenameAddAndUpdate() {
     UserId ownerId = await SeedUserAsync();

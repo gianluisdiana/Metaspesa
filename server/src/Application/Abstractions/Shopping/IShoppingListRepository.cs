@@ -15,4 +15,5 @@ public interface IShoppingListRepository {
   Task<Guid> AddAsync(ShoppingList shoppingList, CancellationToken cancellationToken);
   Task UpdateAsync(
     ShoppingList shoppingList, CancellationToken cancellationToken);
+  Task SaveAsync(ShoppingList shoppingList, CancellationToken cancellationToken);
 }
