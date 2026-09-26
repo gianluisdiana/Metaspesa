@@ -1,6 +1,7 @@
 using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Database.Entities;
 using Metaspesa.Domain.Markets;
+using Metaspesa.Domain.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 
 namespace Metaspesa.Database.Repositories;
@@ -14,7 +15,7 @@ internal class PostgreSqlPriceSnapshotRepository(
     IReadOnlyCollection<ProductFormatId> productFormatIds,
     CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
-    int[] ids = [.. productFormatIds.Select(id => id.Value)];
+    Guid[] ids = [.. productFormatIds.Select(id => id.Value)];
     List<PriceSnapshotDbEntity> snapshots = await context.PriceSnapshots
       .AsNoTracking()
       .Where(snapshot => ids.Contains(snapshot.ProductFormatId))
@@ -48,6 +49,7 @@ internal class PostgreSqlPriceSnapshotRepository(
   ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
     IEnumerable<PriceSnapshotDbEntity[]> batches = observations
       .Select(observation => new PriceSnapshotDbEntity {
+        Id = Uid.Create(),
         ProductFormatId = observation.ProductFormatId.Value,
         PriceAmount = observation.Price.Amount,
         CurrencyCode = "EUR",

@@ -9,11 +9,13 @@ using static Metaspesa.Application.Shopping.RemoveItem;
 namespace Metaspesa.Application.UnitTests.Shopping;
 
 public class RemoveItemHandlerTest {
+  private static readonly Guid FormatId = Guid.CreateVersion7();
+
   [Fact(DisplayName = "Removes aggregate item and commits")]
   public async Task Handle_RemovesItemAndCommits() {
     var ownerId = Guid.CreateVersion7();
     ShoppingList list = ShoppingTestData.List(
-      ownerId, "Weekly", ShoppingTestData.Item(3));
+      ownerId, "Weekly", ShoppingTestData.Item(FormatId));
     IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
     repository.GetAsync(
       Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
@@ -22,7 +24,7 @@ public class RemoveItemHandlerTest {
     var handler = new Handler(repository, unitOfWork);
 
     await handler.Handle(
-      new Command(ownerId, 1, 3), TestContext.Current.CancellationToken);
+      new Command(ownerId, ShoppingTestData.ListId, FormatId), TestContext.Current.CancellationToken);
 
     Assert.Empty(list.Items);
     await repository.Received(1).UpdateAsync(list, TestContext.Current.CancellationToken);
@@ -36,7 +38,7 @@ public class RemoveItemHandlerTest {
     var handler = new Handler(repository, unitOfWork);
 
     await Assert.ThrowsAsync<ShoppingListNotFoundException>(() => handler.Handle(
-      new Command(Guid.CreateVersion7(), 1, 3),
+      new Command(Guid.CreateVersion7(), ShoppingTestData.ListId, FormatId),
       TestContext.Current.CancellationToken));
 
     await unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
@@ -54,7 +56,7 @@ public class RemoveItemHandlerTest {
     var handler = new Handler(repository, unitOfWork);
 
     await Assert.ThrowsAsync<ShoppingItemNotFoundException>(() => handler.Handle(
-      new Command(ownerId, 1, 3),
+      new Command(ownerId, ShoppingTestData.ListId, FormatId),
       TestContext.Current.CancellationToken));
 
     await repository.DidNotReceive().UpdateAsync(

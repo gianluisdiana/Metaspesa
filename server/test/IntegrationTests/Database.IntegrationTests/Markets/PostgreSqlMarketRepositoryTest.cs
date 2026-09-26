@@ -45,7 +45,7 @@ public class PostgreSqlMarketRepositoryTest : IAsyncLifetime {
       TestContext.Current.CancellationToken);
 
     Market market = Assert.Single(markets);
-    Assert.True(market.Id.Value > 0);
+    Assert.NotEqual(Guid.Empty, market.Id.Value);
     Assert.Equal(new MarketName("Mercadona"), market.Name);
     Assert.Null(market.LogoUrl);
   }
@@ -70,6 +70,7 @@ public class PostgreSqlMarketRepositoryTest : IAsyncLifetime {
   [Fact(DisplayName = "Maps market logo in summaries")]
   public async Task Repository_MapsLogo_InMarketSummary() {
     _context.SuperMarkets.Add(new SuperMarketDbEntity {
+      Id = Guid.CreateVersion7(),
       Name = "Mercadona",
       LogoUrl = "https://example.test/mercadona.png",
     });
@@ -80,7 +81,7 @@ public class PostgreSqlMarketRepositoryTest : IAsyncLifetime {
         TestContext.Current.CancellationToken);
 
     MarketSummary summary = Assert.Single(summaries);
-    Assert.True(summary.Id > 0);
+    Assert.NotEqual(Guid.Empty, summary.Id);
     Assert.Equal(new Uri("https://example.test/mercadona.png"), summary.LogoUrl);
   }
 
@@ -108,6 +109,7 @@ public class PostgreSqlMarketRepositoryTest : IAsyncLifetime {
     }
 
     _context.UnitsOfMeasure.Add(new UnitOfMeasureDbEntity {
+      Id = Guid.CreateVersion7(),
       Code = code,
       Name = $"Test unit {code}",
     });

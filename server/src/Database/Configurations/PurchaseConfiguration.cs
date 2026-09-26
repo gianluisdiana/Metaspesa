@@ -16,7 +16,7 @@ internal class PurchaseConfiguration : IEntityTypeConfiguration<PurchaseDbEntity
 
     builder.Property(e => e.Id)
       .HasColumnName("id")
-      .ValueGeneratedOnAdd();
+      .ValueGeneratedNever();
 
     builder.Property(e => e.UserUid)
       .HasColumnName("user_uid")

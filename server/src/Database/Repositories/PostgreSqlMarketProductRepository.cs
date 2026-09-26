@@ -13,13 +13,13 @@ internal partial class PostgreSqlMarketProductRepository(
   private const int BatchSize = 1_000;
 
   private readonly record struct ProductSource(
-    int ProductId, ProductImport Source);
+    Guid ProductId, ProductImport Source);
   private readonly record struct ProductInsert(
     ProductDbEntity Entity, ProductImport Source);
   private readonly record struct ProductFormatKey(
-    int ProductId,
+    Guid ProductId,
     decimal Quantity,
-    int UnitOfMeasureId
+    Guid UnitOfMeasureId
   );
 
   public async Task<Product?> GetByIdAsync(
@@ -49,7 +49,7 @@ internal partial class PostgreSqlMarketProductRepository(
         product.Name, $"%{EscapeLike(filter.NameSegment)}%", "\\"));
     }
     if (filter.MarketIds.Count > 0) {
-      int[] marketIds = [.. filter.MarketIds.Select(id => id.Value)];
+      Guid[] marketIds = [.. filter.MarketIds.Select(id => id.Value)];
       query = query.Where(product => marketIds.Contains(product.SuperMarketId));
     }
     if (!string.IsNullOrWhiteSpace(filter.BrandNameSegment)) {
@@ -102,8 +102,8 @@ internal partial class PostgreSqlMarketProductRepository(
     ], totalCount);
   }, "Couldn't get market products.");
 
-  public async Task<IReadOnlyDictionary<int, MarketProduct>> GetProductsAsync(
-    IReadOnlyCollection<int> productFormatIds,
+  public async Task<IReadOnlyDictionary<Guid, MarketProduct>> GetProductsAsync(
+    IReadOnlyCollection<Guid> productFormatIds,
     CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
     if (productFormatIds.Count == 0) {
@@ -151,7 +151,10 @@ internal partial class PostgreSqlMarketProductRepository(
     CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
     context.ProductBrands.AddRange(
-      brands.Select(brand => new ProductBrandDbEntity { Name = brand.Value }));
+      brands.Select(brand => new ProductBrandDbEntity {
+        Id = Uid.Create(),
+        Name = brand.Value,
+      }));
     await context.SaveChangesAsync(cancellationToken);
   }, "Couldn't add brands.");
 
@@ -166,10 +169,10 @@ internal partial class PostgreSqlMarketProductRepository(
     try {
       context.ChangeTracker.Clear();
 
-      int marketId = await GetMarketIdAsync(market.Name, cancellationToken);
-      Dictionary<string, int> brandLookup = await GetBrandLookupAsync(
+      Guid marketId = await GetMarketIdAsync(market.Name, cancellationToken);
+      Dictionary<string, Guid> brandLookup = await GetBrandLookupAsync(
         market.Products, cancellationToken);
-      Dictionary<(string Name, int BrandId), int> existingProducts =
+      Dictionary<(string Name, Guid BrandId), Guid> existingProducts =
         await GetExistingProductLookupAsync(marketId, cancellationToken);
 
       (List<ProductSource> productSources, List<ProductId> addedProductIds) =
@@ -180,10 +183,10 @@ internal partial class PostgreSqlMarketProductRepository(
           existingProducts,
           cancellationToken);
 
-      Dictionary<string, int> unitLookup = await GetUnitLookupAsync(
+      Dictionary<string, Guid> unitLookup = await GetUnitLookupAsync(
         cancellationToken);
       (
-        Dictionary<ProductFormatKey, int> formatLookup,
+        Dictionary<ProductFormatKey, Guid> formatLookup,
         IReadOnlyCollection<ProductFormatId> addedProductFormatIds
       ) = await ResolveProductFormatsAsync(
         productSources, unitLookup, cancellationToken);
@@ -203,7 +206,7 @@ internal partial class PostgreSqlMarketProductRepository(
     CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
     string[] names = [.. brandNames.Select(name => name.Value)];
-    List<int> productIds = await context.Products
+    List<Guid> productIds = await context.Products
       .Where(product => names.Contains(product.Brand.Name))
       .Select(product => product.Id)
       .ToListAsync(cancellationToken);
@@ -225,7 +228,7 @@ internal partial class PostgreSqlMarketProductRepository(
     IReadOnlyCollection<ProductFormatId> productFormatIds,
     CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
-    int[] ids = [.. productFormatIds.Select(id => id.Value)];
+    Guid[] ids = [.. productFormatIds.Select(id => id.Value)];
     await context.PriceSnapshots
       .Where(snapshot => ids.Contains(snapshot.ProductFormatId))
       .ExecuteDeleteAsync(cancellationToken);
@@ -260,7 +263,7 @@ internal partial class PostgreSqlMarketProductRepository(
       format.Id);
   }
 
-  private async Task<int> GetMarketIdAsync(
+  private async Task<Guid> GetMarketIdAsync(
     MarketName marketName,
     CancellationToken cancellationToken
   ) => await context.SuperMarkets
@@ -268,7 +271,7 @@ internal partial class PostgreSqlMarketProductRepository(
     .Select(market => market.Id)
     .SingleAsync(cancellationToken);
 
-  private async Task<Dictionary<string, int>> GetBrandLookupAsync(
+  private async Task<Dictionary<string, Guid>> GetBrandLookupAsync(
     IReadOnlyCollection<ProductImport> products,
     CancellationToken cancellationToken
   ) {
@@ -284,38 +287,39 @@ internal partial class PostgreSqlMarketProductRepository(
         cancellationToken);
   }
 
-  private async Task<Dictionary<(string Name, int BrandId), int>>
+  private async Task<Dictionary<(string Name, Guid BrandId), Guid>>
     GetExistingProductLookupAsync(
-      int marketId,
+      Guid marketId,
       CancellationToken cancellationToken
     ) => await context.Products
       .Where(product => product.SuperMarketId == marketId)
       .ToDictionaryAsync(
-        product => new ValueTuple<string, int>(product.Name, product.BrandId),
+        product => new ValueTuple<string, Guid>(product.Name, product.BrandId),
         product => product.Id,
         cancellationToken);
 
   private async Task<(List<ProductSource> Sources, List<ProductId> AddedProductIds)>
     ResolveProductSourcesAsync(
       IReadOnlyCollection<ProductImport> products,
-      int marketId,
-      Dictionary<string, int> brandLookup,
-      Dictionary<(string Name, int BrandId), int> existingProducts,
+      Guid marketId,
+      Dictionary<string, Guid> brandLookup,
+      Dictionary<(string Name, Guid BrandId), Guid> existingProducts,
       CancellationToken cancellationToken
     ) {
     var toInsert = new List<ProductInsert>();
     var sources = new List<ProductSource>();
 
     foreach (ProductImport product in products) {
-      int brandId = brandLookup[product.Brand.Value];
+      Guid brandId = brandLookup[product.Brand.Value];
       if (existingProducts.TryGetValue(
-        (product.Name.Value, brandId), out int existingId)) {
+        (product.Name.Value, brandId), out Guid existingId)) {
         sources.Add(new ProductSource(existingId, product));
         continue;
       }
 
       toInsert.Add(new ProductInsert(
         new ProductDbEntity {
+          Id = Uid.Create(),
           Name = product.Name.Value,
           SuperMarketId = marketId,
           BrandId = brandId,
@@ -353,7 +357,7 @@ internal partial class PostgreSqlMarketProductRepository(
     return sources;
   }
 
-  private async Task<Dictionary<string, int>> GetUnitLookupAsync(
+  private async Task<Dictionary<string, Guid>> GetUnitLookupAsync(
     CancellationToken cancellationToken
   ) => await context.UnitsOfMeasure
     .AsNoTracking()
@@ -364,19 +368,19 @@ internal partial class PostgreSqlMarketProductRepository(
       cancellationToken);
 
   private async Task<(
-    Dictionary<ProductFormatKey, int> FormatLookup,
+    Dictionary<ProductFormatKey, Guid> FormatLookup,
     IReadOnlyCollection<ProductFormatId> AddedProductFormatIds
   )> ResolveProductFormatsAsync(
     IReadOnlyCollection<ProductSource> productSources,
-    IReadOnlyDictionary<string, int> unitLookup,
+    IReadOnlyDictionary<string, Guid> unitLookup,
     CancellationToken cancellationToken
   ) {
-    Dictionary<ProductFormatKey, int> formatLookup =
+    Dictionary<ProductFormatKey, Guid> formatLookup =
       await GetExistingProductFormatLookupAsync(
         productSources, cancellationToken);
     List<ProductFormatDbEntity> missingFormats = BuildMissingProductFormats(
       productSources, unitLookup, formatLookup);
-    IDictionary<ProductFormatKey, int> newFormats = await AddProductFormatsAsync(
+    IDictionary<ProductFormatKey, Guid> newFormats = await AddProductFormatsAsync(
       missingFormats, cancellationToken);
 
     return (
@@ -385,12 +389,12 @@ internal partial class PostgreSqlMarketProductRepository(
       [.. newFormats.Values.Select(id => new ProductFormatId(id))]);
   }
 
-  private async Task<Dictionary<ProductFormatKey, int>>
+  private async Task<Dictionary<ProductFormatKey, Guid>>
     GetExistingProductFormatLookupAsync(
       IReadOnlyCollection<ProductSource> productSources,
       CancellationToken cancellationToken
     ) {
-    int[] productIds = [
+    Guid[] productIds = [
       ..productSources.Select(source => source.ProductId).Distinct()
     ];
 
@@ -413,8 +417,8 @@ internal partial class PostgreSqlMarketProductRepository(
 
   private static List<ProductFormatDbEntity> BuildMissingProductFormats(
     IEnumerable<ProductSource> productSources,
-    IReadOnlyDictionary<string, int> unitLookup,
-    IReadOnlyDictionary<ProductFormatKey, int> existingFormatLookup
+    IReadOnlyDictionary<string, Guid> unitLookup,
+    IReadOnlyDictionary<ProductFormatKey, Guid> existingFormatLookup
   ) {
     var missingFormats = new Dictionary<ProductFormatKey, ProductFormatDbEntity>();
 
@@ -428,6 +432,7 @@ internal partial class PostgreSqlMarketProductRepository(
         }
 
         missingFormats[key] = new ProductFormatDbEntity {
+          Id = Uid.Create(),
           ProductId = key.ProductId,
           Quantity = key.Quantity,
           UnitOfMeasureId = key.UnitOfMeasureId,
@@ -439,11 +444,11 @@ internal partial class PostgreSqlMarketProductRepository(
     return [.. missingFormats.Values];
   }
 
-  private async Task<IDictionary<ProductFormatKey, int>> AddProductFormatsAsync(
+  private async Task<IDictionary<ProductFormatKey, Guid>> AddProductFormatsAsync(
     IReadOnlyCollection<ProductFormatDbEntity> formats,
     CancellationToken cancellationToken
   ) {
-    var newFormatLookup = new Dictionary<ProductFormatKey, int>();
+    var newFormatLookup = new Dictionary<ProductFormatKey, Guid>();
     IEnumerable<List<ProductFormatDbEntity>> batches = formats
       .Chunk(BatchSize)
       .Select(batch => batch.ToList());
@@ -467,8 +472,8 @@ internal partial class PostgreSqlMarketProductRepository(
 
   private static IReadOnlyCollection<PriceObservation> BuildPriceObservations(
     IEnumerable<ProductSource> productSources,
-    IReadOnlyDictionary<string, int> unitLookup,
-    IReadOnlyDictionary<ProductFormatKey, int> formatLookup,
+    IReadOnlyDictionary<string, Guid> unitLookup,
+    IReadOnlyDictionary<ProductFormatKey, Guid> formatLookup,
     DateTime observedAt
   ) => [
     ..productSources.SelectMany(productSource =>
@@ -483,16 +488,16 @@ internal partial class PostgreSqlMarketProductRepository(
   ];
 
   private static ProductFormatKey ToProductFormatKey(
-    int productId,
+    Guid productId,
     ProductFormatImport format,
-    IReadOnlyDictionary<string, int> unitLookup
+    IReadOnlyDictionary<string, Guid> unitLookup
   ) => new(
     productId,
     format.Quantity.Amount,
     unitLookup[format.Quantity.UnitOfMeasure.Value]);
 
   private async Task DeleteProductsByIdsAsync(
-    IReadOnlyCollection<int> productIds,
+    IReadOnlyCollection<Guid> productIds,
     CancellationToken cancellationToken
   ) {
     await context.PriceSnapshots

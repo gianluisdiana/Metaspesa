@@ -9,5 +9,5 @@ namespace Metaspesa.RestApi.Markets.GetProducts;
 /// <param name="Market">Market that owns this product.</param>
 /// <param name="Formats">Available quantities and their latest observed prices.</param>
 internal sealed record ProductResponse(
-  int Id, string Name, string Brand, MarketResponse Market,
+  Guid Id, string Name, string Brand, MarketResponse Market,
   IReadOnlyCollection<FormatResponse> Formats);

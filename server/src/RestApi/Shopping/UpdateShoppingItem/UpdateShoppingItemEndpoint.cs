@@ -7,7 +7,7 @@ internal static class UpdateShoppingItemEndpoint {
   public static IEndpointRouteBuilder MapUpdateShoppingItemEndpoint(
     this IEndpointRouteBuilder endpoints
   ) {
-    endpoints.MapPatch("/{listId:int}/items/{productFormatId:int}", UpdateItemAsync)
+    endpoints.MapPatch("/{listId:guid}/items/{productFormatId:guid}", UpdateItemAsync)
       .WithName("UpdateShoppingItem")
       .Produces(StatusCodes.Status204NoContent)
       .ProducesProblem(StatusCodes.Status400BadRequest)
@@ -34,7 +34,7 @@ internal static class UpdateShoppingItemEndpoint {
   /// <response code="403">The authenticated user lacks the Shopper role.</response>
   /// <response code="500">An unexpected server or database failure occurred.</response>
   internal static async Task<IResult> UpdateItemAsync(
-    int listId, int productFormatId, UpdateShoppingItemRequest request,
+    Guid listId, Guid productFormatId, UpdateShoppingItemRequest request,
     HttpContext context, UpdateItem.Handler handler,
     CancellationToken cancellationToken
   ) {

@@ -13,8 +13,10 @@ namespace Metaspesa.RestApi.UnitTests.Shopping;
 internal static class ShoppingEndpointTestData {
   internal static readonly Guid OwnerUid =
     Guid.Parse("e5740719-bf47-4f79-9005-0dd70c522f14");
-  internal const int ListId = 17;
-  internal const int FormatId = 31;
+  internal static readonly Guid ListId = Guid.CreateVersion7();
+  internal static readonly Guid FormatId = Guid.CreateVersion7();
+  internal static readonly Guid OtherFormatId = Guid.CreateVersion7();
+  internal static readonly Guid MarketUid = Guid.CreateVersion7();
 
   internal static DefaultHttpContext ShopperContext() => new() {
     User = new ClaimsPrincipal(new ClaimsIdentity([
@@ -36,8 +38,8 @@ internal static class ShoppingEndpointTestData {
 
   internal static MarketProduct Product() => Product(FormatId);
 
-  internal static MarketProduct Product(int formatId) => new("Milk", "Brand", [
+  internal static MarketProduct Product(Guid formatId) => new("Milk", "Brand", [
     new MarketProductFormat(new Quantity(1, new UnitOfMeasure("l")),
       new Money(1.25m), new Uri("https://example.test/milk"), formatId),
-  ], new MarketSummary(4, "Market", null));
+  ], new MarketSummary(MarketUid, "Market", null));
 }

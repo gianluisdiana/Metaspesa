@@ -9,11 +9,13 @@ using static Metaspesa.Application.Shopping.UpdateItem;
 namespace Metaspesa.Application.UnitTests.Shopping;
 
 public class UpdateItemHandlerTest {
+  private static readonly Guid FormatId = Guid.CreateVersion7();
+
   [Fact(DisplayName = "Updates aggregate and commits")]
   public async Task Handle_UpdatesItemAndCommits() {
     var ownerId = Guid.CreateVersion7();
     ShoppingList list = ShoppingTestData.List(
-      ownerId, "Weekly", ShoppingTestData.Item(3));
+      ownerId, "Weekly", ShoppingTestData.Item(FormatId));
     IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
     repository.GetAsync(
       Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
@@ -22,7 +24,7 @@ public class UpdateItemHandlerTest {
     var handler = new Handler(repository, unitOfWork);
 
     await handler.Handle(
-      new Command(ownerId, 1, 3, 4, true),
+      new Command(ownerId, ShoppingTestData.ListId, FormatId, 4, true),
       TestContext.Current.CancellationToken);
 
     Assert.Equal(4, list.Items.Single().Amount.Value);
@@ -35,7 +37,7 @@ public class UpdateItemHandlerTest {
   public async Task Handle_ThrowsExactException_WhenNoFieldsProvided() {
     var ownerId = Guid.CreateVersion7();
     ShoppingList list = ShoppingTestData.List(
-      ownerId, "Weekly", ShoppingTestData.Item(3));
+      ownerId, "Weekly", ShoppingTestData.Item(FormatId));
     IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
     repository.GetAsync(
       Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
@@ -44,7 +46,7 @@ public class UpdateItemHandlerTest {
     var handler = new Handler(repository, unitOfWork);
 
     await Assert.ThrowsAsync<EmptyShoppingItemUpdateException>(() => handler.Handle(
-      new Command(ownerId, 1, 3, null, null),
+      new Command(ownerId, ShoppingTestData.ListId, FormatId, null, null),
       TestContext.Current.CancellationToken));
 
     await unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
@@ -62,7 +64,7 @@ public class UpdateItemHandlerTest {
     var handler = new Handler(repository, unitOfWork);
 
     await Assert.ThrowsAsync<ShoppingItemNotFoundException>(() => handler.Handle(
-      new Command(ownerId, 1, 3, 4, null),
+      new Command(ownerId, ShoppingTestData.ListId, FormatId, 4, null),
       TestContext.Current.CancellationToken));
 
     await repository.DidNotReceive().UpdateAsync(

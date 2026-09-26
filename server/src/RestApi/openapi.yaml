@@ -162,12 +162,12 @@ paths:
             type: string
         - name: marketId
           in: query
-          description: Repeat to include products from several markets. IDs must be positive.
+          description: Repeat to include products from several markets. IDs must be UUIDs.
           schema:
             type: array
             items:
-              minimum: 1
-              type: integer
+              type: string
+              format: uuid
         - name: brand
           in: query
           description: Case-insensitive brand-name fragment. Omit to include all brands.
@@ -341,8 +341,8 @@ paths:
           description: ID of the shopping list to retrieve.
           required: true
           schema:
-            type: integer
-            format: int32
+            type: string
+            format: uuid
       responses:
         '200':
           description: The shopping list and its items.
@@ -384,8 +384,8 @@ paths:
           description: ID of the shopping list to rename.
           required: true
           schema:
-            type: integer
-            format: int32
+            type: string
+            format: uuid
       requestBody:
         description: New name for a shopping list.
         content:
@@ -437,8 +437,8 @@ paths:
           description: ID of the shopping list to update.
           required: true
           schema:
-            type: integer
-            format: int32
+            type: string
+            format: uuid
       requestBody:
         description: Items to add to a shopping list.
         content:
@@ -490,15 +490,15 @@ paths:
           description: ID of the shopping list containing the item.
           required: true
           schema:
-            type: integer
-            format: int32
+            type: string
+            format: uuid
         - name: productFormatId
           in: path
           description: ID of the item's product format.
           required: true
           schema:
-            type: integer
-            format: int32
+            type: string
+            format: uuid
       requestBody:
         description: Changes to a shopping item; at least one field is required.
         content:
@@ -543,15 +543,15 @@ paths:
           description: ID of the shopping list containing the item.
           required: true
           schema:
-            type: integer
-            format: int32
+            type: string
+            format: uuid
         - name: productFormatId
           in: path
           description: ID of the item's product format.
           required: true
           schema:
-            type: integer
-            format: int32
+            type: string
+            format: uuid
       responses:
         '204':
           description: Item removed; no response body.
@@ -590,8 +590,8 @@ paths:
           description: ID of the shopping list to check out.
           required: true
           schema:
-            type: integer
-            format: int32
+            type: string
+            format: uuid
       responses:
         '201':
           description: Purchase recorded; the response contains its ID.
@@ -675,9 +675,9 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
           description: Stable format ID used as the shopping-list item reference.
-          format: int32
+          format: uuid
         quantity:
           description: Amount and unit sold in this format.
           $ref: '#/components/schemas/QuantityResponse'
@@ -700,9 +700,9 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
           description: Stable shopping list ID.
-          format: int32
+          format: uuid
       description: Identifier of a newly created shopping list.
     MarketListResponse:
       required:
@@ -722,9 +722,9 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
           description: Stable market ID used by the catalog marketId filter.
-          format: int32
+          format: uuid
         name:
           type: string
           description: Display name of the market.
@@ -828,9 +828,9 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
           description: Stable ID of this product.
-          format: int32
+          format: uuid
         name:
           type: string
           description: Product display name.
@@ -852,9 +852,9 @@ components:
       type: object
       properties:
         purchaseId:
-          type: integer
+          type: string
           description: Stable purchase ID.
-          format: int32
+          format: uuid
       description: Identifier of a recorded purchase.
     QuantityResponse:
       required:
@@ -889,9 +889,9 @@ components:
       type: object
       properties:
         productFormatId:
-          type: integer
+          type: string
           description: ID of an existing product format.
-          format: int32
+          format: uuid
         amount:
           type: integer
           description: Positive number of units to buy.
@@ -914,9 +914,9 @@ components:
       type: object
       properties:
         productFormatId:
-          type: integer
+          type: string
           description: Stable format ID used to update or remove this item.
-          format: int32
+          format: uuid
         productName:
           type: string
           description: Product display name.
@@ -965,9 +965,9 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
           description: Stable shopping list ID.
-          format: int32
+          format: uuid
         name:
           type:
             - 'null'
@@ -990,9 +990,9 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
           description: Stable shopping list ID.
-          format: int32
+          format: uuid
         name:
           type:
             - 'null'
@@ -1009,9 +1009,9 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
           description: Stable market ID.
-          format: int32
+          format: uuid
         name:
           type: string
           description: Market display name.

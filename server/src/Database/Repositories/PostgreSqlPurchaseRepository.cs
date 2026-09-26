@@ -1,21 +1,24 @@
 using Metaspesa.Application.Abstractions.Purchasing;
 using Metaspesa.Database.Entities;
 using Metaspesa.Domain.Purchasing;
+using Metaspesa.Domain.SharedKernel;
 
 namespace Metaspesa.Database.Repositories;
 
 internal class PostgreSqlPurchaseRepository(
   MainContext context
 ) : IPurchaseRepository {
-  public async Task<int> AddAsync(
+  public async Task<Guid> AddAsync(
     Purchase purchase, CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
     ArgumentNullException.ThrowIfNull(purchase);
     var entity = new PurchaseDbEntity {
+      Id = purchase.Id.Value,
       UserUid = purchase.BuyerId?.Value,
       ShoppingListId = purchase.ShoppingListId?.Value,
       PurchasedAt = purchase.PurchasedAt,
       Items = [.. purchase.Items.Select(item => new PurchaseItemDbEntity {
+        Id = Uid.Create(),
         PriceSnapshotId = item.PriceSnapshotId.Value,
         Amount = item.Amount.Value,
       })],

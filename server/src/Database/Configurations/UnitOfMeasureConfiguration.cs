@@ -16,7 +16,7 @@ internal class UnitOfMeasureConfiguration : IEntityTypeConfiguration<UnitOfMeasu
 
     builder.Property(e => e.Id)
       .HasColumnName("id")
-      .ValueGeneratedOnAdd();
+      .ValueGeneratedNever();
 
     builder.Property(e => e.Code)
       .HasColumnName("code")

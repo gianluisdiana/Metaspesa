@@ -7,7 +7,7 @@ internal static class CheckoutShoppingListEndpoint {
   public static IEndpointRouteBuilder MapCheckoutShoppingListEndpoint(
     this IEndpointRouteBuilder endpoints
   ) {
-    endpoints.MapPost("/{listId:int}/checkouts", CheckoutAsync)
+    endpoints.MapPost("/{listId:guid}/checkouts", CheckoutAsync)
       .WithName("CheckoutShoppingList")
       .Produces<PurchaseResponse>(StatusCodes.Status201Created)
       .ProducesProblem(StatusCodes.Status400BadRequest)
@@ -34,11 +34,11 @@ internal static class CheckoutShoppingListEndpoint {
   /// <response code="403">The authenticated user lacks the Shopper role.</response>
   /// <response code="500">An unexpected server or database failure occurred.</response>
   internal static async Task<IResult> CheckoutAsync(
-    int listId, HttpContext context,
+    Guid listId, HttpContext context,
     CheckoutUseCase.Handler handler,
     CancellationToken cancellationToken
   ) {
-    int purchaseId = await handler.Handle(new CheckoutUseCase.Command(
+    Guid purchaseId = await handler.Handle(new CheckoutUseCase.Command(
       ShoppingUser.GetUid(context), listId), cancellationToken);
     return Results.Json(new PurchaseResponse(purchaseId),
       statusCode: StatusCodes.Status201Created);

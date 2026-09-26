@@ -27,11 +27,12 @@ public static class GetShoppingListsEndpointTests {
 
   [Fact]
   public static async Task List_ReturnsNamedAndTemporaryListIds() {
+    var temporaryListId = Guid.CreateVersion7();
     IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
     repository.GetByOwnerAsync(new UserId(OwnerUid),
       TestContext.Current.CancellationToken).Returns([
         PersistedList("Weekly"),
-        ShoppingList.Rehydrate(new ShoppingListId(18),
+        ShoppingList.Rehydrate(new ShoppingListId(temporaryListId),
           [new UserId(OwnerUid)], null, null, []),
       ]);
 
@@ -41,7 +42,7 @@ public static class GetShoppingListsEndpointTests {
 
     Assert.Equal([
       new ShoppingListSummaryResponse(ListId, "Weekly", false),
-      new ShoppingListSummaryResponse(18, null, true),
+      new ShoppingListSummaryResponse(temporaryListId, null, true),
     ], Assert.IsType<Ok<ShoppingListCollectionResponse>>(result).Value!.Items);
   }
 

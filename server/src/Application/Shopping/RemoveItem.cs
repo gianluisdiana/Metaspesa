@@ -8,7 +8,7 @@ using Metaspesa.Domain.Shopping.Errors;
 namespace Metaspesa.Application.Shopping;
 
 public static class RemoveItem {
-  public record Command(Guid UserUid, int ShoppingListId, int ProductFormatUid);
+  public record Command(Guid UserUid, Guid ShoppingListId, Guid ProductFormatUid);
 
   public class Handler(
     IShoppingListRepository shoppingListRepository,

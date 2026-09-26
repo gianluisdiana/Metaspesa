@@ -15,7 +15,7 @@ internal class PriceSnapshotConfiguration : IEntityTypeConfiguration<PriceSnapsh
 
     builder.Property(e => e.Id)
       .HasColumnName("id")
-      .ValueGeneratedOnAdd();
+      .ValueGeneratedNever();
 
     builder.Property(e => e.ProductFormatId)
       .HasColumnName("product_format_id")

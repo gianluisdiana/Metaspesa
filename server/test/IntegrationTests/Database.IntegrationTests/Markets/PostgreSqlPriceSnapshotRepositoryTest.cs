@@ -41,7 +41,7 @@ public class PostgreSqlPriceSnapshotRepositoryTest : IAsyncLifetime {
   [Fact(DisplayName = "Loads immutable price snapshot by typed id")]
   public async Task Repository_LoadsPriceSnapshot_ByTypedId() {
     await ResolveAndAppendAsync();
-    int snapshotId = await _context.PriceSnapshots
+    Guid snapshotId = await _context.PriceSnapshots
       .Select(snapshot => snapshot.Id)
       .SingleAsync(TestContext.Current.CancellationToken);
 
@@ -71,23 +71,24 @@ public class PostgreSqlPriceSnapshotRepositoryTest : IAsyncLifetime {
     Assert.Equal(new Money(2.49m), snapshots.Single().Price);
   }
 
-  [Fact(DisplayName = "Loads newest format snapshot when observation times match")]
-  public async Task Repository_LoadsNewestSnapshot_WhenObservationTimesMatch() {
+  [Fact(DisplayName = "Uses identifier tie-breaker when observation times match")]
+  public async Task Repository_UsesIdTieBreaker_WhenObservationTimesMatch() {
     ProductImportResult result = await ResolveAndAppendAsync();
     ProductFormatId formatId = result.PriceObservations.Single().ProductFormatId;
     await _snapshotRepository.AppendAsync([
       new PriceObservation(formatId, new Money(2.49m), UtcDate(2026, 7, 30)),
       new PriceObservation(formatId, new Money(2.99m), UtcDate(2026, 7, 30)),
     ], TestContext.Current.CancellationToken);
-    PriceSnapshotDbEntity newestSnapshot = await _context.PriceSnapshots
-      .SingleAsync(snapshot => snapshot.PriceAmount == 2.99m,
-        TestContext.Current.CancellationToken);
+    PriceSnapshotDbEntity expectedSnapshot = await _context.PriceSnapshots
+      .Where(snapshot => snapshot.ProductFormatId == formatId.Value)
+      .OrderByDescending(snapshot => snapshot.Id)
+      .FirstAsync(TestContext.Current.CancellationToken);
 
     IReadOnlyCollection<PriceSnapshot> snapshots =
       await _snapshotRepository.GetLatestForFormatsAsync(
         [formatId], TestContext.Current.CancellationToken);
 
-    Assert.Equal(new PriceSnapshotId(newestSnapshot.Id), snapshots.Single().Id);
+    Assert.Equal(new PriceSnapshotId(expectedSnapshot.Id), snapshots.Single().Id);
   }
 
   [Fact(DisplayName = "Returns no snapshots when requested format has no history")]
@@ -96,7 +97,7 @@ public class PostgreSqlPriceSnapshotRepositoryTest : IAsyncLifetime {
 
     IReadOnlyCollection<PriceSnapshot> snapshots =
       await _snapshotRepository.GetLatestForFormatsAsync(
-        [new ProductFormatId(int.MaxValue)], TestContext.Current.CancellationToken);
+        [new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-00007fffffff"))], TestContext.Current.CancellationToken);
 
     Assert.Empty(snapshots);
   }
@@ -157,8 +158,14 @@ public class PostgreSqlPriceSnapshotRepositoryTest : IAsyncLifetime {
   }
 
   private async Task<MarketImport> CreateMarketImportAsync() {
-    _context.SuperMarkets.Add(new SuperMarketDbEntity { Name = "Mercadona" });
-    _context.ProductBrands.Add(new ProductBrandDbEntity { Name = "Brand" });
+    _context.SuperMarkets.Add(new SuperMarketDbEntity {
+      Id = Uid.Create(),
+      Name = "Mercadona",
+    });
+    _context.ProductBrands.Add(new ProductBrandDbEntity {
+      Id = Uid.Create(),
+      Name = "Brand",
+    });
     await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
     return new MarketImport(
@@ -181,6 +188,7 @@ public class PostgreSqlPriceSnapshotRepositoryTest : IAsyncLifetime {
     }
 
     _context.UnitsOfMeasure.Add(new UnitOfMeasureDbEntity {
+      Id = Uid.Create(),
       Code = code,
       Name = $"Test unit {code}",
     });

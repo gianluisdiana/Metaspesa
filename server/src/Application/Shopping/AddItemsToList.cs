@@ -11,10 +11,10 @@ using MarketProductRepository = Metaspesa.Application.Abstractions.Markets.IProd
 namespace Metaspesa.Application.Shopping;
 
 public static class AddItemsToList {
-  public record CommandItem(int ProductFormatUid, int Amount, bool IsChecked);
+  public record CommandItem(Guid ProductFormatUid, int Amount, bool IsChecked);
   public record Command(
     Guid UserUid,
-    int ShoppingListId,
+    Guid ShoppingListId,
     IReadOnlyCollection<CommandItem> Items
   );
 
@@ -40,10 +40,10 @@ public static class AddItemsToList {
         new ProductFormatId(item.ProductFormatUid),
         new PositiveAmount(item.Amount),
         item.IsChecked)).ToList();
-      IReadOnlyCollection<int> formatIds = [
+      IReadOnlyCollection<Guid> formatIds = [
         .. items.Select(item => item.ProductFormatId.Value).Distinct()
       ];
-      IReadOnlyDictionary<int, MarketProduct> products =
+      IReadOnlyDictionary<Guid, MarketProduct> products =
         await productRepository.GetProductsAsync(formatIds, cancellationToken);
 
       ProductFormatId? missingFormat = items

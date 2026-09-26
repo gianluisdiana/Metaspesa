@@ -23,8 +23,8 @@ internal static class GetProductsEndpoint {
           QueryParameter("query", JsonSchemaType.String,
             description: "Case-insensitive product-name fragment. Omit to include all names."),
           QueryParameter("marketId", JsonSchemaType.Array,
-            new OpenApiSchema { Type = JsonSchemaType.Integer, Minimum = "1" },
-            description: "Repeat to include products from several markets. IDs must be positive."),
+            new OpenApiSchema { Type = JsonSchemaType.String, Format = "uuid" },
+            description: "Repeat to include products from several markets. IDs must be UUIDs."),
           QueryParameter("brand", JsonSchemaType.String,
             description: "Case-insensitive brand-name fragment. Omit to include all brands."),
           QueryParameter("page", JsonSchemaType.Integer, minimum: 1,
@@ -84,9 +84,9 @@ internal static class GetProductsEndpoint {
   }
 
   private static MarketId ParseMarketId(string? value) =>
-    int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int id)
+    Guid.TryParse(value, out Guid id)
       ? new MarketId(id)
-      : throw new BadHttpRequestException("marketId must be an integer.");
+      : throw new BadHttpRequestException("marketId must be a UUID.");
 
   private static int ParseInteger(
     IQueryCollection query, string key, int defaultValue

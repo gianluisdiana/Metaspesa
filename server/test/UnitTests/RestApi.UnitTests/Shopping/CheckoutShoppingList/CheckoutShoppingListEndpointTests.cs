@@ -15,6 +15,8 @@ using CheckoutUseCase = Metaspesa.Application.Purchasing.CheckoutShoppingList;
 namespace Metaspesa.RestApi.UnitTests.Shopping.CheckoutShoppingList;
 
 public static class CheckoutShoppingListEndpointTests {
+  private static readonly Guid PurchaseId = Guid.CreateVersion7();
+
   [Fact]
   public static async Task Checkout_ReturnsCreatedPurchaseId() {
     ShoppingList list = PersistedList("Weekly",
@@ -26,11 +28,11 @@ public static class CheckoutShoppingListEndpointTests {
     snapshots.GetLatestAsync(Arg.Any<IReadOnlyCollection<ProductFormatId>>(),
       TestContext.Current.CancellationToken).Returns(
         new Dictionary<ProductFormatId, PriceSnapshotId> {
-          [new ProductFormatId(FormatId)] = new PriceSnapshotId(44),
+          [new ProductFormatId(FormatId)] = new PriceSnapshotId(Guid.Parse("00000000-0000-7000-8000-00000000002c")),
         });
     IPurchaseRepository purchases = Substitute.For<IPurchaseRepository>();
     purchases.AddAsync(Arg.Any<Purchase>(),
-      TestContext.Current.CancellationToken).Returns(81);
+      TestContext.Current.CancellationToken).Returns(PurchaseId);
     IClock clock = Substitute.For<IClock>();
     clock.GetCurrentTime().Returns(
       new DateTime(2026, 9, 20, 12, 0, 0, DateTimeKind.Utc));
@@ -39,7 +41,7 @@ public static class CheckoutShoppingListEndpointTests {
       ShopperContext(), new CheckoutUseCase.Handler(repository,
         snapshots, purchases, clock), TestContext.Current.CancellationToken);
 
-    Assert.Equal((StatusCodes.Status201Created, 81),
+    Assert.Equal((StatusCodes.Status201Created, PurchaseId),
       (Assert.IsAssignableFrom<IStatusCodeHttpResult>(result).StatusCode,
         Assert.IsAssignableFrom<IValueHttpResult<PurchaseResponse>>(result)
           .Value!.PurchaseId));

@@ -6,15 +6,14 @@ namespace Metaspesa.Domain.UnitTests.Markets;
 public static class MarketIdTests {
   [Fact(DisplayName = "Creates and compares market ids by value")]
   public static void MarketId_CreatedAndEqual_WhenValueIsPositive() {
-    var id = new MarketId(1);
+    var rawId = Guid.Parse("00000000-0000-7000-8000-000000000001");
+    var id = new MarketId(rawId);
 
-    Assert.Equal(1, id.Value);
-    Assert.Equal(id, new MarketId(1));
+    Assert.Equal(rawId, id.Value);
+    Assert.Equal(id, new MarketId(rawId));
   }
 
-  [Theory(DisplayName = "Rejects non-positive market ids")]
-  [InlineData(0)]
-  [InlineData(-1)]
-  public static void MarketId_ThrowsSpecificException_WhenValueIsInvalid(int value) =>
-    Assert.Throws<InvalidMarketIdException>(() => new MarketId(value));
+  [Fact(DisplayName = "Rejects empty market id")]
+  public static void MarketId_ThrowsSpecificException_WhenValueIsInvalid() =>
+    Assert.Throws<InvalidMarketIdException>(() => new MarketId(Guid.Empty));
 }

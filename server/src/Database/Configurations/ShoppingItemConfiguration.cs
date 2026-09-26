@@ -16,7 +16,7 @@ internal class ShoppingItemConfiguration : IEntityTypeConfiguration<ShoppingItem
 
     builder.Property(e => e.Id)
       .HasColumnName("id")
-      .ValueGeneratedOnAdd();
+      .ValueGeneratedNever();
 
     builder.Property(e => e.ShoppingListId)
       .HasColumnName("shopping_list_id")

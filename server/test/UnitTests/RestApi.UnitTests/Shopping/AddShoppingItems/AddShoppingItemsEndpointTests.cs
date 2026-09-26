@@ -17,24 +17,24 @@ public static class AddShoppingItemsEndpointTests {
     ShoppingList list = PersistedList("Weekly");
     IShoppingListRepository repository = RepositoryWith(list);
     IProductRepository products = Substitute.For<IProductRepository>();
-    products.GetProductsAsync(Arg.Any<IReadOnlyCollection<int>>(),
+    products.GetProductsAsync(Arg.Any<IReadOnlyCollection<Guid>>(),
       TestContext.Current.CancellationToken).Returns(
-        new Dictionary<int, MarketProduct> {
+        new Dictionary<Guid, MarketProduct> {
           [FormatId] = Product(FormatId),
-          [FormatId + 1] = Product(FormatId + 1),
+          [OtherFormatId] = Product(OtherFormatId),
         });
 
     IResult result = await AddShoppingItemsEndpoint.AddItemsAsync(ListId,
       new AddShoppingItemsRequest([
         new ShoppingItemRequest(FormatId, 2, true),
-        new ShoppingItemRequest(FormatId + 1, 3, false),
+        new ShoppingItemRequest(OtherFormatId, 3, false),
       ]), ShopperContext(),
       new AddItemsToList.Handler(repository, products, Substitute.For<IUnitOfWork>()),
       TestContext.Current.CancellationToken);
 
     ShoppingItem[] items = [.. list.Items];
     Assert.Equal((StatusCodes.Status204NoContent, 2,
-      FormatId, 2, true, FormatId + 1, 3, false),
+      FormatId, 2, true, OtherFormatId, 3, false),
       (Assert.IsAssignableFrom<IStatusCodeHttpResult>(result).StatusCode,
         items.Length, items[0].ProductFormatId.Value, items[0].Amount.Value,
         items[0].IsChecked, items[1].ProductFormatId.Value,

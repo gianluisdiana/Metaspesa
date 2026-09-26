@@ -64,10 +64,11 @@ internal class PostgreSqlShoppingListRepository(
       cancellationToken);
   }
 
-  public async Task<int> AddAsync(
+  public async Task<Guid> AddAsync(
     ShoppingList shoppingList, CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
     var entity = new ShoppingListDbEntity {
+      Id = shoppingList.Id.Value,
       Name = shoppingList.Name?.Value,
       IsTemporary = shoppingList.IsTemporary,
       DeletedAt = shoppingList.DeletedAt,
@@ -83,8 +84,7 @@ internal class PostgreSqlShoppingListRepository(
   public async Task UpdateAsync(
     ShoppingList shoppingList, CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
-    ShoppingListId id = shoppingList.Id ??
-      throw new InvalidOperationException("Cannot update an unpersisted shopping list.");
+    ShoppingListId id = shoppingList.Id;
     ShoppingListDbEntity entity = await context.ShoppingLists
       .Include(list => list.Items)
       .SingleAsync(list => list.Id == id.Value, cancellationToken);
@@ -125,6 +125,7 @@ internal class PostgreSqlShoppingListRepository(
           item.IsChecked)));
 
   private static ShoppingItemDbEntity ToEntity(ShoppingItem item) => new() {
+    Id = Uid.Create(),
     ProductFormatId = item.ProductFormatId.Value,
     Amount = item.Amount.Value,
     IsChecked = item.IsChecked,

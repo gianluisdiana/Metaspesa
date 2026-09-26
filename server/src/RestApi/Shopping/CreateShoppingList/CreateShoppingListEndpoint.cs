@@ -37,7 +37,7 @@ internal static class CreateShoppingListEndpoint {
     CreateListUseCase.Handler handler,
     CancellationToken cancellationToken
   ) {
-    int id = await handler.Handle(new CreateListUseCase.Command(
+    Guid id = await handler.Handle(new CreateListUseCase.Command(
       ShoppingUser.GetUid(context),
       request.Name is null ? null : TextSanitizer.Sanitize(request.Name)),
       cancellationToken);

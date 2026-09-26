@@ -11,8 +11,8 @@ namespace Metaspesa.Application.Shopping;
 public static class UpdateItem {
   public record Command(
     Guid UserUid,
-    int ShoppingListId,
-    int ProductFormatUid,
+    Guid ShoppingListId,
+    Guid ProductFormatUid,
     int? Amount,
     bool? IsChecked
   );

@@ -7,7 +7,7 @@ internal static class RemoveShoppingItemEndpoint {
   public static IEndpointRouteBuilder MapRemoveShoppingItemEndpoint(
     this IEndpointRouteBuilder endpoints
   ) {
-    endpoints.MapDelete("/{listId:int}/items/{productFormatId:int}", RemoveItemAsync)
+    endpoints.MapDelete("/{listId:guid}/items/{productFormatId:guid}", RemoveItemAsync)
       .WithName("RemoveShoppingItem")
       .Produces(StatusCodes.Status204NoContent)
       .ProducesProblem(StatusCodes.Status400BadRequest)
@@ -33,7 +33,7 @@ internal static class RemoveShoppingItemEndpoint {
   /// <response code="403">The authenticated user lacks the Shopper role.</response>
   /// <response code="500">An unexpected server or database failure occurred.</response>
   internal static async Task<IResult> RemoveItemAsync(
-    int listId, int productFormatId, HttpContext context,
+    Guid listId, Guid productFormatId, HttpContext context,
     RemoveItem.Handler handler, CancellationToken cancellationToken
   ) {
     await handler.Handle(new RemoveItem.Command(

@@ -8,7 +8,7 @@ internal static class RenameShoppingListEndpoint {
   public static IEndpointRouteBuilder MapRenameShoppingListEndpoint(
     this IEndpointRouteBuilder endpoints
   ) {
-    endpoints.MapPatch("/{listId:int}", RenameAsync)
+    endpoints.MapPatch("/{listId:guid}", RenameAsync)
       .WithName("RenameShoppingList")
       .Produces(StatusCodes.Status204NoContent)
       .ProducesProblem(StatusCodes.Status400BadRequest)
@@ -36,7 +36,7 @@ internal static class RenameShoppingListEndpoint {
   /// <response code="403">The authenticated user lacks the Shopper role.</response>
   /// <response code="500">An unexpected server or database failure occurred.</response>
   internal static async Task<IResult> RenameAsync(
-    int listId, RenameShoppingListRequest request, HttpContext context,
+    Guid listId, RenameShoppingListRequest request, HttpContext context,
     UpdateShoppingList.Handler handler, CancellationToken cancellationToken
   ) {
     await handler.Handle(new UpdateShoppingList.Command(

@@ -8,7 +8,7 @@ namespace Metaspesa.RestApi.Markets.GetProducts;
 /// <param name="CurrentPrice">Latest observed price for this format.</param>
 /// <param name="ObservedAt">UTC instant of the latest price observation.</param>
 internal sealed record FormatResponse(
-  int Id, QuantityResponse Quantity, MoneyResponse CurrentPrice,
+  Guid Id, QuantityResponse Quantity, MoneyResponse CurrentPrice,
   DateTime ObservedAt) {
   /// <summary>Absolute product image URL when available; otherwise omitted.</summary>
   [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

@@ -1,14 +1,14 @@
 namespace Metaspesa.Application.Abstractions.Markets;
 
 public sealed record CatalogProduct(
-  int Id,
+  Guid Id,
   string Name,
   string Brand,
   MarketSummary Market,
   IReadOnlyCollection<CatalogFormat> Formats);
 
 public sealed record CatalogFormat(
-  int Id,
+  Guid Id,
   decimal Quantity,
   string Unit,
   decimal Price,

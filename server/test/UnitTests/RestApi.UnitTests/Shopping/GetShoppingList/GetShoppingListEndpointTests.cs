@@ -22,16 +22,16 @@ public static class GetShoppingListEndpointTests {
     repository.GetAsync(new UserId(OwnerUid), new ShoppingListId(ListId),
       TestContext.Current.CancellationToken).Returns(PersistedList("Weekly",
         new ShoppingItem(new ProductFormatId(FormatId), new PositiveAmount(2), true)));
-    products.GetProductsAsync(Arg.Any<IReadOnlyCollection<int>>(),
+    products.GetProductsAsync(Arg.Any<IReadOnlyCollection<Guid>>(),
       TestContext.Current.CancellationToken).Returns(
-        new Dictionary<int, MarketProduct> { [FormatId] = Product() });
+        new Dictionary<Guid, MarketProduct> { [FormatId] = Product() });
 
     IResult result = await GetShoppingListEndpoint.GetAsync(ListId,
       ShopperContext(), new GetList.Handler(repository, products),
       TestContext.Current.CancellationToken);
 
     Assert.Equal(new ShoppingItemResponse(FormatId, "Milk", "Brand",
-      new ShoppingMarketResponse(4, "Market"),
+      new ShoppingMarketResponse(MarketUid, "Market"),
       new ShoppingQuantityResponse(1, "l"),
       new ShoppingMoneyResponse(1.25m, "EUR"), 2, true,
       "https://example.test/milk"),
@@ -44,9 +44,9 @@ public static class GetShoppingListEndpointTests {
     IProductRepository products = Substitute.For<IProductRepository>();
     repository.GetAsync(new UserId(OwnerUid), new ShoppingListId(ListId),
       TestContext.Current.CancellationToken).Returns(PersistedList(null));
-    products.GetProductsAsync(Arg.Any<IReadOnlyCollection<int>>(),
+    products.GetProductsAsync(Arg.Any<IReadOnlyCollection<Guid>>(),
       TestContext.Current.CancellationToken).Returns(
-        new Dictionary<int, MarketProduct>());
+        new Dictionary<Guid, MarketProduct>());
 
     IResult result = await GetShoppingListEndpoint.GetAsync(ListId,
       ShopperContext(), new GetList.Handler(repository, products),
@@ -75,7 +75,7 @@ public static class GetShoppingListEndpointTests {
     IProductRepository products = Substitute.For<IProductRepository>();
 
     await Assert.ThrowsAsync<InvalidShoppingListIdException>(() =>
-      GetShoppingListEndpoint.GetAsync(0, ShopperContext(),
+      GetShoppingListEndpoint.GetAsync(Guid.Empty, ShopperContext(),
         new GetList.Handler(repository, products),
         TestContext.Current.CancellationToken));
   }

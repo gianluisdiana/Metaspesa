@@ -1,9 +1,9 @@
 namespace Metaspesa.Database.Entities;
 
 internal class ShoppingItemDbEntity {
-  public int Id { get; set; }
-  public int ShoppingListId { get; set; }
-  public int ProductFormatId { get; set; }
+  public Guid Id { get; set; }
+  public Guid ShoppingListId { get; set; }
+  public Guid ProductFormatId { get; set; }
   public int Amount { get; set; } = 1;
   public bool IsChecked { get; set; }
   public DateTime? DeletedAt { get; set; }

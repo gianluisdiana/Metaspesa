@@ -17,7 +17,7 @@ internal class PostgreSqlPurchasePriceSnapshotReader(
           return new Dictionary<ProductFormatId, PriceSnapshotId>();
         }
 
-        int[] formatIds = [
+        Guid[] formatIds = [
           .. productFormatIds.Select(id => id.Value).Distinct()
         ];
         var snapshots = await context.PriceSnapshots

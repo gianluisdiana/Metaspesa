@@ -6,7 +6,7 @@ namespace Metaspesa.RestApi.Markets;
 /// <summary>Market identity and display information.</summary>
 /// <param name="Id">Stable market ID used by the catalog marketId filter.</param>
 /// <param name="Name">Display name of the market.</param>
-internal sealed record MarketResponse(int Id, string Name) {
+internal sealed record MarketResponse(Guid Id, string Name) {
   /// <summary>Absolute logo URL when available; otherwise omitted.</summary>
   [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
   public string? LogoUrl { get; init; }

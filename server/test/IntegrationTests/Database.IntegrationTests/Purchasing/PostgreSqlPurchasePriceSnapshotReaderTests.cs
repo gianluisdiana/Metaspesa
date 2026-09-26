@@ -101,17 +101,22 @@ public class PostgreSqlPurchasePriceSnapshotReaderTests : IAsyncLifetime {
 
   private async Task<ProductFormatId> SeedFormatAsync(string name) {
     var market = new SuperMarketDbEntity {
+      Id = Guid.CreateVersion7(),
       Name = $"Market {Guid.CreateVersion7()}",
     };
     var brand = new ProductBrandDbEntity {
+      Id = Guid.CreateVersion7(),
       Name = $"Brand {Guid.CreateVersion7()}",
     };
     var unit = new UnitOfMeasureDbEntity {
+      Id = Guid.CreateVersion7(),
       Code = $"u{Guid.CreateVersion7():N}"[..16],
       Name = $"Unit {Guid.CreateVersion7()}",
     };
     var format = new ProductFormatDbEntity {
+      Id = Guid.CreateVersion7(),
       Product = new ProductDbEntity {
+        Id = Guid.CreateVersion7(),
         Name = name,
         SuperMarket = market,
         Brand = brand,
@@ -131,6 +136,7 @@ public class PostgreSqlPurchasePriceSnapshotReaderTests : IAsyncLifetime {
     decimal price
   ) {
     var snapshot = new PriceSnapshotDbEntity {
+      Id = Guid.CreateVersion7(),
       ProductFormatId = formatId.Value,
       PriceAmount = price,
       ObservedAt = observedAt,

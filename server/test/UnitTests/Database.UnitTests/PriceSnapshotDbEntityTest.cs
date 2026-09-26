@@ -11,16 +11,16 @@ public static class PriceSnapshotDbEntityTest {
     var observedAt = new DateTime(
       2026, 7, 28, 12, 0, 0, DateTimeKind.Unspecified);
     var entity = new PriceSnapshotDbEntity {
-      Id = 5,
-      ProductFormatId = 7,
+      Id = Guid.Parse("00000000-0000-7000-8000-000000000005"),
+      ProductFormatId = Guid.Parse("00000000-0000-7000-8000-000000000007"),
       PriceAmount = 1.99m,
       ObservedAt = observedAt,
     };
 
     PriceSnapshot snapshot = entity.MapToDomain();
 
-    Assert.Equal(new PriceSnapshotId(5), snapshot.Id);
-    Assert.Equal(new ProductFormatId(7), snapshot.ProductFormatId);
+    Assert.Equal(new PriceSnapshotId(Guid.Parse("00000000-0000-7000-8000-000000000005")), snapshot.Id);
+    Assert.Equal(new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000007")), snapshot.ProductFormatId);
     Assert.Equal(new Money(1.99m), snapshot.Price);
     Assert.Equal(DateTimeKind.Utc, snapshot.ObservedAt.Kind);
     Assert.Equal(observedAt, snapshot.ObservedAt);
@@ -29,8 +29,8 @@ public static class PriceSnapshotDbEntityTest {
   [Fact(DisplayName = "Throws specific exception for invalid persisted snapshot id")]
   public static void Entity_ThrowsSpecificException_WhenSnapshotIdIsInvalid() {
     var entity = new PriceSnapshotDbEntity {
-      Id = 0,
-      ProductFormatId = 7,
+      Id = Guid.Empty,
+      ProductFormatId = Guid.Parse("00000000-0000-7000-8000-000000000007"),
       PriceAmount = 1.99m,
       ObservedAt = new DateTime(
         2026, 7, 28, 0, 0, 0, DateTimeKind.Unspecified),

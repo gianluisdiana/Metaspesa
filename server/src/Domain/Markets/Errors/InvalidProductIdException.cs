@@ -3,8 +3,8 @@ namespace Metaspesa.Domain.Markets.Errors;
 public class InvalidProductIdException : MarketDomainException {
   public InvalidProductIdException() { }
 
-  public InvalidProductIdException(int value)
-    : base("Market.Product.Id.Invalid", $"Product id '{value}' must be greater than zero.") { }
+  public InvalidProductIdException(Guid value)
+    : base("Market.Product.Id.Invalid", $"Product id '{value}' must not be empty.") { }
 
   public InvalidProductIdException(string message) : base(message) { }
 

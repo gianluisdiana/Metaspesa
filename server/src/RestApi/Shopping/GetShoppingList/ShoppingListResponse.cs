@@ -8,7 +8,7 @@ namespace Metaspesa.RestApi.Shopping.GetShoppingList;
 /// <param name="IsTemporary">Whether this is an unnamed temporary list.</param>
 /// <param name="Items">Items in the list; empty when it has no items.</param>
 internal sealed record ShoppingListResponse(
-  int Id,
+  Guid Id,
   [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Name,
   bool IsTemporary,
   IReadOnlyCollection<ShoppingItemResponse> Items);

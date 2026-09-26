@@ -154,6 +154,7 @@ public class PostgreSqlPurchaseRepositoryTests : IAsyncLifetime {
 
   private async Task<ShoppingListId> SeedShoppingListAsync(UserId ownerId) {
     var entity = new ShoppingListDbEntity {
+      Id = Uid.Create(),
       Name = $"List {Guid.CreateVersion7()}",
       IsTemporary = false,
       Ownerships = [new ShoppingListOwnershipDbEntity {
@@ -169,23 +170,29 @@ public class PostgreSqlPurchaseRepositoryTests : IAsyncLifetime {
     string productName, decimal price
   ) {
     var format = new ProductFormatDbEntity {
+      Id = Uid.Create(),
       Product = new ProductDbEntity {
+        Id = Uid.Create(),
         Name = productName,
         SuperMarket = new SuperMarketDbEntity {
+          Id = Uid.Create(),
           Name = $"Market {Guid.CreateVersion7()}",
         },
         Brand = new ProductBrandDbEntity {
+          Id = Uid.Create(),
           Name = $"Brand {Guid.CreateVersion7()}",
         },
       },
       Quantity = 1,
       UnitOfMeasure = new UnitOfMeasureDbEntity {
+        Id = Uid.Create(),
         Code = $"u{Guid.CreateVersion7():N}"[..16],
         Name = $"Unit {Guid.CreateVersion7()}",
       },
       ImageUrl = string.Empty,
     };
     var snapshot = new PriceSnapshotDbEntity {
+      Id = Uid.Create(),
       ProductFormat = format,
       PriceAmount = price,
       ObservedAt = PurchasedAt.AddDays(-1),

@@ -17,19 +17,16 @@ namespace Metaspesa.Database.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.7")
+                .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Metaspesa.Database.Entities.PriceSnapshotDbEntity", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
                         .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("CurrencyCode")
                         .IsRequired()
@@ -49,8 +46,8 @@ namespace Metaspesa.Database.Migrations
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("price_amount");
 
-                    b.Property<int>("ProductFormatId")
-                        .HasColumnType("integer")
+                    b.Property<Guid>("ProductFormatId")
+                        .HasColumnType("uuid")
                         .HasColumnName("product_format_id");
 
                     b.HasKey("Id")
@@ -74,12 +71,9 @@ namespace Metaspesa.Database.Migrations
 
             modelBuilder.Entity("Metaspesa.Database.Entities.ProductBrandDbEntity", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
                         .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -100,15 +94,12 @@ namespace Metaspesa.Database.Migrations
 
             modelBuilder.Entity("Metaspesa.Database.Entities.ProductDbEntity", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("BrandId")
-                        .HasColumnType("integer")
+                    b.Property<Guid>("BrandId")
+                        .HasColumnType("uuid")
                         .HasColumnName("brand_id");
 
                     b.Property<string>("Name")
@@ -116,8 +107,8 @@ namespace Metaspesa.Database.Migrations
                         .HasColumnType("text")
                         .HasColumnName("name");
 
-                    b.Property<int>("SuperMarketId")
-                        .HasColumnType("integer")
+                    b.Property<Guid>("SuperMarketId")
+                        .HasColumnType("uuid")
                         .HasColumnName("super_market_id");
 
                     b.HasKey("Id")
@@ -138,20 +129,17 @@ namespace Metaspesa.Database.Migrations
 
             modelBuilder.Entity("Metaspesa.Database.Entities.ProductFormatDbEntity", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
                         .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("ImageUrl")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("image_url");
 
-                    b.Property<int>("ProductId")
-                        .HasColumnType("integer")
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
                         .HasColumnName("product_id");
 
                     b.Property<decimal>("Quantity")
@@ -159,8 +147,8 @@ namespace Metaspesa.Database.Migrations
                         .HasColumnType("numeric(10,3)")
                         .HasColumnName("quantity");
 
-                    b.Property<int>("UnitOfMeasureId")
-                        .HasColumnType("integer")
+                    b.Property<Guid>("UnitOfMeasureId")
+                        .HasColumnType("uuid")
                         .HasColumnName("unit_of_measure_id");
 
                     b.HasKey("Id")
@@ -178,7 +166,7 @@ namespace Metaspesa.Database.Migrations
 
                     b.ToTable("product_formats", "market", t =>
                         {
-                            t.HasComment("Different package formats for the same product. For example, a soda can be sold\r\nin 330 ml cans, 500 ml bottles, or 1 l bottles.");
+                            t.HasComment("Different package formats for the same product. For example, a soda can be sold\nin 330 ml cans, 500 ml bottles, or 1 l bottles.");
 
                             t.HasCheckConstraint("chk_product_format_positive_quantity", "quantity > 0.000");
                         });
@@ -186,12 +174,9 @@ namespace Metaspesa.Database.Migrations
 
             modelBuilder.Entity("Metaspesa.Database.Entities.PurchaseDbEntity", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
                         .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("PurchasedAt")
                         .ValueGeneratedOnAdd()
@@ -199,8 +184,8 @@ namespace Metaspesa.Database.Migrations
                         .HasColumnName("purchased_at")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<int?>("ShoppingListId")
-                        .HasColumnType("integer")
+                    b.Property<Guid?>("ShoppingListId")
+                        .HasColumnType("uuid")
                         .HasColumnName("shopping_list_id");
 
                     b.Property<Guid?>("UserUid")
@@ -218,18 +203,15 @@ namespace Metaspesa.Database.Migrations
 
                     b.ToTable("purchases", "purchasing", t =>
                         {
-                            t.HasComment("Purchase receipt header. It records who bought, when, and optionally which\r\nshopping list was checked out. Product lines live in purchase_items.");
+                            t.HasComment("Purchase receipt header. It records who bought, when, and optionally which\nshopping list was checked out. Product lines live in purchase_items.");
                         });
                 });
 
             modelBuilder.Entity("Metaspesa.Database.Entities.PurchaseItemDbEntity", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
                         .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("Amount")
                         .ValueGeneratedOnAdd()
@@ -238,12 +220,12 @@ namespace Metaspesa.Database.Migrations
                         .HasColumnName("amount")
                         .HasComment("How many units/packages were bought");
 
-                    b.Property<int>("PriceSnapshotId")
-                        .HasColumnType("integer")
+                    b.Property<Guid>("PriceSnapshotId")
+                        .HasColumnType("uuid")
                         .HasColumnName("price_snapshot_id");
 
-                    b.Property<int>("PurchaseId")
-                        .HasColumnType("integer")
+                    b.Property<Guid>("PurchaseId")
+                        .HasColumnType("uuid")
                         .HasColumnName("purchase_id");
 
                     b.HasKey("Id")
@@ -263,12 +245,9 @@ namespace Metaspesa.Database.Migrations
 
             modelBuilder.Entity("Metaspesa.Database.Entities.ShoppingItemDbEntity", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
                         .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("Amount")
                         .ValueGeneratedOnAdd()
@@ -287,12 +266,12 @@ namespace Metaspesa.Database.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("is_checked");
 
-                    b.Property<int>("ProductFormatId")
-                        .HasColumnType("integer")
+                    b.Property<Guid>("ProductFormatId")
+                        .HasColumnType("uuid")
                         .HasColumnName("product_format_id");
 
-                    b.Property<int>("ShoppingListId")
-                        .HasColumnType("integer")
+                    b.Property<Guid>("ShoppingListId")
+                        .HasColumnType("uuid")
                         .HasColumnName("shopping_list_id");
 
                     b.HasKey("Id")
@@ -318,12 +297,9 @@ namespace Metaspesa.Database.Migrations
 
             modelBuilder.Entity("Metaspesa.Database.Entities.ShoppingListDbEntity", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
                         .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone")
@@ -358,8 +334,8 @@ namespace Metaspesa.Database.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("user_uid");
 
-                    b.Property<int>("ShoppingListId")
-                        .HasColumnType("integer")
+                    b.Property<Guid>("ShoppingListId")
+                        .HasColumnType("uuid")
                         .HasColumnName("shopping_list_id");
 
                     b.HasKey("UserUid", "ShoppingListId")
@@ -377,12 +353,9 @@ namespace Metaspesa.Database.Migrations
 
             modelBuilder.Entity("Metaspesa.Database.Entities.SuperMarketDbEntity", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
                         .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("LogoUrl")
                         .HasColumnType("text")
@@ -407,12 +380,9 @@ namespace Metaspesa.Database.Migrations
 
             modelBuilder.Entity("Metaspesa.Database.Entities.UnitOfMeasureDbEntity", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
                         .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -435,7 +405,7 @@ namespace Metaspesa.Database.Migrations
 
                     b.ToTable("units_of_measure", "market", t =>
                         {
-                            t.HasComment("Units used to describe product package format, not shopping count.\r\nExamples: ml, l, g, kg, piece.");
+                            t.HasComment("Units used to describe product package format, not shopping count.\nExamples: ml, l, g, kg, piece.");
                         });
                 });
 
@@ -478,11 +448,8 @@ namespace Metaspesa.Database.Migrations
             modelBuilder.Entity("Metaspesa.Database.Entities.UserRoleDbEntity", b =>
                 {
                     b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Description")
                         .IsRequired()

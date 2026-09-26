@@ -7,21 +7,23 @@ using Metaspesa.Domain.Shopping;
 namespace Metaspesa.Application.UnitTests.Shopping;
 
 internal static class ShoppingTestData {
+  internal static readonly Guid ListId = Guid.CreateVersion7();
+
   public static ShoppingList List(
     Guid ownerId,
     string? name = "Weekly",
     params ShoppingItem[] items
   ) => ShoppingList.Rehydrate(
-    new ShoppingListId(1),
+    new ShoppingListId(ListId),
     [new UserId(ownerId)],
     name is null ? null : new ShoppingListName(name),
     null,
     items);
 
-  public static ShoppingItem Item(int formatId, int amount = 1, bool isChecked = false) =>
+  public static ShoppingItem Item(Guid formatId, int amount = 1, bool isChecked = false) =>
     new(new ProductFormatId(formatId), new PositiveAmount(amount), isChecked);
 
-  public static MarketProduct MarketProduct(int formatId) => new(
+  public static MarketProduct MarketProduct(Guid formatId) => new(
     "Milk",
     "Brand",
     [new MarketProductFormat(

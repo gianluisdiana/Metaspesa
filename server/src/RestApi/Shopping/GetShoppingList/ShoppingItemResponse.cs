@@ -13,7 +13,7 @@ namespace Metaspesa.RestApi.Shopping.GetShoppingList;
 /// <param name="Checked">Whether this item is marked for checkout.</param>
 /// <param name="ImageUrl">Absolute product image URL when available; otherwise omitted.</param>
 internal sealed record ShoppingItemResponse(
-  int ProductFormatId, string ProductName, string Brand,
+  Guid ProductFormatId, string ProductName, string Brand,
   ShoppingMarketResponse Market, ShoppingQuantityResponse Quantity,
   ShoppingMoneyResponse UnitPrice, int Amount, bool Checked,
   [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
