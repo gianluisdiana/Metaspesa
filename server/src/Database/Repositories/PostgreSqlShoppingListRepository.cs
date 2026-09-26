@@ -1,5 +1,7 @@
 using Metaspesa.Application.Abstractions.Core;
+using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Abstractions.Shopping;
+using Metaspesa.Application.Shopping;
 using Metaspesa.Database.Entities;
 using Metaspesa.Domain.Identity;
 using Metaspesa.Domain.Markets;
@@ -198,4 +200,70 @@ internal class PostgreSqlShoppingListRepository(
     .Replace("\\", "\\\\", StringComparison.Ordinal)
     .Replace("%", "\\%", StringComparison.Ordinal)
     .Replace("_", "\\_", StringComparison.Ordinal);
+
+  public async Task<GetShoppingList.Response?> GetWithPricesAsync(
+    Guid ownerId, Guid shoppingListId, CancellationToken cancellationToken
+  ) {
+    var projection = await context.ShoppingLists
+      .AsNoTracking()
+      .Where(list =>
+        list.Id == shoppingListId &&
+        list.DeletedAt == null &&
+        list.Ownerships.Any(ownership => ownership.UserUid == ownerId))
+      .Select(list => new {
+        list.Id,
+        list.Name,
+        Items = list.Items
+          .Where(item => item.DeletedAt == null)
+          .Select(item => new {
+            item.Id,
+            item.Amount,
+            item.IsChecked,
+            ProductName = item.ProductFormat.Product.Name,
+            BrandName = item.ProductFormat.Product.Brand.Name,
+            MarketId = item.ProductFormat.Product.SuperMarket.Id,
+            MarketName = item.ProductFormat.Product.SuperMarket.Name,
+            MarketLogoUrl = item.ProductFormat.Product.SuperMarket.LogoUrl,
+            item.ProductFormat.Quantity,
+            UnitOfMeasureCode = item.ProductFormat.UnitOfMeasure.Code,
+            item.ProductFormat.ImageUrl,
+            Price = item.ProductFormat.PriceSnapshots
+              .OrderByDescending(snapshot => snapshot.ObservedAt)
+              .ThenByDescending(snapshot => snapshot.Id)
+              .Select(snapshot => snapshot.PriceAmount)
+              .First(),
+          })
+          .ToList(),
+      })
+      .SingleOrDefaultAsync(cancellationToken);
+
+    if (projection is null) {
+      return null;
+    }
+
+    return new GetShoppingList.Response(
+      projection.Id,
+      projection.Name,
+      [.. projection.Items.Select(item => new GetShoppingList.ResponseItem(
+        item.Id,
+        item.ProductName,
+        item.BrandName,
+        new MarketSummary(
+          item.MarketId,
+          item.MarketName,
+          ToUri(item.MarketLogoUrl)),
+        item.Amount,
+        new GetShoppingList.ResponseItemFormat(
+          new Quantity(
+            item.Quantity,
+            new UnitOfMeasure(item.UnitOfMeasureCode)),
+          new Money(item.Price),
+          ToUri(item.ImageUrl)),
+        item.IsChecked))]);
+  }
+
+  private static Uri? ToUri(string? value) =>
+    string.IsNullOrWhiteSpace(value)
+      ? null
+      : new Uri(value, UriKind.Absolute);
 }

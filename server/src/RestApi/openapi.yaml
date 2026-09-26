@@ -287,16 +287,16 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+        '401':
+          description: No valid authentication token was provided.
+        '403':
+          description: The authenticated user lacks the Shopper role.
         '404':
           description: The list or a referenced product format was not found.
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
-        '401':
-          description: No valid authentication token was provided.
-        '403':
-          description: The authenticated user lacks the Shopper role.
         '500':
           description: An unexpected server or database failure occurred.
           content:
@@ -872,7 +872,7 @@ components:
       description: One product format to add to a shopping list.
     ShoppingItemResponse:
       required:
-        - productFormatId
+        - id
         - productName
         - brand
         - market
@@ -883,9 +883,9 @@ components:
         - imageUrl
       type: object
       properties:
-        productFormatId:
+        id:
           type: string
-          description: Stable format ID used to update or remove this item.
+          description: Stable ID used to update or remove this item.
           format: uuid
         productName:
           type: string

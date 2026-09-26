@@ -1,4 +1,5 @@
 using Metaspesa.Application.Abstractions.Core;
+using Metaspesa.Application.Shopping;
 using Metaspesa.Database.Entities;
 using Metaspesa.Database.Repositories;
 using Metaspesa.Domain.Identity;
@@ -589,6 +590,138 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
     };
 
     Assert.Equivalent(expected, persisted, strict: true);
+  }
+
+  [Fact(DisplayName = "Returns complete list projection with latest price")]
+  public async Task GetWithPricesAsync_ReturnsCompleteProjectionWithLatestPrice() {
+    UserId ownerId = await SeedUserAsync();
+    var market = new SuperMarketDbEntity {
+      Id = Uid.Create(),
+      Name = $"Test market {Guid.CreateVersion7()}",
+      LogoUrl = "https://example.test/market.png",
+    };
+    var brand = new ProductBrandDbEntity {
+      Id = Uid.Create(),
+      Name = $"Test brand {Guid.CreateVersion7()}",
+    };
+    UnitOfMeasureDbEntity? unit = await _context.UnitsOfMeasure
+      .SingleOrDefaultAsync(value => value.Code == "kg",
+        TestContext.Current.CancellationToken);
+    unit ??= new UnitOfMeasureDbEntity {
+      Id = Uid.Create(),
+      Code = "kg",
+      Name = "Kilogram",
+    };
+    var format = new ProductFormatDbEntity {
+      Id = Uid.Create(),
+      Product = new ProductDbEntity {
+        Id = Uid.Create(),
+        Name = "Coffee",
+        SuperMarket = market,
+        Brand = brand,
+      },
+      Quantity = 0.5m,
+      UnitOfMeasure = unit,
+      ImageUrl = "https://example.test/coffee.png",
+      PriceSnapshots = [
+        new PriceSnapshotDbEntity {
+          Id = Uid.Create(),
+          PriceAmount = 4.25m,
+          ObservedAt = RemovedAt.AddDays(-2),
+        },
+        new PriceSnapshotDbEntity {
+          Id = Uid.Create(),
+          PriceAmount = 4.75m,
+          ObservedAt = RemovedAt.AddDays(-1),
+        },
+      ],
+    };
+    _context.ProductFormats.Add(format);
+    await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    var list = ShoppingList.Create(ownerId, new ShoppingListName("Weekly"));
+    list.AddItem(new ProductFormatId(format.Id), new PositiveAmount(3), true);
+    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+    Guid itemId = await _context.ShoppingItems
+      .Where(item => item.ShoppingListId == list.Id.Value)
+      .Select(item => item.Id)
+      .SingleAsync(TestContext.Current.CancellationToken);
+
+    GetShoppingList.Response? result = await _repository.GetWithPricesAsync(
+      ownerId.Value, list.Id.Value, TestContext.Current.CancellationToken);
+
+    GetShoppingList.ResponseItem item = Assert.Single(result!.Items);
+    var actual = new {
+      result.Id,
+      result.ShoppingListName,
+      Item = new {
+        item.Id,
+        item.ProductName,
+        item.BrandName,
+        MarketId = item.Market.Id,
+        MarketName = item.Market.Name,
+        MarketLogo = item.Market.LogoUrl?.ToString(),
+        item.Amount,
+        Quantity = item.Format.Quantity.Amount,
+        Unit = item.Format.Quantity.UnitOfMeasure.Value,
+        Price = item.Format.Price.Amount,
+        Image = item.Format.ImageUrl?.ToString(),
+        item.IsChecked,
+      },
+    };
+    var expected = new {
+      Id = list.Id.Value,
+      ShoppingListName = (string?)"Weekly",
+      Item = new {
+        Id = itemId,
+        ProductName = "Coffee",
+        BrandName = brand.Name,
+        MarketId = market.Id,
+        MarketName = market.Name,
+        MarketLogo = (string?)market.LogoUrl,
+        Amount = 3,
+        Quantity = 0.5m,
+        Unit = "kg",
+        Price = 4.75m,
+        Image = (string?)format.ImageUrl,
+        IsChecked = true,
+      },
+    };
+    Assert.Equal(expected, actual);
+  }
+
+  [Fact(DisplayName = "Returns empty projection for owned empty list")]
+  public async Task GetWithPricesAsync_ReturnsEmptyProjection_WhenListHasNoItems() {
+    UserId ownerId = await SeedUserAsync();
+    var list = ShoppingList.Create(ownerId, null);
+    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+
+    GetShoppingList.Response? result = await _repository.GetWithPricesAsync(
+      ownerId.Value, list.Id.Value, TestContext.Current.CancellationToken);
+
+    var actual = new {
+      result!.Id,
+      result.ShoppingListName,
+      ItemCount = result.Items.Count,
+    };
+    var expected = new {
+      Id = list.Id.Value,
+      ShoppingListName = (string?)null,
+      ItemCount = 0,
+    };
+    Assert.Equal(expected, actual);
+  }
+
+  [Fact(DisplayName = "Does not return list to non-owner")]
+  public async Task GetWithPricesAsync_ReturnsNull_WhenUserDoesNotOwnList() {
+    UserId ownerId = await SeedUserAsync();
+    UserId otherUserId = await SeedUserAsync();
+    var list = ShoppingList.Create(ownerId, new ShoppingListName("Private"));
+    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+
+    GetShoppingList.Response? result = await _repository.GetWithPricesAsync(
+      otherUserId.Value, list.Id.Value, TestContext.Current.CancellationToken);
+
+    Assert.Null(result);
   }
 
   [Fact(DisplayName = "Updates aggregate state")]
