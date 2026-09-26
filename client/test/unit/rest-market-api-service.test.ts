@@ -47,8 +47,23 @@ describe('RestMarketApiService', () => {
     });
 
     expect(fetcher).toHaveBeenCalledWith(
-      `https://api.example/api/v1/products?query=milk&marketId=${marketId}&marketId=00000000-0000-7000-8000-000000000002&brand=Hacendado&page=2&pageSize=24&sort=priceAsc`,
-      expect.objectContaining({ credentials: 'include', method: 'GET' }),
+      'https://api.example/api/v1/products',
+      expect.objectContaining({
+        body: JSON.stringify({
+          brand: 'Hacendado',
+          marketId: [marketId, '00000000-0000-7000-8000-000000000002'],
+          page: 2,
+          pageSize: 24,
+          query: 'milk',
+          sort: 'priceAsc',
+        }),
+        credentials: 'include',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        method: 'QUERY',
+      }),
     );
   });
 

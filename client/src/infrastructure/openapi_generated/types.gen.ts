@@ -65,6 +65,36 @@ export type FormatResponse = {
 };
 
 /**
+ * Product catalog query filters.
+ */
+export type GetProductsRequest = {
+    /**
+     * Case-insensitive product-name fragment. Omit to include all names.
+     */
+    query?: null | string;
+    /**
+     * Include products from several markets. IDs must be UUIDs.
+     */
+    marketId?: null | Array<string>;
+    /**
+     * Case-insensitive brand-name fragment. Omit to include all brands.
+     */
+    brand?: null | string;
+    /**
+     * One-based page number; defaults to 1.
+     */
+    page?: null | number;
+    /**
+     * Maximum products per page, from 1 to 100; defaults to 24.
+     */
+    pageSize?: null | number;
+    /**
+     * Sort by name or lowest latest format price. Defaults to name.
+     */
+    sort?: null | string;
+};
+
+/**
  * Identifier of a newly created shopping list.
  */
 export type IdResponse = {
@@ -598,60 +628,6 @@ export type GetMarketsResponses = {
 };
 
 export type GetMarketsResponse = GetMarketsResponses[keyof GetMarketsResponses];
-
-export type GetProductsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Case-insensitive product-name fragment. Omit to include all names.
-         */
-        query?: string;
-        /**
-         * Repeat to include products from several markets. IDs must be UUIDs.
-         */
-        marketId?: Array<string>;
-        /**
-         * Case-insensitive brand-name fragment. Omit to include all brands.
-         */
-        brand?: string;
-        /**
-         * One-based page number; defaults to 1.
-         */
-        page?: number;
-        /**
-         * Maximum products per page, from 1 to 100; defaults to 24.
-         */
-        pageSize?: number;
-        /**
-         * Sort by name or lowest latest format price. Defaults to name.
-         */
-        sort?: 'name' | 'priceAsc' | 'priceDesc';
-    };
-    url: '/api/v1/products';
-};
-
-export type GetProductsErrors = {
-    /**
-     * A filter, market ID, page value, or sort value is invalid.
-     */
-    400: ProblemDetails;
-    /**
-     * An unexpected server or database failure occurred.
-     */
-    500: ProblemDetails;
-};
-
-export type GetProductsError = GetProductsErrors[keyof GetProductsErrors];
-
-export type GetProductsResponses = {
-    /**
-     * Matching products and pagination counts. An empty page has no items.
-     */
-    200: ProductPageResponse;
-};
-
-export type GetProductsResponse = GetProductsResponses[keyof GetProductsResponses];
 
 export type AddMarketSnapshotData = {
     /**

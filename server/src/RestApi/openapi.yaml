@@ -147,75 +147,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
-  /api/v1/products:
-    get:
-      tags:
-        - GetProductsEndpoint
-      summary: Search catalog products.
-      description: 'Search market-owned products with optional filters. Each result includes formats with their latest observed prices. Pagination counts products, not formats.'
-      operationId: GetProducts
-      parameters:
-        - name: query
-          in: query
-          description: Case-insensitive product-name fragment. Omit to include all names.
-          schema:
-            type: string
-        - name: marketId
-          in: query
-          description: Repeat to include products from several markets. IDs must be UUIDs.
-          schema:
-            type: array
-            items:
-              type: string
-              format: uuid
-        - name: brand
-          in: query
-          description: Case-insensitive brand-name fragment. Omit to include all brands.
-          schema:
-            type: string
-        - name: page
-          in: query
-          description: One-based page number; defaults to 1.
-          schema:
-            minimum: 1
-            type: integer
-            default: 1
-        - name: pageSize
-          in: query
-          description: 'Maximum products per page, from 1 to 100; defaults to 24.'
-          schema:
-            maximum: 100
-            minimum: 1
-            type: integer
-            default: 24
-        - name: sort
-          in: query
-          description: Sort by name or lowest latest format price. Defaults to name.
-          schema:
-            enum:
-              - name
-              - priceAsc
-              - priceDesc
-            type: string
-      responses:
-        '200':
-          description: Matching products and pagination counts. An empty page has no items.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProductPageResponse'
-        '400':
-          description: 'A filter, market ID, page value, or sort value is invalid.'
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetails'
-        '500':
-          description: An unexpected server or database failure occurred.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetails'
   '/api/v1/markets/{marketName}/snapshots/{date}':
     post:
       tags:
@@ -694,6 +625,45 @@ components:
             - string
           description: Absolute product image URL when available; otherwise omitted.
       description: Purchasable product format with its latest price observation.
+    GetProductsRequest:
+      type: object
+      properties:
+        query:
+          type:
+            - 'null'
+            - string
+          description: Case-insensitive product-name fragment. Omit to include all names.
+        marketId:
+          type:
+            - 'null'
+            - array
+          items:
+            type: string
+            format: uuid
+          description: Include products from several markets. IDs must be UUIDs.
+        brand:
+          type:
+            - 'null'
+            - string
+          description: Case-insensitive brand-name fragment. Omit to include all brands.
+        page:
+          type:
+            - 'null'
+            - integer
+          description: One-based page number; defaults to 1.
+          format: int32
+        pageSize:
+          type:
+            - 'null'
+            - integer
+          description: 'Maximum products per page, from 1 to 100; defaults to 24.'
+          format: int32
+        sort:
+          type:
+            - 'null'
+            - string
+          description: Sort by name or lowest latest format price. Defaults to name.
+      description: Product catalog query filters.
     IdResponse:
       required:
         - id

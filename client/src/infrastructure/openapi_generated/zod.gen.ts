@@ -18,6 +18,18 @@ export const zCredentialsRequest = z.object({
 });
 
 /**
+ * Product catalog query filters.
+ */
+export const zGetProductsRequest = z.object({
+    query: z.string().nullish(),
+    marketId: z.array(z.uuid()).nullish(),
+    brand: z.string().nullish(),
+    page: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).nullish(),
+    pageSize: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).nullish(),
+    sort: z.string().nullish()
+});
+
+/**
  * Identifier of a newly created shopping list.
  */
 export const zIdResponse = z.object({
@@ -262,24 +274,6 @@ export const zCreateMachineTokenResponse = zTokenResponse;
  * Available markets and their stable IDs.
  */
 export const zGetMarketsResponse = zMarketListResponse;
-
-export const zGetProductsQuery = z.object({
-    query: z.string().optional(),
-    marketId: z.array(z.uuid()).optional(),
-    brand: z.string().optional(),
-    page: z.int().gte(1).optional().default(1),
-    pageSize: z.int().gte(1).lte(100).optional().default(24),
-    sort: z.enum([
-        'name',
-        'priceAsc',
-        'priceDesc'
-    ]).optional()
-});
-
-/**
- * Matching products and pagination counts. An empty page has no items.
- */
-export const zGetProductsResponse = zProductPageResponse;
 
 /**
  * Batch of market product observations.
