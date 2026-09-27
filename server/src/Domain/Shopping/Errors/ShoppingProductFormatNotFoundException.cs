@@ -3,7 +3,11 @@ using Metaspesa.Domain.Markets;
 namespace Metaspesa.Domain.Shopping.Errors;
 
 public class ShoppingProductFormatNotFoundException : ShoppingDomainException {
-  public ShoppingProductFormatNotFoundException() { }
+  public ShoppingProductFormatNotFoundException() : base(
+    "ShoppingList.Item.ReferenceUid.NotFound",
+    "Product format does not exist."
+  ) { }
+
   public ShoppingProductFormatNotFoundException(ProductFormatId productFormatId)
     : base(
       "ShoppingList.Item.ReferenceUid.NotFound",

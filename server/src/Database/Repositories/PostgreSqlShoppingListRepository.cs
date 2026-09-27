@@ -39,19 +39,21 @@ internal class PostgreSqlShoppingListRepository(
     UserId ownerId,
     ShoppingListId id,
     CancellationToken cancellationToken
-  ) => await PostgreSqlExceptionMapper.MapAsync(
-    async () => {
-      ShoppingListDbEntity? entity = await context.ShoppingLists
-        .AsNoTracking()
-        .Include(list => list.Ownerships)
-        .Include(list => list.Items)
-        .Where(list => list.Id == id.Value && list.DeletedAt == null &&
-          list.Ownerships.Any(ownership => ownership.UserUid == ownerId.Value))
-        .FirstOrDefaultAsync(cancellationToken);
+  ) => await GetAsync(ownerId.Value, id.Value, cancellationToken);
 
-      return entity is null ? null : ToDomain(entity);
-    },
-    "Couldn't get shopping list.");
+  public async Task<ShoppingList?> GetAsync(
+    Guid ownerId, Guid listId, CancellationToken cancellationToken
+  ) {
+    ShoppingListDbEntity? entity = await context.ShoppingLists
+      .AsNoTracking()
+      .Include(list => list.Ownerships)
+      .Include(list => list.Items)
+      .Where(list => list.Id == listId && list.DeletedAt == null &&
+        list.Ownerships.Any(ownership => ownership.UserUid == ownerId))
+      .FirstOrDefaultAsync(cancellationToken);
+
+    return entity is null ? null : ToDomain(entity);
+  }
 
   public async Task<bool> ExistsAsync(
     Guid ownerId, string? name, CancellationToken cancellationToken
@@ -126,14 +128,16 @@ internal class PostgreSqlShoppingListRepository(
     var productFormatIds = new Guid[items.Length];
     int[] amounts = new int[items.Length];
     bool[] checkedStates = new bool[items.Length];
+    var deletedStates = new DateTime?[items.Length];
 
     for (int i = 0; i < items.Length; i++) {
       ShoppingItem item = items[i];
 
-      itemIds[i] = Uid.Create();
+      itemIds[i] = item.Id.Value;
       productFormatIds[i] = item.ProductFormatId.Value;
       amounts[i] = item.Amount.Value;
       checkedStates[i] = item.IsChecked;
+      deletedStates[i] = item.DeletedAt;
     }
 
     await using IDbContextTransaction transaction = await context.Database
@@ -167,10 +171,10 @@ internal class PostgreSqlShoppingListRepository(
         id, shopping_list_id, product_format_id, amount, is_checked, deleted_at
       )
       SELECT
-        item_id, {listId}, product_format_id, amount, is_checked, NULL
+        item_id, {listId}, product_format_id, amount, is_checked, deleted_at
       FROM unnest(
-        {itemIds}, {productFormatIds}, {amounts}, {checkedStates}
-      ) AS items(item_id, product_format_id, amount, is_checked);
+        {itemIds}, {productFormatIds}, {amounts}, {checkedStates}, {deletedStates}
+      ) AS items(item_id, product_format_id, amount, is_checked, deleted_at);
       """, cancellationToken);
 
     await transaction.CommitAsync(cancellationToken);
@@ -182,15 +186,15 @@ internal class PostgreSqlShoppingListRepository(
       entity.Ownerships.Select(ownership => new UserId(ownership.UserUid)),
       entity.Name is null ? null : new ShoppingListName(entity.Name),
       entity.DeletedAt,
-      entity.Items
-        .Where(item => item.DeletedAt == null)
-        .Select(item => new ShoppingItem(
-          new ProductFormatId(item.ProductFormatId),
-          new PositiveAmount(item.Amount),
-          item.IsChecked)));
+      entity.Items.Select(item => ShoppingItem.Rehydrate(
+          item.Id,
+          item.ProductFormatId,
+          item.Amount,
+          item.IsChecked,
+          item.DeletedAt)));
 
   private static ShoppingItemDbEntity ToEntity(ShoppingItem item) => new() {
-    Id = Uid.Create(),
+    Id = item.Id.Value,
     ProductFormatId = item.ProductFormatId.Value,
     Amount = item.Amount.Value,
     IsChecked = item.IsChecked,

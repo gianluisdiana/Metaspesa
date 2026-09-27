@@ -5,6 +5,8 @@ using Metaspesa.Domain.Shopping.Errors;
 
 namespace Metaspesa.Domain.Shopping;
 
+public record AddItemsParams(Guid ProductFormatUid, int Amount, bool IsChecked);
+
 public sealed class ShoppingList {
   private readonly List<UserId> _ownerIds;
   private readonly List<ShoppingItem> _items;
@@ -43,14 +45,7 @@ public sealed class ShoppingList {
     DeletedAt = deletedAt;
     _items = items?.ToList() ?? [];
 
-    ProductFormatId? duplicateItem = _items
-      .GroupBy(item => item.ProductFormatId)
-      .Where(group => group.Count() > 1)
-      .Select(group => (ProductFormatId?)group.Key)
-      .FirstOrDefault();
-    if (duplicateItem.HasValue) {
-      throw new DuplicateShoppingItemException(duplicateItem.Value);
-    }
+    EnsureNoDuplicates(_items);
   }
 
   public static ShoppingList Create(
@@ -82,20 +77,17 @@ public sealed class ShoppingList {
 
   public void AddItem(
     ProductFormatId productFormatId, PositiveAmount amount, bool isChecked
-  ) => AddItems([new ShoppingItem(productFormatId, amount, isChecked)]);
+  ) => AddItems([new AddItemsParams(productFormatId.Value, amount.Value, isChecked)]);
 
-  public void AddItems(IEnumerable<ShoppingItem> items) {
-    var additions = items.ToList();
-    ProductFormatId? duplicateId = _items
-      .Select(item => item.ProductFormatId)
-      .Concat(additions.Select(item => item.ProductFormatId))
-      .GroupBy(id => id)
-      .Where(group => group.Count() > 1)
-      .Select(group => (ProductFormatId?)group.Key)
-      .FirstOrDefault();
-    if (duplicateId.HasValue) {
-      throw new DuplicateShoppingItemException(duplicateId.Value);
+  public void AddItems(IEnumerable<AddItemsParams> items) {
+    var additions = items.Select(i => ShoppingItem.Create(
+        i.ProductFormatUid, i.Amount, i.IsChecked))
+      .ToList();
+    if (additions.Count == 0) {
+      throw new EmptyShoppingItemsException();
     }
+
+    EnsureNoDuplicates([.. _items, .. additions]);
 
     _items.AddRange(additions);
   }
@@ -117,15 +109,31 @@ public sealed class ShoppingList {
   }
 
   public IReadOnlyCollection<ShoppingItem> CheckedItems() =>
-    _items.Where(item => item.IsChecked).ToList().AsReadOnly();
+    _items.Where(item => item.DeletedAt is null && item.IsChecked)
+      .ToList().AsReadOnly();
 
   public void ResetCheckedItems() {
-    foreach (ShoppingItem item in _items.Where(item => item.IsChecked)) {
+    foreach (ShoppingItem item in _items.Where(
+      item => item.DeletedAt is null && item.IsChecked)) {
       item.Update(null, false);
     }
   }
 
   private ShoppingItem FindItem(ProductFormatId productFormatId) =>
-    _items.FirstOrDefault(item => item.ProductFormatId == productFormatId) ??
+    _items.FirstOrDefault(item =>
+      item.DeletedAt is null && item.ProductFormatId == productFormatId) ??
     throw new ShoppingItemNotFoundException(productFormatId);
+
+  private static void EnsureNoDuplicates(IEnumerable<ShoppingItem> items) {
+    ProductFormatId? duplicateItem = items
+      .Where(item => item.DeletedAt is null)
+      .GroupBy(item => item.ProductFormatId)
+      .Where(group => group.Count() > 1)
+      .Select(group => (ProductFormatId?)group.Key)
+      .FirstOrDefault();
+
+    if (duplicateItem.HasValue) {
+      throw new DuplicateShoppingItemException(duplicateItem.Value);
+    }
+  }
 }

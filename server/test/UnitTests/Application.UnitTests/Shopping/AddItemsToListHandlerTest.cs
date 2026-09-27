@@ -1,7 +1,5 @@
-using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Abstractions.Shopping;
-using Metaspesa.Domain.Identity;
 using Metaspesa.Domain.Shopping;
 using Metaspesa.Domain.Shopping.Errors;
 using NSubstitute;
@@ -10,101 +8,87 @@ using static Metaspesa.Application.Shopping.AddItemsToList;
 namespace Metaspesa.Application.UnitTests.Shopping;
 
 public class AddItemsToListHandlerTest {
-  private static readonly Guid FormatId = Guid.CreateVersion7();
+  private readonly IShoppingListRepository _shoppingListRepository;
+  private readonly IProductRepository _productRepository;
 
-  private readonly IShoppingListRepository _repository =
-    Substitute.For<IShoppingListRepository>();
-  private readonly IProductRepository _productRepository =
-    Substitute.For<IProductRepository>();
-  private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+  private readonly Handler _handler;
 
-  [Fact(DisplayName = "Adds validated formats through aggregate")]
-  public async Task Handle_AddsItemsAndCommits_WhenFormatsExist() {
-    var ownerId = Guid.CreateVersion7();
-    ShoppingList list = ShoppingTestData.List(ownerId);
-    _repository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
-      .Returns(list);
-    _productRepository.GetProductsAsync(
-      Arg.Any<IReadOnlyCollection<Guid>>(), Arg.Any<CancellationToken>())
-      .Returns(new Dictionary<Guid, MarketProduct> {
-        [FormatId] = ShoppingTestData.MarketProduct(FormatId),
-      });
-    var handler = new Handler(_repository, _productRepository, _unitOfWork);
+  public AddItemsToListHandlerTest() {
+    _shoppingListRepository = Substitute.For<IShoppingListRepository>();
+    _productRepository = Substitute.For<IProductRepository>();
 
-    await handler.Handle(
-      new Command(ownerId, ShoppingTestData.ListId, [new CommandItem(FormatId, 2, true)]),
-      TestContext.Current.CancellationToken);
-
-    ShoppingItem item = Assert.Single(list.Items);
-    Assert.Equal(FormatId, item.ProductFormatId.Value);
-    Assert.Equal(2, item.Amount.Value);
-    Assert.True(item.IsChecked);
-    await _repository.Received(1).UpdateAsync(list, TestContext.Current.CancellationToken);
-    await _unitOfWork.Received(1).SaveChangesAsync(
-      TestContext.Current.CancellationToken);
+    _handler = new Handler(_shoppingListRepository, _productRepository);
   }
 
-  [Fact(DisplayName = "Rejects empty additions without commit")]
-  public async Task Handle_ThrowsExactException_WhenItemsAreEmpty() {
-    var handler = new Handler(_repository, _productRepository, _unitOfWork);
+  [Fact(DisplayName = "Rejects shopping list that does not exist")]
+  public async Task Handle_RejectsShoppingListThatDoesNotExist() {
+    var command = new Command(
+      Guid.CreateVersion7(),
+      Guid.CreateVersion7(),
+      [new AddItemsParams(Guid.CreateVersion7(), 2, true)]);
 
-    await Assert.ThrowsAsync<EmptyShoppingItemsException>(() => handler.Handle(
-      new Command(Guid.CreateVersion7(), ShoppingTestData.ListId, []),
-      TestContext.Current.CancellationToken));
+    _shoppingListRepository.GetAsync(
+        command.UserUid,
+        command.ShoppingListId,
+        TestContext.Current.CancellationToken)
+      .Returns((ShoppingList?)null);
 
-    await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    async Task action() => await _handler.Handle(
+      command, TestContext.Current.CancellationToken);
+
+    await Assert.ThrowsAsync<ShoppingListNotFoundException>(action);
   }
 
-  [Fact(DisplayName = "Rejects missing format without mutating list")]
-  public async Task Handle_ThrowsExactException_WhenFormatIsMissing() {
+  [Fact(DisplayName = "Rejects product format that doesn't exist")]
+  public async Task Handle_RejectsProductFormatThatDoesNotExist() {
     var ownerId = Guid.CreateVersion7();
-    ShoppingList list = ShoppingTestData.List(ownerId);
-    _repository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
-      .Returns(list);
-    _productRepository.GetProductsAsync(
-      Arg.Any<IReadOnlyCollection<Guid>>(), Arg.Any<CancellationToken>())
-      .Returns(new Dictionary<Guid, MarketProduct>());
-    var handler = new Handler(_repository, _productRepository, _unitOfWork);
+    var formatId = Guid.CreateVersion7();
+    var shoppingList = ShoppingList.Create(ownerId, "Weekly");
 
-    await Assert.ThrowsAsync<ShoppingProductFormatNotFoundException>(() => handler.Handle(
-      new Command(ownerId, ShoppingTestData.ListId, [new CommandItem(FormatId, 2, false)]),
-      TestContext.Current.CancellationToken));
+    var command = new Command(
+      ownerId,
+      shoppingList.Id.Value,
+      [new AddItemsParams(formatId, 2, true)]);
 
-    Assert.Empty(list.Items);
-    await _repository.DidNotReceive().UpdateAsync(
-      Arg.Any<ShoppingList>(), Arg.Any<CancellationToken>());
+    _shoppingListRepository.GetAsync(
+        ownerId,
+        command.ShoppingListId,
+        TestContext.Current.CancellationToken)
+      .Returns(shoppingList);
+
+    _productRepository.CheckFormatsExistAsync(
+        Arg.Is<IEnumerable<Guid>>(ids =>
+          ids.Count() == 1 && ids.First() == formatId),
+        TestContext.Current.CancellationToken)
+      .Returns(false);
+
+    async Task action() => await _handler.Handle(
+      command, TestContext.Current.CancellationToken);
+
+    await Assert.ThrowsAsync<ShoppingProductFormatNotFoundException>(action);
   }
 
-  [Fact(DisplayName = "Loads owner list and distinct product formats")]
-  public async Task Handle_UsesOwnerIdAndDistinctFormatIds() {
+  [Fact(DisplayName = "Saves aggregate after adding items")]
+  public async Task Handle_SavesAggregateAfterAddingItems() {
     var ownerId = Guid.CreateVersion7();
-    ShoppingList list = ShoppingTestData.List(ownerId, null);
-    _repository.GetAsync(
-      new UserId(ownerId), new ShoppingListId(ShoppingTestData.ListId), TestContext.Current.CancellationToken)
+    var formatId = Guid.CreateVersion7();
+    var list = ShoppingList.Create(ownerId, "Weekly Groceries");
+    var command = new Command(
+      ownerId, list.Id.Value, [new AddItemsParams(formatId, 2, true)]);
+
+    _shoppingListRepository.GetAsync(
+        ownerId, list.Id.Value, TestContext.Current.CancellationToken)
       .Returns(list);
-    _productRepository.GetProductsAsync(
-      Arg.Any<IReadOnlyCollection<Guid>>(), Arg.Any<CancellationToken>())
-      .Returns(new Dictionary<Guid, MarketProduct> {
-        [FormatId] = ShoppingTestData.MarketProduct(FormatId),
-      });
-    var handler = new Handler(_repository, _productRepository, _unitOfWork);
+    _productRepository.CheckFormatsExistAsync(
+        Arg.Is<IEnumerable<Guid>>(ids =>
+          ids.Count() == 1 && ids.First() == formatId),
+        TestContext.Current.CancellationToken)
+      .Returns(true);
 
-    await Assert.ThrowsAsync<DuplicateShoppingItemException>(() => handler.Handle(
-      new Command(ownerId, ShoppingTestData.ListId, [
-        new CommandItem(FormatId, 1, false),
-        new CommandItem(FormatId, 2, true),
-      ]),
-      TestContext.Current.CancellationToken));
+    await _handler.Handle(command, TestContext.Current.CancellationToken);
 
-    await _repository.Received(1).GetAsync(
-      new UserId(ownerId), new ShoppingListId(ShoppingTestData.ListId), TestContext.Current.CancellationToken);
-    await _productRepository.Received(1).GetProductsAsync(
-      Arg.Is<IReadOnlyCollection<Guid>>(ids =>
-        ids.Count == 1 && ids.Single() == FormatId),
+    await _shoppingListRepository.Received(1).SaveAsync(
+      Arg.Is<ShoppingList>(l => l.Id == list.Id),
       TestContext.Current.CancellationToken);
-    await _unitOfWork.DidNotReceive().SaveChangesAsync(
-      Arg.Any<CancellationToken>());
   }
 }

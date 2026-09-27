@@ -68,6 +68,43 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
     Assert.True(item.IsChecked);
   }
 
+  [Fact(DisplayName = "Round trips shopping item identity")]
+  public async Task SaveAndGetAsync_PreservesShoppingItemId() {
+    UserId ownerId = await SeedUserAsync();
+    ProductFormatId formatId = await SeedProductFormatAsync("Milk");
+    var list = ShoppingList.Create(ownerId, new ShoppingListName("Weekly"));
+    list.AddItem(formatId, new PositiveAmount(2), true);
+    ShoppingItem originalItem = Assert.Single(list.Items);
+
+    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+    ShoppingList result = Assert.IsType<ShoppingList>(
+      await _repository.GetAsync(ownerId.Value, list.Id.Value,
+        TestContext.Current.CancellationToken));
+
+    Assert.Equal(originalItem.Id, Assert.Single(result.Items).Id);
+  }
+
+  [Fact(DisplayName = "Round trips shopping item deletion timestamp")]
+  public async Task SaveAndGetAsync_PreservesShoppingItemDeletedAt() {
+    UserId ownerId = await SeedUserAsync();
+    ProductFormatId formatId = await SeedProductFormatAsync("Milk");
+    var item = ShoppingItem.Rehydrate(
+      Guid.CreateVersion7(), formatId.Value, 2, true, RemovedAt);
+    var list = ShoppingList.Rehydrate(
+      new ShoppingListId(Guid.CreateVersion7()),
+      [ownerId],
+      new ShoppingListName("Weekly"),
+      null,
+      [item]);
+
+    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+    ShoppingList result = Assert.IsType<ShoppingList>(
+      await _repository.GetAsync(ownerId.Value, list.Id.Value,
+        TestContext.Current.CancellationToken));
+
+    Assert.Equal(RemovedAt, Assert.Single(result.Items).DeletedAt);
+  }
+
   [Fact(DisplayName = "Persists temporary empty aggregate")]
   public async Task AddAndGetAsync_PersistsTemporaryEmptyList() {
     UserId ownerId = await SeedUserAsync();
@@ -779,35 +816,37 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
       ownerId,
       new ShoppingListId(id),
       TestContext.Current.CancellationToken));
-    Assert.Empty(result.Items);
+    Assert.Equal(RemovedAt, Assert.Single(result.Items).DeletedAt);
   }
 
   [Fact(DisplayName = "Re-adding removed format creates active replacement")]
-  public async Task UpdateAsync_ReaddsPreviouslyRemovedFormat() {
+  public async Task UpdateAsync_ReAddsPreviouslyRemovedFormat() {
     UserId ownerId = await SeedUserAsync();
     ProductFormatId formatId = await SeedProductFormatAsync("Milk");
-    var list = ShoppingList.Create(ownerId, new ShoppingListName("Weekly"));
-    list.AddItem(formatId, new PositiveAmount(1), false);
-    Guid id = await _repository.AddAsync(list, TestContext.Current.CancellationToken);
-    ShoppingList persisted = Assert.IsType<ShoppingList>(await _repository.GetAsync(
-      ownerId,
-      new ShoppingListId(id),
-      TestContext.Current.CancellationToken));
-    persisted.RemoveItem(formatId);
-    await _repository.UpdateAsync(persisted, TestContext.Current.CancellationToken);
+    var list = ShoppingList.Create(ownerId.Value, "Weekly");
+    list.AddItems([
+      new AddItemsParams(formatId.Value, 1, false)
+    ]);
+    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+    list.RemoveItem(formatId);
+    await _repository.UpdateAsync(list, TestContext.Current.CancellationToken);
     await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-    persisted.AddItem(formatId, new PositiveAmount(4), true);
-    await _repository.UpdateAsync(persisted, TestContext.Current.CancellationToken);
+    list.AddItem(formatId, new PositiveAmount(4), true);
+    await _repository.UpdateAsync(list, TestContext.Current.CancellationToken);
     await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
     ShoppingList result = Assert.IsType<ShoppingList>(await _repository.GetAsync(
       ownerId,
-      new ShoppingListId(id),
+      list.Id,
       TestContext.Current.CancellationToken));
-    ShoppingItem item = Assert.Single(result.Items);
-    Assert.Equal(4, item.Amount.Value);
-    Assert.True(item.IsChecked);
+    ShoppingItem activeItem = Assert.Single(
+      result.Items, item => item.DeletedAt is null);
+    ShoppingItem deletedItem = Assert.Single(
+      result.Items, item => item.DeletedAt is not null);
+    Assert.Equal(4, activeItem.Amount.Value);
+    Assert.True(activeItem.IsChecked);
+    Assert.Equal(RemovedAt, deletedItem.DeletedAt);
     Assert.Equal(2, await _context.ShoppingItems.CountAsync(
       row => row.ProductFormatId == formatId.Value,
       TestContext.Current.CancellationToken));

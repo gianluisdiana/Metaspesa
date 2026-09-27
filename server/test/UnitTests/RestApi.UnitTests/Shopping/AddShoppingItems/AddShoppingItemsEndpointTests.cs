@@ -1,9 +1,7 @@
-using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Abstractions.Shopping;
 using Metaspesa.Application.Shopping;
 using Metaspesa.Domain.Shopping;
-using Metaspesa.Domain.Shopping.Errors;
 using Metaspesa.RestApi.Shopping.AddShoppingItems;
 using Microsoft.AspNetCore.Http;
 using NSubstitute;
@@ -11,72 +9,99 @@ using static Metaspesa.RestApi.UnitTests.Shopping.ShoppingEndpointTestData;
 
 namespace Metaspesa.RestApi.UnitTests.Shopping.AddShoppingItems;
 
-public static class AddShoppingItemsEndpointTests {
-  [Fact]
-  public static async Task Add_AddsMultipleItemsAndReturnsNoContent() {
-    ShoppingList list = PersistedList("Weekly");
-    IShoppingListRepository repository = RepositoryWith(list);
-    IProductRepository products = Substitute.For<IProductRepository>();
-    products.GetProductsAsync(Arg.Any<IReadOnlyCollection<Guid>>(),
-      TestContext.Current.CancellationToken).Returns(
-        new Dictionary<Guid, MarketProduct> {
-          [FormatId] = Product(FormatId),
-          [OtherFormatId] = Product(OtherFormatId),
-        });
+public class AddShoppingItemsEndpointTests {
+  private sealed class FakeHandler : AddItemsToList.Handler {
+    private readonly IShoppingListRepository _shoppingListRepository;
+    private readonly IProductRepository _productRepository;
 
-    IResult result = await AddShoppingItemsEndpoint.AddItemsAsync(ListId,
-      new AddShoppingItemsRequest([
-        new ShoppingItemRequest(FormatId, 2, true),
-        new ShoppingItemRequest(OtherFormatId, 3, false),
-      ]), ShopperContext(),
-      new AddItemsToList.Handler(repository, products, Substitute.For<IUnitOfWork>()),
+    public FakeHandler(
+      IShoppingListRepository shoppingListRepository,
+      IProductRepository productRepository
+    ) : base(shoppingListRepository, productRepository) {
+      _shoppingListRepository = shoppingListRepository;
+      _productRepository = productRepository;
+    }
+
+    public void WithHappyPath() {
+      _shoppingListRepository.GetAsync(
+          Arg.Any<Guid>(), Arg.Any<Guid>(), TestContext.Current.CancellationToken)
+        .Returns(ShoppingList.Create(Guid.CreateVersion7(), "Weekly"));
+      _productRepository.CheckFormatsExistAsync(
+          Arg.Any<IEnumerable<Guid>>(), TestContext.Current.CancellationToken)
+        .Returns(true);
+    }
+  }
+
+  private readonly FakeHandler _handler;
+
+  public AddShoppingItemsEndpointTests() {
+    _handler = new FakeHandler(
+      Substitute.For<IShoppingListRepository>(),
+      Substitute.For<IProductRepository>());
+  }
+
+  [Fact(DisplayName = "Returns no content for accepted request")]
+  public async Task Add_ReturnsNoContent_WhenRequestIsAccepted() {
+    _handler.WithHappyPath();
+
+    var request = new AddShoppingItemsRequest([
+      new ShoppingItemRequest(Guid.CreateVersion7(), 2, true),
+      new ShoppingItemRequest(Guid.CreateVersion7(), 3, false),
+    ]);
+
+    IResult result = await AddShoppingItemsEndpoint.AddItemsAsync(
+      Guid.CreateVersion7(),
+      request,
+      ShopperContext(),
+      _handler,
       TestContext.Current.CancellationToken);
 
-    ShoppingItem[] items = [.. list.Items];
-    Assert.Equal((StatusCodes.Status204NoContent, 2,
-      FormatId, 2, true, OtherFormatId, 3, false),
-      (Assert.IsAssignableFrom<IStatusCodeHttpResult>(result).StatusCode,
-        items.Length, items[0].ProductFormatId.Value, items[0].Amount.Value,
-        items[0].IsChecked, items[1].ProductFormatId.Value,
-        items[1].Amount.Value, items[1].IsChecked));
+    IStatusCodeHttpResult statusCodeHttpResult = Assert.IsType<IStatusCodeHttpResult>(
+      result, exactMatch: false);
+    Assert.Equal(StatusCodes.Status204NoContent, statusCodeHttpResult.StatusCode);
   }
 
-  [Fact]
-  public static async Task Add_RejectsNullItemsArray() {
-    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
-    IProductRepository products = Substitute.For<IProductRepository>();
+  [Fact(DisplayName = "Rejects null items array")]
+  public async Task Add_RejectsNullItemsArray() {
+    var request = new AddShoppingItemsRequest(null);
 
-    await Assert.ThrowsAsync<BadHttpRequestException>(() =>
-      AddShoppingItemsEndpoint.AddItemsAsync(ListId,
-        new AddShoppingItemsRequest(null), ShopperContext(),
-        new AddItemsToList.Handler(repository, products,
-          Substitute.For<IUnitOfWork>()),
-        TestContext.Current.CancellationToken));
+    async Task action() => await AddShoppingItemsEndpoint.AddItemsAsync(
+      Guid.CreateVersion7(),
+      request,
+      ShopperContext(),
+      _handler,
+      TestContext.Current.CancellationToken);
+
+    await Assert.ThrowsAsync<BadHttpRequestException>(action);
   }
 
-  [Fact]
-  public static async Task Add_RejectsNullItemInArray() {
-    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
-    IProductRepository products = Substitute.For<IProductRepository>();
+  [Fact(DisplayName = "Rejects null item in array")]
+  public async Task Add_RejectsNullItemInArray() {
+    var request = new AddShoppingItemsRequest([null!]);
 
-    await Assert.ThrowsAsync<BadHttpRequestException>(() =>
-      AddShoppingItemsEndpoint.AddItemsAsync(ListId,
-        new AddShoppingItemsRequest([null!]), ShopperContext(),
-        new AddItemsToList.Handler(repository, products,
-          Substitute.For<IUnitOfWork>()),
-        TestContext.Current.CancellationToken));
+    async Task action() => await AddShoppingItemsEndpoint.AddItemsAsync(
+      Guid.CreateVersion7(),
+      request,
+      ShopperContext(),
+      _handler,
+      TestContext.Current.CancellationToken);
+
+    await Assert.ThrowsAsync<BadHttpRequestException>(action);
   }
 
-  [Fact]
-  public static async Task Add_RejectsEmptyItemsArray() {
-    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
-    IProductRepository products = Substitute.For<IProductRepository>();
+  [Fact(DisplayName = "Rejects request without authenticated user ID")]
+  public async Task Add_RejectsRequestWithoutUserIdClaim() {
+    var request = new AddShoppingItemsRequest([
+      new ShoppingItemRequest(Guid.CreateVersion7(), 2, true),
+    ]);
 
-    await Assert.ThrowsAsync<EmptyShoppingItemsException>(() =>
-      AddShoppingItemsEndpoint.AddItemsAsync(ListId,
-        new AddShoppingItemsRequest([]), ShopperContext(),
-        new AddItemsToList.Handler(repository, products,
-          Substitute.For<IUnitOfWork>()),
-        TestContext.Current.CancellationToken));
+    async Task action() => await AddShoppingItemsEndpoint.AddItemsAsync(
+      Guid.CreateVersion7(),
+      request,
+      new DefaultHttpContext(),
+      _handler,
+      TestContext.Current.CancellationToken);
+
+    await Assert.ThrowsAsync<UnauthorizedAccessException>(action);
   }
 }

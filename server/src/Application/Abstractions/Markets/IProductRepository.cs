@@ -8,8 +8,6 @@ public interface IProductRepository {
     ProductId productId, CancellationToken cancellationToken);
   Task<PagedResult<CatalogProduct>> GetProductsAsync(
     GetMarketProductsFilter filter, CancellationToken cancellationToken);
-  Task<IReadOnlyDictionary<Guid, MarketProduct>> GetProductsAsync(
-    IReadOnlyCollection<Guid> productFormatIds, CancellationToken cancellationToken);
   Task<IReadOnlyCollection<BrandName>> GetBrandsAsync(
     CancellationToken cancellationToken);
   Task AddBrandsAsync(
@@ -23,4 +21,6 @@ public interface IProductRepository {
   Task DeleteProductFormatsAsync(
     IReadOnlyCollection<ProductFormatId> productFormatIds,
     CancellationToken cancellationToken);
+  Task<bool> CheckFormatsExistAsync(
+    IEnumerable<Guid> formatIds, CancellationToken cancellationToken);
 }
