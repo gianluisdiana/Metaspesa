@@ -1,7 +1,4 @@
-using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Shopping;
-using Metaspesa.Domain.Identity;
-using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.SharedKernel;
 using Metaspesa.Domain.Shopping;
 using Metaspesa.Domain.Shopping.Errors;
@@ -12,30 +9,24 @@ public static class UpdateItem {
   public record Command(
     Guid UserUid,
     Guid ShoppingListId,
-    Guid ProductFormatUid,
+    Guid ShoppingItemId,
     int? Amount,
     bool? IsChecked
   );
 
-  public class Handler(
-    IShoppingListRepository shoppingListRepository,
-    IUnitOfWork unitOfWork
-  ) {
+  public class Handler(IShoppingListRepository repository) {
     public async Task Handle(
       Command command, CancellationToken cancellationToken = default
     ) {
       ArgumentNullException.ThrowIfNull(command);
 
-      ShoppingList shoppingList = await shoppingListRepository.GetAsync(
-        new UserId(command.UserUid), new ShoppingListId(command.ShoppingListId),
-        cancellationToken) ?? throw new ShoppingListNotFoundException();
+      ShoppingList shoppingList = await repository.GetAsync(
+        command.UserUid, command.ShoppingListId, cancellationToken) ??
+        throw new ShoppingListNotFoundException();
 
       shoppingList.UpdateItem(
-        new ProductFormatId(command.ProductFormatUid),
-        command.Amount.HasValue ? new PositiveAmount(command.Amount.Value) : null,
-        command.IsChecked);
-      await shoppingListRepository.UpdateAsync(shoppingList, cancellationToken);
-      await unitOfWork.SaveChangesAsync(cancellationToken);
+        command.ShoppingItemId, command.Amount, command.IsChecked);
+      await repository.SaveAsync(shoppingList, cancellationToken);
     }
   }
 }

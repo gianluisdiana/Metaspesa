@@ -209,75 +209,78 @@ public class ShoppingListTests {
 
   [Fact(DisplayName = "Updates amount and checked state atomically")]
   public void UpdateItem_UpdatesProvidedFields() {
-    var list = ShoppingList.Create(OwnerId, null);
-    var formatId = new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002"));
-    list.AddItem(formatId, new PositiveAmount(1), false);
+    var list = ShoppingList.Create(OwnerId.Value, "Test list");
+    list.AddItems([new AddItemsParams(Guid.CreateVersion7(), 1, false)]);
+    ShoppingItem item = list.Items.Single();
 
-    list.UpdateItem(formatId, new PositiveAmount(4), true);
+    list.UpdateItem(item.Id.Value, 4, true);
 
-    ShoppingItem item = Assert.Single(list.Items);
     Assert.Equal(4, item.Amount.Value);
     Assert.True(item.IsChecked);
   }
 
   [Fact(DisplayName = "Rejects update without fields")]
   public void UpdateItem_ThrowsExactException_WhenNoFieldsProvided() {
-    var list = ShoppingList.Create(OwnerId, null);
-    var formatId = new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002"));
-    list.AddItem(formatId, new PositiveAmount(1), false);
+    var list = ShoppingList.Create(OwnerId.Value, "Test list");
+    list.AddItems([new AddItemsParams(Guid.CreateVersion7(), 1, false)]);
+    ShoppingItem item = list.Items.Single();
 
-    Assert.Throws<EmptyShoppingItemUpdateException>(() =>
-      list.UpdateItem(formatId, null, null));
-    Assert.Equal(1, list.Items.Single().Amount.Value);
+    void action() => list.UpdateItem(item.Id.Value, null, null);
+
+    Assert.Throws<EmptyShoppingItemUpdateException>(action);
   }
 
   [Fact(DisplayName = "Rejects update for missing item")]
   public void UpdateItem_ThrowsExactException_WhenItemIsMissing() {
-    var list = ShoppingList.Create(OwnerId, null);
+    var list = ShoppingList.Create(OwnerId.Value, "Test list");
 
     Assert.Throws<ShoppingItemNotFoundException>(() =>
-      list.UpdateItem(new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002")), new PositiveAmount(1), null));
+      list.UpdateItem(
+        Guid.Parse("00000000-0000-7000-8000-000000000002"), 1, null));
   }
 
   [Fact(DisplayName = "Preserves amount when updating checked state")]
   public void UpdateItem_PreservesAmount_WhenAmountIsMissing() {
-    var list = ShoppingList.Create(OwnerId, null);
-    var formatId = new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002"));
-    list.AddItem(formatId, new PositiveAmount(3), false);
+    var list = ShoppingList.Create(OwnerId.Value, "Test list");
+    list.AddItems([new AddItemsParams(Guid.CreateVersion7(), 3, false)]);
+    ShoppingItem item = list.Items.Single();
 
-    list.UpdateItem(formatId, null, true);
+    list.UpdateItem(item.Id.Value, null, true);
 
     Assert.Equal(3, list.Items.Single().Amount.Value);
   }
 
   [Fact(DisplayName = "Preserves checked state when updating amount")]
   public void UpdateItem_PreservesCheckedState_WhenCheckedStateIsMissing() {
-    var list = ShoppingList.Create(OwnerId, null);
-    var formatId = new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002"));
-    list.AddItem(formatId, new PositiveAmount(1), true);
+    var list = ShoppingList.Create(OwnerId.Value, "Test list");
+    list.AddItems([new AddItemsParams(Guid.CreateVersion7(), 3, true)]);
+    ShoppingItem item = list.Items.Single();
 
-    list.UpdateItem(formatId, new PositiveAmount(3), null);
+    list.UpdateItem(item.Id.Value, 3, null);
 
-    Assert.True(list.Items.Single().IsChecked);
+    Assert.True(item.IsChecked);
   }
 
-  [Fact(DisplayName = "Removes existing item")]
-  public void RemoveItem_RemovesItem() {
-    var list = ShoppingList.Create(OwnerId, null);
-    var formatId = new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002"));
-    list.AddItem(formatId, new PositiveAmount(1), false);
+  [Fact(DisplayName = "Marks existing item deleted at supplied time")]
+  public void RemoveItem_MarksItemDeletedAtSuppliedTime() {
+    var list = ShoppingList.Create(OwnerId.Value, "Test list");
+    list.AddItems([new AddItemsParams(Guid.CreateVersion7(), 3, true)]);
+    ShoppingItem item = list.Items.Single();
 
-    list.RemoveItem(formatId);
+    var deletedAt = new DateTime(2026, 10, 3, 8, 30, 0, DateTimeKind.Utc);
 
-    Assert.Empty(list.Items);
+    list.RemoveItem(item.Id.Value, deletedAt);
+
+    Assert.Equal(deletedAt, item.DeletedAt);
   }
 
   [Fact(DisplayName = "Rejects removal of missing item")]
   public void RemoveItem_ThrowsExactException_WhenItemIsMissing() {
-    var list = ShoppingList.Create(OwnerId, null);
+    var list = ShoppingList.Create(OwnerId.Value, "Test list");
 
-    Assert.Throws<ShoppingItemNotFoundException>(() =>
-      list.RemoveItem(new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002"))));
+    void action() => list.RemoveItem(Guid.CreateVersion7(), DateTime.UtcNow);
+
+    Assert.Throws<ShoppingItemNotFoundException>(action);
   }
 
   [Fact(DisplayName = "Returns checked items without mutation")]

@@ -385,9 +385,13 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
     list.AddItem(retainedFormatId, new PositiveAmount(1), false);
     list.AddItem(removedFormatId, new PositiveAmount(1), false);
     await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
-    list.RemoveItem(removedFormatId);
+    ShoppingItem retainedItem = list.Items.Single(
+      item => item.ProductFormatId == retainedFormatId);
+    var replacement = ShoppingList.Rehydrate(
+      list.Id, list.OwnerIds, list.Name, list.DeletedAt, [retainedItem]);
 
-    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+    await _repository.SaveAsync(
+      replacement, TestContext.Current.CancellationToken);
 
     Guid[] persistedFormats = await _context.ShoppingItems
       .AsNoTracking()
@@ -430,7 +434,8 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
     var list = ShoppingList.Create(ownerId, new ShoppingListName("Weekly"));
     list.AddItem(formatId, new PositiveAmount(1), false);
     await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
-    list.UpdateItem(formatId, new PositiveAmount(4), true);
+    list.UpdateItem(
+      Assert.Single(list.Items).Id.Value, 4, true);
 
     await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
 
@@ -449,9 +454,11 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
     var list = ShoppingList.Create(ownerId, new ShoppingListName("Weekly"));
     list.AddItem(formatId, new PositiveAmount(1), false);
     await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
-    list.RemoveItem(formatId);
+    var replacement = ShoppingList.Rehydrate(
+      list.Id, list.OwnerIds, list.Name, list.DeletedAt, []);
 
-    await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
+    await _repository.SaveAsync(
+      replacement, TestContext.Current.CancellationToken);
 
     int persistedItemCount = await _context.ShoppingItems
       .AsNoTracking()
@@ -773,7 +780,9 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
       ownerId, new ShoppingListId(id), TestContext.Current.CancellationToken));
 
     persisted.Rename(new ShoppingListName("Weekly"));
-    persisted.UpdateItem(milkId, new PositiveAmount(3), true);
+    persisted.UpdateItem(
+      persisted.Items.Single(item => item.ProductFormatId == milkId).Id.Value,
+      3, true);
     persisted.AddItem(breadId, new PositiveAmount(1), false);
     await _repository.UpdateAsync(persisted, TestContext.Current.CancellationToken);
     await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -801,8 +810,10 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
       new ShoppingListId(id),
       TestContext.Current.CancellationToken));
 
-    persisted.RemoveItem(formatId);
-    await _repository.UpdateAsync(persisted, TestContext.Current.CancellationToken);
+    var replacement = ShoppingList.Rehydrate(
+      persisted.Id, persisted.OwnerIds, persisted.Name, persisted.DeletedAt, []);
+    await _repository.UpdateAsync(
+      replacement, TestContext.Current.CancellationToken);
     await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
     ShoppingItemDbEntity row = await _context.ShoppingItems
@@ -828,12 +839,20 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
       new AddItemsParams(formatId.Value, 1, false)
     ]);
     await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
-    list.RemoveItem(formatId);
-    await _repository.UpdateAsync(list, TestContext.Current.CancellationToken);
+    var withoutItem = ShoppingList.Rehydrate(
+      list.Id, list.OwnerIds, list.Name, list.DeletedAt, []);
+    await _repository.UpdateAsync(
+      withoutItem, TestContext.Current.CancellationToken);
     await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-    list.AddItem(formatId, new PositiveAmount(4), true);
-    await _repository.UpdateAsync(list, TestContext.Current.CancellationToken);
+    var activeReplacement = ShoppingList.Rehydrate(
+      list.Id,
+      list.OwnerIds,
+      list.Name,
+      list.DeletedAt,
+      [ShoppingItem.Create(formatId.Value, 4, true)]);
+    await _repository.UpdateAsync(
+      activeReplacement, TestContext.Current.CancellationToken);
     await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
     ShoppingList result = Assert.IsType<ShoppingList>(await _repository.GetAsync(

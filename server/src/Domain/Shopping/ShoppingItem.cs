@@ -1,5 +1,6 @@
 using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.SharedKernel;
+using Metaspesa.Domain.Shopping.Errors;
 
 namespace Metaspesa.Domain.Shopping;
 
@@ -15,7 +16,7 @@ public sealed class ShoppingItem(
   public ProductFormatId ProductFormatId { get; } = productFormatId;
   public PositiveAmount Amount { get; private set; } = amount;
   public bool IsChecked { get; private set; } = isChecked;
-  public DateTime? DeletedAt { get; } = deletedAt;
+  public DateTime? DeletedAt { get; private set; } = deletedAt;
 
   public static ShoppingItem Create(
     Guid productFormatId, int amount, bool isChecked
@@ -41,9 +42,21 @@ public sealed class ShoppingItem(
     );
   }
 
-  internal void Update(PositiveAmount? amount, bool? isChecked) {
+  internal void Delete(DateTime deletedAt) {
+    if (DeletedAt.HasValue) {
+      throw new ShoppingItemAlreadyDeletedException(Id);
+    }
+
+    DeletedAt = deletedAt;
+  }
+
+  internal void Update(int? amount, bool? isChecked) {
+    if (!amount.HasValue && !isChecked.HasValue) {
+      throw new EmptyShoppingItemUpdateException();
+    }
+
     if (amount.HasValue) {
-      Amount = amount.Value;
+      Amount = new PositiveAmount(amount.Value);
     }
     if (isChecked.HasValue) {
       IsChecked = isChecked.Value;

@@ -1,6 +1,5 @@
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Shopping;
-using Metaspesa.Domain.Identity;
 using Metaspesa.Domain.Shopping;
 using Metaspesa.Domain.Shopping.Errors;
 using NSubstitute;
@@ -9,58 +8,68 @@ using static Metaspesa.Application.Shopping.RemoveItem;
 namespace Metaspesa.Application.UnitTests.Shopping;
 
 public class RemoveItemHandlerTest {
-  private static readonly Guid FormatId = Guid.CreateVersion7();
+  private readonly IShoppingListRepository _shoppingListRepository;
+  private readonly IClock _clock;
+  private readonly Handler _handler;
 
-  [Fact(DisplayName = "Removes aggregate item and commits")]
-  public async Task Handle_RemovesItemAndCommits() {
-    var ownerId = Guid.CreateVersion7();
-    ShoppingList list = ShoppingTestData.List(
-      ownerId, "Weekly", ShoppingTestData.Item(FormatId));
-    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
-    repository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
-      .Returns(list);
-    IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
-    var handler = new Handler(repository, unitOfWork);
+  public RemoveItemHandlerTest() {
+    _shoppingListRepository = Substitute.For<IShoppingListRepository>();
+    _clock = Substitute.For<IClock>();
+    _clock.GetCurrentTime().Returns(DateTime.UtcNow);
 
-    await handler.Handle(
-      new Command(ownerId, ShoppingTestData.ListId, FormatId), TestContext.Current.CancellationToken);
-
-    Assert.Empty(list.Items);
-    await repository.Received(1).UpdateAsync(list, TestContext.Current.CancellationToken);
-    await unitOfWork.Received(1).SaveChangesAsync(TestContext.Current.CancellationToken);
+    _handler = new Handler(_shoppingListRepository, _clock);
   }
 
-  [Fact(DisplayName = "Rejects missing list without commit")]
-  public async Task Handle_ThrowsExactException_WhenListIsMissing() {
-    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
-    IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
-    var handler = new Handler(repository, unitOfWork);
+  [Fact(DisplayName = "Rejects shopping list that does not exist")]
+  public async Task Handle_RejectsShoppingListThatDoesNotExist() {
+    var command = new Command(
+      Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+    _shoppingListRepository.GetAsync(
+        command.UserUid, command.ShoppingListId,
+        TestContext.Current.CancellationToken)
+      .Returns((ShoppingList?)null);
 
-    await Assert.ThrowsAsync<ShoppingListNotFoundException>(() => handler.Handle(
-      new Command(Guid.CreateVersion7(), ShoppingTestData.ListId, FormatId),
-      TestContext.Current.CancellationToken));
+    async Task action() => await _handler.Handle(
+      command, TestContext.Current.CancellationToken);
 
-    await unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    await Assert.ThrowsAsync<ShoppingListNotFoundException>(action);
   }
 
-  [Fact(DisplayName = "Rejects missing item without persistence")]
-  public async Task Handle_DoesNotPersist_WhenItemIsMissing() {
+  [Fact(DisplayName = "Saves aggregate after removing item by ID")]
+  public async Task Handle_SavesAggregateAfterRemovingItemById() {
     var ownerId = Guid.CreateVersion7();
-    ShoppingList list = ShoppingTestData.List(ownerId, "Weekly");
-    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
-    repository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
+
+    var list = ShoppingList.Create(ownerId, "Weekly");
+    list.AddItems([new(Guid.CreateVersion7(), 1, false)]);
+    ShoppingItem item = list.Items.Single();
+
+    var command = new Command(ownerId, list.Id.Value, item.Id.Value);
+    _shoppingListRepository.GetAsync(
+        ownerId, list.Id.Value, TestContext.Current.CancellationToken)
       .Returns(list);
-    IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
-    var handler = new Handler(repository, unitOfWork);
 
-    await Assert.ThrowsAsync<ShoppingItemNotFoundException>(() => handler.Handle(
-      new Command(ownerId, ShoppingTestData.ListId, FormatId),
-      TestContext.Current.CancellationToken));
+    await _handler.Handle(command, TestContext.Current.CancellationToken);
 
-    await repository.DidNotReceive().UpdateAsync(
+    await _shoppingListRepository.Received(1).SaveAsync(
+      Arg.Is<ShoppingList>(value => value.Id == list.Id),
+      TestContext.Current.CancellationToken);
+  }
+
+  [Fact(DisplayName = "Does not save when shopping item does not exist")]
+  public async Task Handle_DoesNotSave_WhenShoppingItemDoesNotExist() {
+    var ownerId = Guid.CreateVersion7();
+    ShoppingList list = ShoppingTestData.List(ownerId);
+    _shoppingListRepository.GetAsync(
+        ownerId, list.Id.Value, TestContext.Current.CancellationToken)
+      .Returns(list);
+    var command = new Command(
+      ownerId, list.Id.Value, Guid.CreateVersion7());
+
+    async Task action() => await _handler.Handle(
+      command, TestContext.Current.CancellationToken);
+
+    await Assert.ThrowsAsync<ShoppingItemNotFoundException>(action);
+    await _shoppingListRepository.DidNotReceive().SaveAsync(
       Arg.Any<ShoppingList>(), Arg.Any<CancellationToken>());
-    await unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
   }
 }

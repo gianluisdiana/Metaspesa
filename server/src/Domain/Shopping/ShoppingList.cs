@@ -93,19 +93,16 @@ public sealed class ShoppingList {
   }
 
   public void UpdateItem(
-    ProductFormatId productFormatId, PositiveAmount? amount, bool? isChecked
+    Guid shoppingItemId, int? amount, bool? isChecked
   ) {
-    if (!amount.HasValue && !isChecked.HasValue) {
-      throw new EmptyShoppingItemUpdateException();
-    }
-
-    ShoppingItem item = FindItem(productFormatId);
+    ShoppingItem item = FindItem(shoppingItemId);
     item.Update(amount, isChecked);
   }
 
-  public void RemoveItem(ProductFormatId productFormatId) {
-    ShoppingItem item = FindItem(productFormatId);
-    _items.Remove(item);
+  public void RemoveItem(Guid shoppingItemId, DateTime deletedAt) {
+    ShoppingItem item = FindItem(shoppingItemId);
+
+    item.Delete(deletedAt);
   }
 
   public IReadOnlyCollection<ShoppingItem> CheckedItems() =>
@@ -119,10 +116,10 @@ public sealed class ShoppingList {
     }
   }
 
-  private ShoppingItem FindItem(ProductFormatId productFormatId) =>
+  private ShoppingItem FindItem(Guid shoppingItemId) =>
     _items.FirstOrDefault(item =>
-      item.DeletedAt is null && item.ProductFormatId == productFormatId) ??
-    throw new ShoppingItemNotFoundException(productFormatId);
+      item.DeletedAt is null && item.Id.Value == shoppingItemId) ??
+    throw new ShoppingItemNotFoundException(shoppingItemId);
 
   private static void EnsureNoDuplicates(IEnumerable<ShoppingItem> items) {
     ProductFormatId? duplicateItem = items
