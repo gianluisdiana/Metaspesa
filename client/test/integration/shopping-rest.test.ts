@@ -122,7 +122,13 @@ describeIfRest('shopping REST integration', () => {
     await client.addItemsToList(listId, [product]);
 
     await expect(client.getShoppingList(listId)).resolves.toMatchObject({
-      products: [product],
+      products: [
+        {
+          checked: product.checked,
+          name: product.name,
+          shoppingItemId: expect.any(String),
+        },
+      ],
     });
   });
 
@@ -130,13 +136,14 @@ describeIfRest('shopping REST integration', () => {
     const [product] = await getMarketProducts(1);
     const { client, listId } = await createShoppingList('Integration Update');
     await client.addItemsToList(listId, [product]);
+    const [item] = (await client.getShoppingList(listId)).products;
 
-    await client.updateItem(listId, product.productFormatUid, {
+    await client.updateItem(listId, item.shoppingItemId, {
       checked: true,
     });
 
     await expect(client.getShoppingList(listId)).resolves.toMatchObject({
-      products: [{ ...product, checked: true }],
+      products: [{ ...item, checked: true }],
     });
   });
 
@@ -144,11 +151,16 @@ describeIfRest('shopping REST integration', () => {
     const [removedProduct, retainedProduct] = await getMarketProducts(2);
     const { client, listId } = await createShoppingList('Integration Remove');
     await client.addItemsToList(listId, [removedProduct, retainedProduct]);
+    const items = (await client.getShoppingList(listId)).products;
+    const removedItem = items.find(item => item.name === removedProduct.name);
+    if (!removedItem) {
+      throw new Error('Added shopping item was not returned.');
+    }
 
-    await client.removeItem(listId, removedProduct.productFormatUid);
+    await client.removeItem(listId, removedItem.shoppingItemId);
 
     await expect(client.getShoppingList(listId)).resolves.toMatchObject({
-      products: [retainedProduct],
+      products: [{ name: retainedProduct.name }],
     });
   });
 
@@ -156,14 +168,15 @@ describeIfRest('shopping REST integration', () => {
     const [product] = await getMarketProducts(1);
     const { client, listId } = await createShoppingList('Integration Checkout');
     await client.addItemsToList(listId, [product]);
-    await client.updateItem(listId, product.productFormatUid, {
+    const [item] = (await client.getShoppingList(listId)).products;
+    await client.updateItem(listId, item.shoppingItemId, {
       checked: true,
     });
 
     await client.checkoutShoppingList(listId);
 
     await expect(client.getShoppingList(listId)).resolves.toMatchObject({
-      products: [{ ...product, checked: false }],
+      products: [{ ...item, checked: false }],
     });
   });
 });

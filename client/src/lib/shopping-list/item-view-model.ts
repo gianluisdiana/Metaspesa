@@ -1,4 +1,4 @@
-import { ProductMessage } from '@/lib/shopping-list-contracts';
+import { ShoppingItemMessage } from '@/lib/shopping-list-contracts';
 
 import { ShoppingPriceViewModel } from './price-view-model';
 
@@ -10,14 +10,14 @@ export type ShoppingItemBadgeViewModel = {
 };
 
 export class CheckedShoppingItemViewModel {
-  public constructor(private readonly product: ProductMessage) {}
+  public constructor(private readonly product: ShoppingItemMessage) {}
 
   public get id(): string {
-    return String(this.productFormatUid);
+    return String(this.shoppingItemId);
   }
 
-  public get productFormatUid(): string {
-    return this.product.productFormatUid;
+  public get shoppingItemId(): string {
+    return this.product.shoppingItemId;
   }
 
   public get name(): string {
@@ -30,7 +30,7 @@ export class CheckedShoppingItemViewModel {
 }
 
 export class UncheckedShoppingItemViewModel {
-  public constructor(private readonly product: ProductMessage) {}
+  public constructor(private readonly product: ShoppingItemMessage) {}
 
   public get badge(): ShoppingItemBadgeViewModel {
     return {
@@ -44,11 +44,11 @@ export class UncheckedShoppingItemViewModel {
   }
 
   public get id(): string {
-    return String(this.productFormatUid);
+    return String(this.shoppingItemId);
   }
 
-  public get productFormatUid(): string {
-    return this.product.productFormatUid;
+  public get shoppingItemId(): string {
+    return this.product.shoppingItemId;
   }
 
   public get lowStock(): boolean {

@@ -274,34 +274,49 @@ public class PostgreSqlMarketProductRepositoryTests : IAsyncLifetime {
     Assert.Equal(0, missing.TotalCount);
   }
 
-  [Fact(DisplayName = "Returns shopping enrichment model by product format id")]
-  public async Task Repository_ReturnsReadModel_ByProductFormatId() {
-    ProductImportResult result = await ResolveAndAppendAsync();
-    ProductFormatId formatId = Assert.Single(result.PriceObservations).ProductFormatId;
+  [Fact(DisplayName = "Confirms all requested product formats exist")]
+  public async Task CheckFormatsExistsAsync_ReturnsTrue_WhenAllFormatsExist() {
+    ProductImportResult import = await ResolveAndAppendAsync();
+    Guid existingId = Assert.Single(import.PriceObservations)
+      .ProductFormatId.Value;
 
-    IReadOnlyDictionary<Guid, MarketProduct> products =
-      await _productRepository.GetProductsAsync(
-        [formatId.Value],
-        TestContext.Current.CancellationToken);
+    bool result = await _productRepository.CheckFormatsExistAsync(
+      [existingId], TestContext.Current.CancellationToken);
 
-    MarketProduct product = products[formatId.Value];
-    Assert.Equal("Milk", product.Name);
-    Assert.Equal("Brand", product.BrandName);
-    Assert.Equal(new Money(1.99m), Assert.Single(product.Formats).Price);
+    Assert.True(result);
   }
 
-  [Fact(DisplayName = "Product lookup omits unknown format ids")]
-  public async Task Repository_ReturnsOnlyExistingProductFormats() {
+  [Fact(DisplayName = "Rejects requested product formats when one is missing")]
+  public async Task CheckFormatsExistsAsync_ReturnsFalse_WhenAnyFormatIsMissing() {
     ProductImportResult import = await ResolveAndAppendAsync();
-    ProductFormatId existingId = Assert.Single(import.PriceObservations).ProductFormatId;
+    Guid existingId = Assert.Single(import.PriceObservations)
+      .ProductFormatId.Value;
 
-    IReadOnlyDictionary<Guid, MarketProduct> products =
-      await _productRepository.GetProductsAsync(
-        [existingId.Value, Guid.CreateVersion7()],
-        TestContext.Current.CancellationToken);
+    bool result = await _productRepository.CheckFormatsExistAsync(
+      [existingId, Guid.CreateVersion7()],
+      TestContext.Current.CancellationToken);
 
-    Assert.True(products.ContainsKey(existingId.Value));
-    Assert.Single(products);
+    Assert.False(result);
+  }
+
+  [Fact(DisplayName = "Accepts duplicate references to an existing format")]
+  public async Task CheckFormatsExistsAsync_ReturnsTrue_WhenFormatIdsRepeat() {
+    ProductImportResult import = await ResolveAndAppendAsync();
+    Guid existingId = Assert.Single(import.PriceObservations)
+      .ProductFormatId.Value;
+
+    bool result = await _productRepository.CheckFormatsExistAsync(
+      [existingId, existingId], TestContext.Current.CancellationToken);
+
+    Assert.True(result);
+  }
+
+  [Fact(DisplayName = "Accepts an empty product format set")]
+  public async Task CheckFormatsExistsAsync_ReturnsTrue_WhenNoFormatsRequested() {
+    bool result = await _productRepository.CheckFormatsExistAsync(
+      [], TestContext.Current.CancellationToken);
+
+    Assert.True(result);
   }
 
   [Fact(DisplayName = "Deletes only requested brand")]

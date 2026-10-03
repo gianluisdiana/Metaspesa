@@ -1,10 +1,7 @@
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Shopping;
 using Metaspesa.Application.Shopping;
-using Metaspesa.Domain.Markets;
-using Metaspesa.Domain.SharedKernel;
 using Metaspesa.Domain.Shopping;
-using Metaspesa.Domain.Shopping.Errors;
 using Metaspesa.RestApi.Shopping.RemoveShoppingItem;
 using Microsoft.AspNetCore.Http;
 using NSubstitute;
@@ -12,33 +9,42 @@ using static Metaspesa.RestApi.UnitTests.Shopping.ShoppingEndpointTestData;
 
 namespace Metaspesa.RestApi.UnitTests.Shopping.RemoveShoppingItem;
 
-public static class RemoveShoppingItemEndpointTests {
-  [Fact]
-  public static async Task Remove_DeletesSelectedItemAndReturnsNoContent() {
-    ShoppingList list = PersistedList("Weekly",
-      new ShoppingItem(new ProductFormatId(FormatId),
-        new PositiveAmount(1), false));
-    IShoppingListRepository repository = RepositoryWith(list);
+public class RemoveShoppingItemEndpointTests {
+  private readonly IShoppingListRepository _repository;
+  private readonly RemoveItem.Handler _handler;
 
-    IResult result = await RemoveShoppingItemEndpoint.RemoveItemAsync(ListId, FormatId,
-      ShopperContext(),
-      new RemoveItem.Handler(repository, Substitute.For<IUnitOfWork>()),
-      TestContext.Current.CancellationToken);
+  public RemoveShoppingItemEndpointTests() {
+    _repository = Substitute.For<IShoppingListRepository>();
 
-    Assert.Equal((StatusCodes.Status204NoContent, 0),
-      (Assert.IsAssignableFrom<IStatusCodeHttpResult>(result).StatusCode,
-        list.Items.Count));
+    _handler = new RemoveItem.Handler(
+      _repository, Substitute.For<IClock>());
   }
 
-  [Fact]
-  public static async Task Remove_RejectsMissingItem() {
-    ShoppingList list = PersistedList("Weekly");
-    IShoppingListRepository repository = RepositoryWith(list);
+  [Fact(DisplayName = "Returns no content for accepted request")]
+  public async Task Remove_ReturnsNoContent_WhenRequestIsAccepted() {
+    var list = ShoppingList.Create(OwnerUid, "Weekly");
+    list.AddItems([new(Guid.CreateVersion7(), 1, false)]);
+    ShoppingItem item = list.Items.Single();
 
-    await Assert.ThrowsAsync<ShoppingItemNotFoundException>(() =>
-      RemoveShoppingItemEndpoint.RemoveItemAsync(ListId, FormatId,
-        ShopperContext(),
-        new RemoveItem.Handler(repository, Substitute.For<IUnitOfWork>()),
-        TestContext.Current.CancellationToken));
+    _repository.GetAsync(
+        OwnerUid, list.Id.Value, TestContext.Current.CancellationToken)
+      .Returns(list);
+
+    IResult result = await RemoveShoppingItemEndpoint.RemoveItemAsync(
+      list.Id.Value, item.Id.Value, ShopperContext(), _handler,
+      TestContext.Current.CancellationToken);
+
+    IStatusCodeHttpResult statusCodeHttpResult = Assert.IsType<IStatusCodeHttpResult>(
+      result, exactMatch: false);
+    Assert.Equal(StatusCodes.Status204NoContent, statusCodeHttpResult.StatusCode);
+  }
+
+  [Fact(DisplayName = "Rejects request without authenticated user ID")]
+  public async Task Remove_RejectsRequestWithoutUserIdClaim() {
+    async Task action() => await RemoveShoppingItemEndpoint.RemoveItemAsync(
+      ListId, Guid.CreateVersion7(), new DefaultHttpContext(), _handler,
+      TestContext.Current.CancellationToken);
+
+    await Assert.ThrowsAsync<UnauthorizedAccessException>(action);
   }
 }

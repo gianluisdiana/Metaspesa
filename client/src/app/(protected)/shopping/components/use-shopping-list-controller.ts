@@ -35,7 +35,7 @@ export function useShoppingListController({
   const [isCreating, setIsCreating] = useState(false);
   const [itemPendingDelete, setItemPendingDelete] = useState<{
     name: string;
-    productFormatUid: string;
+    shoppingItemId: string;
   }>();
   const [temporaryListNamePrompt, setTemporaryListNamePrompt] =
     useState<string>();
@@ -142,16 +142,16 @@ export function useShoppingListController({
       return;
     }
     const previousShoppingList = shoppingList;
-    const { name, productFormatUid } = itemPendingDelete;
+    const { name, shoppingItemId } = itemPendingDelete;
     setItemPendingDelete(undefined);
     setShoppingList({
       ...shoppingList,
       products: shoppingList.products.filter(
-        product => product.productFormatUid !== productFormatUid,
+        product => product.shoppingItemId !== shoppingItemId,
       ),
     });
     try {
-      await client.removeItem(selectedListId, productFormatUid);
+      await client.removeItem(selectedListId, shoppingItemId);
       await refreshList(selectedListId);
       showToast({ message: `${name} deleted.`, tone: 'success' });
     } catch (requestError) {
@@ -167,7 +167,7 @@ export function useShoppingListController({
   }
 
   async function handleToggleItemChecked(
-    productFormatUid: string,
+    shoppingItemId: string,
     checked: boolean,
   ) {
     if (!selectedListId) return;
@@ -175,13 +175,13 @@ export function useShoppingListController({
     setShoppingList({
       ...shoppingList,
       products: shoppingList.products.map(product =>
-        product.productFormatUid === productFormatUid
+        product.shoppingItemId === shoppingItemId
           ? { ...product, checked }
           : product,
       ),
     });
     try {
-      await client.updateItem(selectedListId, productFormatUid, { checked });
+      await client.updateItem(selectedListId, shoppingItemId, { checked });
       await refreshList(selectedListId);
     } catch (requestError) {
       setShoppingList(previousShoppingList);
@@ -201,8 +201,8 @@ export function useShoppingListController({
     handleConfirmDeleteItem,
     handleConfirmTemporaryListName,
     handleCreateList,
-    handleRequestDeleteItem: (productFormatUid: string, name: string) =>
-      setItemPendingDelete({ name, productFormatUid }),
+    handleRequestDeleteItem: (shoppingItemId: string, name: string) =>
+      setItemPendingDelete({ name, shoppingItemId }),
     handleSelectList,
     handleToggleItemChecked,
     hasShoppingLists: shoppingListSummaries.length > 0,

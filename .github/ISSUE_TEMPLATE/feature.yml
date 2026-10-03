@@ -1,0 +1,70 @@
+name: Feature request
+description: Propose new functionality for Metaspesa
+title: "feat: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Who has this problem, what blocks them, and why does it matter?
+      placeholder: Describe the current situation and its impact.
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: Describe the observable result for the user.
+      placeholder: As a ..., I want ..., so that ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: List concrete, testable behavior.
+      placeholder: |
+        - [ ] Given ..., when ..., then ...
+        - [ ] Given ..., when ..., then ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and exclusions
+      description: State what is included and explicitly excluded.
+      placeholder: |
+        Included:
+        - ...
+
+        Excluded:
+        - ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: affected-services
+    attributes:
+      label: Affected services
+      description: Select every part of Metaspesa expected to change.
+      multiple: true
+      options:
+        - Client
+        - Server
+        - Scraper
+        - Database
+        - Infrastructure / observability
+        - Unknown / requires investigation
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add mockups, API examples, dependencies, or related issues.

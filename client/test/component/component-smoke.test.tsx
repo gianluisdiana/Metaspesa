@@ -116,7 +116,7 @@ describe('component smoke tests', () => {
                 checked: true,
                 name: 'Milk',
                 price: 1.25,
-                productFormatUid: '1',
+                shoppingItemId: '1',
               },
             ],
           }}

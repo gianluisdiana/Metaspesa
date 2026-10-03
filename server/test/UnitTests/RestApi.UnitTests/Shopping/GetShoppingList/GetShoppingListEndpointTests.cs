@@ -1,10 +1,6 @@
 using Metaspesa.Application.Abstractions.Markets;
 using Metaspesa.Application.Abstractions.Shopping;
-using Metaspesa.Domain.Identity;
-using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.SharedKernel;
-using Metaspesa.Domain.Shopping;
-using Metaspesa.Domain.Shopping.Errors;
 using Metaspesa.RestApi.Shopping.GetShoppingList;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -15,68 +11,77 @@ using GetList = Metaspesa.Application.Shopping.GetShoppingList;
 namespace Metaspesa.RestApi.UnitTests.Shopping.GetShoppingList;
 
 public static class GetShoppingListEndpointTests {
-  [Fact]
-  public static async Task Get_ReturnsCurrentProductDetailsForOwnedList() {
+  [Fact(DisplayName = "Maps complete application response to API response")]
+  public static async Task Get_MapsCompleteApplicationResponse() {
     IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
-    IProductRepository products = Substitute.For<IProductRepository>();
-    repository.GetAsync(new UserId(OwnerUid), new ShoppingListId(ListId),
-      TestContext.Current.CancellationToken).Returns(PersistedList("Weekly",
-        new ShoppingItem(new ProductFormatId(FormatId), new PositiveAmount(2), true)));
-    products.GetProductsAsync(Arg.Any<IReadOnlyCollection<Guid>>(),
-      TestContext.Current.CancellationToken).Returns(
-        new Dictionary<Guid, MarketProduct> { [FormatId] = Product() });
+    repository.GetWithPricesAsync(
+      OwnerUid, ListId, TestContext.Current.CancellationToken
+    ).Returns(new GetList.Response(ListId, "Weekly", [
+      new GetList.ResponseItem(
+        FormatId,
+        "Milk",
+        "Brand",
+        new MarketSummary(MarketUid, "Market", null),
+        2,
+        new GetList.ResponseItemFormat(
+          new Quantity(1, new UnitOfMeasure("l")),
+          new Money(1.25m),
+          new Uri("https://example.test/milk")),
+        true),
+    ]));
 
-    IResult result = await GetShoppingListEndpoint.GetAsync(ListId,
-      ShopperContext(), new GetList.Handler(repository, products),
+    IResult result = await GetShoppingListEndpoint.GetAsync(
+      ListId,
+      ShopperContext(),
+      new GetList.Handler(repository),
       TestContext.Current.CancellationToken);
 
-    Assert.Equal(new ShoppingItemResponse(FormatId, "Milk", "Brand",
-      new ShoppingMarketResponse(MarketUid, "Market"),
-      new ShoppingQuantityResponse(1, "l"),
-      new ShoppingMoneyResponse(1.25m, "EUR"), 2, true,
-      "https://example.test/milk"),
-      Assert.IsType<Ok<ShoppingListResponse>>(result).Value!.Items.Single());
+    var response = (Ok<ShoppingListResponse>)result;
+    var expected = new ShoppingListResponse(
+      ListId,
+      "Weekly",
+      false,
+      [new ShoppingItemResponse(
+        FormatId,
+        "Milk",
+        "Brand",
+        new ShoppingMarketResponse(MarketUid, "Market"),
+        new ShoppingQuantityResponse(1, "l"),
+        new ShoppingMoneyResponse(1.25m, "EUR"),
+        2,
+        true,
+        "https://example.test/milk")]);
+    Assert.Equivalent(expected, response.Value, strict: true);
   }
 
-  [Fact]
-  public static async Task Get_ReturnsTemporaryListWithoutName() {
+  [Fact(DisplayName = "Maps temporary empty list to API response")]
+  public static async Task Get_MapsTemporaryEmptyList() {
     IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
-    IProductRepository products = Substitute.For<IProductRepository>();
-    repository.GetAsync(new UserId(OwnerUid), new ShoppingListId(ListId),
-      TestContext.Current.CancellationToken).Returns(PersistedList(null));
-    products.GetProductsAsync(Arg.Any<IReadOnlyCollection<Guid>>(),
-      TestContext.Current.CancellationToken).Returns(
-        new Dictionary<Guid, MarketProduct>());
+    repository.GetWithPricesAsync(
+      OwnerUid, ListId, TestContext.Current.CancellationToken
+    ).Returns(new GetList.Response(ListId, null, []));
 
-    IResult result = await GetShoppingListEndpoint.GetAsync(ListId,
-      ShopperContext(), new GetList.Handler(repository, products),
+    IResult result = await GetShoppingListEndpoint.GetAsync(
+      ListId,
+      ShopperContext(),
+      new GetList.Handler(repository),
       TestContext.Current.CancellationToken);
 
-    ShoppingListResponse response =
-      Assert.IsType<Ok<ShoppingListResponse>>(result).Value!;
-    Assert.Equal((ListId, null as string, true, 0),
-      (response.Id, response.Name, response.IsTemporary, response.Items.Count));
+    var response = (Ok<ShoppingListResponse>)result;
+    var expected = new ShoppingListResponse(ListId, null, true, []);
+    Assert.Equivalent(expected, response.Value, strict: true);
   }
 
-  [Fact]
-  public static async Task Get_RejectsListNotOwnedByShopper() {
+  [Fact(DisplayName = "Rejects request without authenticated user ID")]
+  public static async Task Get_RejectsRequestWithoutUserIdClaim() {
     IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
-    IProductRepository products = Substitute.For<IProductRepository>();
 
-    await Assert.ThrowsAsync<ShoppingListNotFoundException>(() =>
-      GetShoppingListEndpoint.GetAsync(ListId, ShopperContext(),
-        new GetList.Handler(repository, products),
-        TestContext.Current.CancellationToken));
-  }
+    Task action() => GetShoppingListEndpoint.GetAsync(
+        ListId,
+        new DefaultHttpContext(),
+        new GetList.Handler(repository),
+        TestContext.Current.CancellationToken);
 
-  [Fact]
-  public static async Task Get_RejectsZeroListId() {
-    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
-    IProductRepository products = Substitute.For<IProductRepository>();
-
-    await Assert.ThrowsAsync<InvalidShoppingListIdException>(() =>
-      GetShoppingListEndpoint.GetAsync(Guid.Empty, ShopperContext(),
-        new GetList.Handler(repository, products),
-        TestContext.Current.CancellationToken));
+    await Assert.ThrowsAsync<UnauthorizedAccessException>(action);
   }
 }

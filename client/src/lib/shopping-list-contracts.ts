@@ -6,9 +6,17 @@ export interface ProductMessage {
   checked: boolean;
 }
 
+export interface ShoppingItemMessage {
+  shoppingItemId: string;
+  name: string;
+  quantity?: string;
+  price?: number;
+  checked: boolean;
+}
+
 export interface ShoppingListMessage {
   id?: string;
-  products: ProductMessage[];
+  products: ShoppingItemMessage[];
   name?: string;
 }
 

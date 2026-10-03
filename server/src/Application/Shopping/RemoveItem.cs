@@ -1,31 +1,31 @@
 using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Shopping;
-using Metaspesa.Domain.Identity;
-using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.Shopping;
 using Metaspesa.Domain.Shopping.Errors;
 
 namespace Metaspesa.Application.Shopping;
 
 public static class RemoveItem {
-  public record Command(Guid UserUid, Guid ShoppingListId, Guid ProductFormatUid);
+  public record Command(Guid UserUid, Guid ShoppingListId, Guid ShoppingItemId);
 
   public class Handler(
-    IShoppingListRepository shoppingListRepository,
-    IUnitOfWork unitOfWork
+    IShoppingListRepository repository,
+    IClock clock
   ) {
     public async Task Handle(
       Command command, CancellationToken cancellationToken = default
     ) {
       ArgumentNullException.ThrowIfNull(command);
 
-      ShoppingList shoppingList = await shoppingListRepository.GetAsync(
-        new UserId(command.UserUid), new ShoppingListId(command.ShoppingListId),
-        cancellationToken) ?? throw new ShoppingListNotFoundException();
+      ShoppingList shoppingList = await repository.GetAsync(
+        command.UserUid, command.ShoppingListId, cancellationToken) ??
+        throw new ShoppingListNotFoundException();
 
-      shoppingList.RemoveItem(new ProductFormatId(command.ProductFormatUid));
-      await shoppingListRepository.UpdateAsync(shoppingList, cancellationToken);
-      await unitOfWork.SaveChangesAsync(cancellationToken);
+      DateTime now = clock.GetCurrentTime();
+
+      shoppingList.RemoveItem(command.ShoppingItemId, now);
+
+      await repository.SaveAsync(shoppingList, cancellationToken);
     }
   }
 }

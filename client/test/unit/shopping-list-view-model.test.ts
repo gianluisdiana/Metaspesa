@@ -46,16 +46,16 @@ describe('ShoppingListViewModel', () => {
           checked: false,
           name: 'Milk',
           price: 1.2,
-          productFormatUid: '1',
           quantity: '1 liter',
+          shoppingItemId: '1',
         },
         {
           checked: true,
           name: 'Bread',
           price: 2.345,
-          productFormatUid: '2',
+          shoppingItemId: '2',
         },
-        { checked: true, name: 'Eggs', productFormatUid: '3' },
+        { checked: true, name: 'Eggs', shoppingItemId: '3' },
       ],
     });
 
@@ -92,7 +92,7 @@ describe('ShoppingListViewModel', () => {
 
   it('uses a singular item count label', () => {
     const viewModel = new ShoppingListViewModel({
-      products: [{ checked: false, name: 'Milk', productFormatUid: '1' }],
+      products: [{ checked: false, name: 'Milk', shoppingItemId: '1' }],
     });
 
     expect(viewModel.itemCountLabel).toBe('1 item');

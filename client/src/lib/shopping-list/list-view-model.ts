@@ -1,5 +1,5 @@
 import {
-  ProductMessage,
+  ShoppingItemMessage,
   ShoppingListMessage,
 } from '@/lib/shopping-list-contracts';
 
@@ -69,11 +69,11 @@ export class ShoppingListViewModel {
     );
   }
 
-  private get checkedProducts(): ProductMessage[] {
+  private get checkedProducts(): ShoppingItemMessage[] {
     return this.products.filter(product => product.checked);
   }
 
-  private get products(): ProductMessage[] {
+  private get products(): ShoppingItemMessage[] {
     return this.shoppingList.products;
   }
 }

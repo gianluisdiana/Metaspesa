@@ -102,38 +102,6 @@ internal partial class PostgreSqlMarketProductRepository(
     ], totalCount);
   }, "Couldn't get market products.");
 
-  public async Task<IReadOnlyDictionary<Guid, MarketProduct>> GetProductsAsync(
-    IReadOnlyCollection<Guid> productFormatIds,
-    CancellationToken cancellationToken
-  ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
-    if (productFormatIds.Count == 0) {
-      return [];
-    }
-
-    List<ProductFormatDbEntity> formats = await context.ProductFormats
-      .AsNoTracking()
-      .Include(format => format.Product)
-      .ThenInclude(product => product.Brand)
-      .Include(format => format.Product)
-      .ThenInclude(product => product.SuperMarket)
-      .Include(format => format.UnitOfMeasure)
-      .Include(format => format.PriceSnapshots)
-      .Where(format =>
-        productFormatIds.Contains(format.Id) &&
-        format.PriceSnapshots.Count > 0)
-      .ToListAsync(cancellationToken);
-
-    return formats.ToDictionary(
-      format => format.Id,
-      format => new MarketProduct(
-        format.Product.Name,
-        format.Product.Brand.Name,
-        [ToReadModel(format)],
-        new MarketSummary(format.Product.SuperMarketId,
-          format.Product.SuperMarket.Name,
-          ToUri(format.Product.SuperMarket.LogoUrl))));
-  }, "Couldn't get market products by references.");
-
   public async Task<IReadOnlyCollection<BrandName>> GetBrandsAsync(
     CancellationToken cancellationToken
   ) => await PostgreSqlExceptionMapper.MapAsync(async () => {
@@ -246,21 +214,6 @@ internal partial class PostgreSqlMarketProductRepository(
       format.Id, format.Quantity, format.UnitOfMeasure.Code,
       snapshot.PriceAmount, snapshot.CurrencyCode, ToUri(format.ImageUrl),
       DateTime.SpecifyKind(snapshot.ObservedAt, DateTimeKind.Utc));
-  }
-
-  private static MarketProductFormat ToReadModel(ProductFormatDbEntity format) {
-    PriceSnapshotDbEntity snapshot = format.PriceSnapshots
-      .OrderByDescending(value => value.ObservedAt)
-      .ThenByDescending(value => value.Id)
-      .First();
-
-    return new MarketProductFormat(
-      new Quantity(
-        format.Quantity,
-        new UnitOfMeasure(format.UnitOfMeasure.Code)),
-      new Money(snapshot.PriceAmount),
-      ToUri(format.ImageUrl),
-      format.Id);
   }
 
   private async Task<Guid> GetMarketIdAsync(
@@ -520,4 +473,18 @@ internal partial class PostgreSqlMarketProductRepository(
     .Replace("\\", "\\\\", StringComparison.Ordinal)
     .Replace("%", "\\%", StringComparison.Ordinal)
     .Replace("_", "\\_", StringComparison.Ordinal);
+
+  public async Task<bool> CheckFormatsExistAsync(
+    IEnumerable<Guid> formatIds, CancellationToken cancellationToken
+  ) {
+    Guid[] ids = [.. formatIds.Distinct()];
+    if (ids.Length == 0) { return true; }
+
+    int formatCount = await context.ProductFormats
+      .AsNoTracking()
+      .Where(format => ids.Contains(format.Id))
+      .CountAsync(cancellationToken);
+
+    return formatCount == ids.Length;
+  }
 }

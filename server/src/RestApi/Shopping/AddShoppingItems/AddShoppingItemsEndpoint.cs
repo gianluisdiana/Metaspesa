@@ -1,4 +1,5 @@
 using Metaspesa.Application.Shopping;
+using Metaspesa.Domain.Shopping;
 using Metaspesa.RestApi.Security;
 
 namespace Metaspesa.RestApi.Shopping.AddShoppingItems;
@@ -43,7 +44,7 @@ internal static class AddShoppingItemsEndpoint {
     }
     await handler.Handle(new AddItemsToList.Command(
       ShoppingUser.GetUid(context), listId,
-      [.. request.Items.Select(item => new AddItemsToList.CommandItem(
+      [.. request.Items.Select(item => new AddItemsParams(
         item.ProductFormatId, item.Amount, item.Checked))]), cancellationToken);
     return Results.NoContent();
   }

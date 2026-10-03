@@ -289,9 +289,9 @@ export type ShoppingItemRequest = {
  */
 export type ShoppingItemResponse = {
     /**
-     * Stable format ID used to update or remove this item.
+     * Stable ID used to update or remove this item.
      */
-    productFormatId: string;
+    id: string;
     /**
      * Product display name.
      */
@@ -915,17 +915,17 @@ export type RemoveShoppingItemData = {
          */
         listId: string;
         /**
-         * ID of the item's product format.
+         * ID of the shopping item.
          */
-        productFormatId: string;
+        shoppingItemId: string;
     };
     query?: never;
-    url: '/api/v1/shopping-lists/{listId}/items/{productFormatId}';
+    url: '/api/v1/shopping-lists/{listId}/items/{shoppingItemId}';
 };
 
 export type RemoveShoppingItemErrors = {
     /**
-     * The list or product format ID is invalid.
+     * The list or shopping item ID is invalid.
      */
     400: ProblemDetails;
     /**
@@ -968,12 +968,12 @@ export type UpdateShoppingItemData = {
          */
         listId: string;
         /**
-         * ID of the item's product format.
+         * ID of the shopping item.
          */
-        productFormatId: string;
+        shoppingItemId: string;
     };
     query?: never;
-    url: '/api/v1/shopping-lists/{listId}/items/{productFormatId}';
+    url: '/api/v1/shopping-lists/{listId}/items/{shoppingItemId}';
 };
 
 export type UpdateShoppingItemErrors = {

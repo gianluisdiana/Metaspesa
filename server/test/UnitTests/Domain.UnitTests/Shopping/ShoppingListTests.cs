@@ -1,6 +1,7 @@
 using Metaspesa.Domain.Identity;
 using Metaspesa.Domain.Identity.Errors;
 using Metaspesa.Domain.Markets;
+using Metaspesa.Domain.Markets.Errors;
 using Metaspesa.Domain.SharedKernel;
 using Metaspesa.Domain.Shopping;
 using Metaspesa.Domain.Shopping.Errors;
@@ -95,6 +96,29 @@ public class ShoppingListTests {
       ]));
   }
 
+  [Fact(DisplayName = "Allows active replacement for deleted item history")]
+  public void AddItems_AddsActiveReplacement_WhenPreviousItemIsDeleted() {
+    var formatId = Guid.Parse("00000000-0000-7000-8000-000000000002");
+    var deletedItem = ShoppingItem.Rehydrate(
+      Guid.Parse("00000000-0000-7000-8000-000000000003"),
+      formatId,
+      1,
+      false,
+      new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc));
+    var list = ShoppingList.Rehydrate(
+      new ShoppingListId(
+        Guid.Parse("00000000-0000-7000-8000-000000000001")),
+      [OwnerId],
+      new ShoppingListName("Weekly"),
+      null,
+      [deletedItem]);
+
+    list.AddItems([new AddItemsParams(formatId, 2, true)]);
+
+    Assert.Single(list.Items, item => item.DeletedAt is not null);
+    Assert.Single(list.Items, item => item.DeletedAt is null);
+  }
+
   [Fact(DisplayName = "Renames temporary list")]
   public void Rename_SetsNameAndClearsTemporaryState() {
     var list = ShoppingList.Create(OwnerId, null);
@@ -117,104 +141,146 @@ public class ShoppingListTests {
     Assert.True(item.IsChecked);
   }
 
-  [Fact(DisplayName = "Rejects duplicate batch without partial mutation")]
-  public void AddItems_ThrowsAndLeavesStateUnchanged_WhenBatchContainsDuplicate() {
-    var list = ShoppingList.Create(OwnerId, null);
-    var duplicateId = new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002"));
+  [Fact(DisplayName = "Adds primitive item batch")]
+  public void AddItems_AddsPrimitiveItems() {
+    var list = ShoppingList.Create(OwnerId.Value, "Test");
+    var firstFormatId = Guid.Parse("00000000-0000-7000-8000-000000000002");
+    var secondFormatId = Guid.Parse("00000000-0000-7000-8000-000000000003");
 
-    Assert.Throws<DuplicateShoppingItemException>(() => list.AddItems([
-      new ShoppingItem(duplicateId, new PositiveAmount(1), false),
-      new ShoppingItem(duplicateId, new PositiveAmount(2), true),
-    ]));
-    Assert.Empty(list.Items);
+    list.AddItems([
+      new AddItemsParams(firstFormatId, 2, true),
+      new AddItemsParams(secondFormatId, 3, false),
+    ]);
+
+    var actual = list.Items.Select(item => new {
+      ProductFormatId = item.ProductFormatId.Value,
+      Amount = item.Amount.Value,
+      item.IsChecked,
+    });
+    var expected = new[] {
+      new { ProductFormatId = firstFormatId, Amount = 2, IsChecked = true },
+      new { ProductFormatId = secondFormatId, Amount = 3, IsChecked = false },
+    };
+    Assert.Equal(expected, actual);
   }
 
-  [Fact(DisplayName = "Rejects item already present without partial mutation")]
-  public void AddItems_ThrowsAndLeavesStateUnchanged_WhenItemAlreadyExists() {
+  [Fact(DisplayName = "Rejects empty primitive item batch")]
+  public void AddItems_ThrowsExactException_WhenPrimitiveBatchIsEmpty() {
+    var list = ShoppingList.Create(OwnerId.Value, "Test");
+
+    void action() => list.AddItems(Array.Empty<AddItemsParams>());
+
+    Assert.Throws<EmptyShoppingItemsException>(action);
+  }
+
+  [Fact(DisplayName = "Rejects duplicate primitive batch atomically")]
+  public void AddItems_ThrowsWhenPrimitiveBatchHasDuplicate() {
     var list = ShoppingList.Create(OwnerId, null);
-    var existingId = new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002"));
-    list.AddItem(existingId, new PositiveAmount(1), false);
+    var duplicateId = Guid.Parse("00000000-0000-7000-8000-000000000002");
+    IEnumerable<AddItemsParams> items = [
+      new AddItemsParams(duplicateId, 1, false),
+      new AddItemsParams(duplicateId, 2, true),
+    ];
 
-    Assert.Throws<DuplicateShoppingItemException>(() => list.AddItems([
-      new ShoppingItem(new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000003")), new PositiveAmount(1), false),
-      new ShoppingItem(existingId, new PositiveAmount(2), true),
-    ]));
+    void action() => list.AddItems(items);
 
-    ShoppingItem item = Assert.Single(list.Items);
-    Assert.Equal(existingId, item.ProductFormatId);
+    Assert.Throws<DuplicateShoppingItemException>(action);
+  }
+
+  [Fact(DisplayName = "Rejects existing primitive item")]
+  public void AddItems_ThrowsWhenPrimitiveItemExists() {
+    var list = ShoppingList.Create(OwnerId, null);
+    var existingId = Guid.Parse("00000000-0000-7000-8000-000000000002");
+    list.AddItems([new AddItemsParams(existingId, 1, false)]);
+
+    void action() => list.AddItems([new AddItemsParams(existingId, 2, true)]);
+
+    Assert.Throws<DuplicateShoppingItemException>(action);
+  }
+
+  [Fact(DisplayName = "Rejects invalid primitive item batch atomically")]
+  public void AddItems_ThrowsWhenPrimitiveItemIsInvalid() {
+    var list = ShoppingList.Create(OwnerId, null);
+
+    void action() => list.AddItems([new AddItemsParams(Guid.Empty, 1, false)]);
+
+    Assert.Throws<InvalidProductFormatIdException>(action);
   }
 
   [Fact(DisplayName = "Updates amount and checked state atomically")]
   public void UpdateItem_UpdatesProvidedFields() {
-    var list = ShoppingList.Create(OwnerId, null);
-    var formatId = new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002"));
-    list.AddItem(formatId, new PositiveAmount(1), false);
+    var list = ShoppingList.Create(OwnerId.Value, "Test list");
+    list.AddItems([new AddItemsParams(Guid.CreateVersion7(), 1, false)]);
+    ShoppingItem item = list.Items.Single();
 
-    list.UpdateItem(formatId, new PositiveAmount(4), true);
+    list.UpdateItem(item.Id.Value, 4, true);
 
-    ShoppingItem item = Assert.Single(list.Items);
     Assert.Equal(4, item.Amount.Value);
     Assert.True(item.IsChecked);
   }
 
   [Fact(DisplayName = "Rejects update without fields")]
   public void UpdateItem_ThrowsExactException_WhenNoFieldsProvided() {
-    var list = ShoppingList.Create(OwnerId, null);
-    var formatId = new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002"));
-    list.AddItem(formatId, new PositiveAmount(1), false);
+    var list = ShoppingList.Create(OwnerId.Value, "Test list");
+    list.AddItems([new AddItemsParams(Guid.CreateVersion7(), 1, false)]);
+    ShoppingItem item = list.Items.Single();
 
-    Assert.Throws<EmptyShoppingItemUpdateException>(() =>
-      list.UpdateItem(formatId, null, null));
-    Assert.Equal(1, list.Items.Single().Amount.Value);
+    void action() => list.UpdateItem(item.Id.Value, null, null);
+
+    Assert.Throws<EmptyShoppingItemUpdateException>(action);
   }
 
   [Fact(DisplayName = "Rejects update for missing item")]
   public void UpdateItem_ThrowsExactException_WhenItemIsMissing() {
-    var list = ShoppingList.Create(OwnerId, null);
+    var list = ShoppingList.Create(OwnerId.Value, "Test list");
 
     Assert.Throws<ShoppingItemNotFoundException>(() =>
-      list.UpdateItem(new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002")), new PositiveAmount(1), null));
+      list.UpdateItem(
+        Guid.Parse("00000000-0000-7000-8000-000000000002"), 1, null));
   }
 
   [Fact(DisplayName = "Preserves amount when updating checked state")]
   public void UpdateItem_PreservesAmount_WhenAmountIsMissing() {
-    var list = ShoppingList.Create(OwnerId, null);
-    var formatId = new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002"));
-    list.AddItem(formatId, new PositiveAmount(3), false);
+    var list = ShoppingList.Create(OwnerId.Value, "Test list");
+    list.AddItems([new AddItemsParams(Guid.CreateVersion7(), 3, false)]);
+    ShoppingItem item = list.Items.Single();
 
-    list.UpdateItem(formatId, null, true);
+    list.UpdateItem(item.Id.Value, null, true);
 
     Assert.Equal(3, list.Items.Single().Amount.Value);
   }
 
   [Fact(DisplayName = "Preserves checked state when updating amount")]
   public void UpdateItem_PreservesCheckedState_WhenCheckedStateIsMissing() {
-    var list = ShoppingList.Create(OwnerId, null);
-    var formatId = new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002"));
-    list.AddItem(formatId, new PositiveAmount(1), true);
+    var list = ShoppingList.Create(OwnerId.Value, "Test list");
+    list.AddItems([new AddItemsParams(Guid.CreateVersion7(), 3, true)]);
+    ShoppingItem item = list.Items.Single();
 
-    list.UpdateItem(formatId, new PositiveAmount(3), null);
+    list.UpdateItem(item.Id.Value, 3, null);
 
-    Assert.True(list.Items.Single().IsChecked);
+    Assert.True(item.IsChecked);
   }
 
-  [Fact(DisplayName = "Removes existing item")]
-  public void RemoveItem_RemovesItem() {
-    var list = ShoppingList.Create(OwnerId, null);
-    var formatId = new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002"));
-    list.AddItem(formatId, new PositiveAmount(1), false);
+  [Fact(DisplayName = "Marks existing item deleted at supplied time")]
+  public void RemoveItem_MarksItemDeletedAtSuppliedTime() {
+    var list = ShoppingList.Create(OwnerId.Value, "Test list");
+    list.AddItems([new AddItemsParams(Guid.CreateVersion7(), 3, true)]);
+    ShoppingItem item = list.Items.Single();
 
-    list.RemoveItem(formatId);
+    var deletedAt = new DateTime(2026, 10, 3, 8, 30, 0, DateTimeKind.Utc);
 
-    Assert.Empty(list.Items);
+    list.RemoveItem(item.Id.Value, deletedAt);
+
+    Assert.Equal(deletedAt, item.DeletedAt);
   }
 
   [Fact(DisplayName = "Rejects removal of missing item")]
   public void RemoveItem_ThrowsExactException_WhenItemIsMissing() {
-    var list = ShoppingList.Create(OwnerId, null);
+    var list = ShoppingList.Create(OwnerId.Value, "Test list");
 
-    Assert.Throws<ShoppingItemNotFoundException>(() =>
-      list.RemoveItem(new ProductFormatId(Guid.Parse("00000000-0000-7000-8000-000000000002"))));
+    void action() => list.RemoveItem(Guid.CreateVersion7(), DateTime.UtcNow);
+
+    Assert.Throws<ShoppingItemNotFoundException>(action);
   }
 
   [Fact(DisplayName = "Returns checked items without mutation")]
