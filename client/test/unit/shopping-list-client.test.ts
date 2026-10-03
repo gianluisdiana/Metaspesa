@@ -5,6 +5,7 @@ import RestShoppingApiService from '@/infrastructure/rest-shopping-api-service';
 const httpStatus = { conflict: 409, ok: 200 } as const;
 const namedListId = '00000000-0000-7000-8000-000000000007';
 const productFormatId = '00000000-0000-7000-8000-000000000093';
+const shoppingItemId = '00000000-0000-7000-8000-000000000094';
 
 function jsonResponse(body: unknown, status: number = httpStatus.ok): Response {
   return new Response(JSON.stringify(body), {
@@ -49,11 +50,11 @@ describe('REST shopping client', () => {
             amount: 2,
             brand: 'Brand',
             checked: true,
+            id: shoppingItemId,
             market: {
               id: '00000000-0000-7000-8000-000000000001',
               name: 'Market',
             },
-            productFormatId,
             productName: 'Milk',
             quantity: { amount: 1, unit: 'l' },
             unitPrice: { amount: 1.25, currency: 'EUR' },
@@ -76,8 +77,8 @@ describe('REST shopping client', () => {
           checked: true,
           name: 'Milk',
           price: 2.5,
-          productFormatUid: productFormatId,
           quantity: '2 × 1 l',
+          shoppingItemId,
         },
       ],
     });
@@ -118,11 +119,29 @@ describe('REST shopping client', () => {
       fetcher,
     );
 
-    await client.updateItem(namedListId, productFormatId, { checked: true });
+    await client.updateItem(namedListId, shoppingItemId, { checked: true });
 
     expect(fetcher).toHaveBeenCalledWith(
-      `http://api.test/api/v1/shopping-lists/${namedListId}/items/${productFormatId}`,
+      `http://api.test/api/v1/shopping-lists/${namedListId}/items/${shoppingItemId}`,
       expect.objectContaining({ body: '{"checked":true}', method: 'PATCH' }),
+    );
+  });
+
+  it('uses shopping item ID in item delete path', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    const client = new RestShoppingApiService(
+      undefined,
+      'http://api.test/api/v1',
+      fetcher,
+    );
+
+    await client.removeItem(namedListId, shoppingItemId);
+
+    expect(fetcher).toHaveBeenCalledWith(
+      `http://api.test/api/v1/shopping-lists/${namedListId}/items/${shoppingItemId}`,
+      expect.objectContaining({ method: 'DELETE' }),
     );
   });
 

@@ -74,8 +74,8 @@ export default class RestShoppingApiService {
         checked: item.checked,
         name: item.productName,
         price: item.unitPrice.amount * item.amount,
-        productFormatUid: item.productFormatId,
         quantity: `${item.amount} × ${item.quantity.amount} ${item.quantity.unit}`,
+        shoppingItemId: item.id,
       })),
     };
   }
@@ -108,11 +108,11 @@ export default class RestShoppingApiService {
 
   public async updateItem(
     listId: string,
-    productFormatId: string,
+    shoppingItemId: string,
     update: ShoppingItemUpdateMessage,
   ): Promise<void> {
     await this.request(
-      `/shopping-lists/${listId}/items/${productFormatId}`,
+      `/shopping-lists/${listId}/items/${shoppingItemId}`,
       'PATCH',
       update,
     );
@@ -120,10 +120,10 @@ export default class RestShoppingApiService {
 
   public async removeItem(
     listId: string,
-    productFormatId: string,
+    shoppingItemId: string,
   ): Promise<void> {
     await this.request(
-      `/shopping-lists/${listId}/items/${productFormatId}`,
+      `/shopping-lists/${listId}/items/${shoppingItemId}`,
       'DELETE',
     );
   }

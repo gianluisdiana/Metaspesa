@@ -8,8 +8,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const httpStatus = { conflict: 409, created: 201, ok: 200 } as const;
 const listId = '00000000-0000-7000-8000-000000000007';
 const temporaryListId = '00000000-0000-7000-8000-000000000009';
-const milkFormatId = '00000000-0000-7000-8000-000000000001';
-const breadFormatId = '00000000-0000-7000-8000-000000000002';
+const milkItemId = '00000000-0000-7000-8000-000000000001';
+const breadItemId = '00000000-0000-7000-8000-000000000002';
 
 const navigationMocks = vi.hoisted(() => ({ push: vi.fn() }));
 
@@ -37,14 +37,14 @@ function renderShoppingList() {
               checked: false,
               name: 'Milk',
               price: 1.25,
-              productFormatUid: milkFormatId,
               quantity: '1 l',
+              shoppingItemId: milkItemId,
             },
             {
               checked: true,
               name: 'Bread',
               price: 2.35,
-              productFormatUid: breadFormatId,
+              shoppingItemId: breadItemId,
             },
           ],
         }}

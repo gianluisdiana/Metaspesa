@@ -188,7 +188,7 @@ export const zShoppingQuantityResponse = z.object({
  * Shopping item with current product and price information.
  */
 export const zShoppingItemResponse = z.object({
-    productFormatId: z.uuid(),
+    id: z.uuid(),
     productName: z.string(),
     brand: z.string(),
     market: zShoppingMarketResponse,
@@ -344,7 +344,7 @@ export const zAddShoppingItemsResponse = z.void();
 
 export const zRemoveShoppingItemPath = z.object({
     listId: z.uuid(),
-    productFormatId: z.uuid()
+    shoppingItemId: z.uuid()
 });
 
 /**
@@ -359,7 +359,7 @@ export const zUpdateShoppingItemBody = zUpdateShoppingItemRequest;
 
 export const zUpdateShoppingItemPath = z.object({
     listId: z.uuid(),
-    productFormatId: z.uuid()
+    shoppingItemId: z.uuid()
 });
 
 /**

@@ -1,9 +1,9 @@
-import { ProductMessage } from '@/lib/shopping-list-contracts';
+import { ShoppingItemMessage } from '@/lib/shopping-list-contracts';
 
 const PERCENTAGE_FACTOR = 100;
 
 export class ShoppingProgressViewModel {
-  public constructor(private readonly products: ProductMessage[]) {}
+  public constructor(private readonly products: ShoppingItemMessage[]) {}
 
   public get checkedCount(): number {
     return this.products.filter(product => product.checked).length;
