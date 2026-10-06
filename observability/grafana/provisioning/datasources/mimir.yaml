@@ -4,8 +4,14 @@ datasources:
   - name: Mimir
     type: prometheus
     uid: mimir
-    url: http://mimir:8080/prometheus
+    url: https://mimir:8080/prometheus
     jsonData:
+      tlsAuth: true
+      tlsAuthWithCACert: true
       exemplarTraceIdDestinations:
         - name: trace_id
           datasourceUid: tempo
+    secureJsonData:
+      tlsCACert: ${TELEMETRY_CA_PEM}
+      tlsClientCert: ${TELEMETRY_CLIENT_CERT_PEM}
+      tlsClientKey: ${TELEMETRY_CLIENT_KEY_PEM}

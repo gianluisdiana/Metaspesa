@@ -9,13 +9,19 @@ services:
       ASPNETCORE_URLS: http://+:8080
       BrowserSecurity__AllowedOrigins__0: http://localhost:3000
       POSTGRES_CONNECTION_STRING: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      OTEL_EXPORTER_OTLP_ENDPOINT: https://alloy:4317
+      OTEL_EXPORTER_OTLP_CERTIFICATE: /run/secrets/telemetry_ca
+      OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE: /run/secrets/telemetry_client_cert
+      OTEL_EXPORTER_OTLP_CLIENT_KEY: /run/secrets/telemetry_client_key
     ports:
       - 4001:8080
     env_file:
       - .env
     secrets:
       - jwt_secret_key
+      - telemetry_ca
+      - telemetry_client_cert
+      - telemetry_client_key
     networks:
       - default
       - metaspesa_telemetry_default
@@ -32,7 +38,14 @@ services:
         condition: service_healthy
     environment:
       POSTGRES_CONNECTION_STRING: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      OTEL_EXPORTER_OTLP_ENDPOINT: https://alloy:4317
+      OTEL_EXPORTER_OTLP_CERTIFICATE: /run/secrets/telemetry_ca
+      OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE: /run/secrets/telemetry_client_cert
+      OTEL_EXPORTER_OTLP_CLIENT_KEY: /run/secrets/telemetry_client_key
+    secrets:
+      - telemetry_ca
+      - telemetry_client_cert
+      - telemetry_client_key
     env_file:
       - .env
     networks:
@@ -53,8 +66,15 @@ services:
     environment:
       REST_API_URL: http://server:8080/api/v1
       NEXT_PUBLIC_REST_API_URL: http://localhost:4001/api/v1
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      OTEL_EXPORTER_OTLP_ENDPOINT: https://alloy:4317
+      OTEL_EXPORTER_OTLP_CERTIFICATE: /run/secrets/telemetry_ca
+      OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE: /run/secrets/telemetry_client_cert
+      OTEL_EXPORTER_OTLP_CLIENT_KEY: /run/secrets/telemetry_client_key
       PORT: 8080
+    secrets:
+      - telemetry_ca
+      - telemetry_client_cert
+      - telemetry_client_key
     networks:
       - default
       - metaspesa_telemetry_default
@@ -69,12 +89,18 @@ services:
     environment:
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       REST_API_URL: http://server:8080/api/v1
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      OTEL_EXPORTER_OTLP_ENDPOINT: https://alloy:4317
+      OTEL_EXPORTER_OTLP_CERTIFICATE: /run/secrets/telemetry_ca
+      OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE: /run/secrets/telemetry_client_cert
+      OTEL_EXPORTER_OTLP_CLIENT_KEY: /run/secrets/telemetry_client_key
     volumes:
       - scraper_data:/app/data
     secrets:
       - scraper_username
       - scraper_password
+      - telemetry_ca
+      - telemetry_client_cert
+      - telemetry_client_key
     networks:
       - default
       - metaspesa_telemetry_default
@@ -110,3 +136,9 @@ secrets:
     file: ./secrets/scraper_username
   scraper_password:
     file: ./secrets/scraper_password
+  telemetry_ca:
+    file: ./secrets/telemetry_ca.crt
+  telemetry_client_cert:
+    file: ./secrets/telemetry_client.crt
+  telemetry_client_key:
+    file: ./secrets/telemetry_client.key

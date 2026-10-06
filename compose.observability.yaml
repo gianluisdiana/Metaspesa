@@ -1,7 +1,20 @@
+x-client-secrets: &client-secrets
+  - telemetry_ca
+  - telemetry_client_cert
+  - telemetry_client_key
+
 services:
   alloy:
     image: grafana/alloy:v1.20.1
     mem_limit: 768m
+    secrets:
+      - telemetry_ca
+      - telemetry_client_cert
+      - telemetry_client_key
+      - source: telemetry_alloy_cert
+        target: telemetry_server_cert
+      - source: telemetry_alloy_key
+        target: telemetry_server_key
     volumes:
       - ./observability/alloy/config.alloy:/etc/alloy/config.alloy
     command: run /etc/alloy/config.alloy
@@ -14,6 +27,12 @@ services:
       - ./observability/loki/loki.yaml:/etc/loki/loki.yaml
       - loki_data:/loki
     command: -config.file=/etc/loki/loki.yaml
+    secrets:
+      - telemetry_ca
+      - source: telemetry_loki_cert
+        target: telemetry_server_cert
+      - source: telemetry_loki_key
+        target: telemetry_server_key
     networks:
       - metaspesa_telemetry_default
 
@@ -24,6 +43,12 @@ services:
       - ./observability/mimir/rules:/etc/mimir/rules:ro
       - mimir_data:/var/mimir
     command: -config.file=/etc/mimir/mimir.yaml
+    secrets:
+      - telemetry_ca
+      - source: telemetry_mimir_cert
+        target: telemetry_server_cert
+      - source: telemetry_mimir_key
+        target: telemetry_server_key
     networks:
       - metaspesa_telemetry_default
 
@@ -33,6 +58,12 @@ services:
       - ./observability/tempo/tempo.yaml:/etc/tempo/tempo.yaml
       - tempo_data:/var/tempo
     command: -config.file=/etc/tempo/tempo.yaml
+    secrets:
+      - telemetry_ca
+      - source: telemetry_tempo_cert
+        target: telemetry_server_cert
+      - source: telemetry_tempo_key
+        target: telemetry_server_key
     networks:
       - metaspesa_telemetry_default
 
@@ -45,8 +76,11 @@ services:
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_PASSWORD}"
+    entrypoint: ["/bin/sh", "/etc/grafana/start.sh"]
+    secrets: *client-secrets
     volumes:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning
+      - ./observability/grafana/start.sh:/etc/grafana/start.sh:ro
       - grafana_data:/var/lib/grafana
     networks:
       - metaspesa_telemetry_default
@@ -60,3 +94,27 @@ volumes:
 networks:
   metaspesa_telemetry_default:
     external: true
+
+secrets:
+  telemetry_ca:
+    file: ./secrets/telemetry_ca.crt
+  telemetry_client_cert:
+    file: ./secrets/telemetry_client.crt
+  telemetry_client_key:
+    file: ./secrets/telemetry_client.key
+  telemetry_alloy_cert:
+    file: ./secrets/telemetry_alloy.crt
+  telemetry_alloy_key:
+    file: ./secrets/telemetry_alloy.key
+  telemetry_loki_cert:
+    file: ./secrets/telemetry_loki.crt
+  telemetry_loki_key:
+    file: ./secrets/telemetry_loki.key
+  telemetry_mimir_cert:
+    file: ./secrets/telemetry_mimir.crt
+  telemetry_mimir_key:
+    file: ./secrets/telemetry_mimir.key
+  telemetry_tempo_cert:
+    file: ./secrets/telemetry_tempo.crt
+  telemetry_tempo_key:
+    file: ./secrets/telemetry_tempo.key

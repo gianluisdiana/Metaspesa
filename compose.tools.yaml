@@ -1,6 +1,13 @@
 # Optional one-shot tooling; not started by the application stack.
 # Standard service image declarations allow Dependabot to track the versions.
 services:
+  certificates:
+    image: alpine/openssl:3.5.4
+    entrypoint: ["/bin/sh", "/tools/generate-certificates.sh"]
+    volumes:
+      - ./secrets:/secrets
+      - ./observability/tools:/tools:ro
+
   rules-validation:
     image: prom/prometheus:v3.7.3
     entrypoint: ["/bin/promtool"]

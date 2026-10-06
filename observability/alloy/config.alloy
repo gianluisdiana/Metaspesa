@@ -2,6 +2,12 @@ otelcol.receiver.otlp "default" {
 	grpc {
 		endpoint = "0.0.0.0:4317"
 
+		tls {
+			cert_file      = "/run/secrets/telemetry_server_cert"
+			key_file       = "/run/secrets/telemetry_server_key"
+			client_ca_file = "/run/secrets/telemetry_ca"
+			min_version    = "1.2"
+		}
 	}
 
 	output {
@@ -37,24 +43,39 @@ otelcol.processor.batch "default" {
 
 otelcol.exporter.otlphttp "loki" {
 	client {
-		endpoint = "http://loki:3100/otlp"
+		endpoint = "https://loki:3100/otlp"
 
+		tls {
+			ca_file     = "/run/secrets/telemetry_ca"
+			cert_file   = "/run/secrets/telemetry_client_cert"
+			key_file    = "/run/secrets/telemetry_client_key"
+			min_version = "1.2"
+		}
 	}
 }
 
 otelcol.exporter.otlphttp "mimir" {
 	client {
-		endpoint = "http://mimir:8080/otlp"
+		endpoint = "https://mimir:8080/otlp"
 
+		tls {
+			ca_file     = "/run/secrets/telemetry_ca"
+			cert_file   = "/run/secrets/telemetry_client_cert"
+			key_file    = "/run/secrets/telemetry_client_key"
+			min_version = "1.2"
+		}
 	}
 }
 
 otelcol.exporter.otlp "tempo" {
 	client {
 		endpoint = "tempo:4317"
-		tls {
-			insecure = true
-		}
 
+		tls {
+			ca_file     = "/run/secrets/telemetry_ca"
+			cert_file   = "/run/secrets/telemetry_client_cert"
+			key_file    = "/run/secrets/telemetry_client_key"
+			min_version = "1.2"
+		}
 	}
 }

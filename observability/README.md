@@ -62,6 +62,65 @@ ratio, and p95 duration. Grafana's overview dashboard and existing error alert
 consume those series. Mimir explicitly enables OTLP metric unit/type suffixes
 and promotes only the `service.name` resource attribute to `service_name` for
 service-level metric grouping. Query evaluated rules through
-`http://mimir:8080/prometheus/api/v1/rules` and recorded series through
-`http://mimir:8080/prometheus/api/v1/query`, from the Docker network. Grafana Explore supplies this access
+`https://mimir:8080/prometheus/api/v1/rules` and recorded series through
+`https://mimir:8080/prometheus/api/v1/query`, from the Docker network. Grafana Explore supplies this access
 without host port publication. Rate series need at least two observations.
+
+
+## Secure telemetry transport
+
+Applications send OTLP/gRPC to Alloy over mutual TLS. Alloy exports to Loki,
+Mimir and Tempo with server verification and client certificates; Grafana uses
+mutual TLS for backend queries. All signals require a trusted client certificate.
+
+Generate persistent, Git-ignored certificates before startup:
+
+```sh
+docker compose -f compose.tools.yaml run --rm certificates
+docker network create metaspesa_telemetry_default
+docker compose -f compose.observability.yaml up -d
+docker compose up --build -d
+```
+
+Prepare .env and existing application secrets separately. The tooling command
+preserves existing certificates and application credentials. On Linux, create
+secrets/ with mode 700 and run the certificate service with
+--user "$(id -u):$(id -g)"; on Windows, restrict directory access using filesystem
+permissions. Leaf keys are readable by non-root container users; protect their
+host directory. The CA private key is never mounted into runtime services.
+
+Certificate files in ignored `secrets/` are:
+
+```text
+telemetry_ca.crt / telemetry_ca.key
+telemetry_client.crt / telemetry_client.key
+telemetry_alloy.crt / telemetry_alloy.key
+telemetry_loki.crt / telemetry_loki.key
+telemetry_mimir.crt / telemetry_mimir.key
+telemetry_tempo.crt / telemetry_tempo.key
+```
+
+For HTTPS backend queries, provide the CA plus telemetry client certificate/key.
+Grafana loads these from Docker secrets; clients verify the backend DNS names.
+
+CA lifetime is ten years; client/server certificates last one year. Alloy's
+certificate covers alloy; backend certificates cover their
+Docker DNS names. Renew leaf certificates explicitly, preserving the CA:
+
+```sh
+docker compose -f compose.tools.yaml run --rm certificates renew
+docker compose -f compose.observability.yaml up -d --force-recreate
+docker compose up -d --force-recreate
+```
+
+Back up operational secrets. Replacing the CA requires reissuing certificates
+and recreating all clients and servers together. TLS authentication grants access
+to this telemetry stack, not per-user authorization. Missing client credentials,
+untrusted certificates and server-only certificates used as clients are rejected.
+
+Application REST/Grafana UI traffic retains existing HTTP behavior; production
+still needs HTTPS ingress. Single-process backend internal RPC and collector
+health endpoints remain private-network traffic. CI generates disposable
+certificates and runs native validators using deployed Compose image versions.
+Live delivery, certificate rejection and backend query checks are separate from
+configuration validation.

@@ -31,20 +31,18 @@ def __configure_sdk(endpoint: str) -> None:
 
     tracer_provider = TracerProvider(resource=resource)
     tracer_provider.add_span_processor(
-        BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint, insecure=True))
+        BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint))
     )
     trace.set_tracer_provider(tracer_provider)
 
-    reader = PeriodicExportingMetricReader(
-        OTLPMetricExporter(endpoint=endpoint, insecure=True)
-    )
+    reader = PeriodicExportingMetricReader(OTLPMetricExporter(endpoint=endpoint))
     metrics.set_meter_provider(
         MeterProvider(resource=resource, metric_readers=[reader])
     )
 
     logger_provider = LoggerProvider(resource=resource)
     logger_provider.add_log_record_processor(
-        BatchLogRecordProcessor(OTLPLogExporter(endpoint=endpoint, insecure=True))
+        BatchLogRecordProcessor(OTLPLogExporter(endpoint=endpoint))
     )
     set_logger_provider(logger_provider)
     logging.getLogger().addHandler(LoggingHandler(logger_provider=logger_provider))

@@ -3,6 +3,12 @@ multitenancy_enabled: false
 server:
   http_listen_port: 8080
   grpc_listen_port: 9095
+  tls_min_version: VersionTLS12
+  http_tls_config:
+    cert_file: /run/secrets/telemetry_server_cert
+    key_file: /run/secrets/telemetry_server_key
+    client_auth_type: RequireAndVerifyClientCert
+    client_ca_file: /run/secrets/telemetry_ca
 
 blocks_storage:
   backend: filesystem

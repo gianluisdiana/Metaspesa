@@ -4,8 +4,10 @@ datasources:
   - name: Tempo
     type: tempo
     uid: tempo
-    url: http://tempo:3200
+    url: https://tempo:3200
     jsonData:
+      tlsAuth: true
+      tlsAuthWithCACert: true
       tracesToLogsV2:
         datasourceUid: loki
         filterByTraceID: true
@@ -13,3 +15,7 @@ datasources:
         tags:
           - key: service.name
             value: service_name
+    secureJsonData:
+      tlsCACert: ${TELEMETRY_CA_PEM}
+      tlsClientCert: ${TELEMETRY_CLIENT_CERT_PEM}
+      tlsClientKey: ${TELEMETRY_CLIENT_KEY_PEM}

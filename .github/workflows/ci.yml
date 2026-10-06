@@ -29,7 +29,10 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Prepare validation environment
-        run: cp .env.example .env
+        run: |
+          cp .env.example .env
+          mkdir -m 700 -p secrets
+          docker compose -f compose.tools.yaml run --rm --user "$(id -u):$(id -g)" certificates
 
       - name: Validate Loki
         run: docker compose --env-file .env.example -f compose.observability.yaml run --rm --no-deps loki -config.file=/etc/loki/loki.yaml -verify-config

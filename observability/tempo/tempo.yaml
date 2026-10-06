@@ -1,5 +1,11 @@
 server:
   http_listen_port: 3200
+  tls_min_version: VersionTLS12
+  http_tls_config:
+    cert_file: /run/secrets/telemetry_server_cert
+    key_file: /run/secrets/telemetry_server_key
+    client_auth_type: RequireAndVerifyClientCert
+    client_ca_file: /run/secrets/telemetry_ca
 
 distributor:
   receivers:
@@ -7,6 +13,11 @@ distributor:
       protocols:
         grpc:
           endpoint: 0.0.0.0:4317
+          tls:
+            cert_file: /run/secrets/telemetry_server_cert
+            key_file: /run/secrets/telemetry_server_key
+            client_ca_file: /run/secrets/telemetry_ca
+            min_version: "1.2"
 
 backend_scheduler:
   provider:
