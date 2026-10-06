@@ -21,6 +21,7 @@ services:
     image: grafana/mimir:3.2.1
     volumes:
       - ./observability/mimir/mimir.yaml:/etc/mimir/mimir.yaml
+      - ./observability/mimir/rules:/etc/mimir/rules:ro
       - mimir_data:/var/mimir
     command: -config.file=/etc/mimir/mimir.yaml
     networks:

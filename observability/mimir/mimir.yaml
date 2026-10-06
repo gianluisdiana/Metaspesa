@@ -15,11 +15,13 @@ compactor:
   data_dir: /var/mimir/compactor
 
 ruler_storage:
-  backend: filesystem
+  backend: local
   local:
-    directory: /var/mimir/ruler
+    directory: /etc/mimir/rules
 
 limits:
+  otel_metric_suffixes_enabled: true
+  promote_otel_resource_attributes: service.name
   compactor_blocks_retention_period: 72h
 
 ingester:

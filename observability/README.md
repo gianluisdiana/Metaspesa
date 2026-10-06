@@ -38,3 +38,30 @@ not durable or exactly-once delivery.
 Tempo 3.1's backend scheduler and worker use 48-hour block retention. Expired
 traces are removed from `tempo_data`; persistence across restarts does not
 override expiry. Keep backups if traces must survive beyond the retention window.
+
+
+## Mimir recording rules
+
+Mimir's `local` ruler-storage backend reads the mounted Prometheus-format file
+`mimir/rules/anonymous/metaspesa.yaml`. `anonymous` is the default tenant when
+multitenancy is disabled. No rule-upload service is needed. The local backend
+does not support rule creation/deletion through the configuration API; edit rules
+in Git and restart Mimir to apply changes deterministically:
+
+```sh
+docker compose restart mimir
+```
+
+Validate expressions with `docker compose -f compose.tools.yaml run --rm
+rules-validation`. After at least two HTTP metric observations, allow up to two
+further minutes for the one-minute evaluation delay and evaluation interval.
+Check all three recorded series in Grafana Explore.
+
+The rules evaluate every minute and record five-minute HTTP request rate, error
+ratio, and p95 duration. Grafana's overview dashboard and existing error alert
+consume those series. Mimir explicitly enables OTLP metric unit/type suffixes
+and promotes only the `service.name` resource attribute to `service_name` for
+service-level metric grouping. Query evaluated rules through
+`http://mimir:8080/prometheus/api/v1/rules` and recorded series through
+`http://mimir:8080/prometheus/api/v1/query`, from the Docker network. Grafana Explore supplies this access
+without host port publication. Rate series need at least two observations.
