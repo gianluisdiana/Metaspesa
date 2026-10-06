@@ -19,6 +19,21 @@ env:
   PYTHON_VERSION: "3.14"
 
 jobs:
+  observability-validation:
+    name: Observability configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Prepare validation environment
+        run: cp .env.example .env
+
+      - name: Validate Loki
+        run: docker compose --env-file .env.example -f compose.observability.yaml run --rm --no-deps loki -config.file=/etc/loki/loki.yaml -verify-config
+
   backend-quality:
     name: Backend quality
     runs-on: ubuntu-latest
