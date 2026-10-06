@@ -16,6 +16,6 @@ datasources:
           - key: service.name
             value: service_name
     secureJsonData:
-      tlsCACert: ${TELEMETRY_CA_PEM}
-      tlsClientCert: ${TELEMETRY_CLIENT_CERT_PEM}
-      tlsClientKey: ${TELEMETRY_CLIENT_KEY_PEM}
+      tlsCACert: $__file{/run/secrets/telemetry_ca}
+      tlsClientCert: $__file{/run/secrets/telemetry_client_cert}
+      tlsClientKey: $__file{/run/secrets/telemetry_client_key}

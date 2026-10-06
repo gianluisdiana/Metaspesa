@@ -4,6 +4,8 @@ x-client-secrets: &client-secrets
   - telemetry_client_key
 
 x-collector: &collector
+  group_add:
+    - "${TELEMETRY_SECRETS_GID:-1999}"
   volumes:
     - ./observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
   command:
@@ -43,6 +45,8 @@ services:
 
   loki:
     image: grafana/loki:3.7
+    group_add:
+      - "${TELEMETRY_SECRETS_GID:-1999}"
     volumes:
       - ./observability/loki/loki.yaml:/etc/loki/loki.yaml
       - loki_data:/loki
@@ -58,6 +62,8 @@ services:
 
   mimir:
     image: grafana/mimir:3.2.1
+    group_add:
+      - "${TELEMETRY_SECRETS_GID:-1999}"
     volumes:
       - ./observability/mimir/mimir.yaml:/etc/mimir/mimir.yaml
       - ./observability/mimir/rules:/etc/mimir/rules:ro
@@ -74,6 +80,8 @@ services:
 
   tempo:
     image: grafana/tempo:3.1.0
+    group_add:
+      - "${TELEMETRY_SECRETS_GID:-1999}"
     volumes:
       - ./observability/tempo/tempo.yaml:/etc/tempo/tempo.yaml
       - tempo_data:/var/tempo
@@ -89,6 +97,8 @@ services:
 
   grafana:
     image: grafana/grafana:13.2.3
+    group_add:
+      - "${TELEMETRY_SECRETS_GID:-1999}"
     ports:
       - 3001:3000
     env_file:
@@ -96,11 +106,9 @@ services:
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_PASSWORD}"
-    entrypoint: ["/bin/sh", "/etc/grafana/start.sh"]
     secrets: *client-secrets
     volumes:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning
-      - ./observability/grafana/start.sh:/etc/grafana/start.sh:ro
       - grafana_data:/var/lib/grafana
     networks:
       - metaspesa_telemetry_default

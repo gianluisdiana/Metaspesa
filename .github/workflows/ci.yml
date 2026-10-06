@@ -32,8 +32,11 @@ jobs:
         run: |
           cp .env.example .env
           mkdir -m 700 -p secrets
-          docker compose -f compose.tools.yaml run --rm --user "$(id -u):$(id -g)" certificates
+          docker compose -f compose.tools.yaml run --rm certificates
           docker network create metaspesa_telemetry_default
+
+      - name: Test certificate lifecycle
+        run: docker compose -f compose.tools.yaml run --rm --entrypoint /bin/sh certificates /tools/test-certificates.sh
 
       - name: Validate Loki
         run: docker compose --env-file .env.example -f compose.observability.yaml run --rm --no-deps loki -config.file=/etc/loki/loki.yaml -verify-config

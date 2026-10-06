@@ -1,5 +1,7 @@
 services:
   server:
+    group_add:
+      - "${TELEMETRY_SECRETS_GID:-1999}"
     image: gianluisdiana/metaspesa_rest_api:${METASPESA_VERSION:-latest}
     build:
       context: ./server
@@ -27,6 +29,8 @@ services:
       - metaspesa_telemetry_default
 
   migrations:
+    group_add:
+      - "${TELEMETRY_SECRETS_GID:-1999}"
     image: gianluisdiana/metaspesa_migrations:${METASPESA_VERSION:-latest}
     build:
       context: ./server
@@ -53,6 +57,8 @@ services:
       - metaspesa_telemetry_default
 
   client:
+    group_add:
+      - "${TELEMETRY_SECRETS_GID:-1999}"
     image: gianluisdiana/metaspesa_client:${METASPESA_VERSION:-latest}
     build:
       context: ./client
@@ -80,6 +86,8 @@ services:
       - metaspesa_telemetry_default
 
   scraper:
+    group_add:
+      - "${TELEMETRY_SECRETS_GID:-1999}"
     image: gianluisdiana/metaspesa_scraper:${METASPESA_VERSION:-latest}
     build:
       context: ./scraper

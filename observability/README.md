@@ -83,11 +83,17 @@ docker compose up --build -d
 ```
 
 Prepare .env and existing application secrets separately. The tooling command
-preserves existing certificates and application credentials. On Linux, create
-secrets/ with mode 700 and run the certificate service with
---user "$(id -u):$(id -g)"; on Windows, restrict directory access using filesystem
-permissions. Leaf keys are readable by non-root container users; protect their
-host directory. The CA private key is never mounted into runtime services.
+preserves existing certificates and application credentials. Run the certificate
+service as its default root user so it can assign file groups. It enforces mode
+700 on the secrets directory, 600 on the CA key, 640 on leaf keys, and 644 on
+certificates, including reused pairs. Leaf keys use the dedicated numeric group
+`TELEMETRY_SECRETS_GID` (default 1999); every service mounting a leaf key receives
+that supplementary group. If overridden, use the same value for tooling and both
+runtime Compose files. Do not grant this group to unrelated containers/users.
+On Windows, also restrict host directory ACLs: Linux container modes do not
+guarantee Windows host ACL protection. The CA private key is never mounted into
+runtime services. Existing certificate/key public keys must match; restore a
+matching pair from backup if validation fails.
 
 Certificate files in ignored `secrets/` are:
 
@@ -101,11 +107,17 @@ telemetry_tempo.crt / telemetry_tempo.key
 ```
 
 For HTTPS backend queries, provide the CA plus telemetry client certificate/key.
-Grafana loads these from Docker secrets; clients verify the backend DNS names.
+Grafana provisioning reads the mounted secret files directly with its file
+provider; no PEM credentials are exported into the process environment. Clients
+verify the backend DNS names.
 
 CA lifetime is ten years; client/server certificates last one year. Alloy's
 certificate covers alloy, alloy-1 and alloy-2; backend certificates cover their
-Docker DNS names. Renew leaf certificates explicitly, preserving the CA:
+Docker DNS names. Renew leaf certificates explicitly, preserving the CA and leaf
+private keys. Renewal atomically replaces each certificate, so interruption
+leaves either the old or new matching pair. This renews expiry, not key rotation;
+compromised keys require deliberate replacement/reissuance. Stop affected services
+before replacing pairs for key rotation. Renew with:
 
 ```sh
 docker compose -f compose.tools.yaml run --rm certificates renew
@@ -124,6 +136,16 @@ health endpoints remain private-network traffic. CI generates disposable
 certificates and runs native validators using deployed Compose image versions.
 Live delivery, certificate rejection and backend query checks are separate from
 configuration validation.
+
+Certificate lifecycle regression tests use disposable container-local files,
+never the mounted operational secrets:
+
+```sh
+docker compose -f compose.tools.yaml run --rm --entrypoint /bin/sh certificates /tools/test-certificates.sh
+```
+
+CI runs these tests for permissions, reused credentials, missing/mismatched
+pairs (including the CA), interrupted renewal, and successful renewal.
 
 ## Collector availability
 
