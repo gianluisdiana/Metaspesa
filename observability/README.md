@@ -1,16 +1,17 @@
 # Observability
 
-First extraction slice: deployment files, environment template and certificates
-now live in this directory. Alloy, HAProxy, Loki, Mimir, Tempo and Grafana can be
-started from here without building or starting Metaspesa services.
+Phase 2: deployment files, environment template, certificates and platform
+datasources live in this directory. Alloy, HAProxy, Loki, Mimir, Tempo and Grafana
+can be started from here without application assets, credentials or a database.
 
 Applications send OTLP/gRPC over mutual TLS to `alloy:4317`. HAProxy passes each
 connection to one of two collectors. Collectors and Grafana use mutual TLS when
 accessing the telemetry backends.
 
-The application root Compose still includes `observability/compose.yaml`.
-Metaspesa dashboards, rules and its PostgreSQL datasource remain bundled for now.
-This is directory-level preparation, not a completed repository split.
+The application root Compose merges `observability/compose.yaml` with its own
+`telemetry/compose.yaml` adapter. Application dashboards, alerts, rules and the
+PostgreSQL datasource are owned by `telemetry/`, not this directory. This is not
+yet a completed repository split: project/network ownership is still shared.
 
 ## Setup and startup
 
@@ -113,18 +114,23 @@ Application REST and Grafana UI retain existing HTTP behavior; public deployment
 still needs HTTPS ingress. Single-process backend RPC and Alloy health/metrics
 remain private-network traffic.
 
-## Remaining application integration
+## Application integration boundary
 
-The PostgreSQL datasource still references Metaspesa's `db:5432`. Its optional
-`POSTGRES_DB`/`GRAFANA_DB_PASSWORD` values are listed in this directory's template.
-Root inclusion supplies existing application values. Without the application DB,
-that datasource/database dashboard is unavailable; logs, metrics and traces do
-not depend on it. Database role/grants remain owned by the application's init
-script, not by this stack.
+A fresh standalone Grafana provisions only Loki, Mimir and Tempo. It requires
+no PostgreSQL settings and provisions no application dashboards or alerts.
+Mimir's local rule directory is empty by default. Consumer-owned adapters can
+mount dashboards, alerts, extra datasource files and a tenant-organized rules
+directory without duplicating the platform datasource definitions or image tags.
 
-Next slices will separate Metaspesa-specific provisioning/rules, make app
-telemetry opt-in and establish separate Compose project/network ownership. The
-current slice intentionally does not change telemetry processing or retention.
+Metaspesa's adapter and its instructions are in `../telemetry/`; they are not
+required to run this directory independently. Database roles/grants remain owned
+by the application, not this stack. Removing a mount is not a cleanup strategy
+for previously stored Grafana resources: use fresh isolated storage for a clean
+standalone installation, or plan deliberate cleanup of existing resources.
+
+Next slices will make application telemetry opt-in and establish separate Compose
+project/network ownership. This slice does not change processing, retention,
+existing resource identities, datasource/dashboard UIDs or alert UIDs.
 
 ## Loki native OTLP label policy
 
@@ -165,21 +171,26 @@ override expiry. Keep backups if traces must survive beyond the retention window
 
 ## Mimir recording rules
 
-Mimir's `local` ruler-storage backend reads the mounted Prometheus-format file
-`mimir/rules/anonymous/metaspesa.yaml`. `anonymous` is the default tenant when
-multitenancy is disabled. No rule-upload service is needed. The local backend
-does not support rule creation/deletion through the configuration API; edit rules
-in Git and restart Mimir to apply changes deterministically:
+Mimir's `local` ruler-storage backend reads Prometheus-format files from the
+mounted `mimir/rules/` directory. Put files under the tenant's subdirectory;
+`anonymous` is the default tenant when multitenancy is disabled. The directory
+ships empty. Application adapters can replace this mount with their own rules.
+No rule-upload service is needed. The local backend does not support creation or
+deletion through the configuration API; edit rules in Git and restart Mimir:
 
 ```sh
 docker compose restart mimir
 ```
 
-The rules evaluate every minute and record five-minute HTTP request rate, error
-ratio, and p95 duration. Grafana's overview dashboard and existing error alert
-consume those series. Mimir explicitly enables OTLP metric unit/type suffixes
-and promotes only the `service.name` resource attribute to `service_name` for
-service-level metric grouping. Query evaluated rules through
+Validate an installed rule file with the tooling service:
+
+```sh
+docker compose -f compose.tools.yaml run --rm rules-validation check rules /rules/anonymous/example.yaml
+```
+
+Mimir explicitly enables OTLP metric unit/type suffixes and promotes only the
+`service.name` resource attribute to `service_name` for service-level grouping.
+Query evaluated rules through
 `https://mimir:8080/prometheus/api/v1/rules` and recorded series through
 `https://mimir:8080/prometheus/api/v1/query`, from the Docker network with the
 telemetry CA and client certificate/key. Grafana Explore supplies this access
@@ -218,15 +229,10 @@ docker compose --env-file .env.example run --rm --no-deps alloy haproxy -c -f /u
 docker compose --env-file .env.example run --rm --no-deps loki '-config.file=/etc/loki/loki.yaml' -verify-config
 docker compose --env-file .env.example run --rm --no-deps mimir '-config.file=/etc/mimir/mimir.yaml' -modules
 docker compose --env-file .env.example run --rm --no-deps tempo '-config.file=/etc/tempo/tempo.yaml' '-config.verify=true'
-docker compose -f compose.tools.yaml run --rm rules-validation
 ```
 
-All validation commands above run from this directory. To also check the retained
-root application integration, run:
-
-```sh
-docker compose --env-file ../.env.example -f ../compose.yaml config --quiet --no-env-resolution
-```
+All validation commands above run from this directory. The separate application
+CI job validates its adapter and recording rules; see `../telemetry/README.md`.
 
 The separate tooling Compose file uses ordinary service `image` declarations
 so the repository's Docker Compose Dependabot configuration can track them.
@@ -241,9 +247,9 @@ docker compose -f compose.tools.yaml run --rm --entrypoint /bin/sh certificates 
 CI runs these tests for permissions, reused credentials, missing/mismatched
 pairs (including the CA), interrupted renewal, and successful renewal.
 
-Native validators do not establish live delivery or failover: after startup,
+CI also starts a fresh standalone Grafana and checks that only the three platform
+datasources are provisioned, with no application dashboards or alerts. Native
+validators do not establish live delivery or failover: after startup,
 verify all three signals in Grafana, stop one collector, and confirm collection
-continues through the remaining instance. Rate rules require at least two HTTP
-metric observations. Mimir delays evaluation by one minute by default, and the
-rules run once a minute; allow up to two further minutes after the second
-observation before expecting recorded series.
+continues through the remaining instance. Mimir delays rule evaluation by one
+minute by default; account for that delay and each group's evaluation interval.

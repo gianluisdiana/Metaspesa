@@ -29,8 +29,10 @@ matching data sources, dashboards, alert, and trace-to-log correlation.
 Telemetry uses authenticated TLS by default, with two Alloy collectors behind
 a health-checked endpoint. The root Compose file includes the observability stack.
 Its deployment files now live inside `observability/`; see its guide for running
-only telemetry services. Full application startup remains unchanged in this
-first extraction step.
+only telemetry services. Metaspesa dashboards, alerts, PostgreSQL datasource,
+and recording rules now live in `telemetry/`. The root includes that application
+adapter together with the reusable stack, so full startup remains unchanged.
+See [the application telemetry guide](telemetry/README.md) for asset ownership.
 
 ## Run locally
 

@@ -23,6 +23,8 @@ jobs:
     name: Observability configuration
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      GRAFANA_PASSWORD: ci-only-observability-password
     defaults:
       run:
         working-directory: observability
@@ -44,7 +46,6 @@ jobs:
         run: |
           docker compose --env-file .env.example config --quiet --no-env-resolution
           docker compose -f compose.tools.yaml config --quiet
-          docker compose --env-file ../.env.example -f ../compose.yaml config --quiet --no-env-resolution
 
       - name: Validate Alloy
         run: docker compose --env-file .env.example run --rm --no-deps alloy-1 validate /etc/alloy/config.alloy
@@ -61,8 +62,49 @@ jobs:
       - name: Validate Tempo
         run: docker compose --env-file .env.example run --rm --no-deps tempo -config.file=/etc/tempo/tempo.yaml -config.verify=true
 
-      - name: Validate recording rules
-        run: docker compose -f compose.tools.yaml run --rm rules-validation
+      - name: Verify standalone Grafana provisioning
+        run: |
+          docker compose --env-file .env.example up -d grafana
+          curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-connrefused http://localhost:3001/api/health
+          curl --fail --silent --show-error --user "admin:$GRAFANA_PASSWORD" http://localhost:3001/api/datasources | jq --exit-status 'map(.uid) | sort == ["loki", "mimir", "tempo"]'
+          curl --fail --silent --show-error --user "admin:$GRAFANA_PASSWORD" 'http://localhost:3001/api/search?type=dash-db' | jq --exit-status 'length == 0'
+          curl --fail --silent --show-error --user "admin:$GRAFANA_PASSWORD" http://localhost:3001/api/v1/provisioning/alert-rules | jq --exit-status 'length == 0'
+
+  metaspesa-telemetry-validation:
+    name: Metaspesa telemetry integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GRAFANA_PASSWORD: ci-only-metaspesa-password
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Validate application Compose integration
+        run: docker compose --env-file .env.example config --quiet --no-env-resolution
+
+      - name: Validate Metaspesa recording rules
+        run: docker compose -f observability/compose.tools.yaml run --rm --volume "$PWD/telemetry/mimir/rules:/rules:ro" rules-validation check rules /rules/anonymous/metaspesa.yaml
+
+      - name: Prepare disposable application provisioning environment
+        run: |
+          cp .env.example .env
+          mkdir -m 700 -p observability/secrets
+          docker compose -f observability/compose.tools.yaml run --rm certificates
+
+      - name: Verify Metaspesa Grafana provisioning
+        run: |
+          docker compose up -d grafana
+          curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-connrefused http://localhost:3001/api/health
+          curl --fail --silent --show-error --user "admin:$GRAFANA_PASSWORD" http://localhost:3001/api/datasources | jq --exit-status 'map(.uid) | sort == ["loki", "mimir", "postgres", "tempo"]'
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --user "admin:$GRAFANA_PASSWORD" 'http://localhost:3001/api/search?type=dash-db' | jq --exit-status 'map(.uid) | sort == ["metaspesa-database-queries", "metaspesa-overview"]'; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail --silent --show-error --user "admin:$GRAFANA_PASSWORD" 'http://localhost:3001/api/search?type=dash-db' | jq --exit-status 'map(.uid) | sort == ["metaspesa-database-queries", "metaspesa-overview"]'
+          curl --fail --silent --show-error --user "admin:$GRAFANA_PASSWORD" http://localhost:3001/api/v1/provisioning/alert-rules | jq --exit-status 'map(.uid) == ["metaspesa-grpc-high-error-rate"]'
 
   backend-quality:
     name: Backend quality

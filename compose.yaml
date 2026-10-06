@@ -1,5 +1,7 @@
 include:
-  - observability/compose.yaml
+  - path:
+      - observability/compose.yaml
+      - telemetry/compose.yaml
 
 x-telemetry-environment: &telemetry-environment
   OTEL_EXPORTER_OTLP_ENDPOINT: https://alloy:4317

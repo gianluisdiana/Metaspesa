@@ -15,6 +15,5 @@ services:
   rules-validation:
     image: prom/prometheus:v3.7.3
     entrypoint: ["/bin/promtool"]
-    command: ["check", "rules", "/rules/anonymous/metaspesa.yaml"]
     volumes:
       - ./mimir/rules:/rules:ro

@@ -109,12 +109,11 @@ services:
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_PASSWORD:?Set GRAFANA_PASSWORD in .env first}"
-      # Existing Metaspesa datasource; made optional/separate in the next slice.
-      GRAFANA_DB_PASSWORD: "${GRAFANA_DB_PASSWORD:-}"
-      POSTGRES_DB: "${POSTGRES_DB:-}"
     secrets: *client-secrets
     volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/provisioning/datasources/loki.yaml:/etc/grafana/provisioning/datasources/loki.yaml:ro
+      - ./grafana/provisioning/datasources/mimir.yaml:/etc/grafana/provisioning/datasources/mimir.yaml:ro
+      - ./grafana/provisioning/datasources/tempo.yaml:/etc/grafana/provisioning/datasources/tempo.yaml:ro
       - grafana_data:/var/lib/grafana
     networks:
       - telemetry

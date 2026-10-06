@@ -1,0 +1,15 @@
+# Application-owned adapter merged with observability/compose.yaml by root include.
+# Bind paths resolve against observability/, the first file in that merge.
+services:
+  grafana:
+    environment:
+      GRAFANA_DB_PASSWORD: "${GRAFANA_DB_PASSWORD:?Set GRAFANA_DB_PASSWORD in root .env}"
+      POSTGRES_DB: "${POSTGRES_DB:?Set POSTGRES_DB in root .env}"
+    volumes:
+      - ../telemetry/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../telemetry/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting:ro
+      - ../telemetry/grafana/provisioning/datasources/postgres.yaml:/etc/grafana/provisioning/datasources/postgres.yaml:ro
+
+  mimir:
+    volumes:
+      - ../telemetry/mimir/rules:/etc/mimir/rules:ro
