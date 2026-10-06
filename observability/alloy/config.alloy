@@ -1,32 +1,60 @@
 otelcol.receiver.otlp "default" {
-  grpc {
-    endpoint = "0.0.0.0:4317"
-  }
+	grpc {
+		endpoint = "0.0.0.0:4317"
 
-  output {
-    logs    = [otelcol.exporter.otlphttp.loki.input]
-    traces  = [otelcol.exporter.otlp.tempo.input]
-    metrics = [otelcol.exporter.otlphttp.mimir.input]
-  }
+	}
+
+	output {
+		logs    = [otelcol.processor.memory_limiter.default.input]
+		traces  = [otelcol.processor.memory_limiter.default.input]
+		metrics = [otelcol.processor.memory_limiter.default.input]
+	}
+}
+
+otelcol.processor.memory_limiter "default" {
+	check_interval = "1s"
+	limit          = "512MiB"
+	spike_limit    = "128MiB"
+
+	output {
+		logs    = [otelcol.processor.batch.default.input]
+		traces  = [otelcol.processor.batch.default.input]
+		metrics = [otelcol.processor.batch.default.input]
+	}
+}
+
+otelcol.processor.batch "default" {
+	timeout             = "1s"
+	send_batch_size     = 1024
+	send_batch_max_size = 2048
+
+	output {
+		logs    = [otelcol.exporter.otlphttp.loki.input]
+		traces  = [otelcol.exporter.otlp.tempo.input]
+		metrics = [otelcol.exporter.otlphttp.mimir.input]
+	}
 }
 
 otelcol.exporter.otlphttp "loki" {
-  client {
-    endpoint = "http://loki:3100/otlp"
-  }
+	client {
+		endpoint = "http://loki:3100/otlp"
+
+	}
 }
 
 otelcol.exporter.otlphttp "mimir" {
-  client {
-    endpoint = "http://mimir:8080/otlp"
-  }
+	client {
+		endpoint = "http://mimir:8080/otlp"
+
+	}
 }
 
 otelcol.exporter.otlp "tempo" {
-  client {
-    endpoint = "tempo:4317"
-    tls {
-      insecure = true
-    }
-  }
+	client {
+		endpoint = "tempo:4317"
+		tls {
+			insecure = true
+		}
+
+	}
 }

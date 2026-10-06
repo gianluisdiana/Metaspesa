@@ -1,6 +1,7 @@
 services:
   alloy:
     image: grafana/alloy:v1.20.1
+    mem_limit: 768m
     volumes:
       - ./observability/alloy/config.alloy:/etc/alloy/config.alloy
     command: run /etc/alloy/config.alloy

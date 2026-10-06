@@ -34,6 +34,9 @@ jobs:
       - name: Validate Loki
         run: docker compose --env-file .env.example -f compose.observability.yaml run --rm --no-deps loki -config.file=/etc/loki/loki.yaml -verify-config
 
+      - name: Validate Alloy
+        run: docker compose --env-file .env.example -f compose.observability.yaml run --rm --no-deps alloy validate /etc/alloy/config.alloy
+
   backend-quality:
     name: Backend quality
     runs-on: ubuntu-latest
