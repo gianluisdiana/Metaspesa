@@ -37,6 +37,9 @@ jobs:
       - name: Validate Alloy
         run: docker compose --env-file .env.example -f compose.observability.yaml run --rm --no-deps alloy validate /etc/alloy/config.alloy
 
+      - name: Validate Tempo
+        run: docker compose --env-file .env.example -f compose.observability.yaml run --rm --no-deps tempo -config.file=/etc/tempo/tempo.yaml -config.verify=true
+
   backend-quality:
     name: Backend quality
     runs-on: ubuntu-latest

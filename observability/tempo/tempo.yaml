@@ -8,6 +8,16 @@ distributor:
         grpc:
           endpoint: 0.0.0.0:4317
 
+backend_scheduler:
+  provider:
+    compaction:
+      compaction:
+        block_retention: 48h
+
+backend_worker:
+  compaction:
+    block_retention: 48h
+
 storage:
   trace:
     backend: local

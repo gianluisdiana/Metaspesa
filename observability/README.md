@@ -31,3 +31,10 @@ These are initial bounds, not a guarantee that every overload can be absorbed.
 Exporter queues and batches are in memory; abrupt collector loss can lose data
 already acknowledged to clients. The HA topology provides continued collection,
 not durable or exactly-once delivery.
+
+
+## Tempo retention
+
+Tempo 3.1's backend scheduler and worker use 48-hour block retention. Expired
+traces are removed from `tempo_data`; persistence across restarts does not
+override expiry. Keep backups if traces must survive beyond the retention window.
