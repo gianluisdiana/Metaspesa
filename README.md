@@ -1,24 +1,12 @@
-# TODO:
-- [ ] Bug: fix case when product comes in pack. ej . 6x1L, 12x1L, etc.
+# Metaspesa
 
-## Server
-- [ ] Add functional tests
-- [ ] Think how to seed master data (unit of measure, etc.)
-- [ ] Divide db context, one per schema
-- [ ] Consider using Pkl to create and validate setting file
+Metaspesa manages shopping lists and tracks supermarket product prices.
 
-## Scraper
-- [ ] Bug: fix remove already implied words, such as "grande", "pequeño", "familiar", "individual", etc.
-- [ ] Bug: fix extra spaces when processing product
-- [ ] Bug: Think what to do about same product (name, brand, market and quantity) with different format (vase, can, etc.)
-- [ ] Add support for other retailers (e.g. Carrefour, Dialprix, etc.)
-- [ ] Make it run periodically using docker / k8s
+- `client/`: Next.js/React frontend.
+- `server/`: .NET REST API and PostgreSQL persistence.
+- `scraper/`: Python worker for supermarket catalogue ingestion.
 
-## Client
-- [ ] Improve SEO (meta tags, sitemap, etc.)
-- [ ] Add i18n support (English + Spanish)
-- [ ] Add functional test with playwright to test critical user flows (search, product details, price history, etc.)
-- [ ] Add user authentication and profiles to save favorite products, set price alerts, etc.
+Feature requests and planned work are tracked in [GitHub issues](https://github.com/gianluisdiana/Metaspesa/issues).
 
 ## Observability
 
