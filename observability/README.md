@@ -1,6 +1,6 @@
 # Observability
 
-Phase 2: deployment files, environment template, certificates and platform
+Phase 3: deployment files, environment template, certificates and platform
 datasources live in this directory. Alloy, HAProxy, Loki, Mimir, Tempo and Grafana
 can be started from here without application assets, credentials or a database.
 
@@ -8,10 +8,11 @@ Applications send OTLP/gRPC over mutual TLS to `alloy:4317`. HAProxy passes each
 connection to one of two collectors. Collectors and Grafana use mutual TLS when
 accessing the telemetry backends.
 
-The application root Compose merges `observability/compose.yaml` with its own
-`telemetry/compose.yaml` adapter. Application dashboards, alerts, rules and the
-PostgreSQL datasource are owned by `telemetry/`, not this directory. This is not
-yet a completed repository split: project/network ownership is still shared.
+This is an independent Compose project. The application may attach to its
+network using its optional export adapter; root application startup no longer
+includes LGTM. Application dashboards, alerts, rules and the PostgreSQL datasource
+remain consumer-owned in `telemetry/`. Moving to a separate repository is the
+remaining packaging step, not a runtime ownership change.
 
 ## Setup and startup
 
@@ -25,7 +26,8 @@ For a new installation, copy `.env.example` to `.env` and set a strong
 `GRAFANA_PASSWORD`. For an existing installation, preserve the current Grafana
 password and the existing CA/certificate pairs. Never replace operational values
 with template placeholders. Root application startup continues to use its own
-`.env`; standalone startup uses this directory's `.env`.
+`.env`; standalone startup uses this directory's `.env`. Grafana's administrator
+password is needed only here, not by an application-only deployment.
 
 Telemetry certificates live in `observability/secrets/`. When upgrading, copy
 only the twelve `telemetry_*.crt`/`telemetry_*.key` files from root `secrets/`,
@@ -37,6 +39,10 @@ The existing files have been copied locally for this workspace; originals remain
 docker compose -f compose.tools.yaml run --rm certificates
 docker compose up -d
 ```
+
+Compose creates and owns the four data volumes automatically. Their names are
+scoped to the project, such as `observability_loki_data`. Normal shutdown keeps
+them; `docker compose down --volumes` permanently deletes this project's data.
 
 The tooling command generates only missing certificates and checks expiry and
 trust for existing pairs. It requires neither host OpenSSL nor Python. Tooling
@@ -56,21 +62,40 @@ validation fails.
 
 ## Existing deployment identity and data
 
-Defaults preserve the current project (`metaspesa`), network
-(`metaspesa_telemetry`) and the four existing `metaspesa_*_data` telemetry volumes.
-Volume/network names are explicit so moving this directory does not silently
-select empty storage. The example environment exposes those names for a later
-ownership migration or a genuinely new installation.
+The default project is `observability`, owning its four project-scoped data
+volumes and `observability_telemetry`. Applications declare that network external
+and cannot delete it. This extraction starts with fresh telemetry storage; it
+does not reuse the previous `metaspesa_*_data` telemetry volumes. PostgreSQL and
+scraper storage remain application-owned. Certificates are preserved independently
+of data volumes; a storage reset does not require a new CA.
 
-Do not run a second deployment against the same volumes concurrently. Changing
-project, network or volume names is a separate migration: inspect existing Docker
-resources, stop the old deployment and back up data before switching ownership.
-Do not use `down --volumes` or `--remove-orphans` during this incremental split;
-the project is still shared with the application and data must be preserved.
+If an old `metaspesa` deployment is still running, stop only its seven LGTM
+services before starting this project (run from the repository root, with real
+environment files prepared):
 
-From the repository root, full application startup remains `docker compose up`.
-Application migrations remain opt-in. From this directory, `docker compose up`
-starts telemetry services only; it does not start the application database.
+```sh
+docker compose -p metaspesa --env-file .env --env-file observability/.env -f observability/compose.yaml -f telemetry/compose.observability.yaml stop alloy alloy-1 alloy-2 loki mimir tempo grafana
+```
+
+This targets existing containers by old project/service labels and leaves the
+application and certificates alone. If the old project was customized, use that
+actual name. Start the new observability project, then recreate the application
+with its chosen mode.
+Before starting it, update any legacy `OBSERVABILITY_PROJECT_NAME=metaspesa`
+setting in `observability/.env` to `observability`, and set
+`OBSERVABILITY_NETWORK=observability_telemetry` in both environment files. Keep
+passwords and certificates unchanged. Otherwise an old
+environment override can keep the deployment in the shared application project;
+the old `metaspesa_telemetry` network is no longer used by the new model. Do not
+use `--remove-orphans` or delete old volumes/networks as an automatic migration.
+
+From the repository root, `docker compose up` now starts only application
+services. Application migrations remain opt-in. From this directory,
+`docker compose up` starts only telemetry; it does not start an application DB.
+Stop this project with `docker compose down`. If an application is still attached,
+Docker may retain the shared network until it detaches; stopping telemetry never
+stops that application. Managed volumes survive normal shutdown; do not use
+`--volumes` unless you intend to erase stored telemetry and Grafana state.
 
 ## Certificates and transport boundary
 
@@ -99,8 +124,10 @@ docker compose -f compose.tools.yaml run --rm certificates renew
 docker compose up -d --force-recreate
 ```
 
-Renewal preserves the CA. After renewing, also recreate application containers
-from the repository root so their bind-mounted client credentials are refreshed.
+Renewal preserves the CA. After renewing, recreate enabled application containers
+with `docker compose -f compose.yaml -f telemetry/compose.yaml up -d --force-recreate`
+from the repository root so bind-mounted credentials are refreshed. Using only
+root Compose instead would opt the application out of telemetry.
 Back up operational secrets. CA replacement requires reissuing certificates and
 recreating every client and server together; never mix trust roots. Compose file
 secrets are bind mounts, so leaf keys must be readable by non-root users; protect
@@ -128,9 +155,11 @@ by the application, not this stack. Removing a mount is not a cleanup strategy
 for previously stored Grafana resources: use fresh isolated storage for a clean
 standalone installation, or plan deliberate cleanup of existing resources.
 
-Next slices will make application telemetry opt-in and establish separate Compose
-project/network ownership. This slice does not change processing, retention,
-existing resource identities, datasource/dashboard UIDs or alert UIDs.
+Application export is now opt-in, with independent project/network ownership.
+The remaining step is moving the reusable directory and its CI/Dependabot
+configuration into its own repository. This slice does not change processing, retention,
+datasource/dashboard UIDs or alert UIDs. Storage is now owned by the independent
+observability project rather than reusing the old application's volumes.
 
 ## Loki native OTLP label policy
 

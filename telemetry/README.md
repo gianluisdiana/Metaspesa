@@ -1,56 +1,94 @@
-# Metaspesa telemetry assets
+# Metaspesa telemetry integration
 
-This directory belongs to the application, not to the reusable LGTM deployment.
-It owns the two Grafana dashboards, their provider, the HTTP error-rate alert,
-PostgreSQL datasource, and Mimir HTTP recording rules. Their contents and UIDs
-are unchanged by this move.
+These consumer-owned adapters keep the application and LGTM as separate Compose
+projects. The default root `docker compose up` runs only the application and
+does not require collector credentials or a Grafana administrator password.
 
-The repository root Compose includes a merge of:
+## Enable telemetry
 
-- `observability/compose.yaml`: platform services, TLS, storage and LGTM datasources.
-- `telemetry/compose.yaml`: application assets and PostgreSQL settings only.
+Prepare the root `.env` and application secrets as usual. Separately prepare
+`observability/.env` and certificates using its guide. Preserve existing
+certificates; Compose creates its own project-scoped storage. On upgrades, follow
+the ownership instructions there before starting the independent stack.
 
-The adapter is not another environment or a separate stack. It has no image tags
-and is not runnable alone. Its bind paths are relative to `observability/`, the
-first included file. Normal startup remains `docker compose up` from the root;
-database migrations remain opt-in.
+Run from the repository root:
 
-The PostgreSQL datasource uses `db:5432`, the read-only `grafana` role, and the
-root `.env` values `POSTGRES_DB` and `GRAFANA_DB_PASSWORD`. Database initialization
-and migrations remain application-owned. These values are not required by the
-standalone observability stack.
+```sh
+docker compose --env-file .env --env-file observability/.env -f observability/compose.yaml -f telemetry/compose.observability.yaml up -d
+docker compose -f compose.yaml -f telemetry/compose.yaml up --build -d
+```
 
-## Recording rules
+The first command starts project `observability` and creates its shared network.
+The second starts project `metaspesa`, consuming that network as external.
+There is no cross-project `depends_on`, automatic migration, or automatic LGTM
+startup. The collectors/backend endpoints remain private Docker-network traffic.
+
+- `compose.yaml`: optional application export, TLS client secrets and network.
+- `compose.observability.yaml`: optional Grafana assets/PostgreSQL settings and rules.
+
+The assets adapter attaches two dashboards, their provider, the HTTP error-rate
+alert, PostgreSQL datasource, and Mimir HTTP rules. Existing contents/UIDs are
+unchanged. It is merged into the observability project, never the application
+project; it contains no platform image tags. Standalone observability can run
+without this adapter.
+
+`OBSERVABILITY_NETWORK` must match in both projects (default
+`observability_telemetry`). `TELEMETRY_SECRETS_GID` must also match if customized.
+Application client certificate paths use `OBSERVABILITY_SECRETS_DIR`, relative
+to root Compose unless absolute. Asset paths use `METASPESA_TELEMETRY_DIR`,
+relative to the observability Compose directory unless absolute. These paths
+can point to an independent observability checkout without copying private keys.
+
+The assets command loads root settings first and observability settings second.
+Keep application-only `POSTGRES_DB`, `GRAFANA_DB_PASSWORD` and asset-path values
+out of `observability/.env`, especially stale empty values from old templates.
+The PostgreSQL datasource uses `db:5432` on the shared network, the read-only
+`grafana` role, and root DB settings. Database roles/migrations remain application
+owned. The export adapter attaches `db` only for this consumer datasource.
+
+## Independent shutdown and opting out
+
+```sh
+docker compose -f compose.yaml -f telemetry/compose.yaml down
+docker compose --env-file .env --env-file observability/.env -f observability/compose.yaml -f telemetry/compose.observability.yaml down
+```
+
+Either project can stop without stopping the other. An attached consumer may keep
+the shared network in use; its owner can remove it only after consumers detach.
+Each project owns its own data volumes; ordinary shutdown preserves them.
+Do not use `--volumes` for ordinary shutdown: application data is still managed
+by the application project.
+
+Switch a running application back to its telemetry-free model:
+
+```sh
+docker compose up --build -d
+```
+
+Compose recreates changed application containers, removes their telemetry secret
+mounts/network attachments and sets an empty exporter endpoint, even if a legacy
+root `.env` contains one. The server/migration runner register no OTLP exporter;
+client and scraper skip exporter startup. Observability continues independently.
+Application migrations use the same selected files, for example:
+
+```sh
+docker compose -f compose.yaml -f telemetry/compose.yaml run --rm migrations
+```
+
+## Rules and validation
 
 `mimir/rules/anonymous/metaspesa.yaml` records five-minute HTTP request rate,
-error ratio and p95 duration every minute. The overview dashboard and error alert
-consume these series. Rate rules need at least two HTTP metric observations;
-allow up to two further minutes for Mimir's evaluation delay and the rule interval.
-
-Validate from the repository root using the Prometheus version in tooling Compose:
+error ratio and p95 duration every minute. Rate rules need two HTTP observations;
+allow up to two further minutes for Mimir's delay and rule interval.
 
 ```sh
 docker compose -f observability/compose.tools.yaml run --rm --volume "${PWD}/telemetry/mimir/rules:/rules:ro" rules-validation check rules /rules/anonymous/metaspesa.yaml
-```
-
-The volume argument selects application-owned files without making the platform
-tooling depend on this directory. After editing rules, apply them from the root:
-
-```sh
-docker compose restart mimir
-```
-
-Validate the complete application integration without starting services:
-
-```sh
 docker compose --env-file .env.example config --quiet --no-env-resolution
+docker compose --env-file .env.example -f compose.yaml -f telemetry/compose.yaml config --quiet --no-env-resolution
+docker compose --env-file .env.example --env-file observability/.env.example -f observability/compose.yaml -f telemetry/compose.observability.yaml config --quiet --no-env-resolution
 ```
 
-CI separately checks the application model/rules and starts Grafana to verify all
-four datasources, both dashboards and the existing alert are provisioned. The
-platform job checks that a fresh standalone Grafana has only LGTM datasources.
-
-Existing project, network and volume names remain unchanged in this phase. Do not
-start both modes against the same volumes concurrently or delete their volumes.
-Previously stored Grafana resources require deliberate cleanup when reusing an
-application volume in standalone mode; removing mounts alone is not a migration.
+Restart Mimir with the assets command's files after editing its local rules.
+CI validates both application modes, original Grafana assets, and independent
+project shutdown. Removing asset mounts alone is not cleanup of previously
+stored Grafana resources; use fresh storage or plan deliberate cleanup.

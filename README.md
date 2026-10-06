@@ -27,12 +27,11 @@ Alloy and stores them in Loki, Mimir, and Tempo. Grafana is provisioned with the
 matching data sources, dashboards, alert, and trace-to-log correlation.
 
 Telemetry uses authenticated TLS by default, with two Alloy collectors behind
-a health-checked endpoint. The root Compose file includes the observability stack.
-Its deployment files now live inside `observability/`; see its guide for running
-only telemetry services. Metaspesa dashboards, alerts, PostgreSQL datasource,
-and recording rules now live in `telemetry/`. The root includes that application
-adapter together with the reusable stack, so full startup remains unchanged.
-See [the application telemetry guide](telemetry/README.md) for asset ownership.
+a health-checked endpoint. Observability now runs as its own Compose project;
+the default application stack does not start LGTM or require telemetry secrets.
+Metaspesa dashboards, alerts, PostgreSQL datasource and rules live in `telemetry/`.
+See [the application telemetry guide](telemetry/README.md) to opt into telemetry
+and [the observability guide](observability/README.md) for standalone deployment.
 
 ## Run locally
 
@@ -44,16 +43,14 @@ Copy `.env.example` to `.env` and replace its password placeholders. Create
 Keep these files private; they are ignored by Git. Preserve existing values.
 
 ```sh
-docker compose -f observability/compose.tools.yaml run --rm certificates
 docker compose up --build -d
 ```
 
-The certificate command generates missing telemetry certificates and preserves
-existing ones; it never changes application credentials or `.env`.
-Telemetry certificates now live in `observability/secrets/`. Preserve the existing
-CA and certificate pairs when moving from root `secrets/`; do not generate a
-second CA for clients still using the original trust root. Application JWT and
-scraper credentials remain in root `secrets/`.
+No collector endpoint is configured in this default mode: client and scraper
+exporters stay off, and the server/migration runner register no OTLP exporter.
+Application JWT and scraper credentials remain in root `secrets/`. The read-only
+Grafana database role remains application-owned; `GRAFANA_DB_PASSWORD` is its
+password, not the Grafana administrator password.
 Run migrations explicitly for a fresh database or a release with schema changes:
 
 ```sh
@@ -61,12 +58,29 @@ docker compose run --rm migrations
 ```
 
 The API waits for a healthy database, not the migration runner. Open the client at
-http://localhost:3000, the API at http://localhost:4001, and Grafana at
-http://localhost:3001 (user `admin`, password `GRAFANA_PASSWORD` in `.env`).
+http://localhost:3000 and the API at http://localhost:4001.
 
 ```sh
 docker compose down
 ```
+
+## Optional telemetry
+
+Prepare `observability/.env` and certificates according
+to the observability guide. For existing deployments, follow its ownership
+migration instructions before starting the new project. Preserve the CA;
+Compose creates fresh observability-owned storage. Run from the repository root:
+
+```sh
+docker compose --env-file .env --env-file observability/.env -f observability/compose.yaml -f telemetry/compose.observability.yaml up -d
+docker compose -f compose.yaml -f telemetry/compose.yaml up --build -d
+```
+
+Observability owns the shared network and starts first. The application adapter
+attaches services and database without starting or owning any LGTM services.
+Grafana is at http://localhost:3001 (`admin`, password from `observability/.env`).
+Both projects stop independently; see the telemetry guide for matching shutdown
+commands and switching back to application-only mode.
 
 See [the observability guide](observability/README.md) for label policy, batching
 and memory limits, trace retention, Mimir recording rules, secure telemetry

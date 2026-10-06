@@ -1,6 +1,6 @@
 # Optional one-shot tooling; not started by the application stack.
 # Standard service image declarations allow Dependabot to track the versions.
-name: ${OBSERVABILITY_PROJECT_NAME:-metaspesa}
+name: ${OBSERVABILITY_PROJECT_NAME:-observability}
 
 services:
   certificates:

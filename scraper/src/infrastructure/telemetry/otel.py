@@ -19,8 +19,8 @@ from infrastructure.telemetry.scraper_telemetry import ScraperTelemetry
 
 
 def setup_telemetry(endpoint: str | None) -> ScraperTelemetry:
-    if endpoint is not None:
-        __configure_sdk(endpoint)
+    if endpoint and endpoint.strip():
+        __configure_sdk(endpoint.strip())
     return ScraperTelemetry(
         trace.get_tracer("metaspesa_scraper"), metrics.get_meter("metaspesa_scraper")
     )

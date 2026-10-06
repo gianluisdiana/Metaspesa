@@ -1,4 +1,4 @@
-name: ${OBSERVABILITY_PROJECT_NAME:-metaspesa}
+name: ${OBSERVABILITY_PROJECT_NAME:-observability}
 
 x-client-secrets: &client-secrets
   - telemetry_ca
@@ -120,17 +120,13 @@ services:
 
 volumes:
   loki_data:
-    name: ${LOKI_VOLUME_NAME:-metaspesa_loki_data}
   mimir_data:
-    name: ${MIMIR_VOLUME_NAME:-metaspesa_mimir_data}
   tempo_data:
-    name: ${TEMPO_VOLUME_NAME:-metaspesa_tempo_data}
   grafana_data:
-    name: ${GRAFANA_VOLUME_NAME:-metaspesa_grafana_data}
 
 networks:
   telemetry:
-    name: ${OBSERVABILITY_NETWORK:-metaspesa_telemetry}
+    name: ${OBSERVABILITY_NETWORK:-observability_telemetry}
 
 secrets:
   telemetry_ca:

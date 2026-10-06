@@ -1,5 +1,7 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return;
+  const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT?.trim();
+  if (!otlpEndpoint) return;
 
   const { NodeSDK } = await import('@opentelemetry/sdk-node');
   const { getNodeAutoInstrumentations } =
@@ -16,9 +18,6 @@ export async function register() {
   const { resourceFromAttributes } = await import('@opentelemetry/resources');
   const { ATTR_SERVICE_NAME } =
     await import('@opentelemetry/semantic-conventions');
-
-  const otlpEndpoint =
-    process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://localhost:4317';
 
   const sdk = new NodeSDK({
     instrumentations: [getNodeAutoInstrumentations()],

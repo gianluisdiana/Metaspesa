@@ -1,0 +1,16 @@
+# Application-owned assets merged into the independent observability project.
+# Run with -f observability/compose.yaml -f telemetry/compose.observability.yaml.
+# Bind paths resolve against observability/, the first file in that merge.
+services:
+  grafana:
+    environment:
+      GRAFANA_DB_PASSWORD: "${GRAFANA_DB_PASSWORD:?Set GRAFANA_DB_PASSWORD in root .env}"
+      POSTGRES_DB: "${POSTGRES_DB:?Set POSTGRES_DB in root .env}"
+    volumes:
+      - ${METASPESA_TELEMETRY_DIR:-../telemetry}/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ${METASPESA_TELEMETRY_DIR:-../telemetry}/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting:ro
+      - ${METASPESA_TELEMETRY_DIR:-../telemetry}/grafana/provisioning/datasources/postgres.yaml:/etc/grafana/provisioning/datasources/postgres.yaml:ro
+
+  mimir:
+    volumes:
+      - ${METASPESA_TELEMETRY_DIR:-../telemetry}/mimir/rules:/etc/mimir/rules:ro
