@@ -52,7 +52,7 @@ issue_certificate() {
 }
 
 issue_certificate telemetry_client clientAuth DNS:telemetry-client
-issue_certificate telemetry_alloy serverAuth DNS:alloy
+issue_certificate telemetry_alloy serverAuth DNS:alloy,DNS:alloy-1,DNS:alloy-2
 for service in loki mimir tempo; do
   issue_certificate "telemetry_$service" serverAuth "DNS:$service"
 done

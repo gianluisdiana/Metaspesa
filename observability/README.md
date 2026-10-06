@@ -104,7 +104,7 @@ For HTTPS backend queries, provide the CA plus telemetry client certificate/key.
 Grafana loads these from Docker secrets; clients verify the backend DNS names.
 
 CA lifetime is ten years; client/server certificates last one year. Alloy's
-certificate covers alloy; backend certificates cover their
+certificate covers alloy, alloy-1 and alloy-2; backend certificates cover their
 Docker DNS names. Renew leaf certificates explicitly, preserving the CA:
 
 ```sh
@@ -124,3 +124,34 @@ health endpoints remain private-network traffic. CI generates disposable
 certificates and runs native validators using deployed Compose image versions.
 Live delivery, certificate rejection and backend query checks are separate from
 configuration validation.
+
+## Collector availability
+
+HAProxy passes TLS through and assigns each TCP connection to exactly one healthy
+collector. Its checks use Alloy's internal `/-/healthy` endpoint, which checks
+component health rather than only whether initial configuration loaded. When a
+collector fails, clients reconnect and retry observed failures against the other
+collector. No collector label is added and telemetry is not broadcast, avoiding
+duplicate metric series. Network retries can still repeat a sample; this is not
+an exactly-once delivery guarantee.
+
+The stable endpoint is `alloy:4317` (HAProxy); backend collectors are `alloy-1`
+and `alloy-2`. Validate proxy configuration with:
+
+```sh
+docker compose --env-file .env.example -f compose.observability.yaml run --rm --no-deps alloy haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg
+```
+
+For a live failover check, send logs, traces and a uniquely labeled metric through
+the stable endpoint. Stop the collector receiving that connection, continue
+sending, and confirm all signals arrive through the remaining collector with one
+metric series per original label set. Restart the stopped collector afterward.
+
+Both collectors share one host in local Compose. HAProxy and the backends remain
+single instances, so this protects against collector failure, not host failure
+or failure of every component. It also uses more memory than one collector.
+
+Tail sampling is disabled. If introduced, route spans through a load-balancing
+Alloy gateway with `otelcol.exporter.loadbalancing` and
+`routing_key = "traceID"` before the sampling tier. TCP connection balancing or
+Alloy clustering alone does not keep every span of a trace on the same sampler.

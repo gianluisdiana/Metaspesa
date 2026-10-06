@@ -3,23 +3,43 @@ x-client-secrets: &client-secrets
   - telemetry_client_cert
   - telemetry_client_key
 
+x-collector: &collector
+  volumes:
+    - ./observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
+  command:
+    - run
+    - --server.http.listen-addr=0.0.0.0:12345
+    - /etc/alloy/config.alloy
+  mem_limit: 768m
+  secrets:
+    - telemetry_ca
+    - telemetry_client_cert
+    - telemetry_client_key
+    - source: telemetry_alloy_cert
+      target: telemetry_server_cert
+    - source: telemetry_alloy_key
+      target: telemetry_server_key
+  networks:
+    - metaspesa_telemetry_default
+
 services:
   alloy:
-    image: grafana/alloy:v1.20.1
-    mem_limit: 768m
-    secrets:
-      - telemetry_ca
-      - telemetry_client_cert
-      - telemetry_client_key
-      - source: telemetry_alloy_cert
-        target: telemetry_server_cert
-      - source: telemetry_alloy_key
-        target: telemetry_server_key
+    image: haproxy:3.2-alpine
+    depends_on:
+      - alloy-1
+      - alloy-2
     volumes:
-      - ./observability/alloy/config.alloy:/etc/alloy/config.alloy
-    command: run /etc/alloy/config.alloy
+      - ./observability/alloy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     networks:
       - metaspesa_telemetry_default
+
+  alloy-1:
+    <<: *collector
+    image: grafana/alloy:v1.20.1
+
+  alloy-2:
+    <<: *collector
+    image: grafana/alloy:v1.20.1
 
   loki:
     image: grafana/loki:3.7
