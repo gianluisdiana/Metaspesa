@@ -4,5 +4,12 @@ datasources:
   - name: Loki
     type: loki
     uid: loki
-    url: http://loki:3100
+    url: https://loki:3100
     isDefault: true
+    jsonData:
+      tlsAuth: true
+      tlsAuthWithCACert: true
+    secureJsonData:
+      tlsCACert: $__file{/run/secrets/telemetry_ca}
+      tlsClientCert: $__file{/run/secrets/telemetry_client_cert}
+      tlsClientKey: $__file{/run/secrets/telemetry_client_key}

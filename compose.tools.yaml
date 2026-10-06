@@ -1,0 +1,18 @@
+# Optional one-shot tooling; not started by the application stack.
+# Standard service image declarations allow Dependabot to track the versions.
+services:
+  certificates:
+    image: alpine/openssl:3.5.4
+    environment:
+      TELEMETRY_SECRETS_GID: ${TELEMETRY_SECRETS_GID:-1999}
+    entrypoint: ["/bin/sh", "/tools/generate-certificates.sh"]
+    volumes:
+      - ./secrets:/secrets
+      - ./observability/tools:/tools:ro
+
+  rules-validation:
+    image: prom/prometheus:v3.7.3
+    entrypoint: ["/bin/promtool"]
+    command: ["check", "rules", "/rules/anonymous/metaspesa.yaml"]
+    volumes:
+      - ./observability/mimir/rules:/rules:ro

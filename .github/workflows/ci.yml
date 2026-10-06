@@ -19,6 +19,43 @@ env:
   PYTHON_VERSION: "3.14"
 
 jobs:
+  observability-validation:
+    name: Observability configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Prepare validation environment
+        run: |
+          cp .env.example .env
+          mkdir -m 700 -p secrets
+          docker compose -f compose.tools.yaml run --rm certificates
+          docker network create metaspesa_telemetry_default
+
+      - name: Test certificate lifecycle
+        run: docker compose -f compose.tools.yaml run --rm --entrypoint /bin/sh certificates /tools/test-certificates.sh
+
+      - name: Validate Loki
+        run: docker compose --env-file .env.example -f compose.observability.yaml run --rm --no-deps loki -config.file=/etc/loki/loki.yaml -verify-config
+
+      - name: Validate Alloy
+        run: docker compose --env-file .env.example -f compose.observability.yaml run --rm --no-deps alloy-1 validate /etc/alloy/config.alloy
+
+      - name: Validate Tempo
+        run: docker compose --env-file .env.example -f compose.observability.yaml run --rm --no-deps tempo -config.file=/etc/tempo/tempo.yaml -config.verify=true
+
+      - name: Validate Mimir
+        run: docker compose --env-file .env.example -f compose.observability.yaml run --rm --no-deps mimir -config.file=/etc/mimir/mimir.yaml -modules
+
+      - name: Validate recording rules
+        run: docker compose -f compose.tools.yaml run --rm rules-validation
+
+      - name: Validate HAProxy
+        run: docker compose --env-file .env.example -f compose.observability.yaml run --rm --no-deps alloy haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg
+
   backend-quality:
     name: Backend quality
     runs-on: ubuntu-latest

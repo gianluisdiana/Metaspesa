@@ -20,7 +20,7 @@ groups:
                 type: prometheus
                 uid: mimir
               editorMode: code
-              expr: sum(rate(http_server_request_duration_seconds_count{http_response_status_code=~"5.."}[5m])) / clamp_min(sum(rate(http_server_request_duration_seconds_count[5m])), 1)
+              expr: metaspesa:http_server_error_rate:ratio5m
               instant: true
               intervalMs: 1000
               maxDataPoints: 43200
