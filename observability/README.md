@@ -211,11 +211,25 @@ deletion through the configuration API; edit rules in Git and restart Mimir:
 docker compose restart mimir
 ```
 
-Validate an installed rule file with the tooling service:
+Provide a rule file before validating it. For example, run from this directory
+to create and validate a minimal recording rule:
 
 ```sh
+mkdir -p mimir/rules/anonymous
+cat > mimir/rules/anonymous/example.yaml <<'EOF'
+groups:
+  - name: example
+    rules:
+      - record: example:up:sum
+        expr: sum(up)
+EOF
+
 docker compose -f compose.tools.yaml run --rm rules-validation check rules /rules/anonymous/example.yaml
 ```
+
+For your own rules, replace the sample contents and pass the corresponding path
+under `/rules/` to the validator. Metaspesa's existing rules and validation
+command are documented in `../telemetry/README.md`.
 
 Mimir explicitly enables OTLP metric unit/type suffixes and promotes only the
 `service.name` resource attribute to `service_name` for service-level grouping.
@@ -246,7 +260,8 @@ Alloy clustering alone does not keep every span of a trace on the same sampler.
 
 ## Validation and CI
 
-CI runs native commands explicitly, using Compose services to select the actual
+The `observability-validation` job in `.github/workflows/ci.yml` runs native
+commands explicitly, using Compose services to select the actual
 deployed images, configuration mounts, and secrets. No Python wrapper or repeated
 image tags are needed. After generating certificates, run the same checks locally:
 
@@ -260,8 +275,10 @@ docker compose --env-file .env.example run --rm --no-deps mimir '-config.file=/e
 docker compose --env-file .env.example run --rm --no-deps tempo '-config.file=/etc/tempo/tempo.yaml' '-config.verify=true'
 ```
 
-All validation commands above run from this directory. The separate application
-CI job validates its adapter and recording rules; see `../telemetry/README.md`.
+All validation commands above run from this directory. Platform checks and
+application telemetry validation currently share `.github/workflows/ci.yml` as
+separate jobs. Splitting the workflow is deferred until the observability
+repository move. For application telemetry validation, see `../telemetry/README.md`.
 
 The separate tooling Compose file uses ordinary service `image` declarations
 so the repository's Docker Compose Dependabot configuration can track them.

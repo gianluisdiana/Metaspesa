@@ -89,6 +89,9 @@ docker compose --env-file .env.example --env-file observability/.env.example -f 
 ```
 
 Restart Mimir with the assets command's files after editing its local rules.
-CI validates both application modes, original Grafana assets, and independent
-project shutdown. Removing asset mounts alone is not cleanup of previously
+The `telemetry-validation` job in `.github/workflows/ci.yml` validates
+`metaspesa.yaml` with the tooling command above. Platform checks run in the
+separate `observability-validation` job in the same workflow. Splitting the
+workflow is deferred until the observability repository move.
+Removing asset mounts alone is not cleanup of previously
 stored Grafana resources; use fresh storage or plan deliberate cleanup.

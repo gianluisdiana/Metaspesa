@@ -19,6 +19,18 @@ env:
   PYTHON_VERSION: "3.14"
 
 jobs:
+  telemetry-validation:
+    name: Metaspesa telemetry
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Validate Metaspesa recording rules
+        run: docker compose -f observability/compose.tools.yaml run --rm --no-deps --volume "${GITHUB_WORKSPACE}/telemetry/mimir/rules:/rules:ro" rules-validation check rules /rules/anonymous/metaspesa.yaml
+
   observability-validation:
     name: Observability configuration
     runs-on: ubuntu-latest
