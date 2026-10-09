@@ -1,0 +1,47 @@
+# Optional application export; merge with root compose.yaml, never the LGTM stack.
+# Start observability first: it owns the external network consumed here.
+x-telemetry-environment: &telemetry-environment
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-https://alloy:4317}
+  OTEL_EXPORTER_OTLP_CERTIFICATE: /run/secrets/telemetry_ca
+  OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE: /run/secrets/telemetry_client_cert
+  OTEL_EXPORTER_OTLP_CLIENT_KEY: /run/secrets/telemetry_client_key
+
+x-telemetry-client: &telemetry-client
+  environment: *telemetry-environment
+  group_add:
+    - "${TELEMETRY_SECRETS_GID:-1999}"
+  secrets:
+    - telemetry_ca
+    - telemetry_client_cert
+    - telemetry_client_key
+  networks:
+    - default
+    - telemetry
+
+services:
+  server:
+    <<: *telemetry-client
+  migrations:
+    <<: *telemetry-client
+  client:
+    <<: *telemetry-client
+  scraper:
+    <<: *telemetry-client
+  db:
+    # Needed only for the consumer-owned Grafana PostgreSQL datasource.
+    networks:
+      - default
+      - telemetry
+
+networks:
+  telemetry:
+    external: true
+    name: ${OBSERVABILITY_NETWORK:-observability_telemetry}
+
+secrets:
+  telemetry_ca:
+    file: ${OBSERVABILITY_SECRETS_DIR:-./observability/secrets}/telemetry_ca.crt
+  telemetry_client_cert:
+    file: ${OBSERVABILITY_SECRETS_DIR:-./observability/secrets}/telemetry_client.crt
+  telemetry_client_key:
+    file: ${OBSERVABILITY_SECRETS_DIR:-./observability/secrets}/telemetry_client.key

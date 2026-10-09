@@ -1,36 +1,28 @@
+name: ${METASPESA_PROJECT_NAME:-metaspesa}
+
 services:
   server:
-    group_add:
-      - "${TELEMETRY_SECRETS_GID:-1999}"
     image: gianluisdiana/metaspesa_rest_api:${METASPESA_VERSION:-latest}
     build:
       context: ./server
       dockerfile: ./src/RestApi/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: ""
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
       ASPNETCORE_URLS: http://+:8080
       BrowserSecurity__AllowedOrigins__0: http://localhost:3000
       POSTGRES_CONNECTION_STRING: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-      OTEL_EXPORTER_OTLP_ENDPOINT: https://alloy:4317
-      OTEL_EXPORTER_OTLP_CERTIFICATE: /run/secrets/telemetry_ca
-      OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE: /run/secrets/telemetry_client_cert
-      OTEL_EXPORTER_OTLP_CLIENT_KEY: /run/secrets/telemetry_client_key
     ports:
       - 4001:8080
     env_file:
       - .env
     secrets:
       - jwt_secret_key
-      - telemetry_ca
-      - telemetry_client_cert
-      - telemetry_client_key
-    networks:
-      - default
-      - metaspesa_telemetry_default
 
   migrations:
-    group_add:
-      - "${TELEMETRY_SECRETS_GID:-1999}"
     image: gianluisdiana/metaspesa_migrations:${METASPESA_VERSION:-latest}
     build:
       context: ./server
@@ -41,24 +33,12 @@ services:
       db:
         condition: service_healthy
     environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: ""
       POSTGRES_CONNECTION_STRING: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-      OTEL_EXPORTER_OTLP_ENDPOINT: https://alloy:4317
-      OTEL_EXPORTER_OTLP_CERTIFICATE: /run/secrets/telemetry_ca
-      OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE: /run/secrets/telemetry_client_cert
-      OTEL_EXPORTER_OTLP_CLIENT_KEY: /run/secrets/telemetry_client_key
-    secrets:
-      - telemetry_ca
-      - telemetry_client_cert
-      - telemetry_client_key
     env_file:
       - .env
-    networks:
-      - default
-      - metaspesa_telemetry_default
 
   client:
-    group_add:
-      - "${TELEMETRY_SECRETS_GID:-1999}"
     image: gianluisdiana/metaspesa_client:${METASPESA_VERSION:-latest}
     build:
       context: ./client
@@ -70,24 +50,12 @@ services:
     depends_on:
       - server
     environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: ""
       REST_API_URL: http://server:8080/api/v1
       NEXT_PUBLIC_REST_API_URL: http://localhost:4001/api/v1
-      OTEL_EXPORTER_OTLP_ENDPOINT: https://alloy:4317
-      OTEL_EXPORTER_OTLP_CERTIFICATE: /run/secrets/telemetry_ca
-      OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE: /run/secrets/telemetry_client_cert
-      OTEL_EXPORTER_OTLP_CLIENT_KEY: /run/secrets/telemetry_client_key
       PORT: 8080
-    secrets:
-      - telemetry_ca
-      - telemetry_client_cert
-      - telemetry_client_key
-    networks:
-      - default
-      - metaspesa_telemetry_default
 
   scraper:
-    group_add:
-      - "${TELEMETRY_SECRETS_GID:-1999}"
     image: gianluisdiana/metaspesa_scraper:${METASPESA_VERSION:-latest}
     build:
       context: ./scraper
@@ -95,23 +63,14 @@ services:
     depends_on:
       - server
     environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: ""
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       REST_API_URL: http://server:8080/api/v1
-      OTEL_EXPORTER_OTLP_ENDPOINT: https://alloy:4317
-      OTEL_EXPORTER_OTLP_CERTIFICATE: /run/secrets/telemetry_ca
-      OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE: /run/secrets/telemetry_client_cert
-      OTEL_EXPORTER_OTLP_CLIENT_KEY: /run/secrets/telemetry_client_key
     volumes:
       - scraper_data:/app/data
     secrets:
       - scraper_username
       - scraper_password
-      - telemetry_ca
-      - telemetry_client_cert
-      - telemetry_client_key
-    networks:
-      - default
-      - metaspesa_telemetry_default
 
   db:
     image: postgres:18.6-alpine
@@ -125,17 +84,10 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    networks:
-      - default
-      - metaspesa_telemetry_default
 
 volumes:
   db_data:
   scraper_data:
-
-networks:
-  metaspesa_telemetry_default:
-    external: true
 
 secrets:
   jwt_secret_key:
@@ -144,9 +96,3 @@ secrets:
     file: ./secrets/scraper_username
   scraper_password:
     file: ./secrets/scraper_password
-  telemetry_ca:
-    file: ./secrets/telemetry_ca.crt
-  telemetry_client_cert:
-    file: ./secrets/telemetry_client.crt
-  telemetry_client_key:
-    file: ./secrets/telemetry_client.key

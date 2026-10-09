@@ -1,5 +1,7 @@
 # Optional one-shot tooling; not started by the application stack.
 # Standard service image declarations allow Dependabot to track the versions.
+name: ${OBSERVABILITY_PROJECT_NAME:-observability}
+
 services:
   certificates:
     image: alpine/openssl:3.5.4
@@ -8,11 +10,10 @@ services:
     entrypoint: ["/bin/sh", "/tools/generate-certificates.sh"]
     volumes:
       - ./secrets:/secrets
-      - ./observability/tools:/tools:ro
+      - ./tools:/tools:ro
 
   rules-validation:
     image: prom/prometheus:v3.7.3
     entrypoint: ["/bin/promtool"]
-    command: ["check", "rules", "/rules/anonymous/metaspesa.yaml"]
     volumes:
-      - ./observability/mimir/rules:/rules:ro
+      - ./mimir/rules:/rules:ro

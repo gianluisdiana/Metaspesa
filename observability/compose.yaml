@@ -1,3 +1,5 @@
+name: ${OBSERVABILITY_PROJECT_NAME:-observability}
+
 x-client-secrets: &client-secrets
   - telemetry_ca
   - telemetry_client_cert
@@ -7,7 +9,7 @@ x-collector: &collector
   group_add:
     - "${TELEMETRY_SECRETS_GID:-1999}"
   volumes:
-    - ./observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
+    - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
   command:
     - run
     - --server.http.listen-addr=0.0.0.0:12345
@@ -22,7 +24,7 @@ x-collector: &collector
     - source: telemetry_alloy_key
       target: telemetry_server_key
   networks:
-    - metaspesa_telemetry_default
+    - telemetry
 
 services:
   alloy:
@@ -31,9 +33,9 @@ services:
       - alloy-1
       - alloy-2
     volumes:
-      - ./observability/alloy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ./alloy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     networks:
-      - metaspesa_telemetry_default
+      - telemetry
 
   alloy-1:
     <<: *collector
@@ -48,7 +50,7 @@ services:
     group_add:
       - "${TELEMETRY_SECRETS_GID:-1999}"
     volumes:
-      - ./observability/loki/loki.yaml:/etc/loki/loki.yaml
+      - ./loki/loki.yaml:/etc/loki/loki.yaml:ro
       - loki_data:/loki
     command: -config.file=/etc/loki/loki.yaml
     secrets:
@@ -58,15 +60,15 @@ services:
       - source: telemetry_loki_key
         target: telemetry_server_key
     networks:
-      - metaspesa_telemetry_default
+      - telemetry
 
   mimir:
     image: grafana/mimir:3.2.1
     group_add:
       - "${TELEMETRY_SECRETS_GID:-1999}"
     volumes:
-      - ./observability/mimir/mimir.yaml:/etc/mimir/mimir.yaml
-      - ./observability/mimir/rules:/etc/mimir/rules:ro
+      - ./mimir/mimir.yaml:/etc/mimir/mimir.yaml:ro
+      - ./mimir/rules:/etc/mimir/rules:ro
       - mimir_data:/var/mimir
     command: -config.file=/etc/mimir/mimir.yaml
     secrets:
@@ -76,14 +78,14 @@ services:
       - source: telemetry_mimir_key
         target: telemetry_server_key
     networks:
-      - metaspesa_telemetry_default
+      - telemetry
 
   tempo:
     image: grafana/tempo:3.1.0
     group_add:
       - "${TELEMETRY_SECRETS_GID:-1999}"
     volumes:
-      - ./observability/tempo/tempo.yaml:/etc/tempo/tempo.yaml
+      - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
       - tempo_data:/var/tempo
     command: -config.file=/etc/tempo/tempo.yaml
     secrets:
@@ -93,7 +95,7 @@ services:
       - source: telemetry_tempo_key
         target: telemetry_server_key
     networks:
-      - metaspesa_telemetry_default
+      - telemetry
 
   grafana:
     image: grafana/grafana:13.2.3
@@ -102,16 +104,19 @@ services:
     ports:
       - 3001:3000
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: "false"
-      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_PASSWORD}"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_PASSWORD:?Set GRAFANA_PASSWORD in .env first}"
     secrets: *client-secrets
     volumes:
-      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/provisioning/datasources/loki.yaml:/etc/grafana/provisioning/datasources/loki.yaml:ro
+      - ./grafana/provisioning/datasources/mimir.yaml:/etc/grafana/provisioning/datasources/mimir.yaml:ro
+      - ./grafana/provisioning/datasources/tempo.yaml:/etc/grafana/provisioning/datasources/tempo.yaml:ro
       - grafana_data:/var/lib/grafana
     networks:
-      - metaspesa_telemetry_default
+      - telemetry
 
 volumes:
   loki_data:
@@ -120,8 +125,8 @@ volumes:
   grafana_data:
 
 networks:
-  metaspesa_telemetry_default:
-    external: true
+  telemetry:
+    name: ${OBSERVABILITY_NETWORK:-observability_telemetry}
 
 secrets:
   telemetry_ca:
