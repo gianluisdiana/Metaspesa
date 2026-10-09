@@ -23,7 +23,8 @@ The second starts project `metaspesa`, consuming that network as external.
 There is no cross-project `depends_on`, automatic migration, or automatic LGTM
 startup. The collectors/backend endpoints remain private Docker-network traffic.
 
-- `compose.yaml`: optional application export, TLS client secrets and network.
+- `compose.yaml`: optional application export, TLS client secrets, network and
+  Grafana database-user initialization.
 - `compose.observability.yaml`: optional Grafana assets/PostgreSQL settings and rules.
 
 The assets adapter attaches two dashboards, their provider, the HTTP error-rate
@@ -45,6 +46,29 @@ out of `observability/.env`, especially stale empty values from old templates.
 The PostgreSQL datasource uses `db:5432` on the shared network, the read-only
 `grafana` role, and root DB settings. Database roles/migrations remain application
 owned. The export adapter attaches `db` only for this consumer datasource.
+
+The Grafana initialization script now lives at `telemetry/db/init/01-grafana-user.sh`.
+Only the telemetry override mounts it into `/docker-entrypoint-initdb.d`, using
+`./telemetry/db/init` relative to the root Compose file. Plain application startup
+does not create the `grafana` role. Set `GRAFANA_DB_PASSWORD` in the root `.env`
+before initializing a new database with telemetry enabled.
+
+PostgreSQL runs initialization scripts only for an empty data directory. Enabling
+telemetry on an existing `db_data` volume does not run this script automatically.
+Keep the volume and provision access explicitly as the database administrator:
+
+- Create the `grafana` role if missing, using the password from the root `.env`.
+  The initialization script can create it and set default privileges, but its
+  `CREATE USER` statement fails if the role already exists.
+- Grant database connection access and configure default privileges as shown in
+  the script, using the same role that runs application migrations.
+- For an already migrated database, also grant access to existing schemas and
+  tables; default privileges only apply to objects created afterward:
+
+  ```sql
+  GRANT USAGE ON SCHEMA identity, market, purchasing, shopping TO grafana;
+  GRANT SELECT ON ALL TABLES IN SCHEMA identity, market, purchasing, shopping TO grafana;
+  ```
 
 ## Independent shutdown and opting out
 
