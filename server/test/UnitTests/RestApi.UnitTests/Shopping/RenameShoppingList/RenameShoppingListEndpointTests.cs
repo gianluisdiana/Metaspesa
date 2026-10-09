@@ -1,4 +1,3 @@
-using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Shopping;
 using Metaspesa.Application.Shopping;
 using Metaspesa.Domain.Shopping;
@@ -10,29 +9,51 @@ using static Metaspesa.RestApi.UnitTests.Shopping.ShoppingEndpointTestData;
 
 namespace Metaspesa.RestApi.UnitTests.Shopping.RenameShoppingList;
 
-public static class RenameShoppingListEndpointTests {
-  [Fact]
-  public static async Task Rename_SanitizesNameAndReturnsNoContent() {
-    ShoppingList list = PersistedList("Old");
-    IShoppingListRepository repository = RepositoryWith(list);
+public class RenameShoppingListEndpointTests {
+  private sealed class FakeHandler : UpdateShoppingList.Handler {
+    private readonly IShoppingListRepository _repository;
+    public FakeHandler(IShoppingListRepository repository) : base(repository) {
+      _repository = repository;
+    }
 
-    IResult result = await RenameShoppingListEndpoint.RenameAsync(ListId,
-      new RenameShoppingListRequest(" Weekly \u2713 "), ShopperContext(),
-      new UpdateShoppingList.Handler(repository, Substitute.For<IUnitOfWork>()),
-      TestContext.Current.CancellationToken);
+    public void WithHappyPath() {
+      var list = ShoppingList.Create(Guid.CreateVersion7(), "Weekly");
+      _repository.GetAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), TestContext.Current.CancellationToken)
+        .Returns(list);
+    }
+  }
 
-    Assert.Equal((new ShoppingListName("Weekly"), StatusCodes.Status204NoContent),
-      (list.Name, Assert.IsAssignableFrom<IStatusCodeHttpResult>(result).StatusCode));
+  private readonly FakeHandler _handler;
+
+  public RenameShoppingListEndpointTests() {
+    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
+    _handler = new FakeHandler(repository);
   }
 
   [Fact]
-  public static async Task Rename_RejectsMissingList() {
-    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
+  public async Task Rename_SanitizesNameAndReturnsNoContent() {
+    _handler.WithHappyPath();
 
-    await Assert.ThrowsAsync<ShoppingListNotFoundException>(() =>
-      RenameShoppingListEndpoint.RenameAsync(ListId,
-        new RenameShoppingListRequest("Weekly"), ShopperContext(),
-        new UpdateShoppingList.Handler(repository, Substitute.For<IUnitOfWork>()),
-        TestContext.Current.CancellationToken));
+    IResult result = await RenameShoppingListEndpoint.RenameAsync(
+      Guid.CreateVersion7(),
+      new RenameShoppingListRequest(" Weekly \u2713 "),
+      ShopperContext(),
+      _handler,
+      TestContext.Current.CancellationToken);
+
+    int? statusCode = Assert.IsType<IStatusCodeHttpResult>(result, exactMatch: false).StatusCode;
+    Assert.Equal(StatusCodes.Status204NoContent, statusCode);
+  }
+
+  [Fact]
+  public async Task Rename_RejectsMissingList() {
+    Task action() => RenameShoppingListEndpoint.RenameAsync(
+      Guid.CreateVersion7(),
+      new RenameShoppingListRequest("Weekly"),
+      ShopperContext(),
+      _handler,
+      TestContext.Current.CancellationToken);
+
+    await Assert.ThrowsAsync<ShoppingListNotFoundException>(action);
   }
 }

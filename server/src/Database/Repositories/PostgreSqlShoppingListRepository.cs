@@ -4,7 +4,6 @@ using Metaspesa.Application.Abstractions.Shopping;
 using Metaspesa.Application.Shopping;
 using Metaspesa.Database.Entities;
 using Metaspesa.Domain.Identity;
-using Metaspesa.Domain.Markets;
 using Metaspesa.Domain.SharedKernel;
 using Metaspesa.Domain.Shopping;
 using Microsoft.EntityFrameworkCore;

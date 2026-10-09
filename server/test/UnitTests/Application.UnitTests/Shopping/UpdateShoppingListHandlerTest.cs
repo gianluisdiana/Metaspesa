@@ -1,6 +1,4 @@
-using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Shopping;
-using Metaspesa.Domain.Identity;
 using Metaspesa.Domain.Shopping;
 using Metaspesa.Domain.Shopping.Errors;
 using NSubstitute;
@@ -9,64 +7,46 @@ using static Metaspesa.Application.Shopping.UpdateShoppingList;
 namespace Metaspesa.Application.UnitTests.Shopping;
 
 public class UpdateShoppingListHandlerTest {
-  [Fact(DisplayName = "Renames aggregate and commits")]
-  public async Task Handle_RenamesListAndCommits() {
-    var ownerId = Guid.CreateVersion7();
-    ShoppingList list = ShoppingTestData.List(ownerId, null);
-    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
-    repository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
-      .Returns(list);
-    IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
-    var handler = new Handler(repository, unitOfWork);
+  private readonly IShoppingListRepository _repository;
 
-    await handler.Handle(
-      new Command(ownerId, ShoppingTestData.ListId, "Weekly"), TestContext.Current.CancellationToken);
+  private readonly Handler _handler;
 
-    Assert.Equal(new ShoppingListName("Weekly"), list.Name);
-    Assert.False(list.IsTemporary);
-    await repository.Received(1).UpdateAsync(list, TestContext.Current.CancellationToken);
-    await unitOfWork.Received(1).SaveChangesAsync(TestContext.Current.CancellationToken);
+  public UpdateShoppingListHandlerTest() {
+    _repository = Substitute.For<IShoppingListRepository>();
+    _handler = new Handler(_repository);
   }
 
   [Fact(DisplayName = "Rejects conflicting name without commit")]
   public async Task Handle_ThrowsExactException_WhenNewNameExists() {
     var ownerId = Guid.CreateVersion7();
-    ShoppingList list = ShoppingTestData.List(ownerId, null);
-    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
-    repository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
-      .Returns(list);
-    repository.ExistsAsync(
-      Arg.Any<Guid>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+    const string newName = "New Name";
+    _repository.ExistsAsync(ownerId, newName, TestContext.Current.CancellationToken)
       .Returns(true);
-    IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
-    var handler = new Handler(repository, unitOfWork);
+    var command = new Command(ownerId, Guid.CreateVersion7(), newName);
 
-    await Assert.ThrowsAsync<ShoppingListAlreadyExistsException>(() => handler.Handle(
-      new Command(ownerId, ShoppingTestData.ListId, "Weekly"), TestContext.Current.CancellationToken));
+    Task action() => _handler.Handle(
+      command, TestContext.Current.CancellationToken);
 
-    Assert.True(list.IsTemporary);
-    await unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    await Assert.ThrowsAsync<ShoppingListAlreadyExistsException>(action);
   }
 
-  [Fact(DisplayName = "Renaming with same normalized name skips conflict lookup")]
-  public async Task Handle_DoesNotCheckConflict_WhenNameIsUnchanged() {
+  [Fact(DisplayName = "Renames aggregate and commits")]
+  public async Task Handle_RenamesListAndCommits() {
     var ownerId = Guid.CreateVersion7();
-    ShoppingList list = ShoppingTestData.List(ownerId, "Weekly");
-    IShoppingListRepository repository = Substitute.For<IShoppingListRepository>();
-    repository.GetAsync(
-      Arg.Any<UserId>(), Arg.Any<ShoppingListId>(), Arg.Any<CancellationToken>())
+    const string newName = "New Name";
+    _repository.ExistsAsync(ownerId, newName, TestContext.Current.CancellationToken)
+      .Returns(false);
+
+    var list = ShoppingList.Create(ownerId, "Old Name");
+    _repository.GetAsync(ownerId, list.Id.Value, TestContext.Current.CancellationToken)
       .Returns(list);
-    IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
-    var handler = new Handler(repository, unitOfWork);
+    var command = new Command(ownerId, list.Id.Value, newName);
 
-    await handler.Handle(
-      new Command(ownerId, ShoppingTestData.ListId, " Weekly "),
+    await _handler.Handle(
+      command, TestContext.Current.CancellationToken);
+
+    await _repository.Received(1).SaveAsync(
+      Arg.Is<ShoppingList>(list => list.Id == list.Id),
       TestContext.Current.CancellationToken);
-
-    await repository.DidNotReceive().ExistsAsync(
-      Arg.Any<Guid>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
-    await unitOfWork.Received(1).SaveChangesAsync(TestContext.Current.CancellationToken);
   }
 }

@@ -308,7 +308,7 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
     UserId ownerId = await SeedUserAsync();
     var list = ShoppingList.Create(ownerId, new ShoppingListName("Original"));
     await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
-    list.Rename(new ShoppingListName("Renamed"));
+    list.Update("Renamed");
 
     await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
 
@@ -779,7 +779,7 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
     ShoppingList persisted = Assert.IsType<ShoppingList>(await _repository.GetAsync(
       ownerId, new ShoppingListId(id), TestContext.Current.CancellationToken));
 
-    persisted.Rename(new ShoppingListName("Weekly"));
+    persisted.Update("Weekly");
     persisted.UpdateItem(
       persisted.Items.Single(item => item.ProductFormatId == milkId).Id.Value,
       3, true);

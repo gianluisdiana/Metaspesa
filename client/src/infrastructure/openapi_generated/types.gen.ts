@@ -261,9 +261,9 @@ export type QuantityResponse = {
  */
 export type RenameShoppingListRequest = {
     /**
-     * Required nonblank name for the list.
+     * Required non-blank name for the list.
      */
-    name: null | string;
+    name: string;
 };
 
 /**

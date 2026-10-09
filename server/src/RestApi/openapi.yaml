@@ -307,7 +307,7 @@ paths:
       tags:
         - RenameShoppingListEndpoint
       summary: Rename a shopping list.
-      description: 'Assign a nonblank name to an owned list, including a temporary list. Requires the Shopper role.'
+      description: 'Assign a non-blank name to an owned list, including a temporary list. Requires the Shopper role.'
       operationId: RenameShoppingList
       parameters:
         - name: listId
@@ -846,10 +846,8 @@ components:
       type: object
       properties:
         name:
-          type:
-            - 'null'
-            - string
-          description: Required nonblank name for the list.
+          type: string
+          description: Required non-blank name for the list.
       description: New name for a shopping list.
     ShoppingItemRequest:
       required:
