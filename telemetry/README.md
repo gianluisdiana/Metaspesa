@@ -118,15 +118,19 @@ allow up to two further minutes for Mimir's delay and rule interval.
 
 ```sh
 docker run --rm --entrypoint /bin/promtool --volume "${PWD}/telemetry/mimir/rules:/rules:ro" prom/prometheus:v3.15.0 check rules /rules/anonymous/metaspesa.yaml
-docker compose --env-file .env.example config --quiet --no-env-resolution
-docker compose --env-file .env.example -f compose.yaml -f telemetry/compose.yaml config --quiet --no-env-resolution
+docker compose --env-file .env.example config --quiet
+docker compose --env-file .env.example -f compose.yaml -f telemetry/compose.yaml config --quiet
 docker compose --env-file .env.example --env-file "${observabilityDir}/.env.example" -f "${observabilityDir}/compose.yaml" -f telemetry/compose.observability.yaml config --quiet --no-env-resolution
 ```
 
 The pinned Prometheus image supplies
 [`promtool check rules`](https://prometheus.io/docs/prometheus/latest/command-line/promtool/#promtool-check-rules)
 without requiring an observability checkout, running collector, or secrets.
-The two application Compose checks also run independently. The merged assets
+The two application Compose checks also run independently. They require the root
+`.env` referenced by service `env_file` entries. On a clean checkout, copy
+`.env.example` to `.env` first; preserve any existing local `.env`. CI creates
+this disposable file from the template and needs no real credentials.
+The merged assets
 check requires the separate checkout and the path setup above; it checks the
 integration model, not live connectivity or certificate validity.
 

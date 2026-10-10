@@ -30,8 +30,9 @@ jobs:
 
       - name: Validate application Compose models
         run: |
-          docker compose --env-file .env.example config --quiet --no-env-resolution
-          docker compose --env-file .env.example -f compose.yaml -f telemetry/compose.yaml config --quiet --no-env-resolution
+          cp .env.example .env
+          docker compose --env-file .env.example config --quiet
+          docker compose --env-file .env.example -f compose.yaml -f telemetry/compose.yaml config --quiet
 
       - name: Validate Metaspesa recording rules
         run: docker run --rm --entrypoint /bin/promtool --volume "${GITHUB_WORKSPACE}/telemetry/mimir/rules:/rules:ro" prom/prometheus:v3.15.0 check rules /rules/anonymous/metaspesa.yaml
