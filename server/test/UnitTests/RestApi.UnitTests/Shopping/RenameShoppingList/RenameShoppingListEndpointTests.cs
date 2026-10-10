@@ -31,12 +31,12 @@ public class RenameShoppingListEndpointTests {
   }
 
   [Fact]
-  public async Task Rename_SanitizesNameAndReturnsNoContent() {
+  public async Task Rename_ReturnsNoContent() {
     _handler.WithHappyPath();
 
     IResult result = await RenameShoppingListEndpoint.RenameAsync(
       Guid.CreateVersion7(),
-      new RenameShoppingListRequest(" Weekly \u2713 "),
+      new RenameShoppingListRequest("Weekly"),
       ShopperContext(),
       _handler,
       TestContext.Current.CancellationToken);

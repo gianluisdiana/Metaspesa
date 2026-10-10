@@ -37,16 +37,16 @@ public class UpdateShoppingListHandlerTest {
     _repository.ExistsAsync(ownerId, newName, TestContext.Current.CancellationToken)
       .Returns(false);
 
-    var list = ShoppingList.Create(ownerId, "Old Name");
-    _repository.GetAsync(ownerId, list.Id.Value, TestContext.Current.CancellationToken)
-      .Returns(list);
-    var command = new Command(ownerId, list.Id.Value, newName);
+    var expectedList = ShoppingList.Create(ownerId, "Old Name");
+    _repository.GetAsync(ownerId, expectedList.Id.Value, TestContext.Current.CancellationToken)
+      .Returns(expectedList);
+    var command = new Command(ownerId, expectedList.Id.Value, newName);
 
     await _handler.Handle(
       command, TestContext.Current.CancellationToken);
 
     await _repository.Received(1).SaveAsync(
-      Arg.Is<ShoppingList>(list => list.Id == list.Id),
+      Arg.Is<ShoppingList>(list => list.Id == expectedList.Id),
       TestContext.Current.CancellationToken);
   }
 }
