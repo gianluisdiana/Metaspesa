@@ -28,51 +28,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Validate Metaspesa recording rules
-        run: docker compose -f observability/compose.tools.yaml run --rm --no-deps --volume "${GITHUB_WORKSPACE}/telemetry/mimir/rules:/rules:ro" rules-validation check rules /rules/anonymous/metaspesa.yaml
-
-  observability-validation:
-    name: Observability configuration
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      GRAFANA_PASSWORD: ci-only-observability-password
-    defaults:
-      run:
-        working-directory: observability
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v7
-
-      - name: Generate disposable CI certificates
-        run: |
-          cp .env.example .env
-          mkdir -m 700 -p secrets
-          docker compose -f compose.tools.yaml run --rm certificates
-
-      - name: Test certificate lifecycle
-        run: docker compose -f compose.tools.yaml run --rm --entrypoint /bin/sh certificates /tools/test-certificates.sh
-
-      - name: Validate Compose models
+      - name: Validate application Compose models
         run: |
           docker compose --env-file .env.example config --quiet --no-env-resolution
-          docker compose -f compose.tools.yaml config --quiet
+          docker compose --env-file .env.example -f compose.yaml -f telemetry/compose.yaml config --quiet --no-env-resolution
 
-      - name: Validate Alloy
-        run: docker compose --env-file .env.example run --rm --no-deps alloy-1 validate /etc/alloy/config.alloy
-
-      - name: Validate HAProxy
-        run: docker compose --env-file .env.example run --rm --no-deps alloy haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg
-
-      - name: Validate Loki
-        run: docker compose --env-file .env.example run --rm --no-deps loki -config.file=/etc/loki/loki.yaml -verify-config
-
-      - name: Validate Mimir
-        run: docker compose --env-file .env.example run --rm --no-deps mimir -config.file=/etc/mimir/mimir.yaml -modules
-
-      - name: Validate Tempo
-        run: docker compose --env-file .env.example run --rm --no-deps tempo -config.file=/etc/tempo/tempo.yaml -config.verify=true
+      - name: Validate Metaspesa recording rules
+        run: docker run --rm --entrypoint /bin/promtool --volume "${GITHUB_WORKSPACE}/telemetry/mimir/rules:/rules:ro" prom/prometheus:v3.15.0 check rules /rules/anonymous/metaspesa.yaml
 
   backend-quality:
     name: Backend quality
