@@ -6,15 +6,25 @@ does not require collector credentials or a Grafana administrator password.
 
 ## Enable telemetry
 
-Prepare the root `.env` and application secrets as usual. Separately prepare
-`observability/.env` and certificates using its guide. Preserve existing
+Prepare the root `.env` and application secrets as usual. Clone the observability
+repository separately and prepare its `.env` and certificates using its README. Preserve existing
 certificates; Compose creates its own project-scoped storage. On upgrades, follow
 the ownership instructions there before starting the independent stack.
 
-Run from the repository root:
+Set `OBSERVABILITY_SECRETS_DIR` in the root `.env` to the separate checkout's
+secrets directory, preferably as an absolute path. From this repository's root,
+select the observability checkout and set an absolute asset path. In Bash:
 
 ```sh
-docker compose --env-file .env --env-file observability/.env -f observability/compose.yaml -f telemetry/compose.observability.yaml up -d
+observabilityDir="/absolute/path/to/observability"
+export METASPESA_TELEMETRY_DIR="$PWD/telemetry"
+```
+
+The following Docker commands work in either shell after that setup. Keep these
+settings in the same shell for startup, shutdown and assets validation:
+
+```sh
+docker compose --env-file .env --env-file "${observabilityDir}/.env" -f "${observabilityDir}/compose.yaml" -f telemetry/compose.observability.yaml up -d
 docker compose -f compose.yaml -f telemetry/compose.yaml up --build -d
 ```
 
@@ -37,12 +47,13 @@ without this adapter.
 `observability_telemetry`). `TELEMETRY_SECRETS_GID` must also match if customized.
 Application client certificate paths use `OBSERVABILITY_SECRETS_DIR`, relative
 to root Compose unless absolute. Asset paths use `METASPESA_TELEMETRY_DIR`,
-relative to the observability Compose directory unless absolute. These paths
-can point to an independent observability checkout without copying private keys.
+relative to the observability Compose directory unless absolute. The setup above
+overrides the old `../telemetry` default with this repository's absolute asset
+path, so the checkouts can live anywhere without copying assets or private keys.
 
 The assets command loads root settings first and observability settings second.
 Keep application-only `POSTGRES_DB`, `GRAFANA_DB_PASSWORD` and asset-path values
-out of `observability/.env`, especially stale empty values from old templates.
+out of the observability checkout's `.env`, especially stale empty values from old templates.
 The PostgreSQL datasource uses `db:5432` on the shared network, the read-only
 `grafana` role, and root DB settings. Database roles/migrations remain application
 owned. The export adapter attaches `db` only for this consumer datasource.
@@ -74,7 +85,7 @@ Keep the volume and provision access explicitly as the database administrator:
 
 ```sh
 docker compose -f compose.yaml -f telemetry/compose.yaml down
-docker compose --env-file .env --env-file observability/.env -f observability/compose.yaml -f telemetry/compose.observability.yaml down
+docker compose --env-file .env --env-file "${observabilityDir}/.env" -f "${observabilityDir}/compose.yaml" -f telemetry/compose.observability.yaml down
 ```
 
 Either project can stop without stopping the other. An attached consumer may keep
@@ -106,16 +117,28 @@ error ratio and p95 duration every minute. Rate rules need two HTTP observations
 allow up to two further minutes for Mimir's delay and rule interval.
 
 ```sh
-docker compose -f observability/compose.tools.yaml run --rm --volume "${PWD}/telemetry/mimir/rules:/rules:ro" rules-validation check rules /rules/anonymous/metaspesa.yaml
-docker compose --env-file .env.example config --quiet --no-env-resolution
-docker compose --env-file .env.example -f compose.yaml -f telemetry/compose.yaml config --quiet --no-env-resolution
-docker compose --env-file .env.example --env-file observability/.env.example -f observability/compose.yaml -f telemetry/compose.observability.yaml config --quiet --no-env-resolution
+docker run --rm --entrypoint /bin/promtool --volume "${PWD}/telemetry/mimir/rules:/rules:ro" prom/prometheus:v3.15.0 check rules /rules/anonymous/metaspesa.yaml
+docker compose --env-file .env.example config --quiet
+docker compose --env-file .env.example -f compose.yaml -f telemetry/compose.yaml config --quiet
+docker compose --env-file .env.example --env-file "${observabilityDir}/.env.example" -f "${observabilityDir}/compose.yaml" -f telemetry/compose.observability.yaml config --quiet --no-env-resolution
 ```
 
+The pinned Prometheus image supplies
+[`promtool check rules`](https://prometheus.io/docs/prometheus/latest/command-line/promtool/#promtool-check-rules)
+without requiring an observability checkout, running collector, or secrets.
+The two application Compose checks also run independently. They require the root
+`.env` referenced by service `env_file` entries. On a clean checkout, copy
+`.env.example` to `.env` first; preserve any existing local `.env`. CI creates
+this disposable file from the template and needs no real credentials.
+The merged assets
+check requires the separate checkout and the path setup above; it checks the
+integration model, not live connectivity or certificate validity.
+
+The `telemetry-validation` job in `.github/workflows/ci.yml` validates the two
+application Compose models and Metaspesa recording rules with the independent
+commands above. Platform configuration and certificate lifecycle checks belong
+in the observability repository's CI.
+
 Restart Mimir with the assets command's files after editing its local rules.
-The `telemetry-validation` job in `.github/workflows/ci.yml` validates
-`metaspesa.yaml` with the tooling command above. Platform checks run in the
-separate `observability-validation` job in the same workflow. Splitting the
-workflow is deferred until the observability repository move.
 Removing asset mounts alone is not cleanup of previously
 stored Grafana resources; use fresh storage or plan deliberate cleanup.

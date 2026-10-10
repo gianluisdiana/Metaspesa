@@ -28,51 +28,14 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Validate Metaspesa recording rules
-        run: docker compose -f observability/compose.tools.yaml run --rm --no-deps --volume "${GITHUB_WORKSPACE}/telemetry/mimir/rules:/rules:ro" rules-validation check rules /rules/anonymous/metaspesa.yaml
-
-  observability-validation:
-    name: Observability configuration
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      GRAFANA_PASSWORD: ci-only-observability-password
-    defaults:
-      run:
-        working-directory: observability
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v7
-
-      - name: Generate disposable CI certificates
+      - name: Validate application Compose models
         run: |
           cp .env.example .env
-          mkdir -m 700 -p secrets
-          docker compose -f compose.tools.yaml run --rm certificates
+          docker compose --env-file .env.example config --quiet
+          docker compose --env-file .env.example -f compose.yaml -f telemetry/compose.yaml config --quiet
 
-      - name: Test certificate lifecycle
-        run: docker compose -f compose.tools.yaml run --rm --entrypoint /bin/sh certificates /tools/test-certificates.sh
-
-      - name: Validate Compose models
-        run: |
-          docker compose --env-file .env.example config --quiet --no-env-resolution
-          docker compose -f compose.tools.yaml config --quiet
-
-      - name: Validate Alloy
-        run: docker compose --env-file .env.example run --rm --no-deps alloy-1 validate /etc/alloy/config.alloy
-
-      - name: Validate HAProxy
-        run: docker compose --env-file .env.example run --rm --no-deps alloy haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg
-
-      - name: Validate Loki
-        run: docker compose --env-file .env.example run --rm --no-deps loki -config.file=/etc/loki/loki.yaml -verify-config
-
-      - name: Validate Mimir
-        run: docker compose --env-file .env.example run --rm --no-deps mimir -config.file=/etc/mimir/mimir.yaml -modules
-
-      - name: Validate Tempo
-        run: docker compose --env-file .env.example run --rm --no-deps tempo -config.file=/etc/tempo/tempo.yaml -config.verify=true
+      - name: Validate Metaspesa recording rules
+        run: docker run --rm --entrypoint /bin/promtool --volume "${GITHUB_WORKSPACE}/telemetry/mimir/rules:/rules:ro" prom/prometheus:v3.15.0 check rules /rules/anonymous/metaspesa.yaml
 
   backend-quality:
     name: Backend quality
@@ -97,27 +60,6 @@ jobs:
 
       - name: Check formatting
         run: dotnet format server/Metaspesa.slnx --verify-no-changes --verbosity diagnostic
-
-  backend-tests:
-    name: Backend tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v7
-
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('server/Directory.Packages.props', 'server/**/*.csproj') }}
-          restore-keys: ${{ runner.os }}-nuget-
 
       - name: Restore server dependencies
         run: dotnet restore server/Metaspesa.slnx
@@ -166,35 +108,6 @@ jobs:
         run: pnpm run build
         working-directory: client
 
-  client-tests:
-    name: Client tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v7
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 10.34.5
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-          cache-dependency-path: client/pnpm-lock.yaml
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        working-directory: client
-
-      - name: Generate open API types
-        run: pnpm run generate-api
-        working-directory: client
-
       - name: Test client
         run: pnpm run test
         working-directory: client
@@ -233,30 +146,6 @@ jobs:
 
       - name: Check types with Pyright
         run: uv run pyright src test
-        working-directory: scraper
-
-  scraper-tests:
-    name: Scraper tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v7
-
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
-        with:
-          enable-cache: true
-          cache-dependency-glob: scraper/uv.lock
-
-      - name: Install dependencies
-        run: uv sync --frozen
         working-directory: scraper
 
       - name: Test scraper without live retailers

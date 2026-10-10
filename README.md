@@ -18,8 +18,9 @@ Telemetry uses authenticated TLS by default, with two Alloy collectors behind
 a health-checked endpoint. Observability now runs as its own Compose project;
 the default application stack does not start LGTM or require telemetry secrets.
 Metaspesa dashboards, alerts, PostgreSQL datasource and rules live in `telemetry/`.
-See [the application telemetry guide](telemetry/README.md) to opt into telemetry
-and [the observability guide](observability/README.md) for standalone deployment.
+See [the application telemetry guide](telemetry/README.md) to opt into telemetry.
+The observability platform is maintained in a separate repository; use that
+checkout's README for standalone deployment and certificate management.
 
 ## Run locally
 
@@ -54,22 +55,25 @@ docker compose down
 
 ## Optional telemetry
 
-Prepare `observability/.env` and certificates according
-to the observability guide. For existing deployments, follow its ownership
-migration instructions before starting the new project. Preserve the CA;
-Compose creates fresh observability-owned storage. Run from the repository root:
+Prepare the separate observability checkout's `.env` and certificates according
+to its README. Set `OBSERVABILITY_SECRETS_DIR` in this project's `.env` to that
+checkout's secrets directory. Follow the
+[telemetry setup instructions](telemetry/README.md#enable-telemetry) to select
+the checkout and set the absolute Metaspesa asset path before starting both
+projects. Then run from this repository's root:
 
 ```sh
-docker compose --env-file .env --env-file observability/.env -f observability/compose.yaml -f telemetry/compose.observability.yaml up -d
+docker compose --env-file .env --env-file "${observabilityDir}/.env" -f "${observabilityDir}/compose.yaml" -f telemetry/compose.observability.yaml up -d
 docker compose -f compose.yaml -f telemetry/compose.yaml up --build -d
 ```
 
 Observability owns the shared network and starts first. The application adapter
 attaches services and database without starting or owning any LGTM services.
-Grafana is at http://localhost:3001 (`admin`, password from `observability/.env`).
+Grafana is at http://localhost:3001 (`admin`, password from the observability
+checkout's `.env`, unless its deployment settings customize these defaults).
 Both projects stop independently; see the telemetry guide for matching shutdown
 commands and switching back to application-only mode.
 
-See [the observability guide](observability/README.md) for label policy, batching
+See the separate observability checkout's README for label policy, batching
 and memory limits, trace retention, Mimir recording rules, secure telemetry
 transport, certificate renewal, HA behavior, and validation procedures.
