@@ -28,7 +28,7 @@ x-collector: &collector
 
 services:
   alloy:
-    image: haproxy:3.2-alpine
+    image: haproxy:3.4-alpine
     depends_on:
       - alloy-1
       - alloy-2

@@ -4,7 +4,7 @@ name: ${OBSERVABILITY_PROJECT_NAME:-observability}
 
 services:
   certificates:
-    image: alpine/openssl:3.5.4
+    image: alpine/openssl:3.5.9
     environment:
       TELEMETRY_SECRETS_GID: ${TELEMETRY_SECRETS_GID:-1999}
     entrypoint: ["/bin/sh", "/tools/generate-certificates.sh"]
@@ -13,7 +13,7 @@ services:
       - ./tools:/tools:ro
 
   rules-validation:
-    image: prom/prometheus:v3.7.3
+    image: prom/prometheus:v3.15.0
     entrypoint: ["/bin/promtool"]
     volumes:
       - ./mimir/rules:/rules:ro
