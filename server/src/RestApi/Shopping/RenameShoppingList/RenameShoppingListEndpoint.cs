@@ -22,7 +22,7 @@ internal static class RenameShoppingListEndpoint {
   }
 
   /// <summary>Rename a shopping list.</summary>
-  /// <remarks>Assign a nonblank name to an owned list, including a temporary list. Requires the Shopper role.</remarks>
+  /// <remarks>Assign a non-blank name to an owned list, including a temporary list. Requires the Shopper role.</remarks>
   /// <param name="listId">ID of the shopping list to rename.</param>
   /// <param name="request">New list name.</param>
   /// <param name="context">Authenticated request context.</param>
@@ -36,13 +36,18 @@ internal static class RenameShoppingListEndpoint {
   /// <response code="403">The authenticated user lacks the Shopper role.</response>
   /// <response code="500">An unexpected server or database failure occurred.</response>
   internal static async Task<IResult> RenameAsync(
-    Guid listId, RenameShoppingListRequest request, HttpContext context,
-    UpdateShoppingList.Handler handler, CancellationToken cancellationToken
+    Guid listId,
+    RenameShoppingListRequest request,
+    HttpContext context,
+    UpdateShoppingList.Handler handler,
+    CancellationToken cancellationToken
   ) {
-    await handler.Handle(new UpdateShoppingList.Command(
-      ShoppingUser.GetUid(context), listId,
-      request.Name is null ? null : TextSanitizer.Sanitize(request.Name)
-      ), cancellationToken);
+    var command = new UpdateShoppingList.Command(
+      ShoppingUser.GetUid(context),
+      listId,
+      TextSanitizer.Sanitize(request.Name)
+    );
+    await handler.Handle(command, cancellationToken);
     return Results.NoContent();
   }
 }

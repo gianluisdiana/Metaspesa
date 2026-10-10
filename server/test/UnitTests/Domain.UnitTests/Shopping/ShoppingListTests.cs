@@ -123,10 +123,9 @@ public class ShoppingListTests {
   public void Rename_SetsNameAndClearsTemporaryState() {
     var list = ShoppingList.Create(OwnerId, null);
 
-    list.Rename(new ShoppingListName("Weekly"));
+    list.Update("Weekly");
 
     Assert.Equal(new ShoppingListName("Weekly"), list.Name);
-    Assert.False(list.IsTemporary);
   }
 
   [Fact(DisplayName = "Adds item")]

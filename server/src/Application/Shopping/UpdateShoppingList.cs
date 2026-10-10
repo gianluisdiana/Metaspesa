@@ -1,37 +1,31 @@
-using Metaspesa.Application.Abstractions.Core;
 using Metaspesa.Application.Abstractions.Shopping;
-using Metaspesa.Domain.Identity;
 using Metaspesa.Domain.Shopping;
 using Metaspesa.Domain.Shopping.Errors;
 
 namespace Metaspesa.Application.Shopping;
 
 public static class UpdateShoppingList {
-  public record Command(Guid UserUid, Guid ShoppingListId, string? NewName);
+  public record Command(Guid UserUid, Guid ShoppingListId, string NewName);
 
-  public class Handler(
-    IShoppingListRepository shoppingListRepository,
-    IUnitOfWork unitOfWork
-  ) {
+  public class Handler(IShoppingListRepository repository) {
     public async Task Handle(
       Command command, CancellationToken cancellationToken = default
     ) {
       ArgumentNullException.ThrowIfNull(command);
 
-      var ownerId = new UserId(command.UserUid);
-      var newName = new ShoppingListName(command.NewName ?? string.Empty);
-      ShoppingList shoppingList = await shoppingListRepository.GetAsync(
-        ownerId, new ShoppingListId(command.ShoppingListId),
-        cancellationToken) ?? throw new ShoppingListNotFoundException();
-
-      if (newName != shoppingList.Name &&
-        await shoppingListRepository.ExistsAsync(command.UserUid, command.NewName, cancellationToken)) {
-        throw new ShoppingListAlreadyExistsException(command.UserUid, command.NewName);
+      bool alreadyExists = await repository.ExistsAsync(
+        command.UserUid, command.NewName, cancellationToken);
+      if (alreadyExists) {
+        throw new ShoppingListAlreadyExistsException(
+          command.UserUid, command.NewName);
       }
 
-      shoppingList.Rename(newName);
-      await shoppingListRepository.UpdateAsync(shoppingList, cancellationToken);
-      await unitOfWork.SaveChangesAsync(cancellationToken);
+      ShoppingList shoppingList = await repository.GetAsync(
+        command.UserUid, command.ShoppingListId, cancellationToken) ??
+        throw new ShoppingListNotFoundException();
+
+      shoppingList.Update(command.NewName);
+      await repository.SaveAsync(shoppingList, cancellationToken);
     }
   }
 }

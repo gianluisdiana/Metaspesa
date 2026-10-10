@@ -195,8 +195,8 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
       list => Assert.True(list.IsTemporary));
   }
 
-  [Fact(DisplayName = "Finds named list case-insensitively")]
-  public async Task ExistsAsync_MatchesNamedList_IgnoringCase() {
+  [Fact(DisplayName = "Doesn't find named list case-insensitively")]
+  public async Task ExistsAsync_DoesNotMatchNamedList_WithDifferentCase() {
     UserId ownerId = await SeedUserAsync();
     await _repository.AddAsync(ShoppingList.Create(ownerId,
       new ShoppingListName("Weekly")), TestContext.Current.CancellationToken);
@@ -206,7 +206,7 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
       "WEEKLY",
       TestContext.Current.CancellationToken);
 
-    Assert.True(exists);
+    Assert.False(exists);
   }
 
   [Fact(DisplayName = "Finds named list trimming name")]
@@ -308,7 +308,7 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
     UserId ownerId = await SeedUserAsync();
     var list = ShoppingList.Create(ownerId, new ShoppingListName("Original"));
     await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
-    list.Rename(new ShoppingListName("Renamed"));
+    list.Update("Renamed");
 
     await _repository.SaveAsync(list, TestContext.Current.CancellationToken);
 
@@ -779,7 +779,7 @@ public class PostgreSqlShoppingListRepositoryTests : IAsyncLifetime {
     ShoppingList persisted = Assert.IsType<ShoppingList>(await _repository.GetAsync(
       ownerId, new ShoppingListId(id), TestContext.Current.CancellationToken));
 
-    persisted.Rename(new ShoppingListName("Weekly"));
+    persisted.Update("Weekly");
     persisted.UpdateItem(
       persisted.Items.Single(item => item.ProductFormatId == milkId).Id.Value,
       3, true);

@@ -71,8 +71,8 @@ public sealed class ShoppingList {
     IEnumerable<ShoppingItem> items
   ) => new(id, ownerIds, name, items, deletedAt);
 
-  public void Rename(ShoppingListName name) {
-    Name = name;
+  public void Update(string name) {
+    Name = new ShoppingListName(name);
   }
 
   public void AddItem(

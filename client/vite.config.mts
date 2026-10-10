@@ -5,17 +5,17 @@ import { configDefaults, defineConfig } from 'vitest/config';
 export default defineConfig({
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src/'),
+      '@': path.resolve(import.meta.dirname, './src/'),
       '@/generated-protos': path.resolve(
-        __dirname,
+        import.meta.dirname,
         './src/infrastructure/protos_generated',
       ),
       '@/generated-protos/markets': path.resolve(
-        __dirname,
+        import.meta.dirname,
         './src/infrastructure/protos_generated/Metaspesa/Protos/Markets/',
       ),
       '@/generated-protos/shopping': path.resolve(
-        __dirname,
+        import.meta.dirname,
         './src/infrastructure/protos_generated/Metaspesa/Protos/Shopping/',
       ),
     },

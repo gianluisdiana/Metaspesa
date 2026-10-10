@@ -29,6 +29,8 @@ services:
     <<: *telemetry-client
   db:
     # Needed only for the consumer-owned Grafana PostgreSQL datasource.
+    volumes:
+      - ./telemetry/db/init:/docker-entrypoint-initdb.d
     networks:
       - default
       - telemetry

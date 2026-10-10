@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-  CREATE USER grafana WITH PASSWORD '$GRAFANA_DB_PASSWORD';
+psql -v ON_ERROR_STOP=1 -v grafana_db_password="$GRAFANA_DB_PASSWORD" --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+  CREATE USER grafana WITH PASSWORD :'grafana_db_password';
   GRANT CONNECT ON DATABASE "$POSTGRES_DB" TO grafana;
   ALTER DEFAULT PRIVILEGES GRANT USAGE ON SCHEMAS TO grafana;
   ALTER DEFAULT PRIVILEGES GRANT SELECT ON TABLES TO grafana;

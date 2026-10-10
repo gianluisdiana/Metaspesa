@@ -125,7 +125,7 @@ export const zProductPageResponse = z.object({
  * New name for a shopping list.
  */
 export const zRenameShoppingListRequest = z.object({
-    name: z.string().nullable()
+    name: z.string()
 });
 
 /**
